@@ -84,7 +84,8 @@ class ManualItemForm(forms.ModelForm):
             empty_label="Select TV Show",
             widget=forms.Select(attrs={
                 "class": "season-field",
-                "style": "display: none;"
+                "style": "display: none;",
+                "label_class": "season-field"
             })
         )
         
@@ -96,8 +97,9 @@ class ManualItemForm(forms.ModelForm):
             ),
             empty_label="Select Season",
             widget=forms.Select(attrs={
-                "class": "episode-field",
-                "style": "display: none;"
+                "class": "episode-field", 
+                "style": "display: none;",
+                "label_class": "episode-field"
             })
         )
 
@@ -106,7 +108,8 @@ class ManualItemForm(forms.ModelForm):
             min_value=1,
             widget=forms.NumberInput(attrs={
                 "class": "season-field",
-                "style": "display: none;"
+                "style": "display: none;",
+                "label_class": "season-field"
             })
         )
 
@@ -115,7 +118,8 @@ class ManualItemForm(forms.ModelForm):
             min_value=1,
             widget=forms.NumberInput(attrs={
                 "class": "episode-field",
-                "style": "display: none;"
+                "style": "display: none;",
+                "label_class": "episode-field"
             })
         )
 
