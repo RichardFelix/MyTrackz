@@ -4,6 +4,8 @@ from django import forms
 from django.conf import settings
 from django.urls import reverse
 
+from app.models import Item
+
 from app import models
 
 
