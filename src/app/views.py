@@ -117,9 +117,8 @@ def media_search(request):
 
 
 @require_GET
-def media_details(request, media_type, media_id, title):  # noqa: ARG001 title for URL
+def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
-    source = request.GET.get("source")
     media_metadata = services.get_media_metadata(media_type, media_id, source)
 
     context = {"media": media_metadata}
@@ -127,7 +126,7 @@ def media_details(request, media_type, media_id, title):  # noqa: ARG001 title f
 
 
 @require_GET
-def season_details(request, media_id, title, season_number):  # noqa: ARG001 title for URL
+def season_details(request, media_id, title, season_number):  # noqa: ARG001 For URL
     """Return the details page for a season."""
     tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
     season_metadata = tv_metadata[f"season/{season_number}"]

@@ -38,12 +38,17 @@ STATUS_PLANNING = "Planning"
 STATUS_PAUSED = "Paused"
 STATUS_DROPPED = "Dropped"
 
+SOURCES = ["tmdb", "mal", "mangaupdates", "igdb", "manual"]
+
 
 class Item(models.Model):
     """Model for items in custom lists."""
 
     media_id = models.PositiveIntegerField()
-    source = models.CharField(max_length=255)
+    source = models.CharField(
+        max_length=20,
+        choices=[(source, source) for source in SOURCES],
+    )
     media_type = models.CharField(
         max_length=10,
         choices=[
@@ -115,6 +120,7 @@ class Item(models.Model):
         return reverse(
             "media_details",
             kwargs={
+                "source": self.source,
                 "media_type": self.media_type,
                 "media_id": self.media_id,
                 "title": slug(self.title),

@@ -3,18 +3,20 @@ from django.urls import path, register_converter
 from app import converters, views
 
 register_converter(converters.MediaTypeChecker, "media_type")
+register_converter(converters.SourceChecker, "source")
+
 
 urlpatterns = [
     path("", views.home, name="home"),
     path("medialist/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(
-        "details/<media_type:media_type>/<int:media_id>/<str:title>",
+        "details/<source:source>/<media_type:media_type>/<int:media_id>/<str:title>",
         views.media_details,
         name="media_details",
     ),
     path(
-        "details/tv/<int:media_id>/<str:title>/season/<int:season_number>",
+        "details/tmdb/tv/<int:media_id>/<str:title>/season/<int:season_number>",
         views.season_details,
         name="season_details",
     ),
