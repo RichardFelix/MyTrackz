@@ -304,12 +304,51 @@ def add_manual_item(request):
             manual_items_count = Item.objects.filter(source="manual").count()
             item.media_id = manual_items_count + 1
             
-            if item.media_type == "tv":
+            if item.media_type == "season":
+                parent_tv = form.cleaned_data.get("parent_tv")
                 season_number = form.cleaned_data.get("season_number")
-                episode_number = form.cleaned_data.get("episode_number")
-                if not season_number or not episode_number:
-                    messages.error(request, "Season and episode numbers are required for TV shows.")
+                
+                if not parent_tv:
+                    messages.error(request, "Parent TV show is required for seasons.")
                     return redirect("add_manual_item")
+                if not season_number:
+                    messages.error(request, "Season number is required.")
+                    return redirect("add_manual_item")
+                    
+                # Validate season number uniqueness for this TV show
+                if models.Item.objects.filter(
+                    media_type="season",
+                    media_id=parent_tv.media_id,
+                    season_number=season_number
+                ).exists():
+                    messages.error(request, f"Season {season_number} already exists for this TV show.")
+                    return redirect("add_manual_item")
+                    
+                item.media_id = parent_tv.media_id
+                
+            elif item.media_type == "episode":
+                parent_season = form.cleaned_data.get("parent_season")
+                episode_number = form.cleaned_data.get("episode_number")
+                
+                if not parent_season:
+                    messages.error(request, "Parent season is required for episodes.")
+                    return redirect("add_manual_item")
+                if not episode_number:
+                    messages.error(request, "Episode number is required.")
+                    return redirect("add_manual_item")
+                    
+                # Validate episode number uniqueness for this season
+                if models.Item.objects.filter(
+                    media_type="episode",
+                    media_id=parent_season.media_id,
+                    season_number=parent_season.season_number,
+                    episode_number=episode_number
+                ).exists():
+                    messages.error(request, f"Episode {episode_number} already exists in this season.")
+                    return redirect("add_manual_item")
+                    
+                item.media_id = parent_season.media_id
+                item.season_number = parent_season.season_number
                 
             item.save()
 

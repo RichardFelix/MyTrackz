@@ -18,15 +18,34 @@
 
     <script>
         document.getElementById('id_media_type').addEventListener('change', function() {
-            var tvFields = document.getElementsByClassName('tv-field');
-            for (var i = 0; i < tvFields.length; i++) {
-                if (this.value === 'tv') {
-                    tvFields[i].style.display = 'block';
-                    tvFields[i].required = true;
-                } else {
-                    tvFields[i].style.display = 'none';
-                    tvFields[i].required = false;
-                    tvFields[i].value = '';
+            var seasonFields = document.getElementsByClassName('season-field');
+            var episodeFields = document.getElementsByClassName('episode-field');
+            
+            // Hide all fields first
+            for (var field of seasonFields) {
+                field.style.display = 'none';
+                field.required = false;
+                field.labels[0].style.display = 'none';
+            }
+            for (var field of episodeFields) {
+                field.style.display = 'none'; 
+                field.required = false;
+                field.labels[0].style.display = 'none';
+            }
+
+            // Show relevant fields based on media type
+            if (this.value === 'season') {
+                for (var field of seasonFields) {
+                    field.style.display = 'block';
+                    field.required = true;
+                    field.labels[0].style.display = 'block';
+                }
+            }
+            else if (this.value === 'episode') {
+                for (var field of episodeFields) {
+                    field.style.display = 'block';
+                    field.required = true;
+                    field.labels[0].style.display = 'block';
                 }
             }
         });

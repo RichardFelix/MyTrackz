@@ -74,28 +74,47 @@ class ManualItemForm(forms.ModelForm):
             "initial": "movie",
         }
 
-        # Remove season and episode from choices, keep TV
-        filtered_choices = [
-            item
-            for item in self.fields["media_type"].choices
-            if item[0] not in ("season", "episode")
-        ]
-        self.fields["media_type"].choices = filtered_choices
+        # Add parent selection fields
+        self.fields["parent_tv"] = forms.ModelChoiceField(
+            required=False,
+            queryset=models.Item.objects.filter(
+                source="manual",
+                media_type="tv"
+            ),
+            empty_label="Select TV Show",
+            widget=forms.Select(attrs={
+                "class": "season-field",
+                "style": "display: none;"
+            })
+        )
+        
+        self.fields["parent_season"] = forms.ModelChoiceField(
+            required=False,
+            queryset=models.Item.objects.filter(
+                source="manual",
+                media_type="season"
+            ),
+            empty_label="Select Season",
+            widget=forms.Select(attrs={
+                "class": "episode-field",
+                "style": "display: none;"
+            })
+        )
 
-        # Add fields for TV shows
         self.fields["season_number"] = forms.IntegerField(
             required=False,
             min_value=1,
             widget=forms.NumberInput(attrs={
-                "class": "tv-field",
+                "class": "season-field",
                 "style": "display: none;"
             })
         )
+
         self.fields["episode_number"] = forms.IntegerField(
             required=False,
             min_value=1,
             widget=forms.NumberInput(attrs={
-                "class": "tv-field", 
+                "class": "episode-field",
                 "style": "display: none;"
             })
         )
