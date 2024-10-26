@@ -303,6 +303,14 @@ def add_manual_item(request):
             item.source = "manual"
             manual_items_count = Item.objects.filter(source="manual").count()
             item.media_id = manual_items_count + 1
+            
+            if item.media_type == "tv":
+                season_number = form.cleaned_data.get("season_number")
+                episode_number = form.cleaned_data.get("episode_number")
+                if not season_number or not episode_number:
+                    messages.error(request, "Season and episode numbers are required for TV shows.")
+                    return redirect("add_manual_item")
+                
             item.save()
 
             updated_request = request.POST.copy()

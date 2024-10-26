@@ -74,13 +74,31 @@ class ManualItemForm(forms.ModelForm):
             "initial": "movie",
         }
 
-        # Remove TV-related media types from the choices
+        # Remove season and episode from choices, keep TV
         filtered_choices = [
             item
             for item in self.fields["media_type"].choices
-            if item[0] not in ("tv", "season", "episode")
+            if item[0] not in ("season", "episode")
         ]
         self.fields["media_type"].choices = filtered_choices
+
+        # Add fields for TV shows
+        self.fields["season_number"] = forms.IntegerField(
+            required=False,
+            min_value=1,
+            widget=forms.NumberInput(attrs={
+                "class": "tv-field",
+                "style": "display: none;"
+            })
+        )
+        self.fields["episode_number"] = forms.IntegerField(
+            required=False,
+            min_value=1,
+            widget=forms.NumberInput(attrs={
+                "class": "tv-field", 
+                "style": "display: none;"
+            })
+        )
 
         self.fields["image"].required = False
 

@@ -15,4 +15,20 @@
         {% include "app/components/add_manual_form.html" with form=media_form %}
         <button class="btn btn-secondary" type="submit">Submit</button>
     </form>
+
+    <script>
+        document.getElementById('id_media_type').addEventListener('change', function() {
+            var tvFields = document.getElementsByClassName('tv-field');
+            for (var i = 0; i < tvFields.length; i++) {
+                if (this.value === 'tv') {
+                    tvFields[i].style.display = 'block';
+                    tvFields[i].required = true;
+                } else {
+                    tvFields[i].style.display = 'none';
+                    tvFields[i].required = false;
+                    tvFields[i].value = '';
+                }
+            }
+        });
+    </script>
 {% endblock container %}
