@@ -55,6 +55,24 @@ class CustomDurationField(forms.CharField):
 class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""
 
+    parent_tv = forms.ModelChoiceField(
+        queryset=models.Item.objects.filter(
+            source="manual",
+            media_type="tv",
+        ),
+        empty_label="Select",
+        label="Parent TV Show",
+    )
+
+    parent_season = forms.ModelChoiceField(
+        queryset=models.Item.objects.filter(
+            source="manual",
+            media_type="season",
+        ),
+        empty_label="Select",
+        label="Parent Season",
+    )
+
     class Meta:
         """Bind form to model."""
 
@@ -63,67 +81,34 @@ class ManualItemForm(forms.ModelForm):
             "media_type",
             "title",
             "image",
+            "season_number",
+            "episode_number",
         ]
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
+
         self.fields["media_type"].widget.attrs = {
             "hx-get": reverse("add_manual_media"),
             "hx-target": "#media-form",
             "initial": "movie",
         }
-
-        # Add parent selection fields
-        self.fields["parent_tv"] = forms.ModelChoiceField(
-            required=False,
-            queryset=models.Item.objects.filter(
-                source="manual",
-                media_type="tv"
-            ),
-            empty_label="Select TV Show",
-            widget=forms.Select(attrs={
-                "class": "season-field",
-                "style": "display: none;",
-                "label_class": "season-field"
-            })
-        )
-        
-        self.fields["parent_season"] = forms.ModelChoiceField(
-            required=False,
-            queryset=models.Item.objects.filter(
-                source="manual",
-                media_type="season"
-            ),
-            empty_label="Select Season",
-            widget=forms.Select(attrs={
-                "class": "episode-field", 
-                "style": "display: none;",
-                "label_class": "episode-field"
-            })
-        )
-
-        self.fields["season_number"] = forms.IntegerField(
-            required=False,
-            min_value=1,
-            widget=forms.NumberInput(attrs={
-                "class": "season-field",
-                "style": "display: none;",
-                "label_class": "season-field"
-            })
-        )
-
-        self.fields["episode_number"] = forms.IntegerField(
-            required=False,
-            min_value=1,
-            widget=forms.NumberInput(attrs={
-                "class": "episode-field",
-                "style": "display: none;",
-                "label_class": "episode-field"
-            })
-        )
-
         self.fields["image"].required = False
+
+        self.helper = FormHelper()
+
+        self.helper.layout = Layout(
+            "media_type",
+            "parent_tv",
+            "parent_season",
+            "title",
+            "image",
+            "season_number",
+            "episode_number",
+        )
+
+        self.helper.form_tag = False
 
     def clean(self):
         """Validate the form."""

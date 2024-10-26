@@ -326,7 +326,6 @@ def add_manual_item(request):
                     return redirect("add_manual_item")
 
                 item.media_id = parent_tv.media_id
-                item.season_number = season_number  # Set season_number before validation
 
             elif item.media_type == "episode":
                 parent_season = form.cleaned_data.get("parent_season")
@@ -354,6 +353,10 @@ def add_manual_item(request):
 
                 item.media_id = parent_season.media_id
                 item.season_number = parent_season.season_number
+
+            else:
+                manual_items_count = Item.objects.filter(source="manual").count()
+                item.media_id = manual_items_count + 1
 
             item.save()
 

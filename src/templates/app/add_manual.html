@@ -10,66 +10,12 @@
 {% block container %}
     <h2 class="mb-4">Add Manual Media Entry</h2>
     <form method="post">
-        {% csrf_token %}
-        {{ form|crispy }}
+        {% crispy form %}
         {% include "app/components/add_manual_form.html" with form=media_form %}
         <button class="btn btn-secondary" type="submit">Submit</button>
     </form>
-
-    <script>
-        function hideFields(fields) {
-            for (var field of fields) {
-                field.style.display = 'none';
-                field.required = false;
-                // Find and hide label
-                var labels = document.querySelectorAll(`label[for="${field.id}"]`);
-                labels.forEach(label => label.style.display = 'none');
-            }
-        }
-
-        // Hide fields on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            var seasonFields = document.getElementsByClassName('season-field');
-            var episodeFields = document.getElementsByClassName('episode-field');
-            hideFields(seasonFields);
-            hideFields(episodeFields);
-        });
-
-        document.getElementById('id_media_type').addEventListener('change', function() {
-            var seasonFields = document.getElementsByClassName('season-field');
-            var episodeFields = document.getElementsByClassName('episode-field');
-            
-            // Hide all fields and their labels first
-            function hideFields(fields) {
-                for (var field of fields) {
-                    field.style.display = 'none';
-                    field.required = false;
-                    // Find and hide label
-                    var labels = document.querySelectorAll(`label[for="${field.id}"]`);
-                    labels.forEach(label => label.style.display = 'none');
-                }
-            }
-
-            hideFields(seasonFields);
-            hideFields(episodeFields);
-
-            // Show relevant fields based on media type
-            if (this.value === 'season') {
-                for (var field of seasonFields) {
-                    field.style.display = 'block';
-                    field.required = true;
-                    var labels = document.querySelectorAll(`label[for="${field.id}"]`);
-                    labels.forEach(label => label.style.display = 'block');
-                }
-            }
-            else if (this.value === 'episode') {
-                for (var field of episodeFields) {
-                    field.style.display = 'block';
-                    field.required = true;
-                    var labels = document.querySelectorAll(`label[for="${field.id}"]`);
-                    labels.forEach(label => label.style.display = 'block');
-                }
-            }
-        });
-    </script>
 {% endblock container %}
+
+{% block js %}
+    <script src="{% static 'js/form-type-switch.js' %}"></script>
+{% endblock js %}
