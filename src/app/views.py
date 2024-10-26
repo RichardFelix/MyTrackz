@@ -299,87 +299,31 @@ def add_manual_item(request):
     if request.method == "POST":
         form = ManualItemForm(request.POST)
         if form.is_valid():
-            item = form.save(commit=False)
-            item.source = "manual"
-
-            if item.media_type == "season":
-                parent_tv = form.cleaned_data.get("parent_tv")
-                season_number = form.cleaned_data.get("season_number")
-
-                if not parent_tv:
-                    messages.error(request, "Parent TV show is required for seasons.")
-                    return redirect("add_manual_item")
-                if not season_number:
-                    messages.error(request, "Season number is required.")
-                    return redirect("add_manual_item")
-
-                # Validate season number uniqueness for this TV show
-                if models.Item.objects.filter(
-                    media_type="season",
-                    media_id=parent_tv.media_id,
-                    season_number=season_number,
-                ).exists():
-                    messages.error(
-                        request,
-                        f"Season {season_number} already exists for this TV show.",
-                    )
-                    return redirect("add_manual_item")
-
-                item.media_id = parent_tv.media_id
-
-            elif item.media_type == "episode":
-                parent_season = form.cleaned_data.get("parent_season")
-                episode_number = form.cleaned_data.get("episode_number")
-
-                if not parent_season:
-                    messages.error(request, "Parent season is required for episodes.")
-                    return redirect("add_manual_item")
-                if not episode_number:
-                    messages.error(request, "Episode number is required.")
-                    return redirect("add_manual_item")
-
-                # Validate episode number uniqueness for this season
-                if models.Item.objects.filter(
-                    media_type="episode",
-                    media_id=parent_season.media_id,
-                    season_number=parent_season.season_number,
-                    episode_number=episode_number,
-                ).exists():
-                    messages.error(
-                        request,
-                        f"Episode {episode_number} already exists in this season.",
-                    )
-                    return redirect("add_manual_item")
-
-                item.media_id = parent_season.media_id
-                item.season_number = parent_season.season_number
-
-            else:
-                manual_items_count = Item.objects.filter(source="manual").count()
-                item.media_id = manual_items_count + 1
-
-            item.save()
-
-            updated_request = request.POST.copy()
-            updated_request.update({"item": item.id})
-            media_form = get_form_class(item.media_type)(updated_request)
-            if media_form.is_valid():
-                media_form.instance.user = request.user
-                media_form.save()
-                messages.success(request, f"{item} added successfully.")
-            else:
-                messages.error(
-                    request,
-                    "Could not save the media item, there were errors in the form.",
-                )
-                logger.error(media_form.errors.as_json())
-                item.delete()
-
+            try:
+                item = form.save()
+                
+                updated_request = request.POST.copy()
+                updated_request.update({"item": item.id})
+                media_form = get_form_class(item.media_type)(updated_request)
+                
+                if media_form.is_valid():
+                    media_form.instance.user = request.user
+                    media_form.save()
+                    messages.success(request, f"{item} added successfully.")
+                else:
+                    raise ValidationError(media_form.errors)
+                    
+            except ValidationError as e:
+                messages.error(request, str(e))
+                if 'item' in locals():
+                    item.delete()
+                logger.error(str(e))
+            
             return redirect("add_manual_item")
 
     form = ManualItemForm()
     context = {"form": form, "media_form": get_form_class(form["media_type"].value())}
-
+    
     return render(request, "app/add_manual.html", context)
 
 

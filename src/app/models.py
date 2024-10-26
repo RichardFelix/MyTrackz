@@ -97,13 +97,39 @@ class Item(models.Model):
             if self.episode_number is not None:
                 msg = "Episode number should not be set for season."
                 raise ValidationError(msg)
+            
+            # Validate season number uniqueness for this TV show
+            if Item.objects.filter(
+                media_type="season",
+                media_id=self.media_id,
+                season_number=self.season_number,
+            ).exists():
+                msg = f"Season {self.season_number} already exists for this TV show."
+                raise ValidationError(msg)
+
         elif self.media_type == "episode":
             if self.season_number is None or self.episode_number is None:
                 msg = "Both season number and episode number are required for episode."
                 raise ValidationError(msg)
+            
+            # Validate episode number uniqueness for this season
+            if Item.objects.filter(
+                media_type="episode",
+                media_id=self.media_id,
+                season_number=self.season_number,
+                episode_number=self.episode_number,
+            ).exists():
+                msg = f"Episode {self.episode_number} already exists in this season."
+                raise ValidationError(msg)
+
         elif self.season_number is not None or self.episode_number is not None:
             msg = "Season number and episode number should not be set for this."
             raise ValidationError(msg)
+
+    @classmethod
+    def generate_manual_id(cls):
+        """Generate a new ID for manual items."""
+        return cls.objects.filter(source="manual").count() + 1
 
     @property
     def url(self):

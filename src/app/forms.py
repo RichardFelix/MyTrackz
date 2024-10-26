@@ -113,10 +113,36 @@ class ManualItemForm(forms.ModelForm):
     def clean(self):
         """Validate the form."""
         cleaned_data = super().clean()
+        media_type = cleaned_data.get("media_type")
         image = cleaned_data.get("image")
+
         if not image:
             cleaned_data["image"] = settings.IMG_NONE
+
+        if media_type == "season":
+            parent_tv = cleaned_data.get("parent_tv")
+            if parent_tv:
+                cleaned_data["media_id"] = parent_tv.media_id
+            
+        elif media_type == "episode":
+            parent_season = cleaned_data.get("parent_season")
+            if parent_season:
+                cleaned_data["media_id"] = parent_season.media_id
+                cleaned_data["season_number"] = parent_season.season_number
+        
         return cleaned_data
+
+    def save(self, commit=True):
+        """Save the form and handle manual media ID generation."""
+        instance = super().save(commit=False)
+        instance.source = "manual"
+        
+        if instance.media_type not in ("season", "episode"):
+            instance.media_id = Item.generate_manual_id()
+            
+        if commit:
+            instance.save()
+        return instance
 
 
 class MediaForm(forms.ModelForm):
