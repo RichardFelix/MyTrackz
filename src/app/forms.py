@@ -84,19 +84,18 @@ class ManualItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
-        self.user = kwargs.pop('user', None)
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-
         if self.user:
-            self.fields['parent_tv'].queryset = models.TV.objects.filter(
+            self.fields["parent_tv"].queryset = models.TV.objects.filter(
                 user=self.user,
                 item__source="manual",
-                item__media_type="tv"
+                item__media_type="tv",
             )
-            self.fields['parent_season'].queryset = models.Season.objects.filter(
+            self.fields["parent_season"].queryset = models.Season.objects.filter(
                 user=self.user,
                 item__source="manual",
-                item__media_type="season"
+                item__media_type="season",
             )
 
         self.fields["media_type"].widget.attrs = {
@@ -130,16 +129,18 @@ class ManualItemForm(forms.ModelForm):
 
         return cleaned_data
 
-    def save(self, commit=True): # noqa: FBT002
+    def save(self, commit=True):  # noqa: FBT002
         """Save the form and handle manual media ID generation."""
         instance = super().save(commit=False)
         instance.source = "manual"
 
         if instance.media_type == "season":
-            instance.media_id = self.cleaned_data["parent_tv"].media_id
+            parent_tv = self.cleaned_data["parent_tv"]
+            instance.media_id = parent_tv.item.media_id
         elif instance.media_type == "episode":
-            instance.media_id = self.cleaned_data["parent_season"].media_id
-            instance.season_number = self.cleaned_data["parent_season"].season_number
+            parent_season = self.cleaned_data["parent_season"]
+            instance.media_id = parent_season.item.media_id
+            instance.season_number = parent_season.item.season_number
         else:
             instance.media_id = Item.generate_manual_id()
 

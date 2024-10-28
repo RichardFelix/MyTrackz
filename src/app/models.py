@@ -2,14 +2,13 @@ import datetime
 import logging
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.validators import (
     DecimalValidator,
     MaxValueValidator,
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import Max, Sum
+from django.db.models import CheckConstraint, Max, Q, Sum, UniqueConstraint
 from django.urls import reverse
 from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
@@ -64,12 +63,55 @@ class Item(models.Model):
     class Meta:
         """Meta options for the model."""
 
-        unique_together = [
-            "media_id",
-            "source",
-            "media_type",
-            "season_number",
-            "episode_number",
+        constraints = [
+            UniqueConstraint(
+                fields=["media_id", "source", "media_type"],
+                condition=Q(season_number__isnull=True, episode_number__isnull=True),
+                name="unique_item_without_season_episode",
+            ),
+            UniqueConstraint(
+                fields=["media_id", "source", "media_type", "season_number"],
+                condition=Q(season_number__isnull=False, episode_number__isnull=True),
+                name="unique_item_with_season",
+            ),
+            UniqueConstraint(
+                fields=[
+                    "media_id",
+                    "source",
+                    "media_type",
+                    "season_number",
+                    "episode_number",
+                ],
+                condition=Q(season_number__isnull=False, episode_number__isnull=False),
+                name="unique_item_with_season_episode",
+            ),
+            CheckConstraint(
+                check=Q(
+                    media_type="season",
+                    season_number__isnull=False,
+                    episode_number__isnull=True,
+                )
+                | ~Q(media_type="season"),
+                name="season_number_required_for_season",
+            ),
+            CheckConstraint(
+                check=Q(
+                    media_type="episode",
+                    season_number__isnull=False,
+                    episode_number__isnull=False,
+                )
+                | ~Q(media_type="episode"),
+                name="season_and_episode_required_for_episode",
+            ),
+            CheckConstraint(
+                check=Q(
+                    ~Q(media_type__in=["season", "episode"]),
+                    season_number__isnull=True,
+                    episode_number__isnull=True,
+                )
+                | Q(media_type__in=["season", "episode"]),
+                name="no_season_episode_for_other_types",
+            ),
         ]
         ordering = ["media_id"]
 
@@ -82,54 +124,17 @@ class Item(models.Model):
                 name += f"E{self.episode_number}"
         return name
 
-    def save(self, *args, **kwargs):
-        """Save the item instance."""
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    def clean(self):
-        """Validate the item instance."""
-        super().clean()
-        if self.media_type == "season":
-            if self.season_number is None:
-                msg = "Season number is required for season."
-                raise ValidationError(msg)
-            if self.episode_number is not None:
-                msg = "Episode number should not be set for season."
-                raise ValidationError(msg)
-            
-            # Validate season number uniqueness for this TV show
-            if Item.objects.filter(
-                media_type="season",
-                media_id=self.media_id,
-                season_number=self.season_number,
-            ).exists():
-                msg = f"Season {self.season_number} already exists for this TV show."
-                raise ValidationError(msg)
-
-        elif self.media_type == "episode":
-            if self.season_number is None or self.episode_number is None:
-                msg = "Both season number and episode number are required for episode."
-                raise ValidationError(msg)
-            
-            # Validate episode number uniqueness for this season
-            if Item.objects.filter(
-                media_type="episode",
-                media_id=self.media_id,
-                season_number=self.season_number,
-                episode_number=self.episode_number,
-            ).exists():
-                msg = f"Episode {self.episode_number} already exists in this season."
-                raise ValidationError(msg)
-
-        elif self.season_number is not None or self.episode_number is not None:
-            msg = "Season number and episode number should not be set for this."
-            raise ValidationError(msg)
-
     @classmethod
     def generate_manual_id(cls):
         """Generate a new ID for manual items."""
-        return cls.objects.filter(source="manual").count() + 1
+        return (
+            cls.objects.filter(source="manual")
+            .exclude(
+                ~Q(media_type__in=["season", "episode"]),
+            )
+            .count()
+            + 1
+        )
 
     @property
     def url(self):

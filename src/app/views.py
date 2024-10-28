@@ -2,13 +2,13 @@ import logging
 
 from django.apps import apps
 from django.contrib import messages
-from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import database, helpers, models
+from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
 from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
 from app.providers import igdb, mal, mangaupdates, services, tmdb
@@ -298,33 +298,34 @@ def episode_handler(request):
 def add_manual_item(request):
     """Return the form for manually adding media items."""
     if request.method == "POST":
-        form = ManualItemForm(request.POST)
+        form = ManualItemForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 item = form.save()
-                
-                updated_request = request.POST.copy()
-                updated_request.update({"item": item.id})
-                media_form = get_form_class(item.media_type)(updated_request)
-                
-                if media_form.is_valid():
-                    media_form.instance.user = request.user
-                    media_form.save()
-                    messages.success(request, f"{item} added successfully.")
-                else:
-                    raise ValidationError(media_form.errors)
-                    
-            except ValidationError as e:
-                messages.error(request, str(e))
-                if 'item' in locals():
-                    item.delete()
-                logger.error(str(e))
-            
+            except IntegrityError:
+                messages.error(request, "This item already exists in the database.")
+                return redirect("add_manual_item")
+
+            updated_request = request.POST.copy()
+            updated_request.update({"item": item.id})
+            media_form = get_form_class(item.media_type)(updated_request)
+
+            if media_form.is_valid():
+                media_form.instance.user = request.user
+                if item.media_type == "season":
+                    media_form.instance.related_tv = form.cleaned_data["parent_tv"]
+                elif item.media_type == "episode":
+                    media_form.instance.related_season = form.cleaned_data[
+                        "parent_season"
+                    ]
+                media_form.save()
+                messages.success(request, f"{item} added successfully.")
+
             return redirect("add_manual_item")
 
-    form = ManualItemForm()
+    form = ManualItemForm(user=request.user)
     context = {"form": form, "media_form": get_form_class(form["media_type"].value())}
-    
+
     return render(request, "app/add_manual.html", context)
 
 
