@@ -1,40 +1,44 @@
 document.addEventListener("DOMContentLoaded", function () {
-  const mediaTypeSelect = document.getElementById("id_media_type");
-  const parentTVField = document.getElementById("id_parent_tv");
-  const parentSeasonField = document.getElementById("id_parent_season");
-  const seasonNumberField = document.getElementById("id_season_number");
-  const episodeNumberField = document.getElementById("id_episode_number");
+  const fields = {
+    mediaType: document.getElementById("id_media_type"),
+    parentTV: document.getElementById("id_parent_tv"),
+    parentSeason: document.getElementById("id_parent_season"),
+    seasonNumber: document.getElementById("id_season_number"),
+    episodeNumber: document.getElementById("id_episode_number")
+  };
+
+  const fieldVisibility = {
+    season: {
+      parentTV: true,
+      parentSeason: false,
+      seasonNumber: true,
+      episodeNumber: false
+    },
+    episode: {
+      parentTV: false,
+      parentSeason: true,
+      seasonNumber: true,
+      episodeNumber: true
+    },
+    default: {
+      parentTV: false,
+      parentSeason: false,
+      seasonNumber: false,
+      episodeNumber: false
+    }
+  };
 
   function updateFieldVisibility() {
-    const selectedMediaType = mediaTypeSelect.value;
+    const selectedMediaType = fields.mediaType.value;
+    const visibility = fieldVisibility[selectedMediaType] || fieldVisibility.default;
 
-    if (selectedMediaType === "season") {
-      parentTVField.parentNode.style.display = "block";
-      parentTVField.required = true;
-      parentSeasonField.parentNode.style.display = "none";
-      parentSeasonField.required = false;
-      seasonNumberField.parentNode.style.display = "block";
-      seasonNumberField.required = true;
-    } else if (selectedMediaType === "episode") {
-      parentTVField.parentNode.style.display = "none";
-      parentTVField.required = false;
-      parentSeasonField.parentNode.style.display = "block";
-      parentSeasonField.required = true;
-      seasonNumberField.parentNode.style.display = "block";
-      episodeNumberField.parentNode.style.display = "block";
-      seasonNumberField.required = true;
-      episodeNumberField.required = true;
-    } else {
-      parentTVField.parentNode.style.display = "none";
-      parentTVField.required = false;
-      parentSeasonField.parentNode.style.display = "none";
-      parentSeasonField.required = false;
-      seasonNumberField.parentNode.style.display = "none";
-      seasonNumberField.required = false;
-      episodeNumberField.parentNode.style.display = "none";
-      episodeNumberField.required = false;
+    for (const [field, isVisible] of Object.entries(visibility)) {
+      const element = fields[field];
+      element.parentNode.style.display = isVisible ? "block" : "none";
+      element.required = isVisible;
     }
   }
-  mediaTypeSelect.addEventListener("change", updateFieldVisibility);
-  updateFieldVisibility(); // Call once to set initial state
+
+  fields.mediaType.addEventListener("change", updateFieldVisibility);
+  updateFieldVisibility(); // Set initial state
 });
