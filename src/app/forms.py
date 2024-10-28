@@ -4,9 +4,8 @@ from django import forms
 from django.conf import settings
 from django.urls import reverse
 
-from app.models import Item
-
 from app import models
+from app.models import Item
 
 
 def get_form_class(media_type):
@@ -58,6 +57,7 @@ class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""
 
     parent_tv = forms.ModelChoiceField(
+        required=False,
         queryset=models.Item.objects.filter(
             source="manual",
             media_type="tv",
@@ -67,6 +67,7 @@ class ManualItemForm(forms.ModelForm):
     )
 
     parent_season = forms.ModelChoiceField(
+        required=False,
         queryset=models.Item.objects.filter(
             source="manual",
             media_type="season",
@@ -115,33 +116,26 @@ class ManualItemForm(forms.ModelForm):
     def clean(self):
         """Validate the form."""
         cleaned_data = super().clean()
-        media_type = cleaned_data.get("media_type")
         image = cleaned_data.get("image")
 
         if not image:
             cleaned_data["image"] = settings.IMG_NONE
 
-        if media_type == "season":
-            parent_tv = cleaned_data.get("parent_tv")
-            if parent_tv:
-                cleaned_data["media_id"] = parent_tv.media_id
-            
-        elif media_type == "episode":
-            parent_season = cleaned_data.get("parent_season")
-            if parent_season:
-                cleaned_data["media_id"] = parent_season.media_id
-                cleaned_data["season_number"] = parent_season.season_number
-        
         return cleaned_data
 
-    def save(self, commit=True):
+    def save(self, commit=True): # noqa: FBT002
         """Save the form and handle manual media ID generation."""
         instance = super().save(commit=False)
         instance.source = "manual"
-        
-        if instance.media_type not in ("season", "episode"):
+
+        if instance.media_type == "season":
+            instance.media_id = self.cleaned_data["parent_tv"].media_id
+        elif instance.media_type == "episode":
+            instance.media_id = self.cleaned_data["parent_season"].media_id
+            instance.season_number = self.cleaned_data["parent_season"].season_number
+        else:
             instance.media_id = Item.generate_manual_id()
-            
+
         if commit:
             instance.save()
         return instance
