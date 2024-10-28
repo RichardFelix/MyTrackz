@@ -104,6 +104,7 @@ class ManualItemForm(forms.ModelForm):
             "initial": "movie",
         }
         self.fields["image"].required = False
+        self.fields["title"].required = False
 
         self.helper = FormHelper()
 
@@ -123,9 +124,21 @@ class ManualItemForm(forms.ModelForm):
         """Validate the form."""
         cleaned_data = super().clean()
         image = cleaned_data.get("image")
+        media_type = cleaned_data.get("media_type")
+        title = cleaned_data.get("title")
 
         if not image:
             cleaned_data["image"] = settings.IMG_NONE
+
+        # Title not required for season/episode
+        if media_type in ["season", "episode"] and not title:
+            if media_type == "season":
+                parent = cleaned_data.get("parent_tv")
+                cleaned_data["title"] = parent.item.title
+            else:  # episode
+                parent = cleaned_data.get("parent_season")
+                cleaned_data["title"] = parent.item.title
+                cleaned_data["season_number"] = parent.item.season_number
 
         return cleaned_data
 

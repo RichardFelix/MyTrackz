@@ -4,7 +4,8 @@ document.addEventListener("DOMContentLoaded", function () {
     parentTV: document.getElementById("id_parent_tv"),
     parentSeason: document.getElementById("id_parent_season"),
     seasonNumber: document.getElementById("id_season_number"),
-    episodeNumber: document.getElementById("id_episode_number")
+    episodeNumber: document.getElementById("id_episode_number"),
+    title: document.getElementById("id_title")
   };
 
   const fieldVisibility = {
@@ -12,19 +13,22 @@ document.addEventListener("DOMContentLoaded", function () {
       parentTV: true,
       parentSeason: false,
       seasonNumber: true,
-      episodeNumber: false
+      episodeNumber: false,
+      title: false
     },
     episode: {
       parentTV: false,
       parentSeason: true,
-      seasonNumber: true,
-      episodeNumber: true
+      seasonNumber: false,
+      episodeNumber: true,
+      title: false
     },
     default: {
       parentTV: false,
       parentSeason: false,
       seasonNumber: false,
-      episodeNumber: false
+      episodeNumber: false,
+      title: true
     }
   };
 
