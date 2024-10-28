@@ -58,20 +58,14 @@ class ManualItemForm(forms.ModelForm):
 
     parent_tv = forms.ModelChoiceField(
         required=False,
-        queryset=models.Item.objects.filter(
-            source="manual",
-            media_type="tv",
-        ),
+        queryset=models.TV.objects.none(),
         empty_label="Select",
         label="Parent TV Show",
     )
 
     parent_season = forms.ModelChoiceField(
         required=False,
-        queryset=models.Item.objects.filter(
-            source="manual",
-            media_type="season",
-        ),
+        queryset=models.Season.objects.none(),
         empty_label="Select",
         label="Parent Season",
     )
@@ -90,7 +84,20 @@ class ManualItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        if self.user:
+            self.fields['parent_tv'].queryset = models.TV.objects.filter(
+                user=self.user,
+                item__source="manual",
+                item__media_type="tv"
+            )
+            self.fields['parent_season'].queryset = models.Season.objects.filter(
+                user=self.user,
+                item__source="manual",
+                item__media_type="season"
+            )
 
         self.fields["media_type"].widget.attrs = {
             "hx-get": reverse("add_manual_media"),
