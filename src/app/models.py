@@ -130,7 +130,7 @@ class Item(models.Model):
         return (
             cls.objects.filter(source="manual")
             .exclude(
-                ~Q(media_type__in=["season", "episode"]),
+                Q(media_type__in=["season", "episode"]),
             )
             .count()
             + 1
