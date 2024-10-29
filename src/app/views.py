@@ -295,7 +295,7 @@ def episode_handler(request):
 
 
 @require_http_methods(["GET", "POST"])
-def add_manual_item(request):
+def create_item(request):
     """Return the form for manually adding media items."""
     if request.method == "POST":
         form = ManualItemForm(request.POST, user=request.user)
@@ -304,7 +304,7 @@ def add_manual_item(request):
                 item = form.save()
             except IntegrityError:
                 messages.error(request, "This item already exists in the database.")
-                return redirect("add_manual_item")
+                return redirect("create_item")
 
             updated_request = request.POST.copy()
             updated_request.update({"item": item.id})
@@ -321,20 +321,20 @@ def add_manual_item(request):
                 media_form.save()
                 messages.success(request, f"{item} added successfully.")
 
-            return redirect("add_manual_item")
+            return redirect("create_item")
 
     form = ManualItemForm(user=request.user)
     context = {"form": form, "media_form": get_form_class(form["media_type"].value())}
 
-    return render(request, "app/add_manual.html", context)
+    return render(request, "app/create_item.html", context)
 
 
 @require_GET
-def add_manual_media(request):
+def create_media(request):
     """Return the form for manually adding media items."""
     media_type = request.GET.get("media_type")
     context = {"form": get_form_class(media_type)}
-    return render(request, "app/components/add_manual_form.html", context)
+    return render(request, "app/components/create_media.html", context)
 
 
 @require_GET

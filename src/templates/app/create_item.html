@@ -8,10 +8,10 @@
 {% endblock title %}
 
 {% block container %}
-    <h2 class="mb-4">Add Manual Media Entry</h2>
+    <h2 class="mb-4">Custom Media Entry</h2>
     <form method="post">
         {% crispy form %}
-        {% include "app/components/add_manual_form.html" with form=media_form %}
+        {% include "app/components/create_media.html" with form=media_form %}
         <button class="btn btn-secondary" type="submit">Submit</button>
     </form>
 {% endblock container %}

@@ -99,7 +99,7 @@ class ManualItemForm(forms.ModelForm):
             )
 
         self.fields["media_type"].widget.attrs = {
-            "hx-get": reverse("add_manual_media"),
+            "hx-get": reverse("create_media"),
             "hx-target": "#media-form",
             "initial": "movie",
         }
