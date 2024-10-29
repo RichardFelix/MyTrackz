@@ -289,12 +289,12 @@ class EpisodeForm(forms.ModelForm):
 
         widgets = {
             "item": forms.HiddenInput(),
+            "watch_date": forms.DateInput(attrs={"type": "date"}),
         }
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
         super().__init__(*args, **kwargs)
-        self.fields["watch_date"].required = True
 
 
 class GameForm(MediaForm):
