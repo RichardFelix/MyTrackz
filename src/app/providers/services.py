@@ -166,7 +166,7 @@ def get_media_metadata(media_type, media_id, source, season_numbers=None):
     if source == "manual":
         if media_type == "season":
             return manual.season(media_id, media_type, season_numbers[0])
-        elif media_type == "tv_with_seasons":
+        if media_type == "tv_with_seasons":
             media_type = "tv"
         return manual.metadata(media_id, media_type)
 

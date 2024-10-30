@@ -47,7 +47,7 @@ def process_episodes(season_metadata, episodes_in_db):
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
         watched = episode_number in tracked_episodes
-        
+
         episode_data = {
             "source": "manual",
             "episode_number": episode_number,
@@ -56,12 +56,15 @@ def process_episodes(season_metadata, episodes_in_db):
             "title": episode["title"],
             "overview": "No synopsis available.",
             "watched": watched,
-            "watch_date": tracked_episodes[episode_number]["watch_date"] if watched else None,
+            "watch_date": tracked_episodes[episode_number]["watch_date"]
+            if watched
+            else None,
             "repeats": tracked_episodes[episode_number]["repeats"] if watched else 0,
         }
         episodes_metadata.append(episode_data)
 
     return episodes_metadata
+
 
 def get_season_items(media_id):
     """Get all season items for a media ID."""
@@ -75,14 +78,18 @@ def get_season_items(media_id):
 def process_seasons(season_items, response):
     """Process all seasons and return total episode count."""
     num_episodes = 0
-    
+
     for season in season_items:
         if "seasons" not in response["related"]:
             response["related"]["seasons"] = []
 
         season_episodes = get_season_episodes(season)
         episodes_response = build_episodes_response(season_episodes)
-        season_response = build_season_response(season, episodes_response, season_episodes)
+        season_response = build_season_response(
+            season,
+            episodes_response,
+            season_episodes,
+        )
 
         response[f"season/{season.season_number}"] = season_response
         response["related"]["seasons"].append(season_response)
