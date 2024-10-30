@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
 from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
-from app.providers import igdb, mal, mangaupdates, services, tmdb
+from app.providers import igdb, mal, mangaupdates, manual, services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -127,23 +127,34 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
 
 
 @require_GET
-def season_details(request, media_id, title, season_number):  # noqa: ARG001 For URL
+def season_details(request, source, media_id, title, season_number):  # noqa: ARG001 For URL
     """Return the details page for a season."""
-    tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
-    season_metadata = tv_metadata[f"season/{season_number}"]
-
+    tv_with_seasons_metadata = services.get_media_metadata(
+        "tv_with_seasons",
+        media_id,
+        source,
+        [season_number],
+    )
+    season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
     episodes_in_db = Episode.objects.filter(
         item__media_id=media_id,
+        item__source=source,
         item__season_number=season_number,
         related_season__user=request.user,
     ).values("item__episode_number", "watch_date", "repeats")
 
-    season_metadata["episodes"] = tmdb.process_episodes(
-        season_metadata,
-        episodes_in_db,
-    )
+    if source == "manual":
+        season_metadata["episodes"] = manual.process_episodes(
+            season_metadata,
+            episodes_in_db,
+        )
+    else:
+        season_metadata["episodes"] = tmdb.process_episodes(
+            season_metadata,
+            episodes_in_db,
+        )
 
-    context = {"season": season_metadata, "tv": tv_metadata}
+    context = {"season": season_metadata, "tv": tv_with_seasons_metadata}
     return render(request, "app/season_details.html", context)
 
 
@@ -249,6 +260,7 @@ def episode_handler(request):
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
     episode_number = request.POST["episode_number"]
+    source = request.POST["source"]
 
     try:
         related_season = Season.objects.get(
@@ -258,15 +270,20 @@ def episode_handler(request):
             user=request.user,
         )
     except Season.DoesNotExist:
-        tv_metadata = tmdb.tv_with_seasons(media_id, [season_number])
-        season_metadata = tv_metadata[f"season/{season_number}"]
+        tv_with_seasons_metadata = services.get_media_metadata(
+            "tv_with_seasons",
+            media_id,
+            source,
+            [season_number],
+        )
+        season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
         item = Item.objects.create(
             media_id=media_id,
             source="tmdb",
             media_type="season",
             season_number=season_number,
-            title=tv_metadata["title"],
+            title=tv_with_seasons_metadata["title"],
             image=season_metadata["image"],
         )
         related_season = Season(

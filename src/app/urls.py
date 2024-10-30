@@ -16,7 +16,7 @@ urlpatterns = [
         name="media_details",
     ),
     path(
-        "details/tmdb/tv/<int:media_id>/<str:title>/season/<int:season_number>",
+        "details/<source:source>/tv/<int:media_id>/<str:title>/season/<int:season_number>",
         views.season_details,
         name="season_details",
     ),
