@@ -32,11 +32,11 @@ class IntegrationTest(StaticLiveServerTestCase):
         page.get_by_label("Username*").fill("TEST")
         page.get_by_label("Username*").press("Tab")
         page.get_by_label("Password*").fill(
-            "Fb3RgAH3ZDSUKq2ts5QxPNC7yLwwtp7SNqo7g9tBgdiFgC3ktTwDokoS4qqL",
+            "12341234",
         )
         page.get_by_label("Password*").press("Tab")
         page.get_by_label("Password confirmation*").fill(
-            "Fb3RgAH3ZDSUKq2ts5QxPNC7yLwwtp7SNqo7g9tBgdiFgC3ktTwDokoS4qqL",
+            "12341234",
         )
         page.get_by_role("button", name="Sign Up").click()
         expect(
@@ -48,7 +48,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         page.get_by_label("Username*").fill("TEST")
         page.get_by_label("Password*").click()
         page.get_by_label("Password*").fill(
-            "Fb3RgAH3ZDSUKq2ts5QxPNC7yLwwtp7SNqo7g9tBgdiFgC3ktTwDokoS4qqL",
+            "12341234",
         )
         page.get_by_role("button", name="Log In").click()
         expect(
