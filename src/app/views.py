@@ -320,7 +320,9 @@ def create_item(request):
             try:
                 item = form.save()
             except IntegrityError:
-                messages.error(request, "This item already exists in the database.")
+                msg = "This item already exists in the database."
+                messages.error(request, msg)
+                logger.warning(msg)
                 return redirect("create_item")
 
             updated_request = request.POST.copy()
@@ -336,7 +338,9 @@ def create_item(request):
                         "parent_season"
                     ]
                 media_form.save()
-                messages.success(request, f"{item} added successfully.")
+                msg = f"{item} added successfully."
+                messages.success(request, msg)
+                logger.info(msg)
 
             return redirect("create_item")
 
