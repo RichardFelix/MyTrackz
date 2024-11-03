@@ -38,29 +38,30 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Environment variables
 
-| Name            | Type   | Notes                                                                                                                                                                       |
-| --------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TMDB_API        | String | The Movie Database API key for movies and tv shows, a default key is provided                                                                                               |
-| TMDB_NSFW       | Bool   | Default to false, set to true to include adult content in tv and movie searches                                                                                             |
-| TMDB_LANG       | String | TMDB metadata language, uses a Language code in ISO 639-1 e.g "en", for more specific results a country code in ISO 3166-1 can be added e.g "en-US"                         |
-| MAL_API         | String | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                         |
-| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches from MyAnimeList                                                                         |
-| MU_NSFW         | Bool   | Default to false, set to true to include adult content in manga searches from MangaUpdates                                                                                  |
-| IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit                                                           |
-| IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit                                                      |
-| IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                     |
-| SIMKL_ID        | String | Simkl API key for importing media, a default key is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)              |
-| SIMKL_SECRET    | String | Simkl API secret for importing media, a default secret is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)        |
-| REDIS_URL       | String | Default to redis://localhost:6379, Redis is needed for processing background tasks, set this to your redis server url                                                       |
-| SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                   |
-| ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve: add your local IP if you want to access from another computer in the house, then add your public IP if you want to access from outside, and/or your domain name if you plan to use one                                                                                                                                                                                                                      |
-| CSRF            | List   | HTTPS domain names that this Django site can serve, set this to your domain name if exposing to the public via `https` (in this case include `https://` but no trailing `/`)|
-| REGISTRATION    | Bool   | Default to true, set to false to disable user registration                                                                                                                  |
-| DEBUG           | Bool   | Default to false, set to true for debugging                                                                                                                                 |
-| PUID            | Int    | User ID for the app, default to 1000                                                                                                                                        |
-| PGID            | Int    | Group ID for the app, default to 1000                                                                                                                                       |
-| TZ              | String | Timezone, default to UTC                                                                                                                                                    |
-| WEB_CONCURRENCY | Int    | Number of webserver processes, default to 1 but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers) |
+| Name            | Type   | Notes                                                                                                                                                                                           |
+| --------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TMDB_API        | String | The Movie Database API key for movies and tv shows, a default key is provided                                                                                                                   |
+| TMDB_NSFW       | Bool   | Default to false, set to true to include adult content in tv and movie searches                                                                                                                 |
+| TMDB_LANG       | String | TMDB metadata language, uses a Language code in ISO 639-1 e.g "en", for more specific results a country code in ISO 3166-1 can be added e.g "en-US"                                             |
+| MAL_API         | String | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                                             |
+| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches from MyAnimeList                                                                                             |
+| MU_NSFW         | Bool   | Default to false, set to true to include adult content in manga searches from MangaUpdates                                                                                                      |
+| IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit                                                                               |
+| IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit                                                                          |
+| IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                                         |
+| SIMKL_ID        | String | Simkl API key for importing media, a default key is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)                                  |
+| SIMKL_SECRET    | String | Simkl API secret for importing media, a default secret is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/)                            |
+| REDIS_URL       | String | Default to redis://localhost:6379, Redis is needed for processing background tasks, set this to your redis server url                                                                           |
+| SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                                       |
+| ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve, e.g. `app.example.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts) for more details.   |
+| CSRF            | List   | A list of trusted origins for unsafe requests, e.g. `https://app.example.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#csrf-trusted-origins) for more |
+| URLS            | List   | This setting can be used to set the URLs of the app for the CSRF and ALLOWED_HOSTS settings, e.g. `https://app.example.com`                                                                     |
+| REGISTRATION    | Bool   | Default to true, set to false to disable user registration                                                                                                                                      |
+| DEBUG           | Bool   | Default to false, set to true for debugging                                                                                                                                                     |
+| PUID            | Int    | User ID for the app, default to 1000                                                                                                                                                            |
+| PGID            | Int    | Group ID for the app, default to 1000                                                                                                                                                           |
+| TZ              | String | Timezone, default to UTC                                                                                                                                                                        |
+| WEB_CONCURRENCY | Int    | Number of webserver processes, default to 1 but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)                     |
 
 ### Environment variables for PostgreSQL
 

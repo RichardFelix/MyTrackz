@@ -3,6 +3,7 @@
 import warnings
 import zoneinfo
 from pathlib import Path
+from urllib.parse import urlparse
 
 from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
@@ -28,7 +29,14 @@ if ALLOWED_HOSTS != ["*"] and "localhost" not in ALLOWED_HOSTS:
     # Only add "localhost" if it's not already in ALLOWED_HOSTS
     ALLOWED_HOSTS.append("localhost")
 
-CSRF_TRUSTED_ORIGINS = config("CSRF", default="*", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF", default="", cast=Csv())
+
+URLS = config("URLS", default="", cast=Csv())
+
+for url in URLS:
+    CSRF_TRUSTED_ORIGINS.append(url)
+    ALLOWED_HOSTS.append(urlparse(url).hostname)
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
