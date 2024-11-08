@@ -5,7 +5,6 @@ from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
-from django.core.cache import cache
 
 import app
 from app.models import Item
@@ -240,12 +239,6 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
 def convert_tvdb_to_tmdb(tvdb_id, source):
     """Convert a TVDB ID to a TMDB ID."""
-    cache_key = f"tvdb_to_tmdb_{tvdb_id}_{source}"
-    cached_result = cache.get(cache_key)
-
-    if cached_result:
-        return cached_result
-
     season_number = None
     if "/" in tvdb_id:
         tvdb_id, season_number = tvdb_id.split("/")
@@ -254,14 +247,7 @@ def convert_tvdb_to_tmdb(tvdb_id, source):
     else:
         media_type = "tv"
 
-    url = f"https://api.themoviedb.org/3/find/{tvdb_id}"
-    params = {
-        "api_key": settings.TMDB_API,
-        "language": settings.TMDB_LANG,
-        "external_source": "tvdb_id",
-    }
-
-    data = app.providers.services.api_request("TMDB", "GET", url, params=params)
+    data = app.providers.tmdb.find_from_external(tvdb_id, "tvdb")
 
     if source == "thetvdb/season":
         tmdb_id = int(data["tv_season_results"][0]["show_id"])
@@ -272,7 +258,6 @@ def convert_tvdb_to_tmdb(tvdb_id, source):
         tmdb_id = int(data["tv_results"][0]["id"])
         result = (tmdb_id, media_type, season_number)
 
-    cache.set(cache_key, result)
     return result
 
 

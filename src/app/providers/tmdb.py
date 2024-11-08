@@ -336,7 +336,7 @@ def process_episodes(season_metadata, episodes_in_db):
             {
                 "source": "tmdb",
                 "episode_number": episode_number,
-                "air_date": episode["air_date"], # when unknown, response returns null
+                "air_date": episode["air_date"],  # when unknown, response returns null
                 "image": get_image_url(episode["still_path"]),
                 "title": episode["name"],
                 "overview": episode["overview"],
@@ -369,3 +369,24 @@ def find_next_episode(episode_number, episodes_metadata):
         return episodes_metadata[current_episode_index + 1]["episode_number"]
 
     return None
+
+
+def find_from_external(external_id, external_source):
+    """Find the media from an external source."""
+    cache_key = f"{external_id}_{external_source}"
+    cached_result = cache.get(cache_key)
+
+    if cached_result:
+        return cached_result
+
+    url = f"https://api.themoviedb.org/3/find/{external_id}"
+    params = {
+        "api_key": settings.TMDB_API,
+        "language": settings.TMDB_LANG,
+        "external_source": f"{external_source}_id",
+    }
+
+    data = services.api_request("TMDB", "GET", url, params=params)
+    cache.set(cache_key, data)
+
+    return data
