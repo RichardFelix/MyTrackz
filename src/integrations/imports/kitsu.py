@@ -207,17 +207,6 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
             source = "mangaupdates"
             break
 
-        if "thetvdb" in site:
-            try:
-                media_id, media_type, season_number = convert_tvdb_to_tmdb(
-                    external_id,
-                    site,
-                )
-                source = "tmdb"
-                break
-            except IndexError:  # id cant be found on TMDB
-                continue
-
     if not media_id:
         media_title = kitsu_metadata["attributes"]["canonicalTitle"]
         msg = f"{media_title}: No valid external ID found."
@@ -235,30 +224,6 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
             "image": image_url,
         },
     )[0]
-
-
-def convert_tvdb_to_tmdb(tvdb_id, source):
-    """Convert a TVDB ID to a TMDB ID."""
-    season_number = None
-    if "/" in tvdb_id:
-        tvdb_id, season_number = tvdb_id.split("/")
-        season_number = int(season_number)
-        media_type = "season"
-    else:
-        media_type = "tv"
-
-    data = app.providers.tmdb.find_from_external(tvdb_id, "tvdb")
-
-    if source == "thetvdb/season":
-        tmdb_id = int(data["tv_season_results"][0]["show_id"])
-        media_type = "season"
-        season_number = data["tv_season_results"][0]["season_number"]
-        result = (tmdb_id, media_type, season_number)
-    else:
-        tmdb_id = int(data["tv_results"][0]["id"])
-        result = (tmdb_id, media_type, season_number)
-
-    return result
 
 
 def get_image_url(media):
