@@ -56,6 +56,14 @@ class User(AbstractUser):
         choices=layouts,
     )
 
+    token = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Token for external webhooks",
+    )
+
     class Meta:
         """Meta options for the model."""
 
