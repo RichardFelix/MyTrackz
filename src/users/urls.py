@@ -9,6 +9,7 @@ urlpatterns = [
     path("tasks", views.tasks, name="tasks"),
     path("login", views.CustomLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
+    path("regenerate_token", views.regenerate_token, name="regenerate_token"),
 ]
 
 if settings.REGISTRATION:
