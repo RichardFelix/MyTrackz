@@ -117,7 +117,7 @@ class JellyfinWebhookTests(TestCase):
 
         # Verify movie was created and marked as completed
         movie = Anime.objects.get(
-            item__media_id="10494",
+            item__media_id="437",
             user=self.user,
         )
         self.assertEqual(movie.status, "Completed")
