@@ -15,42 +15,62 @@ def get_form_class(media_type):
 
 
 class CustomDurationField(forms.CharField):
-    """Custom form field for duration input."""
+    """Custom form field for duration input that accepts multiple time formats."""
+
+    def _parse_hours_minutes(self, value):
+        """Parse hours and minutes from various time formats.
+
+        Supported formats:
+        - Plain number (hours only): "5"
+        - HH:MM: "5:30"
+        - Nh Nmin: "5h 30min"
+        - NhNmin: "5h30min"
+        - Nmin: "30min"
+        - Nh: "5h"
+        """
+        if value.isdigit():  # hours only
+            return int(value), 0
+
+        if ":" in value:  # hh:mm format
+            hours, minutes = value.split(":")
+            return int(hours), int(minutes)
+
+        if " " in value:  # [n]h [n]min format
+            hours, minutes = value.split(" ")
+            return int(hours.strip("h")), int(minutes.strip("min"))
+
+        if "h" in value and "min" in value:  # [n]h[n]min format
+            hours, minutes = value.split("h")
+            return int(hours), int(minutes.strip("min"))
+
+        if "min" in value:  # [n]min format
+            return 0, int(value.strip("min"))
+
+        if "h" in value:  # [n]h format
+            return int(value.strip("h")), 0
+        msg = "Invalid time format"
+        raise ValueError(msg)
+
+    def _validate_minutes(self, minutes):
+        """Validate that minutes are within acceptable range."""
+        max_min = 59
+        if not (0 <= minutes <= max_min):
+            msg = f"Minutes must be between 0 and {max_min}."
+            raise forms.ValidationError(msg)
 
     def clean(self, value):
-        """Validate the time string."""
+        """Validate and convert the time string to total minutes."""
         cleaned_value = super().clean(value)
-        msg = "Invalid time format. Please use hh:mm, [n]h [n]min or [n]h[n]min format."
         if not cleaned_value:
             return 0
+
         try:
-            if ":" in cleaned_value:  # hh:mm format
-                hours, minutes = map(int, cleaned_value.split(":"))
-            elif " " in cleaned_value:  # [n]h [n]min format
-                hours, minutes = cleaned_value.split(" ")
-                hours = int(hours.strip("h"))
-                minutes = int(minutes.strip("min"))
-            elif "h" in cleaned_value and "min" in cleaned_value:  # [n]h[n]min format
-                hours, minutes = cleaned_value.split("h")
-                hours = int(hours)
-                minutes = int(minutes.strip("min"))
-            elif "min" in cleaned_value:  # [n]min format
-                hours = 0
-                minutes = int(cleaned_value.strip("min"))
-            elif "h" in cleaned_value:  # [n]h format
-                hours = int(cleaned_value.strip("h"))
-                minutes = 0
-            else:
-                raise forms.ValidationError(msg)
-        # error parsing the time string
-        except ValueError as error:
-            raise forms.ValidationError(msg) from error
-        else:
-            max_min = 59
-            if not (0 <= minutes <= max_min):
-                msg = f"Minutes must be between 0 and {max_min}."
-                raise forms.ValidationError(msg)
+            hours, minutes = self._parse_hours_minutes(cleaned_value)
+            self._validate_minutes(minutes)
             return hours * 60 + minutes
+        except ValueError as e:
+            msg = "Invalid time played format. Please use hh:mm, [n]h [n]min or [n]h[n]min format." # noqa: E501
+            raise forms.ValidationError(msg) from e
 
 
 class ManualItemForm(forms.ModelForm):
