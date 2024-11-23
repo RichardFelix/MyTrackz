@@ -232,7 +232,8 @@ def media_save(request):
         logger.error(form.errors.as_json())
         messages.error(
             request,
-            "Could not save the media item, there were errors in the form.",
+            # Get the first error message from the form
+            next(iter(form.errors.get_json_data().values()))[0]["message"],
         )
 
     return helpers.redirect_back(request)
