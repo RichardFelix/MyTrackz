@@ -236,10 +236,10 @@ class Media(models.Model):
 
     def save(self, *args, **kwargs):
         """Save the media instance."""
-        if "progress" in self.tracker.changed():
+        if self.tracker.has_changed("progress"):
             self.process_progress()
 
-        if "status" in self.tracker.changed():
+        if self.tracker.has_changed("status"):
             self.process_status()
 
         super().save(*args, **kwargs)
@@ -321,7 +321,7 @@ class TV(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
-        if "status" in self.tracker.changed() and self.status == STATUS_COMPLETED:
+        if self.tracker.has_changed("status") and self.status == STATUS_COMPLETED:
             self.completed()
 
     @property
@@ -448,7 +448,7 @@ class Season(Media):
 
         super(Media, self).save(*args, **kwargs)
 
-        if "status" in self.tracker.changed() and self.status == STATUS_COMPLETED:
+        if self.tracker.has_changed("status") and self.status == STATUS_COMPLETED:
             season_metadata = services.get_media_metadata(
                 "season",
                 self.item.media_id,
