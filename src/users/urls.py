@@ -13,4 +13,4 @@ urlpatterns = [
 ]
 
 if settings.REGISTRATION:
-    urlpatterns.append(path("register/", views.register, name="register"))
+    urlpatterns.append(path("register", views.register, name="register"))
