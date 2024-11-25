@@ -77,7 +77,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "config.middleware.LoginRequiredMiddleware",
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
 

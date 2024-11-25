@@ -6,6 +6,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect
@@ -135,6 +136,7 @@ def export_csv(request):
     return response
 
 
+@login_not_required
 @csrf_exempt
 @require_POST
 def jellyfin_webhook(request, token):

@@ -4,9 +4,11 @@ import secrets
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.views import LoginView
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_results.models import TaskResult
 
@@ -21,6 +23,7 @@ from users.forms import (
 logger = logging.getLogger(__name__)
 
 
+@login_not_required
 @require_http_methods(["GET", "POST"])
 def register(request):
     """Register a new user."""
@@ -39,6 +42,7 @@ def register(request):
     return render(request, "users/register.html", {"form": form})
 
 
+@method_decorator(login_not_required, name="dispatch")
 class CustomLoginView(LoginView):
     """Custom login view with logging."""
 
