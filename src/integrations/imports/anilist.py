@@ -4,6 +4,7 @@ import logging
 from django.apps import apps
 
 import app
+from app.models import Media
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warnings):
             )
         else:
             if content["status"] == "CURRENT":
-                status = app.models.STATUS_IN_PROGRESS
+                status = Media.Status.IN_PROGRESS.value
             else:
                 status = content["status"].capitalize()
             notes = content["notes"] or ""

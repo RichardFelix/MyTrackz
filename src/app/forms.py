@@ -5,7 +5,7 @@ from django.conf import settings
 from django.urls import reverse
 
 from app import models
-from app.models import Item
+from app.models import Item, Media
 
 
 def get_form_class(media_type):
@@ -339,12 +339,12 @@ class FilterForm(forms.Form):
         choices=[
             # left side in lower case for better looking url when filtering
             ("all", "All"),
-            ("completed", models.STATUS_COMPLETED),
-            ("in progress", models.STATUS_IN_PROGRESS),
-            ("repeating", models.STATUS_REPEATING),
-            ("planning", models.STATUS_PLANNING),
-            ("paused", models.STATUS_PAUSED),
-            ("dropped", models.STATUS_DROPPED),
+            ("completed", Media.Status.COMPLETED.value),
+            ("in progress", Media.Status.IN_PROGRESS.value),
+            ("repeating", Media.Status.REPEATING.value),
+            ("planning", Media.Status.PLANNING.value),
+            ("paused", Media.Status.PAUSED.value),
+            ("dropped", Media.Status.DROPPED.value),
         ],
     )
 

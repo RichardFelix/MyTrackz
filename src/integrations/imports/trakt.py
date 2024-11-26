@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.db.models import Sum
 
 import app
-import app.models
+from app.models import Media
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ def get_anime_default_fields(season):
 
     return {
         "progress": season["episodes"][-1]["number"],
-        "status": app.models.STATUS_IN_PROGRESS,
+        "status": Media.Status.IN_PROGRESS.value,
         "repeats": repeats,
         "start_date": get_date(start_date),
         "end_date": get_date(end_date),
@@ -151,7 +151,7 @@ def process_watched_movies(watched, mal_mapping, user):
     for entry in watched:
         defaults = {
             "progress": 1,
-            "status": app.models.STATUS_COMPLETED,
+            "status": Media.Status.COMPLETED.value,
             "repeats": entry["plays"] - 1,
             "start_date": get_date(entry["last_watched_at"]),
             "end_date": get_date(entry["last_watched_at"]),
@@ -181,7 +181,7 @@ def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
 
     for entry in entries:
         if list_type == "watchlist":
-            defaults = {"status": app.models.STATUS_PLANNING}
+            defaults = {"status": Media.Status.PLANNING.value}
         elif list_type == "ratings":
             defaults = {"score": entry["rating"]}
         trakt_type = entry["type"]
@@ -334,7 +334,7 @@ def add_tmdb_episodes(entry, season, user):
         item=tv_item,
         user=user,
         defaults={
-            "status": app.models.STATUS_IN_PROGRESS,
+            "status": Media.Status.IN_PROGRESS.value,
         },
     )
 
@@ -354,7 +354,7 @@ def add_tmdb_episodes(entry, season, user):
         user=user,
         related_tv=tv_obj,
         defaults={
-            "status": app.models.STATUS_IN_PROGRESS,
+            "status": Media.Status.IN_PROGRESS.value,
         },
     )
 
@@ -403,16 +403,16 @@ def consider_repeating(episode, metadata, season_number):
     total_watches = episode.related_season.progress + total_repeats
     if (
         total_watches > max_progress
-        and episode.related_season.status == app.models.STATUS_IN_PROGRESS
+        and episode.related_season.status == Media.Status.IN_PROGRESS.value
     ):
-        episode.related_season.status = app.models.STATUS_REPEATING
+        episode.related_season.status = Media.Status.REPEATING.value
         episode.related_season.save_base(update_fields=["status"])
 
         if (
             episode.related_season.related_tv.progress
             >= metadata["details"]["number_of_episodes"]
         ):
-            episode.related_season.related_tv.status = app.models.STATUS_COMPLETED
+            episode.related_season.related_tv.status = Media.Status.COMPLETED.value
             episode.related_season.related_tv.save_base(update_fields=["status"])
 
 

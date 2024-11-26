@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 import app
+from app.models import Media
 
 logger = logging.getLogger(__name__)
 
@@ -96,18 +97,18 @@ def add_anime(media_id, episode_number, payload, user):
         anime_instance.progress = episode_number
 
         if (
-            anime_instance.status == app.models.STATUS_COMPLETED and episode_played
-        ) or anime_instance.status == app.models.STATUS_REPEATING:
-            anime_instance.status = app.models.STATUS_REPEATING
+            anime_instance.status == Media.Status.COMPLETED.value and episode_played
+        ) or anime_instance.status == Media.Status.REPEATING.value:
+            anime_instance.status = Media.Status.REPEATING.value
         else:
-            anime_instance.status = app.models.STATUS_IN_PROGRESS
+            anime_instance.status = Media.Status.IN_PROGRESS.value
         anime_instance.save()
     except app.models.Anime.DoesNotExist:
         app.models.Anime.objects.create(
             item=anime_item,
             user=user,
             progress=episode_number,
-            status=app.models.STATUS_IN_PROGRESS,
+            status=Media.Status.IN_PROGRESS.value,
         )
 
 
@@ -135,15 +136,15 @@ def add_movie(media_id, payload, user):
         movie_instance.progress = progress
 
         if (
-            movie_instance.status == app.models.STATUS_COMPLETED and movie_played
-        ) or movie_instance.status == app.models.STATUS_REPEATING:
+            movie_instance.status == Media.Status.COMPLETED.value and movie_played
+        ) or movie_instance.status == Media.Status.REPEATING.value:
             if movie_played:
                 movie_instance.repeats += 1
             else:
-                movie_instance.status = app.models.STATUS_REPEATING
-            movie_instance.status = app.models.STATUS_REPEATING
+                movie_instance.status = Media.Status.REPEATING.value
+            movie_instance.status = Media.Status.REPEATING.value
         else:
-            movie_instance.status = app.models.STATUS_IN_PROGRESS
+            movie_instance.status = Media.Status.IN_PROGRESS.value
         movie_instance.save()
 
     except app.models.Movie.DoesNotExist:
@@ -151,7 +152,7 @@ def add_movie(media_id, payload, user):
             item=item,
             user=user,
             progress=progress,
-            status=app.models.STATUS_IN_PROGRESS,
+            status=Media.Status.IN_PROGRESS.value,
         )
 
 
@@ -180,7 +181,7 @@ def add_tv(media_id, payload, user):
         item=tv_item,
         user=user,
         defaults={
-            "status": app.models.STATUS_IN_PROGRESS,
+            "status": Media.Status.IN_PROGRESS.value,
         },
     )
 
@@ -200,7 +201,7 @@ def add_tv(media_id, payload, user):
         user=user,
         related_tv=tv_instance,
         defaults={
-            "status": app.models.STATUS_IN_PROGRESS,
+            "status": Media.Status.IN_PROGRESS.value,
         },
     )
 

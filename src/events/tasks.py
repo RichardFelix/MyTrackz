@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 
-from app.models import MEDIA_TYPES, Item
+from app.models import Item
 from app.providers import services, tmdb
 from events.models import Event
 
@@ -22,8 +22,9 @@ DEFAULT_DAY = "-01"
 def reload_calendar(user=None):  # , used for metadata
     """Refresh the calendar with latest dates for all users."""
     statuses = ["Planning", "In progress"]
-    media_types_with_status = [media for media in MEDIA_TYPES if media != "episode"]
-
+    media_types_with_status = [
+        choice.value for choice in Item.MediaTypes if choice != Item.MediaTypes.EPISODE
+    ]
     query = Q()
     for media_type in media_types_with_status:
         query |= Q(**{f"{media_type}__status__in": statuses})

@@ -1,8 +1,7 @@
 from django.apps import apps
 from django.db.models import F
 
-from app import models
-from app.models import Item
+from app.models import Item, Media
 
 
 def get_media_list(user, media_type, status_filter, sort_filter):
@@ -51,13 +50,16 @@ def get_in_progress(user):
     """Get a media list of in progress media by type."""
     list_by_type = {}
 
-    for media_type in models.MEDIA_TYPES:
+    for media_type in Item.MediaTypes.values:
         # dont show tv and episodes in home page
         if media_type not in ("tv", "episode"):
             media_list = get_media_list(
                 user=user,
                 media_type=media_type,
-                status_filter=[models.STATUS_IN_PROGRESS, models.STATUS_REPEATING],
+                status_filter=[
+                    Media.Status.IN_PROGRESS.value,
+                    Media.Status.REPEATING.value,
+                ],
                 sort_filter="score",
             )
             if media_list:

@@ -10,7 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
-from app.models import STATUS_IN_PROGRESS, Episode, Item, Season
+from app.models import Episode, Item, Media, Season
 from app.providers import igdb, mal, mangaupdates, manual, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -291,7 +291,7 @@ def episode_handler(request):
             item=item,
             user=request.user,
             score=None,
-            status=STATUS_IN_PROGRESS,
+            status=Media.Status.IN_PROGRESS.value,
             notes="",
         )
 

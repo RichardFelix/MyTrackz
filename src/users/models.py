@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from app.models import MEDIA_TYPES
+from app.models import Item
 
 layouts = [
     ("grid", "Grid"),
@@ -16,8 +16,8 @@ class User(AbstractUser):
 
     last_search_type = models.CharField(
         max_length=10,
-        default="tv",
-        choices=[(media_type, media_type) for media_type in MEDIA_TYPES],
+        default=Item.MediaTypes.TV.value,
+        choices=Item.MediaTypes.choices,
     )
 
     tv_layout = models.CharField(

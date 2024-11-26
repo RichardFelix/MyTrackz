@@ -19,41 +19,39 @@ from app.templatetags.app_extras import slug
 
 logger = logging.getLogger(__name__)
 
-MEDIA_TYPES = ["movie", "tv", "season", "episode", "anime", "manga", "game"]
-READABLE_MEDIA_TYPES = {
-    "movie": "Movie",
-    "tv": "TV Show",
-    "season": "Season",
-    "episode": "Episode",
-    "anime": "Anime",
-    "manga": "Manga",
-    "game": "Game",
-}
-
-STATUS_IN_PROGRESS = "In progress"
-STATUS_COMPLETED = "Completed"
-STATUS_REPEATING = "Repeating"
-STATUS_PLANNING = "Planning"
-STATUS_PAUSED = "Paused"
-STATUS_DROPPED = "Dropped"
-
-SOURCES = ["tmdb", "mal", "mangaupdates", "igdb", "manual"]
-
 
 class Item(models.Model):
     """Model for items in custom lists."""
 
+    class Sources(models.TextChoices):
+        """Choices for the source of the item."""
+
+        TMDB = "tmdb", "The Movie Database"
+        MAL = "mal", "MyAnimeList"
+        MANGAUPDATES = "mangaupdates", "MangaUpdates"
+        IGDB = "igdb", "Internet Game Database"
+        MANUAL = "manual", "Manual"
+
+    class MediaTypes(models.TextChoices):
+        """Choices for the media type of the item."""
+
+        MOVIE = "movie", "Movie"
+        TV = "tv", "TV Show"
+        SEASON = "season", "Season"
+        EPISODE = "episode", "Episode"
+        ANIME = "anime", "Anime"
+        MANGA = "manga", "Manga"
+        GAME = "game", "Game"
+
     media_id = models.PositiveIntegerField()
     source = models.CharField(
         max_length=20,
-        choices=[(source, source) for source in SOURCES],
+        choices=Sources,
     )
     media_type = models.CharField(
         max_length=10,
-        choices=[
-            (media_type, READABLE_MEDIA_TYPES[media_type]) for media_type in MEDIA_TYPES
-        ],
-        default="movie",
+        choices=MediaTypes,
+        default=MediaTypes.MOVIE.value,
     )
     title = models.CharField(max_length=255)
     image = models.URLField()
@@ -176,11 +174,21 @@ class Item(models.Model):
     @property
     def media_type_readable(self):
         """Return the readable media type."""
-        return READABLE_MEDIA_TYPES[self.media_type]
+        return self.MediaTypes(self.media_type).label
 
 
 class Media(models.Model):
     """Abstract model for all media types."""
+
+    class Status(models.TextChoices):
+        """Choices for item status."""
+
+        IN_PROGRESS = "In progress", "In Progress"
+        COMPLETED = "Completed", "Completed"
+        REPEATING = "Repeating", "Repeating"
+        PLANNING = "Planning", "Planning"
+        PAUSED = "Paused", "Paused"
+        DROPPED = "Dropped", "Dropped"
 
     history = HistoricalRecords(
         cascade_delete_history=True,
@@ -207,16 +215,9 @@ class Media(models.Model):
     )
     progress = models.PositiveIntegerField(default=0)
     status = models.CharField(
-        max_length=12,
-        default=STATUS_COMPLETED,
-        choices=[
-            (STATUS_COMPLETED, STATUS_COMPLETED),
-            (STATUS_IN_PROGRESS, STATUS_IN_PROGRESS),
-            (STATUS_REPEATING, STATUS_REPEATING),
-            (STATUS_PLANNING, STATUS_PLANNING),
-            (STATUS_PAUSED, STATUS_PAUSED),
-            (STATUS_DROPPED, STATUS_DROPPED),
-        ],
+        max_length=20,
+        choices=Status.choices,
+        default=Status.COMPLETED.value,
     )
     repeats = models.PositiveIntegerField(default=0)
     start_date = models.DateField(null=True, blank=True)
@@ -259,11 +260,11 @@ class Media(models.Model):
                 self.progress = min(self.progress, max_progress)
 
                 if self.progress == max_progress:
-                    self.status = STATUS_COMPLETED
+                    self.status = self.Status.COMPLETED.value
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        if self.status == STATUS_COMPLETED:
+        if self.status == self.Status.COMPLETED.value:
             if not self.end_date:
                 self.end_date = datetime.datetime.now(tz=settings.TZ).date()
 
@@ -276,10 +277,10 @@ class Media(models.Model):
             if max_progress:
                 self.progress = max_progress
 
-            if self.tracker.previous("status") == STATUS_REPEATING:
+            if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        elif self.status == STATUS_IN_PROGRESS and not self.start_date:
+        elif self.status == self.Status.IN_PROGRESS.value and not self.start_date:
             self.start_date = datetime.datetime.now(tz=settings.TZ).date()
 
     def increase_progress(self):
@@ -321,7 +322,10 @@ class TV(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
-        if self.tracker.has_changed("status") and self.status == STATUS_COMPLETED:
+        if (
+            self.tracker.has_changed("status")
+            and self.status == self.Status.COMPLETED.value
+        ):
             self.completed()
 
     @property
@@ -395,15 +399,15 @@ class TV(Media):
                     user=self.user,
                 )
 
-                if season_instance.status != STATUS_COMPLETED:
-                    season_instance.status = STATUS_COMPLETED
+                if season_instance.status != self.Status.COMPLETED.value:
+                    season_instance.status = self.Status.COMPLETED.value
                     seasons_to_update.append(season_instance)
 
             except Season.DoesNotExist:
                 season_instance = Season(
                     item=item,
                     score=None,
-                    status=STATUS_COMPLETED,
+                    status=self.Status.COMPLETED.value,
                     notes="",
                     related_tv=self,
                     user=self.user,
@@ -448,7 +452,10 @@ class Season(Media):
 
         super(Media, self).save(*args, **kwargs)
 
-        if self.tracker.has_changed("status") and self.status == STATUS_COMPLETED:
+        if (
+            self.tracker.has_changed("status")
+            and self.status == self.Status.COMPLETED.value
+        ):
             season_metadata = services.get_media_metadata(
                 "season",
                 self.item.media_id,
@@ -469,7 +476,7 @@ class Season(Media):
     def current_episode(self):
         """Return the current episode of the season."""
         # continue initial watch
-        if self.status == STATUS_IN_PROGRESS:
+        if self.status == self.Status.IN_PROGRESS.value:
             sorted_episodes = sorted(
                 self.episodes.all(),
                 key=lambda e: e.item.episode_number,
@@ -642,10 +649,10 @@ class Season(Media):
 
             # creating tv with multiple seasons from a completed season
             if (
-                self.status == STATUS_COMPLETED
+                self.status == self.Status.COMPLETED.value
                 and tv_metadata["details"]["number_of_seasons"] > 1
             ):
-                status = STATUS_IN_PROGRESS
+                status = self.Status.IN_PROGRESS.value
             else:
                 status = self.status
 
@@ -767,7 +774,10 @@ class Episode(models.Model):
         """Save the episode instance."""
         super().save(*args, **kwargs)
 
-        if self.related_season.status in (STATUS_IN_PROGRESS, STATUS_REPEATING):
+        if self.related_season.status in (
+            Media.Status.IN_PROGRESS.value,
+            Media.Status.REPEATING.value,
+        ):
             season_number = self.item.season_number
             tv_with_seasons_metadata = services.get_media_metadata(
                 "tv_with_seasons",
@@ -784,7 +794,7 @@ class Episode(models.Model):
             total_watches = self.related_season.progress + total_repeats
 
             if total_watches >= max_progress * (self.related_season.repeats + 1):
-                self.related_season.status = STATUS_COMPLETED
+                self.related_season.status = Media.Status.COMPLETED.value
                 self.related_season.save_base(update_fields=["status"])
 
                 last_season = tv_with_seasons_metadata["related"]["seasons"][-1][
@@ -792,7 +802,7 @@ class Episode(models.Model):
                 ]
                 # mark the TV show as completed if it's the last season
                 if season_number == last_season:
-                    self.related_season.related_tv.status = STATUS_COMPLETED
+                    self.related_season.related_tv.status = Media.Status.COMPLETED.value
                     self.related_season.related_tv.save_base(update_fields=["status"])
 
 

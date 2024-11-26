@@ -4,7 +4,7 @@ from csv import DictReader
 from django.apps import apps
 
 import app
-from app.models import TV, Episode, Season
+from app.models import TV, Episode, Item, Season
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -17,14 +17,14 @@ def importer(file, user):
 
     logger.info("Importing from Yamtrack")
 
-    bulk_media = {media_type: [] for media_type in app.models.MEDIA_TYPES}
+    bulk_media = {media_type: [] for media_type in Item.MediaTypes.values}
 
     imported_counts = {}
 
     for row in reader:
         add_bulk_media(row, user, bulk_media)
 
-    for media_type in app.models.MEDIA_TYPES:
+    for media_type in Item.MediaTypes.values:
         imported_counts[media_type] = import_media(
             media_type,
             bulk_media[media_type],

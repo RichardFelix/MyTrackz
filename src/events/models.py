@@ -1,7 +1,7 @@
 from django.db import models
 from django.db.models import Q
 
-from app.models import MEDIA_TYPES, Item
+from app.models import Item
 
 
 class EventManager(models.Manager):
@@ -9,8 +9,11 @@ class EventManager(models.Manager):
 
     def user_events(self, user):
         """Get all upcoming media events of the specified user within the next week."""
-        media_types_with_user = [media for media in MEDIA_TYPES if media != "episode"]
-
+        media_types_with_user = [
+            choice.value
+            for choice in Item.MediaTypes
+            if choice != Item.MediaTypes.EPISODE
+        ]
         query = Q()
         for media_type in media_types_with_user:
             query |= Q(**{f"item__{media_type}__user": user})

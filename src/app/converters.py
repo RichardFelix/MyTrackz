@@ -1,11 +1,11 @@
 # https://docs.djangoproject.com/en/stable/topics/http/urls/#registering-custom-path-converters
-from app.models import MEDIA_TYPES, SOURCES
+from app.models import Item
 
 
 class MediaTypeChecker:
     """Check if the media type is valid."""
 
-    regex = f"({'|'.join(MEDIA_TYPES)})"
+    regex = f"({'|'.join(Item.MediaTypes.values)})"
 
     def to_python(self, value):
         """Return the media type if it is valid."""
@@ -19,7 +19,7 @@ class MediaTypeChecker:
 class SourceChecker:
     """Check if the source is valid."""
 
-    regex = f"({'|'.join(SOURCES)})"
+    regex = f"({'|'.join(Item.Sources.values)})"
 
     def to_python(self, value):
         """Return the source if it is valid."""

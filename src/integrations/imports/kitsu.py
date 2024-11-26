@@ -7,7 +7,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Item
+from app.models import Item, Media
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ def process_entry(  # noqa: PLR0913
     )
 
     if attributes["reconsuming"]:
-        instance.status = app.models.STATUS_REPEATING
+        instance.status = Media.Status.REPEATING.value
 
     return instance
 
@@ -259,10 +259,10 @@ def get_date(date):
 def get_status(status):
     """Convert the status from Kitsu to the status used in the app."""
     status_mapping = {
-        "completed": app.models.STATUS_COMPLETED,
-        "current": app.models.STATUS_IN_PROGRESS,
-        "planned": app.models.STATUS_PLANNING,
-        "on_hold": app.models.STATUS_PAUSED,
-        "dropped": app.models.STATUS_DROPPED,
+        "completed": Media.Status.COMPLETED.value,
+        "current": Media.Status.IN_PROGRESS.value,
+        "planned": Media.Status.PLANNING.value,
+        "on_hold": Media.Status.PAUSED.value,
+        "dropped": Media.Status.DROPPED.value,
     }
     return status_mapping[status]

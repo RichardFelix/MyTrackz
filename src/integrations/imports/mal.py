@@ -4,6 +4,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
+from app.models import Media
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -122,12 +123,12 @@ def add_media_list(response, media_type, user):
 def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
     status_mapping = {
-        "completed": app.models.STATUS_COMPLETED,
-        "reading": app.models.STATUS_IN_PROGRESS,
-        "watching": app.models.STATUS_IN_PROGRESS,
-        "plan_to_watch": app.models.STATUS_PLANNING,
-        "plan_to_read": app.models.STATUS_PLANNING,
-        "on_hold": app.models.STATUS_PAUSED,
-        "dropped": app.models.STATUS_DROPPED,
+        "completed": Media.Status.COMPLETED.value,
+        "reading": Media.Status.IN_PROGRESS.value,
+        "watching": Media.Status.IN_PROGRESS.value,
+        "plan_to_watch": Media.Status.PLANNING.value,
+        "plan_to_read": Media.Status.PLANNING.value,
+        "on_hold": Media.Status.PAUSED.value,
+        "dropped": Media.Status.DROPPED.value,
     }
     return status_mapping[status]

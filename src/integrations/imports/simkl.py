@@ -5,6 +5,7 @@ import requests
 from django.conf import settings
 
 import app
+from app.models import Media
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +154,7 @@ def process_tv_list(tv_list, user):
             if season_number == season_numbers[-1]:  # if last iteration
                 season_status = tv_status
             else:
-                season_status = app.models.STATUS_COMPLETED
+                season_status = Media.Status.COMPLETED.value
 
             season_obj, _ = app.models.Season.objects.get_or_create(
                 item=season_item,
@@ -294,7 +295,7 @@ def process_anime_list(anime_list, user):
                 "progress": anime["watched_episodes_count"],
                 "start_date": get_date(anime["last_watched_at"]),
                 "end_date": get_date(anime["last_watched_at"])
-                if anime_status == app.models.STATUS_COMPLETED
+                if anime_status == Media.Status.COMPLETED.value
                 else None,
             },
         )
@@ -309,14 +310,14 @@ def process_anime_list(anime_list, user):
 def get_status(status):
     """Map SIMKL status to internal status."""
     status_mapping = {
-        "completed": app.models.STATUS_COMPLETED,
-        "watching": app.models.STATUS_IN_PROGRESS,
-        "plantowatch": app.models.STATUS_PLANNING,
-        "hold": app.models.STATUS_PAUSED,
-        "dropped": app.models.STATUS_DROPPED,
+        "completed": Media.Status.COMPLETED.value,
+        "watching": Media.Status.IN_PROGRESS.value,
+        "plantowatch": Media.Status.PLANNING.value,
+        "hold": Media.Status.PAUSED.value,
+        "dropped": Media.Status.DROPPED.value,
     }
 
-    return status_mapping.get(status, app.models.STATUS_IN_PROGRESS)
+    return status_mapping.get(status, Media.Status.IN_PROGRESS.value)
 
 
 def get_date(date):

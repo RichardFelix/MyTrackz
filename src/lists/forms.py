@@ -1,7 +1,7 @@
 from django import forms
 from django_select2 import forms as s2forms
 
-from app.models import MEDIA_TYPES, READABLE_MEDIA_TYPES
+from app.models import Item
 from lists.models import CustomList
 
 
@@ -53,9 +53,7 @@ class FilterListItemsForm(forms.Form):
 
     media_type = forms.ChoiceField(
         choices=[("all", "All")]
-        + [
-            (media_type, READABLE_MEDIA_TYPES[media_type]) for media_type in MEDIA_TYPES
-        ],
+        + [(choice.value, choice.label) for choice in Item.MediaTypes],
         initial="all",
     )
 

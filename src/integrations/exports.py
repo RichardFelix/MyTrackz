@@ -4,7 +4,6 @@ import logging
 from django.apps import apps
 from django.db.models import Field
 
-import app
 from app import helpers
 from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
 
@@ -50,7 +49,7 @@ def get_track_fields():
     """Get a list of all track fields from all media models."""
     all_fields = []
 
-    for media_type in app.models.MEDIA_TYPES:
+    for media_type in Item.MediaTypes.values:
         model = apps.get_model("app", media_type)
         for field in get_model_fields(model):
             if field not in all_fields:
