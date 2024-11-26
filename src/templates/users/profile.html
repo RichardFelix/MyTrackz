@@ -73,10 +73,7 @@
               In the Webhooks plugin settings:
               <ul>
                 <li>
-                  URL:
-                  <a href="{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}">
-                    {{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}
-                  </a>
+                  URL: <a href="{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}">{{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}</a>
                 </li>
                 <li>Payload format: Default</li>
                 <li>Listen to events only for: Your Jellyfin User</li>
