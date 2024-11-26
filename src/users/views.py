@@ -123,7 +123,7 @@ def regenerate_token(request):
     """Regenerate the token for the user."""
     while True:
         try:
-            request.user.token = secrets.token_urlsafe(32)
+            request.user.token = secrets.token_urlsafe(24)
             request.user.save(update_fields=["token"])
             break
         except IntegrityError:
