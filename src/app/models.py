@@ -54,7 +54,7 @@ class Item(models.Model):
         default=MediaTypes.MOVIE.value,
     )
     title = models.CharField(max_length=255)
-    image = models.URLField()
+    image = models.URLField(default=settings.IMG_NONE)
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
