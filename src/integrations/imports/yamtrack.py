@@ -2,6 +2,7 @@ import logging
 from csv import DictReader
 
 from django.apps import apps
+from django.conf import settings
 
 import app
 from app.models import TV, Episode, Item, Season
@@ -49,7 +50,7 @@ def add_bulk_media(row, user, bulk_media):
         episode_number=episode_number,
         defaults={
             "title": row["title"],
-            "image": row["image"],
+            "image": row["image"] if row["image"] != "" else settings.IMG_NONE,
         },
     )
 
