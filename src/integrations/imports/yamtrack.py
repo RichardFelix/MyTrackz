@@ -42,7 +42,7 @@ def add_bulk_media(row, user, bulk_media):
     season_number = row["season_number"] if row["season_number"] != "" else None
     episode_number = row["episode_number"] if row["episode_number"] != "" else None
 
-    item, _ = app.models.Item.objects.get_or_create(
+    item, _ = app.models.Item.objects.update_or_create(
         media_id=row["media_id"],
         source=row["source"],
         media_type=media_type,
