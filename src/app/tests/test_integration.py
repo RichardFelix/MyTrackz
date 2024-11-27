@@ -175,9 +175,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/v6Elr1W2elOyGi1MClgV0mIBVHC.jpg",
         )
-        episode_field = self.page.get_by_label("Episode number")
-        episode_field.wait_for(state="visible")
-        episode_field.fill("1")
+        self.page.get_by_label("Episode number").click()
+        self.page.get_by_label("Episode number").fill("1")
+        self.page.get_by_label("Watch date").click()
         self.page.get_by_label("Watch date").fill("2024-10-30")
         self.page.get_by_role("button", name="Submit").click()
         expect(
@@ -220,9 +220,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/uovdoaMdaLnk6vKn2nU5QnyR3zW.jpg",
         )
-        episode_field = self.page.get_by_label("Episode number")
-        episode_field.wait_for(state="visible")
-        episode_field.fill("1")
+        self.page.get_by_label("Episode number").click()
+        self.page.get_by_label("Episode number").fill("1")
+        self.page.get_by_label("Watch date").click()
         self.page.get_by_label("Watch date").fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
