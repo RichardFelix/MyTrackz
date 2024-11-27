@@ -43,7 +43,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_placeholder("Search").click()
         self.page.get_by_placeholder("Search").fill("breaking bad")
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_role("link", name="Breaking Bad", exact=True).click()
+        self.page.locator('a[href="/details/tmdb/tv/1396/breaking-bad"]').click()
         self.page.get_by_role("link", name="Season 1").click()
         self.page.locator(".mt-auto > div > div > button").first.click()
         self.page.get_by_role("button", name="Release date").click()
@@ -72,7 +72,6 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("link", name=" Seasons").click()
         expect(self.page.get_by_role("cell", name="Completed")).to_be_visible()
         expect(self.page.get_by_role("cell", name="7")).to_be_visible()
-
 
     def test_tv_completed(self):
         """Test the completed status of a TV show."""
@@ -176,8 +175,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/v6Elr1W2elOyGi1MClgV0mIBVHC.jpg",
         )
-        self.page.get_by_label("Episode number").click()
-        self.page.get_by_label("Episode number").fill("1")
+        episode_field = self.page.get_by_label("Episode number")
+        episode_field.wait_for(state="visible")
+        episode_field.fill("1")
         self.page.get_by_label("Watch date").fill("2024-10-30")
         self.page.get_by_role("button", name="Submit").click()
         expect(
@@ -220,8 +220,9 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/uovdoaMdaLnk6vKn2nU5QnyR3zW.jpg",
         )
-        self.page.get_by_label("Episode number").click()
-        self.page.get_by_label("Episode number").fill("1")
+        episode_field = self.page.get_by_label("Episode number")
+        episode_field.wait_for(state="visible")
+        episode_field.fill("1")
         self.page.get_by_label("Watch date").fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
