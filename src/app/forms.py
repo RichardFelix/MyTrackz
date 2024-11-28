@@ -121,6 +121,7 @@ class ManualItemForm(forms.ModelForm):
         self.fields["media_type"].widget.attrs = {
             "hx-get": reverse("create_media"),
             "hx-target": "#media-form",
+            "hx-swap": "outerHTML",
             "initial": "movie",
         }
         self.fields["image"].label = "Image URL"
