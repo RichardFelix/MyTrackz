@@ -81,10 +81,9 @@ class IntegrationTest(StaticLiveServerTestCase):
             .filter(has_text="Media type* All Movie TV Show")
             .nth(2),
         ).to_be_visible()
-        # wait for the filter modal to load
-        self.page.wait_for_timeout(100)
+        self.page.wait_for_timeout(500)
         self.page.locator("#filter-modal").press("Escape")
-        self.page.wait_for_timeout(100)
+        self.page.wait_for_timeout(500)
         self.page.get_by_role("button", name="Edit List").click()
 
         # edit list

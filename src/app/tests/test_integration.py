@@ -177,8 +177,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         )
         self.page.get_by_label("Episode number").click()
         self.page.get_by_label("Episode number").fill("1")
-        self.page.get_by_label("Watch date").click()
-        self.page.get_by_label("Watch date").fill("2024-10-30")
+        self.page.locator('input[type="date"]').click()
+        self.page.locator('input[type="date"]').fill("2024-10-30")
         self.page.get_by_role("button", name="Submit").click()
         expect(
             self.page.get_by_text("example S1E1 added successfully."),
@@ -222,8 +222,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         )
         self.page.get_by_label("Episode number").click()
         self.page.get_by_label("Episode number").fill("1")
-        self.page.get_by_label("Watch date").click()
-        self.page.get_by_label("Watch date").fill("2024-11-01")
+        self.page.locator('input[type="date"]').click()
+        self.page.locator('input[type="date"]').fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
             self.page.get_by_text("example S2E1 added successfully."),
