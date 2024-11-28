@@ -69,7 +69,7 @@ class CustomDurationField(forms.CharField):
             self._validate_minutes(minutes)
             return hours * 60 + minutes
         except ValueError as e:
-            msg = "Invalid time played format. Please use hh:mm, [n]h [n]min or [n]h[n]min format." # noqa: E501
+            msg = "Invalid time played format. Please use hh:mm, [n]h [n]min or [n]h[n]min format."  # noqa: E501
             raise forms.ValidationError(msg) from e
 
 
@@ -123,6 +123,7 @@ class ManualItemForm(forms.ModelForm):
             "hx-target": "#media-form",
             "initial": "movie",
         }
+        self.fields["image"].label = "Image URL"
         self.fields["image"].required = False
         self.fields["title"].required = False
 

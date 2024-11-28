@@ -85,21 +85,25 @@
 
   <p class="mt-2 fs-5">{{ custom_list.description }}</p>
 
-  <div class="grid mt-5">
-    {% for item in items.all %}
-      <div class="card">
-        <a href="{{ item.url }}">
-          <img src="{{ item.image }}"
-               class="card-img {% if item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-               alt="{{ item.title }}" />
-        </a>
+  {% if items %}
+    <div class="grid mt-5">
+      {% for item in items.all %}
+        <div class="card">
+          <a href="{{ item.url }}">
+            <img src="{{ item.image }}"
+                class="card-img {% if item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                alt="{{ item.title }}" />
+          </a>
 
-        <div class="card-img-overlay">
-          <div class="card-title">{{ item }}</div>
+          <div class="card-img-overlay">
+            <div class="card-title">{{ item }}</div>
+          </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="mt-5">You have no items in this list, you can add items in the details page of each media.</p>
+  {% endif %}
  
 {% endblock container %}
 
