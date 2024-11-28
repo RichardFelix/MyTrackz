@@ -36,8 +36,9 @@ def search(query):
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id;"
-            f'search "{query}";'
-            "where category = (0,2,4,8,9,10)"
+            "sort rating desc;"
+            "limit 25;"
+            f'where name ~ *"{query}"* & category = (0,2,4,8,9,10)'
         )  # main, expansion, standalone expansion, remakes, remasters, expanded games
 
         # exclude adult games depending on the settings
