@@ -1,8 +1,11 @@
+import logging
 import os
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from playwright.sync_api import expect, sync_playwright
+
+logger = logging.getLogger(__name__)
 
 
 class IntegrationTest(StaticLiveServerTestCase):
@@ -114,7 +117,6 @@ class IntegrationTest(StaticLiveServerTestCase):
         """Test the manual creation of a TV show."""
         self.page.goto(f"{self.live_server_url}/create/item")
         self.page.get_by_label("Media type*").select_option("tv")
-        self.page.wait_for_timeout(300)
         self.page.get_by_label("Title").click()
         self.page.get_by_label("Title").fill("example")
         self.page.get_by_label("Image").click()
@@ -142,7 +144,6 @@ class IntegrationTest(StaticLiveServerTestCase):
         # create S1
         self.page.get_by_role("link", name=" Create").click()
         self.page.get_by_label("Media type*").select_option("season")
-        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent TV Show").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -157,7 +158,6 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2
         self.page.get_by_label("Media type*").select_option("season")
-        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent TV Show").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -172,7 +172,10 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E1
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.wait_for_timeout(300)
+        content = self.page.content()
+        logging.debug("Current page content: %s", content)
+        watch_date = self.page.get_by_label("Watch date")
+        watch_date.wait_for(state="visible", timeout=5000)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -180,17 +183,19 @@ class IntegrationTest(StaticLiveServerTestCase):
         )
         self.page.get_by_label("Episode number").click()
         self.page.get_by_label("Episode number").fill("1")
-        self.page.locator('input[type="date"]').click()
-        self.page.locator('input[type="date"]').fill("2024-10-30")
+        watch_date.click()
+        watch_date.fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
             self.page.get_by_text("example S1E1 added successfully."),
         ).to_be_visible()
 
         # create S1E2
-        self.page.get_by_label("Title").click()
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.wait_for_timeout(300)
+        content = self.page.content()
+        logging.debug("Current page content: %s", content)
+        watch_date = self.page.get_by_label("Watch date")
+        watch_date.wait_for(state="visible", timeout=5000)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -205,7 +210,10 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E3
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.wait_for_timeout(300)
+        content = self.page.content()
+        logging.debug("Current page content: %s", content)
+        watch_date = self.page.get_by_label("Watch date")
+        watch_date.wait_for(state="visible", timeout=5000)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -220,7 +228,10 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E1
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.wait_for_timeout(300)
+        content = self.page.content()
+        logging.debug("Current page content: %s", content)
+        watch_date = self.page.get_by_label("Watch date")
+        watch_date.wait_for(state="visible", timeout=5000)
         self.page.get_by_label("Parent Season").select_option("2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -228,8 +239,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         )
         self.page.get_by_label("Episode number").click()
         self.page.get_by_label("Episode number").fill("1")
-        self.page.locator('input[type="date"]').click()
-        self.page.locator('input[type="date"]').fill("2024-11-01")
+        watch_date.click()
+        watch_date.fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
             self.page.get_by_text("example S2E1 added successfully."),
@@ -237,7 +248,10 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E2
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.wait_for_timeout(300)
+        content = self.page.content()
+        logging.debug("Current page content: %s", content)
+        watch_date = self.page.get_by_label("Watch date")
+        watch_date.wait_for(state="visible", timeout=5000)
         self.page.get_by_label("Parent Season").select_option("2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
