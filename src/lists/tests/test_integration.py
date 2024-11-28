@@ -84,7 +84,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.wait_for_timeout(500)
         self.page.locator("#filter-modal").press("Escape")
         self.page.wait_for_timeout(500)
-        self.page.get_by_role("button", name="Edit List").click()
+        self.page.get_by_role("button", name="").click()
 
         # edit list
         expect(
