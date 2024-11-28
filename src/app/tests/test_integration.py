@@ -113,8 +113,8 @@ class IntegrationTest(StaticLiveServerTestCase):
     def test_tv_manual(self):  # noqa: PLR0915
         """Test the manual creation of a TV show."""
         self.page.goto(f"{self.live_server_url}/create/item")
-        # create tv show
         self.page.get_by_label("Media type*").select_option("tv")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Title").click()
         self.page.get_by_label("Title").fill("example")
         self.page.get_by_label("Image").click()
@@ -142,6 +142,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         # create S1
         self.page.get_by_role("link", name=" Create").click()
         self.page.get_by_label("Media type*").select_option("season")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent TV Show").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -156,6 +157,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2
         self.page.get_by_label("Media type*").select_option("season")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent TV Show").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -170,6 +172,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E1
         self.page.get_by_label("Media type*").select_option("episode")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -187,6 +190,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         # create S1E2
         self.page.get_by_label("Title").click()
         self.page.get_by_label("Media type*").select_option("episode")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -201,6 +205,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E3
         self.page.get_by_label("Media type*").select_option("episode")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent Season").select_option("1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -215,6 +220,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E1
         self.page.get_by_label("Media type*").select_option("episode")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent Season").select_option("2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
@@ -231,6 +237,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E2
         self.page.get_by_label("Media type*").select_option("episode")
+        self.page.wait_for_timeout(300)
         self.page.get_by_label("Parent Season").select_option("2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
