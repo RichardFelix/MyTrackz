@@ -110,3 +110,10 @@ python manage.py runserver & celery --app config worker --beat -S django --logle
 ```
 
 Go to: http://localhost:8000
+
+## Donate
+
+If you like the project and want to support it, you can donate via:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/fuzzygrim)
+
