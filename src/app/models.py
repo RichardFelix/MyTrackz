@@ -123,16 +123,18 @@ class Item(models.Model):
         return name
 
     @classmethod
-    def generate_manual_id(cls):
+    def generate_manual_id(cls, media_type):
         """Generate a new ID for manual items."""
-        return (
-            cls.objects.filter(source="manual")
-            .exclude(
-                Q(media_type__in=["season", "episode"]),
-            )
-            .count()
-            + 1
+        latest_item = (
+            cls.objects.filter(source="manual", media_type=media_type)
+            .order_by("-media_id")
+            .first()
         )
+
+        if latest_item is None:
+            return 1
+
+        return latest_item.media_id + 1
 
     @property
     def url(self):
