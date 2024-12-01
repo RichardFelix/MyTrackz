@@ -363,8 +363,6 @@ debug, info, success, warning, error */
   background-color: var(--bg-img-none);
   background-position: center;
   background-repeat: no-repeat;
-  /* aprox height of episode-img */
-  height: 170px;
 }
 
 .description {
