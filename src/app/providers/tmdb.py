@@ -390,3 +390,20 @@ def find_from_external(external_id, external_source):
     cache.set(cache_key, data)
 
     return data
+
+
+def episode(media_id, season_number, episode_number):
+    """Return the metadata for the selected episode from The Movie Database."""
+    tv_metadata = tv_with_seasons(media_id, [season_number])
+    season_metadata = tv_metadata[f"season/{season_number}"]
+
+    for episode in season_metadata["episodes"]:
+        if episode["episode_number"] == int(episode_number):
+            return {
+                "title": season_metadata["title"],
+                "season_title": season_metadata["season_title"],
+                "episode_title": episode["name"],
+                "image": get_image_url(episode["still_path"]),
+            }
+
+    return None

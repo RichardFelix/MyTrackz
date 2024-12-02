@@ -161,11 +161,19 @@ def request_error_handling(error, *args):
     raise error  # re-raise the error if it's not handled
 
 
-def get_media_metadata(media_type, media_id, source, season_numbers=None):
+def get_media_metadata(
+    media_type,
+    media_id,
+    source,
+    season_numbers=None,
+    episode_number=None,
+):
     """Return the metadata for the selected media."""
     if source == "manual":
         if media_type == "season":
-            return manual.season(media_id, media_type, season_numbers[0])
+            return manual.season(media_id, season_numbers[0])
+        if media_type == "episode":
+            return manual.episode(media_id, season_numbers[0], episode_number)
         if media_type == "tv_with_seasons":
             media_type = "tv"
         return manual.metadata(media_id, media_type)
@@ -180,6 +188,7 @@ def get_media_metadata(media_type, media_id, source, season_numbers=None):
         "season": lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
             f"season/{season_numbers[0]}"
         ],
+        "episode": lambda: tmdb.episode(media_id, season_numbers[0], episode_number),
         "movie": lambda: tmdb.movie(media_id),
         "game": lambda: igdb.game(media_id),
     }

@@ -163,9 +163,10 @@ def track(request):
     """Return the tracking form for a media item."""
     media_id = request.GET["media_id"]
     source = request.GET["source"]
-
     media_type = request.GET["media_type"]
     season_number = request.GET.get("season_number")
+
+    metadata = services.get_media_metadata(media_type, media_id, source, season_number)
 
     item, _ = Item.objects.get_or_create(
         media_id=media_id,
@@ -174,8 +175,8 @@ def track(request):
         season_number=season_number,
         episode_number=None,
         defaults={
-            "title": request.GET["title"],
-            "image": request.GET["image"],
+            "title": metadata["title"],
+            "image": metadata["image"],
         },
     )
 
@@ -190,7 +191,7 @@ def track(request):
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
 
-    title = request.GET["title"]
+    title = metadata["title"]
     if season_number:
         title = f"{title} S{season_number}"
 
@@ -366,6 +367,13 @@ def create_media(request):
 def history(request):
     """Return the history page for a media item."""
     media_type = request.GET["media_type"]
+    metadata = services.get_media_metadata(
+        media_type,
+        request.GET["media_id"],
+        request.GET["source"],
+        request.GET.get("season_number"),
+        request.GET.get("episode_number"),
+    )
 
     item, _ = Item.objects.get_or_create(
         media_id=request.GET["media_id"],
@@ -374,8 +382,8 @@ def history(request):
         season_number=request.GET.get("season_number"),
         episode_number=request.GET.get("episode_number"),
         defaults={
-            "title": request.GET["title"],
-            "image": request.GET["image"],
+            "title": metadata["title"],
+            "image": metadata["image"],
         },
     )
 

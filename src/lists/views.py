@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
 from app.models import Item
+from app.providers import services
 from lists.forms import CustomListForm, FilterListItemsForm
 from lists.models import CustomList, CustomListItem
 
@@ -127,6 +128,14 @@ def lists_modal(request):
     season_number = request.GET.get("season_number")
     episode_number = request.GET.get("episode_number")
 
+    metadata = services.get_media_metadata(
+        media_type,
+        request.GET["media_id"],
+        request.GET["source"],
+        request.GET.get("season_number"),
+        request.GET.get("episode_number"),
+    )
+
     item, _ = Item.objects.get_or_create(
         media_id=media_id,
         source=source,
@@ -134,8 +143,8 @@ def lists_modal(request):
         season_number=season_number,
         episode_number=episode_number,
         defaults={
-            "title": request.GET["title"],
-            "image": request.GET["image"],
+            "title": metadata["title"],
+            "image": metadata["image"],
         },
     )
 

@@ -14,7 +14,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
         super().setUpClass()
         cls.playwright = sync_playwright().start()
-        # use headless=False, slow_mo=400 to see the browser
+        # use headless=False, slow_mo=200 to see the browser
         cls.browser = cls.playwright.chromium.launch()
         cls.page = cls.browser.new_page()
 
@@ -144,7 +144,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         # create S1
         self.page.get_by_role("link", name=" Create").click()
         self.page.get_by_label("Media type*").select_option("season")
-        self.page.get_by_label("Parent TV Show").select_option("1")
+        self.page.get_by_label("Parent TV Show").select_option(label="example")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w130_and_h195_bestv2/odCW88Cq5hAF0ZFVOkeJmeQv1nV.jpg",
@@ -158,7 +158,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2
         self.page.get_by_label("Media type*").select_option("season")
-        self.page.get_by_label("Parent TV Show").select_option("1")
+        self.page.get_by_label("Parent TV Show").select_option(label="example")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w130_and_h195_bestv2/kC9VHoMh1KkoAYfsY3QlHpZRxDy.jpg",
@@ -172,7 +172,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E1
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.get_by_label("Parent Season").select_option("1")
+        self.page.get_by_label("Parent Season").select_option("example S1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/v6Elr1W2elOyGi1MClgV0mIBVHC.jpg",
@@ -187,7 +187,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E2
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.get_by_label("Parent Season").select_option("1")
+        self.page.get_by_label("Parent Season").select_option("example S1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/sRCJ0D0NArqswoo6z26n6Ab11sc.jpg",
@@ -201,7 +201,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S1E3
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.get_by_label("Parent Season").select_option("1")
+        self.page.get_by_label("Parent Season").select_option("example S1")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/byLiFLL4q9MOJzv4SmqJDgkiYr0.jpg",
@@ -215,7 +215,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E1
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.get_by_label("Parent Season").select_option("2")
+        self.page.get_by_label("Parent Season").select_option("example S2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/uovdoaMdaLnk6vKn2nU5QnyR3zW.jpg",
@@ -230,7 +230,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # create S2E2
         self.page.get_by_label("Media type*").select_option("episode")
-        self.page.get_by_label("Parent Season").select_option("2")
+        self.page.get_by_label("Parent Season").select_option("example S2")
         self.page.get_by_label("Image").click()
         self.page.get_by_label("Image").fill(
             "https://media.themoviedb.org/t/p/w227_and_h127_bestv2/dyBB19jEpwj6gzGA1IcXxj9kq1e.jpg",
@@ -245,7 +245,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         # check the tv show details page
         self.page.get_by_role("link", name=" TV Shows").click()
         self.page.get_by_role("link", name="example").click()
-        self.page.get_by_role("link", name="example S1").click()
+        self.page.get_by_role("link", name="Season 1").click()
         expect(self.page.get_by_text("S01.E01 - example Unknown air")).to_be_visible()
         expect(
             self.page.get_by_role("heading", name="S01.E02 - example"),
@@ -305,8 +305,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("link", name="example S2").click()
         self.page.get_by_role("button", name="").nth(1).click()
         self.page.get_by_role("button", name="Remove Last Watch").click()
-        self.page.get_by_role("button", name="example S2").click()
-        self.page.get_by_role("link", name="example S1").click()
+        self.page.get_by_role("button", name="Season 2").click()
+        self.page.get_by_role("link", name="Season 1").click()
 
         # set tv show to in progress and check the tv show list
         self.page.get_by_role("link", name=" TV Shows").click()

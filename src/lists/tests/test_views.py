@@ -168,9 +168,7 @@ class ListsModalViewTest(TestCase):
             reverse("lists_modal"),
             {
                 "media_type": "movie",
-                "media_id": "1",
-                "title": "Test Movie",
-                "image": "http://example.com/image.jpg",
+                "media_id": "10494",
                 "source": "tmdb",
             },
         )

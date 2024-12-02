@@ -40,7 +40,7 @@
           <div class="card-img-overlay">
             <div class="card-title">{{ media.title }}</div>
             <div class="card-text d-flex justify-content-evenly align-items-center">
-              {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type image=media.image media_id=media.media_id title=media.title only %}
+              {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=media.media_id only %}
             </div>
           </div>
 

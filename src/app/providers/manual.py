@@ -3,9 +3,6 @@ from app import models
 
 def metadata(media_id, media_type):
     """Return the metadata for a manual media item."""
-    if media_type == "season":
-        media_type = "tv"
-
     item = models.Item.objects.get(
         media_id=media_id,
         media_type=media_type,
@@ -33,37 +30,10 @@ def metadata(media_id, media_type):
     return response
 
 
-def season(media_id, media_type, season_number):
+def season(media_id, season_number):
     """Return the metadata for a manual season."""
-    tv_metadata = metadata(media_id, media_type)
+    tv_metadata = metadata(media_id, "tv")
     return tv_metadata[f"season/{season_number}"]
-
-
-def process_episodes(season_metadata, episodes_in_db):
-    """Process the episodes for the selected season."""
-    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
-    episodes_metadata = []
-
-    for episode in season_metadata["episodes"]:
-        episode_number = episode["episode_number"]
-        watched = episode_number in tracked_episodes
-
-        episode_data = {
-            "source": "manual",
-            "episode_number": episode_number,
-            "air_date": episode["air_date"],
-            "image": episode["image"],
-            "title": episode["title"],
-            "overview": "No synopsis available.",
-            "watched": watched,
-            "watch_date": tracked_episodes[episode_number]["watch_date"]
-            if watched
-            else None,
-            "repeats": tracked_episodes[episode_number]["repeats"] if watched else 0,
-        }
-        episodes_metadata.append(episode_data)
-
-    return episodes_metadata
 
 
 def get_season_items(media_id):
@@ -100,31 +70,6 @@ def process_seasons(season_items, response):
     return num_episodes
 
 
-def get_season_episodes(season):
-    """Get all episodes for a season."""
-    return models.Item.objects.filter(
-        media_id=season.media_id,
-        source="manual",
-        media_type="episode",
-        season_number=season.season_number,
-    )
-
-
-def build_episodes_response(season_episodes):
-    """Build the episodes response list."""
-    return [
-        {
-            "media_id": episode.media_id,
-            "source": "manual",
-            "title": episode.title,
-            "image": episode.image,
-            "episode_number": episode.episode_number,
-            "air_date": None,
-        }
-        for episode in season_episodes
-    ]
-
-
 def build_season_response(season, episodes_response, season_episodes):
     """Build the season response dictionary."""
     return {
@@ -140,6 +85,72 @@ def build_season_response(season, episodes_response, season_episodes):
             "number_of_episodes": season_episodes.count(),
         },
     }
+
+
+def get_season_episodes(season):
+    """Get all episodes for a season."""
+    return models.Item.objects.filter(
+        media_id=season.media_id,
+        source="manual",
+        media_type="episode",
+        season_number=season.season_number,
+    )
+
+
+def episode(media_id, season_number, episode_number):
+    """Return the metadata for a manual episode."""
+    season_metadata = season(media_id, season_number)
+    for episode in season_metadata["episodes"]:
+        if episode["episode_number"] == int(episode_number):
+            return {
+                "title": season_metadata["title"],
+                "season_title": season_metadata["season_title"],
+                "episode_title": episode["title"],
+                "image": episode["image"],
+            }
+
+    return None
+
+def process_episodes(season_metadata, episodes_in_db):
+    """Process the episodes for the selected season."""
+    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
+    episodes_metadata = []
+
+    for episode in season_metadata["episodes"]:
+        episode_number = episode["episode_number"]
+        watched = episode_number in tracked_episodes
+
+        episode_data = {
+            "source": "manual",
+            "episode_number": episode_number,
+            "air_date": episode["air_date"],
+            "image": episode["image"],
+            "title": episode["title"],
+            "overview": "No synopsis available.",
+            "watched": watched,
+            "watch_date": tracked_episodes[episode_number]["watch_date"]
+            if watched
+            else None,
+            "repeats": tracked_episodes[episode_number]["repeats"] if watched else 0,
+        }
+        episodes_metadata.append(episode_data)
+
+    return episodes_metadata
+
+
+def build_episodes_response(season_episodes):
+    """Build the episodes response list."""
+    return [
+        {
+            "media_id": episode.media_id,
+            "source": "manual",
+            "title": episode.title,
+            "image": episode.image,
+            "episode_number": episode.episode_number,
+            "air_date": None,
+        }
+        for episode in season_episodes
+    ]
 
 
 def set_max_progress(response, num_episodes, media_type):
