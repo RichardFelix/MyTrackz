@@ -116,9 +116,9 @@ class Item(models.Model):
     def __str__(self):
         """Return the name of the item."""
         name = self.title
-        if self.season_number:
+        if self.season_number is not None:
             name += f" S{self.season_number}"
-            if self.episode_number:
+            if self.episode_number is not None:
                 name += f"E{self.episode_number}"
         return name
 
