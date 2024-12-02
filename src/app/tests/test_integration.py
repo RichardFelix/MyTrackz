@@ -8,10 +8,6 @@ from playwright.sync_api import expect, sync_playwright
 class IntegrationTest(StaticLiveServerTestCase):
     """Integration tests for the application."""
 
-    # needed to reset the sequence of the auto incremented id
-    # for select parent tv fields in manual creation
-    reset_sequences = True
-
     @classmethod
     def setUpClass(cls):
         """Set up the test class."""

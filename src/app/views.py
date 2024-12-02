@@ -266,6 +266,7 @@ def episode_handler(request):
     try:
         related_season = Season.objects.get(
             item__media_id=media_id,
+            item__source=source,
             item__season_number=season_number,
             item__episode_number=None,
             user=request.user,
@@ -279,13 +280,15 @@ def episode_handler(request):
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-        item = Item.objects.create(
+        item, _ = Item.objects.get_or_create(
             media_id=media_id,
             source="tmdb",
             media_type="season",
             season_number=season_number,
-            title=tv_with_seasons_metadata["title"],
-            image=season_metadata["image"],
+            defaults={
+                "title": tv_with_seasons_metadata["title"],
+                "image": season_metadata["image"],
+            },
         )
         related_season = Season(
             item=item,

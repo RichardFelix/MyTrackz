@@ -54,7 +54,7 @@ class Item(models.Model):
         default=MediaTypes.MOVIE.value,
     )
     title = models.CharField(max_length=255)
-    image = models.URLField() # if add default, custom media entry will show the value
+    image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -723,8 +723,11 @@ class Season(Media):
             if episode["episode_number"] == episode_number:
                 if episode.get("still_path"):
                     image = f"http://image.tmdb.org/t/p/original{episode['still_path']}"
-                else:
+                elif "image" in episode:
+                    # for manual seasons
                     image = episode["image"]
+                else:
+                    image = settings.IMG_NONE
                 break
 
         item, _ = Item.objects.get_or_create(
