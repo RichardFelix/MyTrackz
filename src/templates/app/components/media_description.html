@@ -14,9 +14,12 @@
           {{ tv.title|capfirst }}
         </a>
       </h2>
+
+      <h1 class="title">{{ media.season_title }}</h1>
+    {% else %}
+      <h1 class="title">{{ media.title }}</h1>
     {% endif %}
 
-    <h1 class="title">{{ media.title }}</h1>
     <p>{{ media.synopsis|safe }}</p>
 
     <div class="additional-data d-flex flex-wrap">

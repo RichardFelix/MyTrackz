@@ -92,6 +92,8 @@ def process_seasons(season_items, response):
         )
 
         response[f"season/{season.season_number}"] = season_response
+
+        season_response["title"] = season_response["season_title"]
         response["related"]["seasons"].append(season_response)
         num_episodes += season_episodes.count()
 
@@ -128,7 +130,8 @@ def build_season_response(season, episodes_response, season_episodes):
     return {
         "media_id": season.media_id,
         "source": "manual",
-        "title": season,
+        "title": season.title,
+        "season_title": f"Season {season.season_number}",
         "image": season.image,
         "season_number": season.season_number,
         "episodes": episodes_response,

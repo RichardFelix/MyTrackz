@@ -122,7 +122,7 @@ def tv_with_seasons(media_id, season_numbers):
             season_data = process_season(
                 response[f"season/{season_number}"],
             )
-            season_data["tv_title"] = data["title"]
+            season_data["title"] = data["title"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data
@@ -196,7 +196,7 @@ def process_season(response):
     num_episodes = len(response["episodes"])
     return {
         "source": "tmdb",
-        "title": response["name"],
+        "season_title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
