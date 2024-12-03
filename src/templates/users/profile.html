@@ -264,8 +264,9 @@
 
     <fieldset class="input-group profile-grid">
       <form class="p-2 grid-item"
-            method="get"
+            method="post"
             action="{% url 'reload_calendar' %}">
+        {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Reload Calendar</button>
       </form>
     </fieldset>
