@@ -1,14 +1,17 @@
+from datetime import datetime
+
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
-from app.models import Item
+from app.models import Item, Media
 
 
 class EventManager(models.Manager):
     """Custom manager for the Event model."""
 
-    def user_events(self, user):
-        """Get all upcoming media events of the specified user within the next week."""
+    def get_user_events(self, user):
+        """Get all upcoming media events of the specified user."""
         media_types_with_user = [
             choice.value
             for choice in Item.MediaTypes
@@ -20,6 +23,40 @@ class EventManager(models.Manager):
 
         return self.filter(
             query,
+        )
+
+    def get_items_to_process(self):
+        """Get items to process for the calendar."""
+        statuses_to_track = [
+            choice.value
+            for choice in Media.Status
+            if choice
+            not in [
+                Media.Status.COMPLETED,
+                Media.Status.DROPPED,
+                Media.Status.REPEATING,
+            ]
+        ]
+        media_types_with_status = [
+            choice.value
+            for choice in Item.MediaTypes
+            if choice != Item.MediaTypes.EPISODE
+        ]
+        query = Q()
+        for media_type in media_types_with_status:
+            query |= Q(**{f"{media_type}__status__in": statuses_to_track})
+
+        items_with_status = Item.objects.filter(query).distinct()
+
+        future_events = Event.objects.filter(date__gte=datetime.now(tz=settings.TZ))
+        future_event_item_ids = set(future_events.values_list("item_id", flat=True))
+        items_without_events = items_with_status.exclude(
+            id__in=Event.objects.values_list("item_id", flat=True),
+        )
+
+        # Combine items with future events and items without any events
+        return items_with_status.filter(
+            Q(id__in=future_event_item_ids) | Q(id__in=items_without_events),
         )
 
 
@@ -35,6 +72,7 @@ class Event(models.Model):
         """Meta class for Event model."""
 
         ordering = ["date"]
+        unique_together = ["item", "episode_number"]
 
     def __str__(self):
         """Return event title."""

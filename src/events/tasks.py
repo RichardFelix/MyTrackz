@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 import requests
 from celery import shared_task
 from django.conf import settings
-from django.db import transaction
 from django.db.models import Q
 
 from app.models import Item
@@ -19,47 +18,32 @@ DEFAULT_DAY = "-01"
 
 
 @shared_task(name="Reload calendar")
-def reload_calendar(user=None):  # , used for metadata
+def reload_calendar(user=None, items_to_process=None):  # used for metadata
     """Refresh the calendar with latest dates for all users."""
-    statuses = ["Planning", "In progress"]
-    media_types_with_status = [
-        choice.value for choice in Item.MediaTypes if choice != Item.MediaTypes.EPISODE
-    ]
-    query = Q()
-    for media_type in media_types_with_status:
-        query |= Q(**{f"{media_type}__status__in": statuses})
-
-    items_with_status = Item.objects.filter(query).distinct()
-
-    future_events = Event.objects.filter(date__gte=datetime.now(tz=settings.TZ))
-    future_event_item_ids = set(future_events.values_list("item_id", flat=True))
-    items_without_events = items_with_status.exclude(
-        id__in=Event.objects.values_list("item_id", flat=True),
-    )
-
-    # Combine items with future events and items without any events
-    items_to_process = items_with_status.filter(
-        Q(id__in=future_event_item_ids) | Q(id__in=items_without_events),
-    )
+    if not items_to_process:
+        items_to_process = Event.objects.get_items_to_process()
 
     events_bulk = []
     anime_to_process = []
-    user_reloaded_items = []
-    with transaction.atomic():
-        # Delete all events related to items with at least one future event
-        Event.objects.filter(item_id__in=future_event_item_ids).delete()
-        for item in items_to_process:
-            # anime can later be processed in bulk
-            if item.media_type == "anime":
-                anime_to_process.append(item)
-            elif process_item(item, events_bulk):
-                add_user_reloaded(item, user, user_reloaded_items)
 
-        # process anime items in bulk
-        process_anime_bulk(anime_to_process, events_bulk, user, user_reloaded_items)
+    for item in items_to_process:
+        # anime can later be processed in bulk
+        if item.media_type == "anime":
+            anime_to_process.append(item)
+        else:
+            process_item(item, events_bulk)
 
-        Event.objects.bulk_create(events_bulk)
+    # process anime items in bulk
+    process_anime_bulk(anime_to_process, events_bulk)
 
+    reloaded_events = Event.objects.bulk_create(
+        events_bulk,
+        update_conflicts=True,
+        update_fields=["date"],
+        unique_fields=["item", "episode_number"],
+    )
+
+    user_reloaded_items = get_user_reloaded(reloaded_events, user)
     user_reloaded_count = len(user_reloaded_items)
     user_reloaded_msg = "\n".join(
         f"{item} ({item.media_type_readable})" for item in user_reloaded_items
@@ -76,27 +60,25 @@ def process_item(item, events_bulk):
     try:
         if item.media_type == "season":
             metadata = tmdb.season(item.media_id, item.season_number)
-            reloaded = process_season(item, metadata, events_bulk)
+            process_season(item, metadata, events_bulk)
         else:
             metadata = services.get_media_metadata(
                 item.media_type,
                 item.media_id,
                 item.source,
             )
-            reloaded = process_other(item, metadata, events_bulk)
+            process_other(item, metadata, events_bulk)
     except requests.exceptions.HTTPError as err:
         # happens for niche media in which the mappings during import are incorrect
         if err.response.status_code == requests.codes.not_found:
             msg = f"{item} ({item.media_id}) not found on {item.source}. Deleting it."
             logger.warning(msg)
             item.delete()
-            reloaded = False
         else:
             raise
-    return reloaded
 
 
-def process_anime_bulk(items, events_bulk, user, user_reloaded_items):
+def process_anime_bulk(items, events_bulk):
     """Process multiple anime items and add events to the event list."""
     anime_data = get_anime_schedule_bulk([item.media_id for item in items])
 
@@ -112,8 +94,6 @@ def process_anime_bulk(items, events_bulk, user, user_reloaded_items):
                     date=local_air_date,
                 ),
             )
-        if episodes:
-            add_user_reloaded(item, user, user_reloaded_items)
 
 
 def get_anime_schedule_bulk(media_ids):
@@ -197,7 +177,6 @@ def process_season(item, metadata, events_bulk):
                 )
             except ValueError:
                 pass
-    return bool(metadata["episodes"])
 
 
 def process_other(item, metadata, events_bulk):
@@ -206,28 +185,8 @@ def process_other(item, metadata, events_bulk):
     date_keys = ["start_date", "release_date", "first_air_date"]
     for date_key in date_keys:
         if date_key in metadata["details"] and metadata["details"][date_key]:
-            try:
-                air_date = date_parser(metadata["details"][date_key])
-                events_bulk.append(Event(item=item, date=air_date))
-            except ValueError:
-                return False
-            else:
-                return True
-
-    return False
-
-
-def add_user_reloaded(item, user, user_reloaded_items):
-    """Add the item to the user reloaded list if the user is tracking it."""
-    user_query = Q(**{f"{item.media_type}__user": user})
-    if user and Item.objects.filter(user_query, id=item.id).exists():
-        user_reloaded_items.append(item)
-
-    logger.info(
-        "Processed events for: %s (%s)",
-        item,
-        item.media_type_readable,
-    )
+            air_date = date_parser(metadata["details"][date_key])
+            events_bulk.append(Event(item=item, date=air_date))
 
 
 def date_parser(date_str):
@@ -256,3 +215,24 @@ def anilist_date_parser(start_date):
     month = start_date["month"] or 1
     day = start_date["day"] or 1
     return datetime(start_date["year"], month, day, tzinfo=ZoneInfo("UTC")).timestamp()
+
+
+def get_user_reloaded(reloaded_events, user):
+    """Get the items that have been reloaded for the user."""
+    event_item_ids = {event.item_id for event in reloaded_events}
+
+    media_type_groups = {}
+    for item_id, media_type in Item.objects.filter(
+        id__in=event_item_ids,
+    ).values_list("id", "media_type"):
+        media_type_groups.setdefault(media_type, set()).add(item_id)
+
+    q_filters = Q()
+    for media_type, item_ids in media_type_groups.items():
+        q_filters |= Q(
+            id__in=item_ids,
+            media_type=media_type,
+            **{f"{media_type}__user": user},
+        )
+
+    return Item.objects.filter(q_filters).distinct()

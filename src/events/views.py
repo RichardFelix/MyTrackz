@@ -9,7 +9,7 @@ from events.models import Event
 @require_GET
 def calendar(request):
     """Display the calendar page."""
-    user_events = Event.objects.user_events(request.user).select_related("item")
+    user_events = Event.objects.get_user_events(request.user).select_related("item")
 
     calendar_events = [
         {
