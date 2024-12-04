@@ -178,18 +178,6 @@ def process_tv(response):
     }
 
 
-def season(tv_id, season_number):
-    """Return the metadata for the selected season from The Movie Database."""
-    data = cache.get(f"season_{tv_id}_{season_number}")
-
-    if data is None:
-        url = f"{base_url}/tv/{tv_id}/season/{season_number}"
-        response = services.api_request("TMDB", "GET", url, params=base_params)
-        data = process_season(response)
-        cache.set(f"season_{tv_id}_{season_number}", data)
-
-    return data
-
 
 def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""

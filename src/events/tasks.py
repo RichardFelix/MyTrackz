@@ -35,7 +35,6 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     # process anime items in bulk
     process_anime_bulk(anime_to_process, events_bulk)
-
     reloaded_events = Event.objects.bulk_create(
         events_bulk,
         update_conflicts=True,
@@ -43,23 +42,31 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
         unique_fields=["item", "episode_number"],
     )
 
-    user_reloaded_items = get_user_reloaded(reloaded_events, user)
-    user_reloaded_count = len(user_reloaded_items)
-    user_reloaded_msg = "\n".join(
-        f"{item} ({item.media_type_readable})" for item in user_reloaded_items
+    if user:
+        reloaded_items = get_user_reloaded(reloaded_events, user)
+    else:
+        reloaded_items = {event.item for event in reloaded_events}
+
+    reloaded_count = len(reloaded_items)
+    result_msg = "\n".join(
+        f"{item} ({item.media_type_readable})" for item in reloaded_items
     )
 
-    if user_reloaded_count > 0:
-        return f"""The following items have been reloaded for you:\n
-                   {user_reloaded_msg}"""
-    return "There have been no changes in your calendar"
+    if reloaded_count > 0:
+        return f"""The following items have been loaded to the calendar:\n
+                    {result_msg}"""
+    return "There have been no changes in the calendar"
 
 
 def process_item(item, events_bulk):
     """Process each item and add events to the event list."""
     try:
         if item.media_type == "season":
-            metadata = tmdb.season(item.media_id, item.season_number)
+            tv_with_seasons_metadata = tmdb.tv_with_seasons(
+                item.media_id,
+                [item.season_number],
+            )
+            metadata = tv_with_seasons_metadata[f"season/{item.season_number}"]
             process_season(item, metadata, events_bulk)
         else:
             metadata = services.get_media_metadata(
@@ -83,7 +90,7 @@ def process_anime_bulk(items, events_bulk):
     anime_data = get_anime_schedule_bulk([item.media_id for item in items])
 
     for item in items:
-        episodes = anime_data.get(item.media_id, [])
+        episodes = anime_data[item.media_id]
         for episode in episodes:
             air_date = datetime.fromtimestamp(episode["airingAt"], tz=ZoneInfo("UTC"))
             local_air_date = air_date.astimezone(settings.TZ)

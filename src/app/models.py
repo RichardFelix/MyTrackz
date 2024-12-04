@@ -14,6 +14,7 @@ from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
+import events
 from app.providers import services, tmdb
 from app.templatetags.app_extras import slug
 
@@ -266,9 +267,16 @@ class Media(models.Model):
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        if self.status == self.Status.COMPLETED.value:
+        now = datetime.datetime.now(tz=settings.TZ).date()
+
+        if self.status == self.Status.IN_PROGRESS.value:
+            if not self.start_date:
+                self.start_date = now
+            events.tasks.reload_calendar.delay(items_to_process=[self.item])
+
+        elif self.status == self.Status.COMPLETED.value:
             if not self.end_date:
-                self.end_date = datetime.datetime.now(tz=settings.TZ).date()
+                self.end_date = now
 
             max_progress = services.get_media_metadata(
                 self.item.media_type,
@@ -282,8 +290,8 @@ class Media(models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        elif self.status == self.Status.IN_PROGRESS.value and not self.start_date:
-            self.start_date = datetime.datetime.now(tz=settings.TZ).date()
+        elif self.status in (self.Status.PLANNING.value, self.Status.PAUSED.value):
+            events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     def increase_progress(self):
         """Increase the progress of the media by one."""
@@ -324,11 +332,15 @@ class TV(Media):
         """Save the media instance."""
         super(Media, self).save(*args, **kwargs)
 
-        if (
-            self.tracker.has_changed("status")
-            and self.status == self.Status.COMPLETED.value
-        ):
-            self.completed()
+        if self.tracker.has_changed("status"):
+            if self.status == self.Status.COMPLETED.value:
+                self.completed()
+            elif self.status in (
+                self.Status.IN_PROGRESS.value,
+                self.Status.PLANNING.value,
+                self.Status.PAUSED.value,
+            ):
+                events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     @property
     def progress(self):
@@ -454,20 +466,24 @@ class Season(Media):
 
         super(Media, self).save(*args, **kwargs)
 
-        if (
-            self.tracker.has_changed("status")
-            and self.status == self.Status.COMPLETED.value
-        ):
-            season_metadata = services.get_media_metadata(
-                "season",
-                self.item.media_id,
-                self.item.source,
-                [self.item.season_number],
-            )
-            bulk_create_with_history(
-                self.get_remaining_eps(season_metadata),
-                Episode,
-            )
+        if self.tracker.has_changed("status"):
+            if self.status == self.Status.COMPLETED.value:
+                season_metadata = services.get_media_metadata(
+                    "season",
+                    self.item.media_id,
+                    self.item.source,
+                    [self.item.season_number],
+                )
+                bulk_create_with_history(
+                    self.get_remaining_eps(season_metadata),
+                    Episode,
+                )
+            elif self.status in (
+                self.Status.IN_PROGRESS.value,
+                self.Status.PLANNING.value,
+                self.Status.PAUSED.value,
+            ):
+                events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     @property
     def progress(self):

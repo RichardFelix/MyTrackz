@@ -31,10 +31,10 @@ class EventManager(models.Manager):
             choice.value
             for choice in Media.Status
             if choice
-            not in [
-                Media.Status.COMPLETED,
-                Media.Status.DROPPED,
-                Media.Status.REPEATING,
+            in [
+                Media.Status.IN_PROGRESS,
+                Media.Status.PLANNING,
+                Media.Status.PAUSED,
             ]
         ]
         media_types_with_status = [

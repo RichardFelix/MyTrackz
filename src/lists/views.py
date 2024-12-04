@@ -132,7 +132,7 @@ def lists_modal(request):
         media_type,
         request.GET["media_id"],
         request.GET["source"],
-        request.GET.get("season_number"),
+        [request.GET.get("season_number")],
         request.GET.get("episode_number"),
     )
 

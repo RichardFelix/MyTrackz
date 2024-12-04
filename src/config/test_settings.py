@@ -13,4 +13,6 @@ CACHES = {
     },
 }
 
+CELERY_TASK_ALWAYS_EAGER=True
+
 TESTING = True

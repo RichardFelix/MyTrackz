@@ -166,7 +166,12 @@ def track(request):
     media_type = request.GET["media_type"]
     season_number = request.GET.get("season_number")
 
-    metadata = services.get_media_metadata(media_type, media_id, source, season_number)
+    metadata = services.get_media_metadata(
+        media_type,
+        media_id,
+        source,
+        [season_number],
+    )
 
     item, _ = Item.objects.get_or_create(
         media_id=media_id,
@@ -371,7 +376,7 @@ def history(request):
         media_type,
         request.GET["media_id"],
         request.GET["source"],
-        request.GET.get("season_number"),
+        [request.GET.get("season_number")],
         request.GET.get("episode_number"),
     )
 
