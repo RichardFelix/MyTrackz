@@ -1,4 +1,7 @@
+from unittest.mock import MagicMock
+
 from django.apps import AppConfig
+from django.conf import settings
 
 
 class EventsConfig(AppConfig):
@@ -6,3 +9,11 @@ class EventsConfig(AppConfig):
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "events"
+
+    def ready(self):
+        """Run when the app is ready."""
+        # Mock the reload_calendar task when testing
+        if settings.TESTING:
+            from events.tasks import reload_calendar
+
+            reload_calendar.delay = MagicMock()

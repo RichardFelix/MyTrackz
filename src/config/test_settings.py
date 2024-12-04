@@ -5,7 +5,7 @@ from .settings import *  # noqa: F403
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": REDIS_URL, # noqa: F405
+        "LOCATION": REDIS_URL,  # noqa: F405
         "TIMEOUT": 18000,  # 5 hours
         "OPTIONS": {
             "connection_class": FakeConnection,
@@ -13,6 +13,6 @@ CACHES = {
     },
 }
 
-CELERY_TASK_ALWAYS_EAGER=True
+CELERY_TASK_ALWAYS_EAGER = True
 
 TESTING = True
