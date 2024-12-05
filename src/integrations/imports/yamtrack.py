@@ -5,6 +5,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
+import app.providers
 from app.models import TV, Episode, Item, Season
 from integrations import helpers
 
@@ -42,6 +43,20 @@ def add_bulk_media(row, user, bulk_media):
     season_number = row["season_number"] if row["season_number"] != "" else None
     episode_number = row["episode_number"] if row["episode_number"] != "" else None
 
+    if row["title"] == "" or row["image"] == "":
+        if row["source"] == "manual" and row["image"] == "":
+            row["image"] = settings.IMG_NONE
+        else:
+            metadata = app.providers.services.get_media_metadata(
+                media_type,
+                row["media_id"],
+                row["source"],
+                season_number,
+                episode_number,
+            )
+            row["title"] = metadata["title"]
+            row["image"] = metadata["image"]
+
     item, _ = app.models.Item.objects.update_or_create(
         media_id=row["media_id"],
         source=row["source"],
@@ -50,7 +65,7 @@ def add_bulk_media(row, user, bulk_media):
         episode_number=episode_number,
         defaults={
             "title": row["title"],
-            "image": row["image"] if row["image"] != "" else settings.IMG_NONE,
+            "image": row["image"],
         },
     )
 
