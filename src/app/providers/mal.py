@@ -279,7 +279,12 @@ def get_broadcast(response):
 
 def get_source(response):
     """Return the source for the media."""
-    return response["source"].replace("_", " ").title()
+    # when unknown source, value from response is empty string
+    # e.g anime: 32253
+    try:
+        return response["source"].replace("_", " ").title()
+    except KeyError:
+        return None
 
 
 def get_related(related_medias):
