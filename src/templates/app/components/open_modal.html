@@ -1,8 +1,8 @@
 {% load app_extras %}
 
 <button type="button"
-        hx-get="/{{ modal_type }}_modal"
-        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "source": "{{ source }}", "media_type": "{{ media_type }}", "media_id": "{{ media_id }}" {% if season_number != None %}, "season_number": "{{ season_number }}"{% endif %} {% if episode_number != None %}, "episode_number": "{{ episode_number }}"{% endif %}}'
+        hx-get="{% if season_number != None and episode_number != None %}{% url modal_type|add:'_modal' source media_type media_id season_number episode_number %}{% elif season_number != None %}{% url modal_type|add:'_modal' source media_type media_id season_number %}{% else %}{% url modal_type|add:'_modal' source media_type media_id %}{% endif %}"
+        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
         hx-target="#{{ modal_type }}-modal-{{ media_type }}_{{ media_id }}{% if season_number != None %}_{{ season_number }}{% endif %}{% if episode_number != None %}_{{ episode_number }}{% endif %}"
         hx-trigger="click once"
         title="{{ modal_type|title }}"

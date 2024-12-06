@@ -165,12 +165,10 @@ class ListsModalViewTest(TestCase):
     def test_lists_modal_view(self):
         """Test the lists_modal view."""
         response = self.client.get(
-            reverse("lists_modal"),
-            {
-                "media_type": "movie",
-                "media_id": "10494",
-                "source": "tmdb",
-            },
+            reverse(
+                "lists_modal",
+                args=["tmdb", "movie", 10494],
+            ),
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "lists/components/fill_lists.html")

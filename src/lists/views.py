@@ -120,20 +120,21 @@ def delete(request):
 
 
 @require_GET
-def lists_modal(request):
+def lists_modal(
+    request,
+    source,
+    media_type,
+    media_id,
+    season_number=None,
+    episode_number=None,
+):
     """Return the modal showing all custom lists and allowing to add to them."""
-    media_type = request.GET["media_type"]
-    source = request.GET["source"]
-    media_id = request.GET["media_id"]
-    season_number = request.GET.get("season_number")
-    episode_number = request.GET.get("episode_number")
-
     metadata = services.get_media_metadata(
         media_type,
-        request.GET["media_id"],
-        request.GET["source"],
-        [request.GET.get("season_number")],
-        request.GET.get("episode_number"),
+        media_id,
+        source,
+        [season_number],
+        episode_number,
     )
 
     item, _ = Item.objects.get_or_create(
