@@ -124,7 +124,7 @@ def importer(response, media_type, user):
     return num_imported, warnings
 
 
-def process_entry(  # noqa: PLR0913
+def process_entry(
     entry,
     media_type,
     media_lookup,

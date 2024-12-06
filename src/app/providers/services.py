@@ -69,7 +69,7 @@ def retry_on_error(delay=1):
 
 
 @retry_on_error(delay=1)
-def api_request(provider, method, url, params=None, data=None, headers=None):  # noqa: PLR0913
+def api_request(provider, method, url, params=None, data=None, headers=None):
     """Make a request to the API and return the response as a dictionary."""
     try:
         request_kwargs = {
