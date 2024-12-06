@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, UniqueConstraint
 
 from app.models import Item, Media
 
@@ -72,7 +72,17 @@ class Event(models.Model):
         """Meta class for Event model."""
 
         ordering = ["date"]
-        unique_together = ["item", "episode_number"]
+        constraints = [
+            UniqueConstraint(
+                fields=["item", "episode_number"],
+                name="unique_item_episode",
+            ),
+            UniqueConstraint(
+                fields=["item"],
+                condition=Q(episode_number__isnull=True),
+                name="unique_item_null_episode",
+            ),
+        ]
 
     def __str__(self):
         """Return event title."""

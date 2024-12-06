@@ -35,17 +35,17 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     # process anime items in bulk
     process_anime_bulk(anime_to_process, events_bulk)
-    reloaded_events = Event.objects.bulk_create(
-        events_bulk,
-        update_conflicts=True,
-        update_fields=["date"],
-        unique_fields=["item", "episode_number"],
-    )
+    for event in events_bulk:
+        Event.objects.update_or_create(
+            item = event.item,
+            episode_number = event.episode_number,
+            defaults={"date": event.date},
+        )
 
     if user:
-        reloaded_items = get_user_reloaded(reloaded_events, user)
+        reloaded_items = get_user_reloaded(events_bulk, user)
     else:
-        reloaded_items = {event.item for event in reloaded_events}
+        reloaded_items = {event.item for event in events_bulk}
 
     reloaded_count = len(reloaded_items)
     result_msg = "\n".join(
