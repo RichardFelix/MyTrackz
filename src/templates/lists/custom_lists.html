@@ -50,7 +50,7 @@
         <div class="col-xxl-1 col-md-2 col-sm-3">
           <a href="{% url 'list_detail' custom_list.id %}">
             {% with first=custom_list.items.first %}
-              {% if first %}
+              {% if first and first.image != IMG_NONE %}
                 <img src="{{ first.image }}"
                      class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
                      alt="{{ custom_list.name }}">
