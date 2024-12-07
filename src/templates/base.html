@@ -92,6 +92,13 @@
                 <span class="align-middle">Games</span>
               </a>
             </li>
+            <li>
+              <a href="{% url 'medialist' media_type='book' %}"
+                 class="nav-link {% if media_type == "book" %}active{% endif %}">
+                <i class="bi bi-journal me-2 align-middle"></i>
+                <span class="align-middle">Books</span>
+              </a>
+            </li>
             <hr>
             <li>
               {% url 'create_item' as create_item_url %}
@@ -154,6 +161,8 @@
                         {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
                 <option value="game"
                         {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
+                <option value="book"
+                {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
               </select>
               <input class="form-control"
                      type="search"

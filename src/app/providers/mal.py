@@ -230,7 +230,9 @@ def get_runtime(response):
 
 def get_genres(response):
     """Return the genres for the media."""
-    return ", ".join(genre["name"] for genre in response["genres"])
+    if response["genres"]:
+        return ", ".join(genre["name"] for genre in response["genres"])
+    return None
 
 
 def get_studios(response):

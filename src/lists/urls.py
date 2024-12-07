@@ -5,17 +5,17 @@ from lists import views
 urlpatterns = [
     path("lists", views.lists, name="lists"),
     path(
-        "lists_modal/<source:source>/<media_type:media_type>/<int:media_id>",
+        "lists_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.lists_modal,
         name="lists_modal",
     ),
     path(
-        "lists_modal/<source:source>/<media_type:media_type>/<int:media_id>/<int:season_number>",
+        "lists_modal/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
         views.lists_modal,
         name="lists_modal",
     ),
     path(
-        "lists_modal/<source:source>/<media_type:media_type>/<int:media_id>/<int:season_number>/<int:episode_number>",
+        "lists_modal/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>/<int:episode_number>",
         views.lists_modal,
         name="lists_modal",
     ),

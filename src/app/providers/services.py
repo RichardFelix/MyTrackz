@@ -9,7 +9,7 @@ from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
-from app.providers import igdb, mal, mangaupdates, manual, tmdb
+from app.providers import igdb, mal, mangaupdates, manual, openlibrary, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -191,5 +191,25 @@ def get_media_metadata(
         "episode": lambda: tmdb.episode(media_id, season_numbers[0], episode_number),
         "movie": lambda: tmdb.movie(media_id),
         "game": lambda: igdb.game(media_id),
+        "book": lambda: openlibrary.book(media_id),
     }
     return metadata_retrievers[media_type]()
+
+
+def search(media_type, query, source=None):
+    """Search for media based on the query and return the results."""
+    if media_type == "manga":
+        if source == "mangaupdates":
+            query_list = mangaupdates.search(query)
+        else:
+            query_list = mal.search(media_type, query)
+    elif media_type in "anime":
+        query_list = mal.search(media_type, query)
+    elif media_type in ("tv", "movie"):
+        query_list = tmdb.search(media_type, query)
+    elif media_type == "game":
+        query_list = igdb.search(query)
+    elif media_type == "book":
+        query_list = openlibrary.search(query)
+
+    return query_list

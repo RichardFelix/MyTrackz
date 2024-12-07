@@ -159,7 +159,7 @@ def get_anime_schedule_bulk(media_ids):
                 else:
                     airing_schedule = []
 
-            all_data[media["idMal"]] = airing_schedule
+            all_data[str(media["idMal"])] = airing_schedule
 
         if not response["data"]["Page"]["pageInfo"]["hasNextPage"]:
             break
@@ -189,11 +189,14 @@ def process_season(item, metadata, events_bulk):
 def process_other(item, metadata, events_bulk):
     """Process other types of items and add events to the event list."""
     # it will have either of these keys
-    date_keys = ["start_date", "release_date", "first_air_date"]
+    date_keys = ["start_date", "release_date", "first_air_date", "publish_date"]
     for date_key in date_keys:
         if date_key in metadata["details"] and metadata["details"][date_key]:
-            air_date = date_parser(metadata["details"][date_key])
-            events_bulk.append(Event(item=item, date=air_date))
+            try:
+                air_date = date_parser(metadata["details"][date_key])
+                events_bulk.append(Event(item=item, date=air_date))
+            except ValueError:
+                pass
 
 
 def date_parser(date_str):

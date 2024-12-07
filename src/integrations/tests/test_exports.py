@@ -130,6 +130,21 @@ class ExportCSVTest(TestCase):
             start_date=date(2021, 6, 1),
         )
 
+        item_book = Item.objects.create(
+            media_id="OL7353617M",
+            source="openlibrary",
+            media_type="book",
+            title="Fantastic Mr. Fox",
+            image="https://image.url",
+        )
+        Book.objects.create(
+            item=item_book,
+            user=self.user,
+            status="In progress",
+            progress=120,
+            start_date=date(2021, 6, 1),
+        )
+
     def test_export_csv(self):
         """Basic test exporting media to CSV."""
         # Generate the CSV file by accessing the export view
@@ -181,7 +196,12 @@ class ExportCSVTest(TestCase):
                 user=self.user,
             ),
         )
+        db_media_ids.update(
+            Book.objects.values_list("item__media_id", flat=True).filter(
+                user=self.user,
+            ),
+        )
 
         for row in reader:
-            media_id = int(row["media_id"])
+            media_id = row["media_id"]
             self.assertIn(media_id, db_media_ids)

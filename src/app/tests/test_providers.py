@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.test import TestCase
 
-from app.providers import igdb, mal, tmdb
+from app.providers import igdb, mal, openlibrary, tmdb
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -52,6 +52,17 @@ class Search(TestCase):
 
         for game in response:
             self.assertTrue(all(key in game for key in required_keys))
+
+    def test_books(self):
+        """Test the search method for books.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = openlibrary.search("The Name of the Wind")
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for book in response:
+            self.assertTrue(all(key in book for key in required_keys))
 
 
 class Metadata(TestCase):
@@ -130,3 +141,9 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["format"], "Main game")
         self.assertEqual(response["details"]["release_date"], "2015-05-19")
         self.assertEqual(response["details"]["themes"], "Action, Fantasy, Open world")
+
+    def test_book(self):
+        """Test the metadata method for books."""
+        response = openlibrary.book("OL32816908W")
+        self.assertEqual(response["title"], "The Name of the Wind")
+        self.assertEqual(response["details"]["author"], "Patrick Rothfuss")

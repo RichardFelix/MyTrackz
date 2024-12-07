@@ -56,6 +56,12 @@ class User(AbstractUser):
         choices=layouts,
     )
 
+    book_layout = models.CharField(
+        max_length=20,
+        default="grid",
+        choices=layouts,
+    )
+
     token = models.CharField(
         max_length=32,
         null=True,

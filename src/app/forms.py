@@ -241,6 +241,11 @@ class MediaForm(forms.ModelForm):
 class MangaForm(MediaForm):
     """Form for manga."""
 
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+        self.fields["progress"].label = "Progress (chapters)"
+
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
@@ -263,6 +268,20 @@ class MovieForm(MediaForm):
         """Bind form to model."""
 
         model = models.Movie
+
+
+class BookForm(MediaForm):
+    """Form for books."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+        self.fields["progress"].label = "Progress (pages)"
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = models.Book
 
 
 class TvForm(MediaForm):

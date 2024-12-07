@@ -100,17 +100,7 @@ def media_search(request):
     # only receives source when searching with secondary source
     source = request.GET.get("source")
 
-    if media_type == "manga":
-        if source == "mangaupdates":
-            query_list = mangaupdates.search(query)
-        else:
-            query_list = mal.search(media_type, query)
-    elif media_type in "anime":
-        query_list = mal.search(media_type, query)
-    elif media_type in ("tv", "movie"):
-        query_list = tmdb.search(media_type, query)
-    elif media_type == "game":
-        query_list = igdb.search(query)
+    query_list = services.search(media_type, query, source)
 
     context = {"query_list": query_list, "source": source}
 

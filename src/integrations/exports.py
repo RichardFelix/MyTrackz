@@ -5,7 +5,7 @@ from django.apps import apps
 from django.db.models import Field
 
 from app import helpers
-from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
+from app.models import TV, Anime, Book, Episode, Game, Item, Manga, Movie, Season
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ def db_to_csv(response, user):
     write_model_to_csv(writer, fields, Anime.objects.filter(user=user), "anime")
     write_model_to_csv(writer, fields, Manga.objects.filter(user=user), "manga")
     write_model_to_csv(writer, fields, Game.objects.filter(user=user), "game")
+    write_model_to_csv(writer, fields, Book.objects.filter(user=user), "book")
 
     return response
 

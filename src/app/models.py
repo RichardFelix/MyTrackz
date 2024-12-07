@@ -31,6 +31,7 @@ class Item(models.Model):
         MAL = "mal", "MyAnimeList"
         MANGAUPDATES = "mangaupdates", "MangaUpdates"
         IGDB = "igdb", "Internet Game Database"
+        OPENLIBRARY = "openlibrary", "Open Library"
         MANUAL = "manual", "Manual"
 
     class MediaTypes(models.TextChoices):
@@ -43,8 +44,9 @@ class Item(models.Model):
         ANIME = "anime", "Anime"
         MANGA = "manga", "Manga"
         GAME = "game", "Game"
+        BOOK = "book", "Book"
 
-    media_id = models.PositiveIntegerField()
+    media_id = models.CharField(max_length=20)
     source = models.CharField(
         max_length=20,
         choices=Sources,
@@ -861,3 +863,9 @@ class Game(Media):
         self.progress -= 30
         self.save()
         logger.info("Unwatched %s E%s", self, self.progress + 1)
+
+
+class Book(Media):
+    """Model for books."""
+
+    tracker = FieldTracker()
