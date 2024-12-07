@@ -55,13 +55,13 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(tv.status, "In progress")
 
         season = Season.objects.get(
-            item__media_id=1668,
+            item__media_id="1668",
             item__season_number=1,
         )
         self.assertEqual(season.status, "In progress")
 
         episode = Episode.objects.get(
-            item__media_id=1668,
+            item__media_id="1668",
             item__season_number=1,
             item__episode_number=1,
         )

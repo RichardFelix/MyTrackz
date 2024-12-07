@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Episode, Game, Item, Manga, Movie, Season
+from app.models import TV, Anime, Book, Episode, Game, Item, Manga, Movie, Season
 
 
 class ExportCSVTest(TestCase):
@@ -19,7 +19,7 @@ class ExportCSVTest(TestCase):
         self.client.login(**self.credentials)
 
         item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -36,7 +36,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_movie = Item.objects.create(
-            media_id=10494,
+            media_id="10494",
             source="tmdb",
             media_type="movie",
             title="Perfect Blue",
@@ -53,7 +53,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_season = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -71,7 +71,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_episode = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -86,7 +86,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_anime = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="Cowboy Bebop",
@@ -101,7 +101,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_manga = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="manga",
             title="Berserk",
@@ -116,7 +116,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_game = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="igdb",
             media_type="game",
             title="The Witcher 3: Wild Hunt",

@@ -17,7 +17,7 @@ class ItemModel(TestCase):
     def setUp(self):
         """Set up test data for Item model."""
         self.item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="tmdb",
             media_type="movie",
             title="Test Movie",
@@ -38,7 +38,7 @@ class ItemModel(TestCase):
     def test_item_with_season_and_episode(self):
         """Test the string representation of an Item with season and episode."""
         item = Item.objects.create(
-            media_id=2,
+            media_id="2",
             source="tmdb",
             media_type="episode",
             title="Test Show",
@@ -58,7 +58,7 @@ class MediaModel(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_anime = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="Cowboy Bebop",
@@ -77,7 +77,7 @@ class MediaModel(TestCase):
         self.anime.save()
 
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).end_date,
+            Anime.objects.get(item__media_id="1", user=self.user).end_date,
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
@@ -87,7 +87,7 @@ class MediaModel(TestCase):
         self.anime.end_date = "2023-06-01"
         self.anime.save()
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).end_date,
+            Anime.objects.get(item__media_id="1", user=self.user).end_date,
             date(2023, 6, 1),
         )
 
@@ -96,7 +96,7 @@ class MediaModel(TestCase):
         self.anime.status = "Completed"
         self.anime.save()
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).progress,
+            Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,
         )
 
@@ -108,7 +108,7 @@ class MediaModel(TestCase):
         self.anime.status = "Completed"
         self.anime.save()
 
-        self.assertEqual(Anime.objects.get(item__media_id=1, user=self.user).repeats, 1)
+        self.assertEqual(Anime.objects.get(item__media_id="1", user=self.user).repeats, 1)
 
     def test_progress_is_max(self):
         """When progress is maximum number of episodes.
@@ -120,11 +120,11 @@ class MediaModel(TestCase):
         self.anime.save()
 
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).status,
+            Anime.objects.get(item__media_id="1", user=self.user).status,
             "Completed",
         )
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).end_date,
+            Anime.objects.get(item__media_id="1", user=self.user).end_date,
             datetime.datetime.now(tz=settings.TZ).date(),
         )
 
@@ -138,7 +138,7 @@ class MediaModel(TestCase):
         self.anime.progress = 26
         self.anime.save()
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).repeats,
+            Anime.objects.get(item__media_id="1", user=self.user).repeats,
             1,
         )
 
@@ -148,7 +148,7 @@ class MediaModel(TestCase):
         self.anime.progress = 30
         self.anime.save()
         self.assertEqual(
-            Anime.objects.get(item__media_id=1, user=self.user).progress,
+            Anime.objects.get(item__media_id="1", user=self.user).progress,
             26,
         )
 
@@ -162,7 +162,7 @@ class TVModel(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -177,7 +177,7 @@ class TVModel(TestCase):
         )
 
         item_season1 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -194,7 +194,7 @@ class TVModel(TestCase):
         )
 
         item_ep1 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -209,7 +209,7 @@ class TVModel(TestCase):
         )
 
         item_ep2 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -224,7 +224,7 @@ class TVModel(TestCase):
         )
 
         item_season2 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -241,7 +241,7 @@ class TVModel(TestCase):
         )
 
         item_ep3 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -256,7 +256,7 @@ class TVModel(TestCase):
         )
 
         item_ep4 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -300,7 +300,7 @@ class SeasonModel(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -314,7 +314,7 @@ class SeasonModel(TestCase):
         )
 
         item_season = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -330,7 +330,7 @@ class SeasonModel(TestCase):
         )
 
         item_ep1 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -345,7 +345,7 @@ class SeasonModel(TestCase):
         )
 
         item_ep2 = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -389,7 +389,7 @@ class EpisodeModel(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -404,7 +404,7 @@ class EpisodeModel(TestCase):
         )
 
         item_season = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -424,7 +424,7 @@ class EpisodeModel(TestCase):
         """Test the custom save method of the Episode model."""
         for i in range(1, 25):
             item_episode = Item.objects.create(
-                media_id=1668,
+                media_id="1668",
                 source="tmdb",
                 media_type="episode",
                 title="Friends",

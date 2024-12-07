@@ -20,7 +20,7 @@ class CreateMedia(TestCase):
     def test_create_anime(self):
         """Test the creation of a TV object."""
         item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="Test Anime",
@@ -36,7 +36,7 @@ class CreateMedia(TestCase):
             },
         )
         self.assertEqual(
-            Anime.objects.filter(item__media_id=1, user=self.user).exists(),
+            Anime.objects.filter(item__media_id="1", user=self.user).exists(),
             True,
         )
 
@@ -44,7 +44,7 @@ class CreateMedia(TestCase):
     def test_create_tv(self):
         """Test the creation of a TV object through views."""
         item = Item.objects.create(
-            media_id=5895,
+            media_id="5895",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -58,14 +58,14 @@ class CreateMedia(TestCase):
             },
         )
         self.assertEqual(
-            TV.objects.filter(item__media_id=5895, user=self.user).exists(),
+            TV.objects.filter(item__media_id="5895", user=self.user).exists(),
             True,
         )
 
     def test_create_season(self):
         """Test the creation of a Season through views."""
         item = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -80,7 +80,7 @@ class CreateMedia(TestCase):
             },
         )
         self.assertEqual(
-            Season.objects.filter(item__media_id=1668, user=self.user).exists(),
+            Season.objects.filter(item__media_id="1668", user=self.user).exists(),
             True,
         )
 
@@ -89,7 +89,7 @@ class CreateMedia(TestCase):
         self.client.post(
             reverse("episode_handler"),
             {
-                "media_id": 1668,
+                "media_id": "1668",
                 "season_number": 1,
                 "episode_number": 1,
                 "source": "tmdb",
@@ -98,7 +98,7 @@ class CreateMedia(TestCase):
         )
         self.assertEqual(
             Episode.objects.filter(
-                item__media_id=1668,
+                item__media_id="1668",
                 related_season__user=self.user,
                 item__episode_number=1,
             ).exists(),
@@ -118,7 +118,7 @@ class EditMedia(TestCase):
     def test_edit_movie_score(self):
         """Test the editing of a movie score."""
         item = Item.objects.create(
-            media_id=10494,
+            media_id="10494",
             source="tmdb",
             media_type="movie",
             title="Perfect Blue",
@@ -146,7 +146,7 @@ class EditMedia(TestCase):
                 "notes": "Nice",
             },
         )
-        self.assertEqual(Movie.objects.get(item__media_id=10494).score, 10)
+        self.assertEqual(Movie.objects.get(item__media_id="10494").score, 10)
 
 
 class DeleteMedia(TestCase):
@@ -159,7 +159,7 @@ class DeleteMedia(TestCase):
         self.client.login(**self.credentials)
 
         self.item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -172,7 +172,7 @@ class DeleteMedia(TestCase):
         )
 
         self.item_season = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -187,7 +187,7 @@ class DeleteMedia(TestCase):
         )
 
         self.item_ep = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -224,7 +224,7 @@ class DeleteMedia(TestCase):
         self.client.post(
             reverse("episode_handler"),
             {
-                "media_id": 1668,
+                "media_id": "1668",
                 "season_number": 1,
                 "episode_number": 1,
                 "unwatch": "",
@@ -248,7 +248,7 @@ class ProgressEditSeason(TestCase):
         self.client.login(**self.credentials)
 
         item_tv = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="tv",
             title="Friends",
@@ -261,7 +261,7 @@ class ProgressEditSeason(TestCase):
         )
 
         self.item_season = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="season",
             title="Friends",
@@ -276,7 +276,7 @@ class ProgressEditSeason(TestCase):
         )
 
         item_ep = Item.objects.create(
-            media_id=1668,
+            media_id="1668",
             source="tmdb",
             media_type="episode",
             title="Friends",
@@ -301,14 +301,14 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(item__media_id=1668).count(),
+            Episode.objects.filter(item__media_id="1668").count(),
             2,
         )
 
-        # episode with media_id 1668 and episode_number 2 should exist
+        # episode with media_id "1668" and episode_number 2 should exist
         self.assertTrue(
             Episode.objects.filter(
-                item__media_id=1668,
+                item__media_id="1668",
                 item__episode_number=2,
             ).exists(),
         )
@@ -324,7 +324,7 @@ class ProgressEditSeason(TestCase):
         )
 
         self.assertEqual(
-            Episode.objects.filter(item__media_id=1668).count(),
+            Episode.objects.filter(item__media_id="1668").count(),
             0,
         )
 
@@ -339,7 +339,7 @@ class ProgressEditAnime(TestCase):
         self.client.login(**self.credentials)
 
         self.item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="Cowboy Bebop",
@@ -362,7 +362,7 @@ class ProgressEditAnime(TestCase):
             },
         )
 
-        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 3)
+        self.assertEqual(Anime.objects.get(item__media_id="1").progress, 3)
 
     def test_progress_decrease(self):
         """Test the decrease of progress for an anime."""
@@ -374,4 +374,4 @@ class ProgressEditAnime(TestCase):
             },
         )
 
-        self.assertEqual(Anime.objects.get(item__media_id=1).progress, 1)
+        self.assertEqual(Anime.objects.get(item__media_id="1").progress, 1)

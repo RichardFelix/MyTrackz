@@ -14,7 +14,7 @@ class BasicMediaForm(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
         self.item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="Test Anime",
@@ -83,7 +83,7 @@ class BasicGameForm(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="igdb",
             media_type="game",
             title="Test Game",

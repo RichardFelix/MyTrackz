@@ -19,7 +19,7 @@ class CalendarViewTests(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
         self.item = Item.objects.create(
-            media_id=1,
+            media_id="1",
             source="mal",
             media_type="anime",
             title="My Anime",
@@ -45,7 +45,7 @@ class ReloadCalendarTaskTests(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.item = Item.objects.create(
-            media_id=437,
+            media_id="437",
             source="mal",
             media_type="anime",
             title="Perfect Blue",
