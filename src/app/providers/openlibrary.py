@@ -1,4 +1,6 @@
 import asyncio
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import aiohttp
 import requests
@@ -13,21 +15,13 @@ search_url = "https://openlibrary.org/search.json"
 
 
 def search(query):
-    """
-    Search for books on Open Library.
-
-    Args:
-        query (str): The search query string
-
-    Returns:
-        list: List of dictionaries containing book information
-    """
+    """Search for books on Open Library."""
     data = cache.get(f"search_books_{query}")
 
     if data is None:
         params = {
             "q": query,
-            "fields": "key,title,cover_i,author_name,first_publish_year",
+            "fields": "cover_edition_key,edition_key,title,cover_i",
             "limit": 25,
         }
 
@@ -40,18 +34,30 @@ def search(query):
 
         data = [
             {
-                "media_id": doc["key"].split("/")[-1],
+                "media_id": media_id,
                 "source": "openlibrary",
                 "media_type": "book",
                 "title": doc["title"],
                 "image": get_image_url(doc),
             }
             for doc in response.get("docs", [])
-            if "key" and "title" in doc
+            if (media_id := get_media_id(doc)) and "title" in doc
         ]
 
         cache.set(f"search_books_{query}", data)
     return data
+
+
+def get_media_id(doc):
+    """Get media ID from document with fallback logic."""
+    if "cover_edition_key" in doc:
+        return doc["cover_edition_key"]
+
+    # Fallback to first edition_key if available
+    if doc.get("edition_key"):
+        return doc["edition_key"][0]
+
+    return None
 
 
 def book(media_id):
@@ -64,36 +70,53 @@ async def async_book(media_id):
     data = cache.get(f"book_{media_id}")
 
     if data is None:
-        book_url = f"https://openlibrary.org/works/{media_id}.json"
+        book_url = f"https://openlibrary.org/books/{media_id}.json"
 
-        response = services.api_request(
+        response_book = services.api_request(
             "OpenLibrary",
             "GET",
             book_url,
         )
 
+        works = response_book.get("works", [])
+        if works:
+            work = works[0]
+            work_url = (
+                f"https://openlibrary.org/works/{work['key'].split('/')[-1]}.json"
+            )
+
+            response_work = services.api_request(
+                "OpenLibrary",
+                "GET",
+                work_url,
+            )
+        else:
+            response_work = {}
+
         # Run authors and recommendations concurrently
         authors_task = asyncio.create_task(
-            get_authors(response),
-        )
-        recommendations_task = asyncio.create_task(
-            get_recommendations(response),
+            get_authors(response_work),
         )
 
         data = {
             "media_id": media_id,
             "source": "openlibrary",
             "media_type": "book",
-            "title": response["title"],
-            "max_progress": None,
-            "image": get_cover_image_url(response),
-            "synopsis": get_description(response),
+            "title": response_book["title"],
+            "max_progress": response_book.get("number_of_pages"),
+            "image": get_cover_image_url(response_book),
+            "synopsis": get_description(response_book, response_work),
             "details": {
+                "physical_format": get_physical_format(response_book),
+                "number_of_pages": response_book.get("number_of_pages"),
+                "publish_date": get_publish_date(response_book),
                 "author": await authors_task,
-                "genres": get_subjects(response),
+                "genres": get_subjects(response_work),
+                "publishers": get_publishers(response_book),
+                "isbn": get_isbns(response_book),
             },
             "related": {
-                "recommendations": await recommendations_task,
+                "other_editions": get_editions(response_book, response_work),
             },
         }
 
@@ -120,19 +143,24 @@ def get_cover_image_url(response):
     return settings.IMG_NONE
 
 
-def get_description(response):
-    """Extract and clean up the book description.
+def get_description(response_book, response_work):
+    """Extract and clean up the book description."""
+    if "description" in response_book:
+        description = response_book["description"]
+    elif "description" in response_work:
+        description = response_work["description"]
+    else:
+        description = "No synopsis available."
 
-    Convert HTML content to a single paragraph of plain text.
-    """
-    description = response.get("description", "No synopsis available.")
+    # sometimes the description is a dict
+    # like {'type': '/type/text', 'value': '...'}
     if isinstance(description, dict):
-        description = description.get("value", "No synopsis available.")
+        description = description["value"]
 
-        if description != "No synopsis available.":
-            soup = BeautifulSoup(description, "html.parser")
-            text = soup.get_text(separator=" ")
-            description = " ".join(text.split())
+    if description != "No synopsis available.":
+        soup = BeautifulSoup(description, "html.parser")
+        text = soup.get_text(separator=" ")
+        description = " ".join(text.split())
 
     return description
 
@@ -142,6 +170,22 @@ def get_physical_format(response):
     format_value = response.get("physical_format")
     if format_value:
         return format_value.title()
+    return None
+
+
+def get_publish_date(response):
+    """Get the first publication date."""
+    if "publish_date" in response:
+        publish_date = response["publish_date"]
+        if publish_date.startswith("cop. "):
+            publish_date = publish_date[5:]
+        try:
+            parsed_date = datetime.strptime(publish_date, "%b %d, %Y").replace(
+                tzinfo=ZoneInfo("UTC"),
+            )
+            return parsed_date.strftime("%Y-%m-%d")
+        except ValueError:
+            return publish_date
     return None
 
 
@@ -194,65 +238,28 @@ def get_isbns(response):
     isbn_13 = response.get("isbn_13", [])
     isbn_10 = response.get("isbn_10", [])
     isbns = isbn_13 + isbn_10
-
     if isbns:
         return ", ".join(isbn for isbn in isbns)
     return None
 
 
-async def get_recommendations(response):
-    """Get recommended books based on subjects asynchronously."""
-    media_id = response.get("key", "").split("/")[-1]
+def get_editions(resposnse_book, response_work):
+    """Get list of editions."""
+    book_id = resposnse_book.get("key", "").split("/")[-1]
+    work_id = response_work.get("key", "").split("/")[-1]
 
-    url = "https://openlibrary.org/partials.json"
-    params = {
-        "workid": media_id,
-        "_component": "RelatedWorkCarousel",
-    }
-
-    async with (
-        aiohttp.ClientSession() as session,
-        session.get(url, params=params) as recommendations_response,
-    ):
-        if recommendations_response.status == requests.codes.ok:
-            html_text = await recommendations_response.json(content_type="text/html")
-            html_content = html_text.get("0", "")
-
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    carousel_items = soup.select(".book.carousel__item")
-
-    data = []
-    for item in carousel_items:
-        # Get book identifier from href
-        link = item.select_one("a[href]")
-        if not link:
-            continue
-
-        href = link.get("href", "")
-        book_id = href.split("/")[-1]
-
-        # Get book image and title
-        img = item.select_one("img.bookcover")
-        if not img:
-            continue
-
-        title = img.get("alt", "").split(" by ")[0].strip()
-        image_url = img.get("src")
-
-        # Handle lazy-loaded images
-        if not image_url or image_url.startswith("data:"):
-            image_url = img.get("data-lazy")
-
-        if title and book_id and image_url:
-            data.append(
-                {
-                    "media_id": book_id,
-                    "source": "openlibrary",
-                    "media_type": "book",
-                    "title": title,
-                    "image": image_url,
-                },
-            )
-
-    return data
+    url = f"https://openlibrary.org/works/{work_id}/editions.json"
+    response = services.api_request(
+        "OpenLibrary",
+        "GET",
+        url,
+    )
+    return [
+        {
+            "media_id": edition["key"].split("/")[-1],
+            "title": edition.get("title"),
+            "image": get_cover_image_url(edition),
+        }
+        for edition in response["entries"][:10]
+        if edition["key"].split("/")[-1] != book_id
+    ]
