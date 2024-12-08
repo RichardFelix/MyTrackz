@@ -16,7 +16,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 import events
 from app.providers import services, tmdb
-from app.templatetags.app_extras import slug
+from app.templatetags.app_tags import slug
 
 logger = logging.getLogger(__name__)
 
