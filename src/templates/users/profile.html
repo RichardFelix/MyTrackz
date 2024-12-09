@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% load static %}
+{% load user_tags %}
 
 {% block title %}
   Profile - Yamtrack
@@ -21,6 +22,38 @@
     <fieldset class="form-group">
       <legend class="border-bottom mb-4">Password Update</legend>
       {% crispy password_form %}
+    </fieldset>
+  </form>
+
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+    <fieldset class="form-group">
+      <legend class="border-bottom mb-4">Media Types Enabled</legend>
+      <div class="row">
+        {% for media_type in media_types %}
+          {% with enabled_field=media_type|add:"_enabled" %}
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input"
+                       type="checkbox"
+                       name="media_types_checkboxes"
+                       value="{{ media_type }}"
+                       {% if user|get_attr:enabled_field %}checked{% endif %}>
+                <label class="form-check-label" for="{{ enabled_field }}">
+                  {% if media_type == "tv" %}
+                    TV Show
+                  {% else %}
+                    {{ media_type|title }}
+                  {% endif %}
+                </label>
+              </div>
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+      <div class="mb-3">
+        <button type="submit" class="btn btn-secondary">Update</button>
+      </div>
     </fieldset>
   </form>
 

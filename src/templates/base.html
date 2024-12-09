@@ -50,6 +50,8 @@
                 <span class="align-middle">Home</span>
               </a>
             </li>
+
+            {% if request.user.tv_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='tv' %}"
                  class="nav-link {% if media_type == "tv" %}active{% endif %}">
@@ -57,6 +59,9 @@
                 <span class="align-middle">TV Shows</span>
               </a>
             </li>
+            {% endif %}
+
+            {% if request.user.season_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='season' %}"
                  class="nav-link {% if media_type == "season" %}active{% endif %}">
@@ -64,6 +69,9 @@
                 <span class="align-middle">Seasons</span>
               </a>
             </li>
+            {% endif %}
+
+            {% if request.user.movie_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='movie' %}"
                  class="nav-link {% if media_type == "movie" %}active{% endif %}">
@@ -71,6 +79,9 @@
                 <span class="align-middle">Movies</span>
               </a>
             </li>
+            {% endif %}
+
+            {% if request.user.anime_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='anime' %}"
                  class="nav-link {% if media_type == "anime" %}active{% endif %}">
@@ -78,6 +89,9 @@
                 <span class="align-middle">Anime</span>
               </a>
             </li>
+            {% endif %}
+            
+            {% if request.user.manga_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='manga' %}"
                  class="nav-link {% if media_type == "manga" %}active{% endif %}">
@@ -85,6 +99,9 @@
                 <span class="align-middle">Manga</span>
               </a>
             </li>
+            {% endif %}
+
+            {% if request.user.game_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='game' %}"
                  class="nav-link {% if media_type == "game" %}active{% endif %}">
@@ -92,6 +109,9 @@
                 <span class="align-middle">Games</span>
               </a>
             </li>
+            {% endif %}
+
+            {% if request.user.book_enabled %}
             <li>
               <a href="{% url 'medialist' media_type='book' %}"
                  class="nav-link {% if media_type == "book" %}active{% endif %}">
@@ -99,6 +119,7 @@
                 <span class="align-middle">Books</span>
               </a>
             </li>
+            {% endif %}
             <hr>
             <li>
               {% url 'create_item' as create_item_url %}

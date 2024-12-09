@@ -20,42 +20,49 @@ class User(AbstractUser):
         choices=Item.MediaTypes.choices,
     )
 
+    tv_enabled = models.BooleanField(default=True)
     tv_layout = models.CharField(
         max_length=20,
         default="grid",
         choices=layouts,
     )
 
+    season_enabled = models.BooleanField(default=True)
     season_layout = models.CharField(
         max_length=20,
         default="grid",
         choices=layouts,
     )
 
+    movie_enabled = models.BooleanField(default=True)
     movie_layout = models.CharField(
         max_length=20,
         default="grid",
         choices=layouts,
     )
 
+    anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
         default="table",
         choices=layouts,
     )
 
+    manga_enabled = models.BooleanField(default=True)
     manga_layout = models.CharField(
         max_length=20,
         default="table",
         choices=layouts,
     )
 
+    game_enabled = models.BooleanField(default=True)
     game_layout = models.CharField(
         max_length=20,
         default="grid",
         choices=layouts,
     )
 
+    book_enabled = models.BooleanField(default=True)
     book_layout = models.CharField(
         max_length=20,
         default="grid",

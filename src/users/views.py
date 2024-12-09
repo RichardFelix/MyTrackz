@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_results.models import TaskResult
 
+import app
 from users import services
 from users.forms import (
     PasswordChangeForm,
@@ -74,6 +75,8 @@ def profile(request):
     """Update the user's profile and import/export data."""
     user_form = UserUpdateForm(instance=request.user)
     password_form = PasswordChangeForm(request.user)
+    media_types = app.models.Item.MediaTypes.values
+    media_types.remove("episode")
 
     if request.method == "POST":
         if "username" in request.POST:
@@ -106,6 +109,15 @@ def profile(request):
                     request.user.username,
                     password_form.errors.as_json(),
                 )
+        elif "media_types_checkboxes" in request.POST:
+            media_types_checked = request.POST.getlist("media_types_checkboxes")
+
+            for media_type in media_types:
+                if media_type in media_types_checked:
+                    setattr(request.user, f"{media_type}_enabled", True)
+                else:
+                    setattr(request.user, f"{media_type}_enabled", False)
+            request.user.save()
 
         else:
             messages.error(request, "There was an error with your request")
@@ -113,6 +125,7 @@ def profile(request):
     context = {
         "user_form": user_form,
         "password_form": password_form,
+        "media_types": media_types,
     }
 
     return render(request, "users/profile.html", context)
