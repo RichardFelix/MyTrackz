@@ -106,7 +106,7 @@ def process_watched_shows(watched, mal_mapping, user):
         for season in entry["seasons"]:
             mal_id = mal_mapping.get((trakt_id, season["number"]))
             try:
-                if mal_id:
+                if mal_id and user.anime_enabled:
                     defaults = get_anime_default_fields(season)
                     add_mal_anime(entry, mal_id, user, defaults)
                 else:
@@ -207,7 +207,7 @@ def add_show(entry, user, defaults, list_type, mal_shows_map):
     trakt_id = entry["show"]["ids"]["trakt"]
     mal_id = mal_shows_map.get((trakt_id, 1))
 
-    if mal_id:
+    if mal_id and user.anime_enabled:
         add_mal_anime(entry, mal_id, user, defaults)
     else:
         add_tmdb_show(entry, user, defaults, list_type)
@@ -245,7 +245,7 @@ def add_season(entry, user, defaults, list_type, mal_shows_map):
     season_number = entry["season"]["number"]
     mal_id = mal_shows_map.get((trakt_id, season_number))
 
-    if mal_id:
+    if mal_id and user.anime_enabled:
         add_mal_anime(entry, mal_id, user, defaults)
     else:
         add_tmdb_season(entry, season_number, user, defaults, list_type)
@@ -421,7 +421,7 @@ def add_movie(entry, user, defaults, list_type, mal_movies_map):
     trakt_id = entry["movie"]["ids"]["trakt"]
     mal_id = mal_movies_map.get((trakt_id, 1))
 
-    if mal_id:
+    if mal_id and user.anime_enabled:
         add_mal_anime(entry, mal_id, user, defaults)
     else:
         add_tmdb_movie(entry, user, defaults, list_type)

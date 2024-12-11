@@ -43,7 +43,7 @@ def process_payload(payload, user):
         tvdb_id = payload["Series"]["ProviderIds"].get("Tvdb")
         title = payload["Series"]["Name"]
 
-        if tvdb_id:
+        if tvdb_id and user.anime_enabled:
             tvdb_id = int(tvdb_id)
             mal_id, episode_offset = get_mal_id_from_tvdb(
                 mapping_data,
@@ -62,7 +62,7 @@ def process_payload(payload, user):
     elif media_type == "movie":
         title = payload["Item"]["Name"]
         mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
-        if mal_id:
+        if mal_id and user.anime_enabled:
             logger.info("Detected anime movie: %s", title)
             add_anime(mal_id, 1, payload, user)
         else:
