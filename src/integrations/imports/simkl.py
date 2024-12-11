@@ -52,11 +52,16 @@ def importer(token, user):
     """Import tv shows, movies and anime from SIMKL."""
     data = get_user_list(token)
 
-    tv_count, tv_warnings = process_tv_list(data["shows"], user)
-    movie_count, movie_warnings = process_movie_list(data["movies"], user)
-    anime_count, anime_warnings = process_anime_list(data["anime"], user)
+    # data None when empty profile
+    if data:
+        tv_count, tv_warnings = process_tv_list(data["shows"], user)
+        movie_count, movie_warnings = process_movie_list(data["movies"], user)
+        anime_count, anime_warnings = process_anime_list(data["anime"], user)
 
-    warning_messages = tv_warnings + movie_warnings + anime_warnings
+        warning_messages = tv_warnings + movie_warnings + anime_warnings
+    else:
+        tv_count, movie_count, anime_count = 0, 0, 0
+        warning_messages = []
 
     return tv_count, movie_count, anime_count, "\n".join(warning_messages)
 
