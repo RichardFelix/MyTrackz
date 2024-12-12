@@ -670,7 +670,7 @@ class Season(Media):
             # creating tv with multiple seasons from a completed season
             if (
                 self.status == self.Status.COMPLETED.value
-                and tv_metadata["details"]["number_of_seasons"] > 1
+                and tv_metadata["details"]["seasons"] > 1
             ):
                 status = self.Status.IN_PROGRESS.value
             else:

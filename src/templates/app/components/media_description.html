@@ -1,34 +1,33 @@
 {% load app_tags %}
 
-<div class="details-top d-flex mb-4">
+<div class="container header d-flex mb-4">
   <div class="image">
     <img class="{% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
          src="{{ media.image }}"
          alt="{{ media.title }}" />
   </div>
-  <div class="details-data d-flex flex-column align-items-start">
+  <div class="content d-flex flex-column align-items-start ms-4">
 
-    {% if tv %}
-      <h2 class="tv-title fs-5 mb-0">
-        <a href="{% url 'media_details' source=tv.source media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
-          {{ tv.title|capfirst }}
-        </a>
-      </h2>
+    <div class="content-main d-flex flex-column align-items-start">
+      {% if tv %}
+        <h2 class="tv-title fs-5 mb-0">
+          <a class="text-reset" href="{% url 'media_details' source=tv.source media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
+            {{ tv.title|capfirst }}
+          </a>
+        </h2>
 
-      <h1 class="title">{{ media.season_title }}</h1>
-    {% else %}
-      <h1 class="title">{{ media.title }}</h1>
-    {% endif %}
+        <h1 class="title">{{ media.season_title }}</h1>
+      {% else %}
+        <h1 class="title">{{ media.title }}</h1>
+      {% endif %}
 
-    <p>{{ media.synopsis|safe }}</p>
+      <p class="mt-2">{{ media.synopsis|safe }}</p>
 
-    <div class="additional-data d-flex flex-wrap">
-      {% for key, value in media.details.items %}
-        <span>
-          <label class="text-body-secondary" for="{{ key }}">{{ key|no_underscore|upper }}</label>
-          <span id="{{ key }}">{{ value|default_if_none:"Unknown" }}</span>
-        </span>
-      {% endfor %}
+      <div class="mt-sm-auto mt-3 mb-2">
+        {% for genre in media.genres %}
+          <span class="badge bg-light-subtle">{{ genre }}</span>
+        {% endfor %}
+      </div>
     </div>
 
     <div class="mt-sm-auto mt-3 d-flex gap-2">

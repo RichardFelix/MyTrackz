@@ -82,18 +82,18 @@ def anime(media_id):
             "max_progress": num_episodes,
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
+            "genres": get_genres(response),
             "details": {
                 "format": get_format(response),
                 "start_date": response.get("start_date"),
                 "end_date": response.get("end_date"),
                 "status": get_readable_status(response),
-                "number_of_episodes": num_episodes,
+                "episodes": num_episodes,
                 "runtime": get_runtime(response),
                 "studios": get_studios(response),
                 "season": get_season(response),
                 "broadcast": get_broadcast(response),
                 "source": get_source(response),
-                "genres": get_genres(response),
             },
             "related": {
                 "related_anime": get_related(response.get("related_anime")),
@@ -133,13 +133,13 @@ def manga(media_id):
             "image": get_image_url(response),
             "synopsis": get_synopsis(response),
             "max_progress": num_chapters,
+            "genres": get_genres(response),
             "details": {
                 "format": get_format(response),
                 "start_date": response.get("start_date"),
                 "end_date": response.get("end_date"),
                 "status": get_readable_status(response),
                 "number_of_chapters": num_chapters,
-                "genres": get_genres(response),
             },
             "related": {
                 "related_manga": get_related(response.get("related_manga")),
@@ -231,7 +231,7 @@ def get_runtime(response):
 def get_genres(response):
     """Return the genres for the media."""
     if response["genres"]:
-        return ", ".join(genre["name"] for genre in response["genres"])
+        return [genre["name"] for genre in response["genres"]]
     return None
 
 
@@ -241,7 +241,7 @@ def get_studios(response):
     # e.g anime: 43333
 
     if response["studios"]:
-        return ", ".join(studio["name"] for studio in response["studios"])
+        return [studio["name"] for studio in response["studios"]]
     return None
 
 

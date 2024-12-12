@@ -106,12 +106,12 @@ async def async_book(media_id):
             "max_progress": response_book.get("number_of_pages"),
             "image": get_cover_image_url(response_book),
             "synopsis": get_description(response_book, response_work),
+            "genres": get_subjects(response_work),
             "details": {
                 "physical_format": get_physical_format(response_book),
                 "number_of_pages": response_book.get("number_of_pages"),
                 "publish_date": get_publish_date(response_book),
                 "author": await authors_task,
-                "genres": get_subjects(response_work),
                 "publishers": get_publishers(response_book),
                 "isbn": get_isbns(response_book),
             },
@@ -207,7 +207,7 @@ async def get_authors(response):
             data.get("name", "Unknown Author") for data in author_data_list if data
         ]
 
-    return ", ".join(authors) if authors else None
+    return authors if authors else None
 
 
 async def fetch_author_data(session, url):
@@ -222,14 +222,14 @@ async def fetch_author_data(session, url):
 def get_subjects(response):
     """Get list of subjects/genres."""
     if "subjects" in response:
-        return ", ".join(subject for subject in response["subjects"][:5])
+        return response["subjects"][:5]
     return None
 
 
 def get_publishers(response):
     """Get list of publishers."""
     if "publishers" in response:
-        return ", ".join(publisher for publisher in response.get("publishers", [])[:5])
+        return response.get("publishers", [])[:5]
     return None
 
 
@@ -239,7 +239,7 @@ def get_isbns(response):
     isbn_10 = response.get("isbn_10", [])
     isbns = isbn_13 + isbn_10
     if isbns:
-        return ", ".join(isbn for isbn in isbns)
+        return isbns
     return None
 
 

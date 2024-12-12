@@ -45,6 +45,7 @@
 :root {
   --bs-body-font-family: "Roboto", sans-serif;
   --bg-img-none: hsl(210, 10%, 23%);
+  --bg-foreground: hsl(210, 10.8%, 16%);
 }
 
 p {
@@ -137,6 +138,10 @@ debug, info, success, warning, error */
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
 }
 
+.grid-details {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+
 .card {
   width: 100%;
 
@@ -203,12 +208,12 @@ debug, info, success, warning, error */
 }
 
 .table-responsive {
-  background-color: hsl(210, 10.8%, 16%);
+  background-color: var(--bg-foreground);
   -webkit-overflow-scrolling: auto; /* fixes modal fade on iOS */
 }
 
 .table {
-  --bs-table-bg: hsl(210, 10.8%, 16%);
+  --bs-table-bg: var(--bg-foreground);
 
   /* mainly to fill td for image not found */
   td img {
@@ -285,17 +290,33 @@ debug, info, success, warning, error */
   }
 }
 
-.details-top {
+.banner {
+  background-position: center 25%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  height: 350px;
+  margin-bottom: 6rem;
+  box-shadow: inset 0px 0px 30px #212529;
+
+  .banner-shadow {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.801), 85%, transparent);
+  }
+}
+
+.header {
   .poster {
     border-radius: 5px;
-    width: 14rem;
+    width: 12rem;
     aspect-ratio: 2/3;
     object-fit: cover;
   }
 
   .image-not-found {
     border-radius: 5px;
-    width: 14rem;
+    width: 12rem;
     object-fit: contain;
     aspect-ratio: 2/3;
     background-color: var(--bg-img-none);
@@ -312,17 +333,14 @@ debug, info, success, warning, error */
   }
 }
 
-.details-data {
-  margin-left: 1rem;
+.content {
+  .content-main {
+    height: 250px;
+  }
 
   .title {
     font-size: 2.25rem;
     font-weight: 700;
-  }
-
-  /* link to main details from season details */
-  a {
-    color: var(--bs-body-color);
   }
 
   p {
@@ -353,9 +371,18 @@ debug, info, success, warning, error */
   }
 }
 
-.additional-data {
-  margin-block: auto;
-  column-gap: 2rem;
+.details-column {
+  width: 12rem; /* need for smaller screens */
+  background-color: var(--bg-foreground);
+
+  @media screen and (width <= 575px) {
+    width: 100%;
+    margin-top: 20rem;
+  }
+}
+
+.relations {
+  background-color: var(--bg-foreground);
 }
 
 .episode-img-none {

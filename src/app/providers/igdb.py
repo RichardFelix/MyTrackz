@@ -98,12 +98,12 @@ def game(media_id):
             "max_progress": None,
             "image": get_image_url(response),
             "synopsis": response["summary"],
+            "genres": get_list(response, "genres"),
             "details": {
                 "format": get_category(response["category"]),
                 "release_date": get_start_date(response),
-                "genres": get_str_list(response, "genres"),
-                "themes": get_str_list(response, "themes"),
-                "platforms": get_str_list(response, "platforms"),
+                "themes": get_list(response, "themes"),
+                "platforms": get_list(response, "platforms"),
                 "companies": get_companies(response),
             },
             "related": {
@@ -167,12 +167,12 @@ def get_start_date(response):
         return None
 
 
-def get_str_list(response, field):
+def get_list(response, field):
     """Return the list of names from a list of dictionaries."""
     # when no data of field, field is not present in the response
     # e.g game: 25222
     try:
-        return ", ".join(item["name"] for item in response[field])
+        return [item["name"] for item in response[field]]
     except KeyError:
         return None
 

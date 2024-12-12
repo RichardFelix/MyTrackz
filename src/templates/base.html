@@ -52,102 +52,107 @@
             </li>
 
             {% if request.user.tv_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='tv' %}"
-                 class="nav-link {% if media_type == "tv" %}active{% endif %}">
-                <i class="bi bi-tv me-2 align-middle"></i>
-                <span class="align-middle">TV Shows</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='tv' %}"
+                   class="nav-link {% if media_type == "tv" %}active{% endif %}">
+                  <i class="bi bi-tv me-2 align-middle"></i>
+                  <span class="align-middle">TV Shows</span>
+                </a>
+              </li>
             {% endif %}
 
             {% if request.user.season_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='season' %}"
-                 class="nav-link {% if media_type == "season" %}active{% endif %}">
-                <i class="bi bi-grid me-2 align-middle"></i>
-                <span class="align-middle">Seasons</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='season' %}"
+                   class="nav-link {% if media_type == "season" %}active{% endif %}">
+                  <i class="bi bi-grid me-2 align-middle"></i>
+                  <span class="align-middle">Seasons</span>
+                </a>
+              </li>
             {% endif %}
 
             {% if request.user.movie_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='movie' %}"
-                 class="nav-link {% if media_type == "movie" %}active{% endif %}">
-                <i class="bi bi-film me-2 align-middle"></i>
-                <span class="align-middle">Movies</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='movie' %}"
+                   class="nav-link {% if media_type == "movie" %}active{% endif %}">
+                  <i class="bi bi-film me-2 align-middle"></i>
+                  <span class="align-middle">Movies</span>
+                </a>
+              </li>
             {% endif %}
 
             {% if request.user.anime_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='anime' %}"
-                 class="nav-link {% if media_type == "anime" %}active{% endif %}">
-                <i class="bi bi-collection-play me-2 align-middle"></i>
-                <span class="align-middle">Anime</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='anime' %}"
+                   class="nav-link {% if media_type == "anime" %}active{% endif %}">
+                  <i class="bi bi-collection-play me-2 align-middle"></i>
+                  <span class="align-middle">Anime</span>
+                </a>
+              </li>
             {% endif %}
-            
+
             {% if request.user.manga_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='manga' %}"
-                 class="nav-link {% if media_type == "manga" %}active{% endif %}">
-                <i class="bi bi-book me-2 align-middle"></i>
-                <span class="align-middle">Manga</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='manga' %}"
+                   class="nav-link {% if media_type == "manga" %}active{% endif %}">
+                  <i class="bi bi-book me-2 align-middle"></i>
+                  <span class="align-middle">Manga</span>
+                </a>
+              </li>
             {% endif %}
 
             {% if request.user.game_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='game' %}"
-                 class="nav-link {% if media_type == "game" %}active{% endif %}">
-                <i class="bi bi-joystick me-2 align-middle"></i>
-                <span class="align-middle">Games</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='game' %}"
+                   class="nav-link {% if media_type == "game" %}active{% endif %}">
+                  <i class="bi bi-joystick me-2 align-middle"></i>
+                  <span class="align-middle">Games</span>
+                </a>
+              </li>
             {% endif %}
 
             {% if request.user.book_enabled %}
-            <li>
-              <a href="{% url 'medialist' media_type='book' %}"
-                 class="nav-link {% if media_type == "book" %}active{% endif %}">
-                <i class="bi bi-journal me-2 align-middle"></i>
-                <span class="align-middle">Books</span>
-              </a>
-            </li>
+              <li>
+                <a href="{% url 'medialist' media_type='book' %}"
+                   class="nav-link {% if media_type == "book" %}active{% endif %}">
+                  <i class="bi bi-journal me-2 align-middle"></i>
+                  <span class="align-middle">Books</span>
+                </a>
+              </li>
             {% endif %}
             <hr>
             <li>
               {% url 'create_item' as create_item_url %}
-              <a href="{{ create_item_url }}" class="nav-link {% if request.path == create_item_url %}active{% endif %}">
+              <a href="{{ create_item_url }}"
+                 class="nav-link {% if request.path == create_item_url %}active{% endif %}">
                 <i class="bi bi-plus-circle me-2 align-middle"></i> Create
               </a>
             </li>
             <li>
               {% url 'lists' as lists_url %}
-              <a href="{{ lists_url }}" class="nav-link {% if request.path == lists_url %}active{% endif %}">
+              <a href="{{ lists_url }}"
+                 class="nav-link {% if request.path == lists_url %}active{% endif %}">
                 <i class="bi bi-collection me-2 align-middle"></i> Lists
               </a>
             </li>
             <li>
               {% url 'tasks' as tasks_url %}
-              <a href="{{ tasks_url }}" class="nav-link {% if request.path == tasks_url %}active{% endif %}">
+              <a href="{{ tasks_url }}"
+                 class="nav-link {% if request.path == tasks_url %}active{% endif %}">
                 <i class="bi bi-list-task me-2 align-middle"></i> Tasks
               </a>
             </li>
             <li>
               {% url 'calendar' as calendar_url %}
-              <a href="{{ calendar_url }}" class="nav-link {% if request.path == calendar_url %}active{% endif %}">
+              <a href="{{ calendar_url }}"
+                 class="nav-link {% if request.path == calendar_url %}active{% endif %}">
                 <i class="bi bi-calendar me-2"></i> Calendar
               </a>
             </li>
             <li>
               {% url 'profile' as profile_url %}
-              <a href="{{ profile_url }}" class="nav-link {% if request.path == profile_url %}active{% endif %}">
+              <a href="{{ profile_url }}"
+                 class="nav-link {% if request.path == profile_url %}active{% endif %}">
                 <i class="bi bi-person-circle me-2"></i> Profile
               </a>
             </li>
@@ -160,44 +165,49 @@
             </li>
           </ul>
         </div>
-
-        <main class="d-flex flex-column">
-          <div class="search-bar d-flex container">
-            <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
-                    type="button"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#sidebar"
-                    aria-controls="sidebar">
-              <i class="bi bi-list"></i>
-            </button>
-
-            <form id="search-form" class="input-group" method="get" action="{% url 'search' %}">
-              <select name="media_type" class="form-select">
-                <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-                <option value="movie"
-                        {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
-                <option value="anime"
-                        {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
-                <option value="manga"
-                        {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
-                <option value="game"
-                        {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
-                <option value="book"
-                {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
-              </select>
-              <input class="form-control"
-                     type="search"
-                     name="q"
-                     placeholder="Search"
-                     aria-label="Search"
-                     value="{{ request.GET.q }}"
-                     required>
-              <button class="btn btn-secondary rounded-end" type="submit">
-                <i class="bi bi-search"></i>
+        
+        <main class="d-flex flex-column"> 
+          {% block search %}
+            <div class="search-bar d-flex container">
+              <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
+                      type="button"
+                      data-bs-toggle="offcanvas"
+                      data-bs-target="#sidebar"
+                      aria-controls="sidebar">
+                <i class="bi bi-list"></i>
               </button>
-            </form>
-          </div>
- 
+
+              <form id="search-form"
+                    class="input-group"
+                    method="get"
+                    action="{% url 'search' %}">
+                <select name="media_type" class="form-select">
+                  <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
+                  <option value="movie"
+                          {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+                  <option value="anime"
+                          {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+                  <option value="manga"
+                          {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+                  <option value="game"
+                          {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
+                  <option value="book"
+                          {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
+                </select>
+                <input class="form-control"
+                       type="search"
+                       name="q"
+                       placeholder="Search"
+                       aria-label="Search"
+                       value="{{ request.GET.q }}"
+                       required>
+                <button class="btn btn-secondary rounded-end" type="submit">
+                  <i class="bi bi-search"></i>
+                </button>
+              </form>
+            </div>
+          {% endblock search %}
+
           <div class="container flex-grow-1">
             {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
             {% block container %}

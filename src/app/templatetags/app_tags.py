@@ -38,3 +38,9 @@ def slug(arg1):
 def format_time(total_minutes):
     """Convert total minutes to HH:MM format."""
     return helpers.minutes_to_hhmm(total_minutes)
+
+
+@register.filter()
+def is_list(arg1):
+    """Return True if the object is a list."""
+    return isinstance(arg1, list)

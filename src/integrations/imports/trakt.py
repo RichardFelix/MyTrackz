@@ -410,7 +410,7 @@ def consider_repeating(episode, metadata, season_number):
 
         if (
             episode.related_season.related_tv.progress
-            >= metadata["details"]["number_of_episodes"]
+            >= metadata["details"]["episodes"]
         ):
             episode.related_season.related_tv.status = Media.Status.COMPLETED.value
             episode.related_season.related_tv.save_base(update_fields=["status"])

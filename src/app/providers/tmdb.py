@@ -63,12 +63,12 @@ def movie(media_id):
             "max_progress": 1,
             "image": get_image_url(response["poster_path"]),
             "synopsis": get_synopsis(response["overview"]),
+            "genres": get_genres(response["genres"]),
             "details": {
                 "format": "Movie",
                 "release_date": get_start_date(response["release_date"]),
                 "status": response["status"],
                 "runtime": get_readable_duration(response["runtime"]),
-                "genres": get_genres(response["genres"]),
                 "studios": get_companies(response["production_companies"]),
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
@@ -123,6 +123,7 @@ def tv_with_seasons(media_id, season_numbers):
                 response[f"season/{season_number}"],
             )
             season_data["title"] = data["title"]
+            season_data["genres"] = data["genres"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data
@@ -155,16 +156,17 @@ def process_tv(response):
         "title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
+        "backdrop": get_backdrop_url(response),
         "synopsis": get_synopsis(response["overview"]),
+        "genres": get_genres(response["genres"]),
         "details": {
             "format": "TV",
             "first_air_date": get_start_date(response["first_air_date"]),
             "last_air_date": response["last_air_date"],
             "status": response["status"],
-            "number_of_seasons": response["number_of_seasons"],
-            "number_of_episodes": num_episodes,
+            "seasons": response["number_of_seasons"],
+            "episodes": num_episodes,
             "runtime": get_runtime_tv(response["episode_run_time"]),
-            "genres": get_genres(response["genres"]),
             "studios": get_companies(response["production_companies"]),
             "country": get_country(response["production_countries"]),
             "languages": get_languages(response["spoken_languages"]),
@@ -176,7 +178,6 @@ def process_tv(response):
             ),
         },
     }
-
 
 
 def process_season(response):
@@ -191,7 +192,7 @@ def process_season(response):
         "synopsis": get_synopsis(response["overview"]),
         "details": {
             "first_air_date": get_start_date(response["air_date"]),
-            "number_of_episodes": num_episodes,
+            "episodes": num_episodes,
         },
         "episodes": response["episodes"],
     }
@@ -211,6 +212,18 @@ def get_image_url(path):
     if path:
         return f"https://image.tmdb.org/t/p/w500{path}"
     return settings.IMG_NONE
+
+
+def get_backdrop_url(response):
+    """Return the backdrop URL for the media."""
+    # when no image, value from response is null
+    # e.g movie: 445290
+    if response["backdrop_path"]:
+        return f"https://image.tmdb.org/t/p/w1280{response["backdrop_path"]}"
+    if response["poster_path"]:
+        return f"https://image.tmdb.org/t/p/w1280{response['poster_path']}"
+
+    return None
 
 
 def get_title(response):
@@ -264,7 +277,7 @@ def get_genres(genres):
     # when unknown genres, value from response is empty list
     # e.g tv: 24795
     if genres:
-        return ", ".join(genre["name"] for genre in genres)
+        return [genre["name"] for genre in genres]
     return None
 
 
@@ -282,7 +295,7 @@ def get_languages(languages):
     # when unknown spoken languages, value from response is empty list
     # e.g tv: 24795
     if languages:
-        return ", ".join(language["english_name"] for language in languages)
+        return [language["english_name"] for language in languages]
     return None
 
 
@@ -291,7 +304,7 @@ def get_companies(companies):
     # when unknown production companies, value from response is empty list
     # e.g tv: 24795
     if companies:
-        return ", ".join(company["name"] for company in companies[:3])
+        return [company["name"] for company in companies[:3]]
     return None
 
 

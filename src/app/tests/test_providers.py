@@ -74,7 +74,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Cowboy Bebop")
         self.assertEqual(response["details"]["start_date"], "1998-04-03")
         self.assertEqual(response["details"]["status"], "Finished")
-        self.assertEqual(response["details"]["number_of_episodes"], 26)
+        self.assertEqual(response["details"]["episodes"], 26)
 
     @patch("requests.Session.get")
     def test_anime_unknown(self, mock_data):
@@ -89,7 +89,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Unknown Example")
         self.assertEqual(response["image"], settings.IMG_NONE)
         self.assertEqual(response["synopsis"], "No synopsis available.")
-        self.assertEqual(response["details"]["number_of_episodes"], None)
+        self.assertEqual(response["details"]["episodes"], None)
         self.assertEqual(response["details"]["runtime"], None)
 
     def test_manga(self):
@@ -106,7 +106,7 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Breaking Bad")
         self.assertEqual(response["details"]["first_air_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
-        self.assertEqual(response["details"]["number_of_episodes"], 62)
+        self.assertEqual(response["details"]["episodes"], 62)
 
     def test_movie(self):
         """Test the metadata method for movies."""

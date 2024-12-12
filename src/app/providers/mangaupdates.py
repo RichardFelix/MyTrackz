@@ -82,13 +82,13 @@ async def async_manga(media_id):
             "image": get_image_url(response),
             "synopsis": response["description"],
             "max_progress": get_max_progress(response),
+            "genres": get_genres(response["genres"]),
             "details": {
                 "format": response["type"],
                 "authors": get_authors(response["authors"]),
                 "year": response["year"],
                 "status_in_country_of_origin": get_status(response["status"]),
                 "latest_chapter_translated": response["latest_chapter"],
-                "genres": get_genres(response["genres"]),
             },
             "related": {
                 "related_manga": await related_task,
@@ -117,12 +117,16 @@ def get_max_progress(response):
 
 def get_genres(genres):
     """Return the genres for the media."""
-    return ", ".join(item["genre"] for item in genres)
+    if genres:
+        return [item["genre"] for item in genres]
+    return None
 
 
 def get_authors(authors):
     """Get the authors for a media item."""
-    return ", ".join(item["name"] for item in authors)
+    if authors:
+        return [item["name"] for item in authors]
+    return None
 
 
 def get_status(status):
