@@ -129,7 +129,7 @@ class Metadata(TestCase):
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["release_date"], None)
         self.assertEqual(response["details"]["runtime"], None)
-        self.assertEqual(response["details"]["genres"], None)
+        self.assertEqual(response["genres"], None)
         self.assertEqual(response["details"]["studios"], None)
         self.assertEqual(response["details"]["country"], None)
         self.assertEqual(response["details"]["languages"], None)
@@ -140,10 +140,13 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "The Witcher 3: Wild Hunt")
         self.assertEqual(response["details"]["format"], "Main game")
         self.assertEqual(response["details"]["release_date"], "2015-05-19")
-        self.assertEqual(response["details"]["themes"], "Action, Fantasy, Open world")
+        self.assertEqual(
+            response["details"]["themes"],
+            ["Action", "Fantasy", "Open world"],
+        )
 
     def test_book(self):
         """Test the metadata method for books."""
-        response = openlibrary.book("OL32816908W")
+        response = openlibrary.book("OL46835937M")
         self.assertEqual(response["title"], "The Name of the Wind")
-        self.assertEqual(response["details"]["author"], "Patrick Rothfuss")
+        self.assertEqual(response["details"]["author"], ["Patrick Rothfuss"])

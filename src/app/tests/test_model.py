@@ -26,7 +26,7 @@ class ItemModel(TestCase):
 
     def test_item_creation(self):
         """Test the creation of an Item instance."""
-        self.assertEqual(self.item.media_id, 1)
+        self.assertEqual(self.item.media_id, "1")
         self.assertEqual(self.item.media_type, "movie")
         self.assertEqual(self.item.title, "Test Movie")
         self.assertEqual(self.item.image, "http://example.com/image.jpg")
@@ -108,7 +108,10 @@ class MediaModel(TestCase):
         self.anime.status = "Completed"
         self.anime.save()
 
-        self.assertEqual(Anime.objects.get(item__media_id="1", user=self.user).repeats, 1)
+        self.assertEqual(
+            Anime.objects.get(item__media_id="1", user=self.user).repeats,
+            1,
+        )
 
     def test_progress_is_max(self):
         """When progress is maximum number of episodes.

@@ -223,7 +223,7 @@ def get_backdrop_url(response):
     # when no image, value from response is null
     # e.g movie: 445290
     if response["backdrop_path"]:
-        return f"https://image.tmdb.org/t/p/w1280{response["backdrop_path"]}"
+        return f"https://image.tmdb.org/t/p/w1280{response['backdrop_path']}"
     if response["poster_path"]:
         return f"https://image.tmdb.org/t/p/w1280{response['poster_path']}"
 

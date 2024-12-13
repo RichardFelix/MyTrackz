@@ -133,6 +133,7 @@ def get_image_url(response):
     except KeyError:
         return settings.IMG_NONE
 
+
 def get_backdrop(response):
     """Return the backdrop URL for the media."""
     # when no backdrop, artworks is not present in the response

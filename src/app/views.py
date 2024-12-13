@@ -11,7 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
 from app.models import Episode, Item, Media, Season
-from app.providers import igdb, mal, mangaupdates, manual, services, tmdb
+from app.providers import manual, services, tmdb
 
 logger = logging.getLogger(__name__)
 
