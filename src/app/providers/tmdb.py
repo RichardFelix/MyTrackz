@@ -62,6 +62,7 @@ def movie(media_id):
             "title": response["title"],
             "max_progress": 1,
             "image": get_image_url(response["poster_path"]),
+            "backdrop": get_backdrop_url(response),
             "synopsis": get_synopsis(response["overview"]),
             "genres": get_genres(response["genres"]),
             "details": {
@@ -124,6 +125,7 @@ def tv_with_seasons(media_id, season_numbers):
             )
             season_data["title"] = data["title"]
             season_data["genres"] = data["genres"]
+            season_data["backdrop"] = data["backdrop"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data
@@ -192,7 +194,9 @@ def process_season(response):
         "synopsis": get_synopsis(response["overview"]),
         "details": {
             "first_air_date": get_start_date(response["air_date"]),
+            "last_air_date": get_end_date(response),
             "episodes": num_episodes,
+            "total_runtime": total_season_runtime(response),
         },
         "episodes": response["episodes"],
     }
@@ -242,6 +246,21 @@ def get_start_date(date):
     if date == "":
         return None
     return date
+
+
+def get_end_date(response):
+    """Return the last air date for the season."""
+    if response["episodes"]:
+        return response["episodes"][-1]["air_date"]
+
+    return None
+
+
+def total_season_runtime(response):
+    """Return the total runtime for the season."""
+    return get_readable_duration(
+        sum([episode["runtime"] for episode in response["episodes"]]),
+    )
 
 
 def get_synopsis(text):
