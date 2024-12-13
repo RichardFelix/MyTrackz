@@ -80,6 +80,7 @@ async def async_manga(media_id):
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),
+            "backdrop": get_image_url(response),
             "synopsis": response["description"],
             "max_progress": get_max_progress(response),
             "genres": get_genres(response["genres"]),

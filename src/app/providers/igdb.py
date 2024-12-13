@@ -73,7 +73,8 @@ def game(media_id):
         access_token = get_access_token()
         url = f"{base_url}/games"
         data = (
-            "fields name,cover.image_id,summary,category,first_release_date,"
+            "fields name,cover.image_id,artworks.image_id,"
+            "summary,category,first_release_date,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,"
             "parent_game.name,parent_game.cover.image_id,"
             "remasters.name,remasters.cover.image_id,"
@@ -97,6 +98,7 @@ def game(media_id):
             "title": response["name"],
             "max_progress": None,
             "image": get_image_url(response),
+            "backdrop": get_backdrop(response),
             "synopsis": response["summary"],
             "genres": get_list(response, "genres"),
             "details": {
@@ -130,6 +132,15 @@ def get_image_url(response):
         return f"https://images.igdb.com/igdb/image/upload/t_original/{response['cover']['image_id']}.jpg"
     except KeyError:
         return settings.IMG_NONE
+
+def get_backdrop(response):
+    """Return the backdrop URL for the media."""
+    # when no backdrop, artworks is not present in the response
+    # e.g game: 287348
+    try:
+        return f"https://images.igdb.com/igdb/image/upload/t_original/{response['artworks'][0]['image_id']}.jpg"
+    except KeyError:
+        return get_image_url(response)
 
 
 def get_category(category_id):

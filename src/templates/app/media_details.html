@@ -7,7 +7,7 @@
 {% endblock title %}
 
 {% block search %}
-  <div class="banner text-light" {% if media.backdrop %} style="background-image: url({{ media.backdrop }})" {% endif %}>
+  <div {% if media.backdrop and media.backdrop != IMG_NONE %}class="banner text-light" style="background-image: url({{ media.backdrop }})"{% else %}class="banner text-light no-backdrop"{% endif %}>
     <div class="banner-shadow shadow-lg">
       {{ block.super }}
       {% include "app/components/media_description.html" with media=media request=request source=media.source media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
@@ -32,34 +32,35 @@
       {% endfor %}
     </div>
 
-    <div class="relations col border border-light-subtle rounded shadow-lg p-3">
+    <div class="col px-0">
       {% for name, related_items in media.related.items %}
         {% if related_items %}
-          <h2 class="fs-5 fw-semibold">{{ name|no_underscore|title }}</h2>
-          <div class="grid grid-details {% if not forloop.last %}mb-4{% endif %}">
-            {% for related in related_items %}
-              <div class="card">
-                <a href="{% if name == "seasons" %}{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' source=media.source media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
-                  <img src="{{ related.image }}"
-                       class="card-img {% if related.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                       alt="{{ related.title }}" />
-                </a>
+          <div class="relation border border-light-subtle rounded shadow-lg p-3 {% if not forloop.first %}mt-3{% endif %}">
+            <h2 class="fs-5 fw-semibold">{{ name|no_underscore|title }}</h2>
+            <div class="grid grid-details {% if not forloop.last %}mb-4{% endif %}">
+              {% for related in related_items %}
+                <div class="card">
+                  <a href="{% if name == "seasons" %}{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' source=media.source media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
+                    <img src="{{ related.image }}"
+                         class="card-img {% if related.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                         alt="{{ related.title }}" />
+                  </a>
 
-                <div class="card-img-overlay">
-                  <div class="card-title">{{ related.title }}</div>
-                  <div class="card-text d-flex justify-content-center align-items-center">
-                    {% if name == "seasons" %}
-                      {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
-                    {% else %}
-                      {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
-                    {% endif %}
+                  <div class="card-img-overlay">
+                    <div class="card-title">{{ related.title }}</div>
+                    <div class="card-text d-flex justify-content-center align-items-center">
+                      {% if name == "seasons" %}
+                        {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
+                      {% else %}
+                        {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
+              {% endfor %}
+            </div>
 
-          {% if not forloop.last %}<hr class="my-4" />{% endif %}
+          </div>
         {% endif %}
       {% endfor %}
     </div>

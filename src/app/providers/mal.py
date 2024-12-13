@@ -81,6 +81,7 @@ def anime(media_id):
             "title": response["title"],
             "max_progress": num_episodes,
             "image": get_image_url(response),
+            "backdrop": get_image_url(response),
             "synopsis": get_synopsis(response),
             "genres": get_genres(response),
             "details": {
@@ -131,6 +132,7 @@ def manga(media_id):
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),
+            "backdrop": get_image_url(response),
             "synopsis": get_synopsis(response),
             "max_progress": num_chapters,
             "genres": get_genres(response),
