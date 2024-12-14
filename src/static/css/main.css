@@ -373,6 +373,10 @@ debug, info, success, warning, error */
       text-align: center;
       margin-bottom: 1rem;
     }
+
+    .content-main {
+      height: auto;
+    }
   }
 }
 
@@ -383,6 +387,7 @@ debug, info, success, warning, error */
   @media screen and (width <= 575px) {
     width: 100%;
     margin-top: 20rem;
+    text-align: center;
   }
 }
 

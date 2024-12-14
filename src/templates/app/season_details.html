@@ -55,16 +55,16 @@
           <div class="row g-0">
 
             {% if episode.image == IMG_NONE %}
-              <div class="col-md-3 episode-img-none"></div>
+              <div class="col-md-4 episode-img-none"></div>
             {% else %}
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <img src="{{ episode.image }}"
                      class="w-100 h-100 object-fit-cover rounded-start"
                      alt="E{{ episode.episode_number }}">
               </div>
             {% endif %}
 
-            <div class="col-md-9 card-body d-flex flex-column align-items-start pb-2">
+            <div class="col-md-8 card-body d-flex flex-column align-items-start pb-2">
 
               <h3 class="fs-5">
                 S{{ season.season_number|stringformat:"02d" }}.E{{ episode.episode_number|stringformat:"02d" }} - {{ episode.title }}
