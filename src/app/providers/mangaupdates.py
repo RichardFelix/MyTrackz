@@ -132,11 +132,13 @@ def get_authors(authors):
 
 def get_status(status):
     """Return the status of the media."""
+    # can be null 67117539345
     # e.g berserk 51239621230 needs parsing
-    pattern = r"(\d+\s+Volumes\s+\([^)]+\))"
-    match = re.search(pattern, status)
-    if match:
-        return match.group(1)
+    if status:
+        pattern = r"(\d+\s+Volumes\s+\([^)]+\))"
+        match = re.search(pattern, status)
+        if match:
+            return match.group(1)
     return status
 
 
