@@ -35,9 +35,9 @@
     <div class="col px-0">
       {% for name, related_items in media.related.items %}
         {% if related_items %}
-          <div class="relation border border-light-subtle rounded shadow-lg p-3 {% if not forloop.first %}mt-3{% endif %}">
+          <div class="relation border border-light-subtle rounded shadow-lg p-3 mb-3">
             <h2 class="fs-5 fw-semibold">{{ name|no_underscore|title }}</h2>
-            <div class="grid grid-details {% if not forloop.last %}mb-4{% endif %}">
+            <div class="grid grid-details">
               {% for related in related_items %}
                 <div class="card">
                   <a href="{% if name == "seasons" %}{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' source=media.source media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">

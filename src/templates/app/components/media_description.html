@@ -6,9 +6,9 @@
          src="{{ media.image }}"
          alt="{{ media.title }}" />
   </div>
-  <div class="content d-flex flex-column align-items-start">
+  <div class="content d-flex flex-column">
 
-    <div class="content-main d-flex flex-column align-items-start">
+    <div class="content-main d-flex flex-column text-sm-start text-center">
       {% if tv %}
         <h2 class="tv-title fs-5 mb-0">
           <a class="text-reset" href="{% url 'media_details' source=tv.source media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
@@ -23,14 +23,14 @@
 
       <p class="mt-2">{{ media.synopsis|safe }}</p>
 
-      <div class="mt-sm-auto mt-3 mb-2">
+      <div class="mt-sm-auto mt-3 mb-2 d-flex flex-wrap gap-2 justify-content-sm-start justify-content-center">
         {% for genre in media.genres %}
           <span class="badge bg-light-subtle">{{ genre }}</span>
         {% endfor %}
       </div>
     </div>
 
-    <div class="mt-sm-auto mt-3 d-flex gap-2">
+    <div class="mt-sm-auto mt-3 d-flex gap-2 w-100 justify-content-sm-start justify-content-center">
       {% include "app/components/open_modal.html" with modal_type="track" source=media.source %}
       {% include "app/components/open_modal.html" with modal_type="lists" source=media.source %}
       {% include "app/components/open_modal.html" with modal_type="history" source=media.source %}

@@ -362,15 +362,7 @@ debug, info, success, warning, error */
   @media screen and (width <= 575px) {
     margin-left: 0;
 
-    /* only present in season_details */
-    .tv-title {
-      width: 100%;
-      text-align: center;
-    }
-
     .title {
-      width: 100%;
-      text-align: center;
       margin-bottom: 1rem;
     }
 
