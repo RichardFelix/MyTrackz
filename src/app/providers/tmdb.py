@@ -258,8 +258,13 @@ def get_end_date(response):
 
 def total_season_runtime(response):
     """Return the total runtime for the season."""
+    # when unknown runtime, value from response is null
     return get_readable_duration(
-        sum([episode["runtime"] for episode in response["episodes"]]),
+        sum(
+            episode["runtime"]
+            for episode in response["episodes"]
+            if episode["runtime"] is not None
+        ),
     )
 
 
