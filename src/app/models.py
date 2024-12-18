@@ -173,6 +173,7 @@ class Item(models.Model):
             "season": "#6f42c1",  # purple
             "episode": "#6610f2",  # indigo
             "movie": "#fd7e14",  # orange
+            "book": "#ffc107",  # yellow
         }
         return colors[self.media_type]
 
