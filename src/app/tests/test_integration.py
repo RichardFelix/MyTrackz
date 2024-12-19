@@ -45,7 +45,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Release date").click()
         self.page.get_by_role("link", name=" Seasons").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(self.page.get_by_role("cell", name="1", exact=True)).to_be_visible()
         self.page.get_by_role("link", name=" Home").click()
@@ -86,7 +86,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Save").click()
         self.page.get_by_role("link", name=" TV Shows").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(self.page.locator("tbody")).to_contain_text("62")
 
@@ -103,13 +103,13 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_text("S01.E01 - Pilot 1994-09-22 An")).to_be_visible()
         self.page.get_by_role("link", name=" TV Shows").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(self.page.get_by_role("cell", name="24")).to_be_visible()
         expect(self.page.get_by_role("cell", name="In progress")).to_be_visible()
         self.page.get_by_role("link", name=" Seasons").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(self.page.locator("tbody")).to_contain_text("Completed")
 
@@ -129,7 +129,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_text("example added successfully.")).to_be_visible()
         self.page.get_by_role("link", name=" TV Shows").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(self.page.get_by_role("cell", name="5.0")).to_be_visible()
         expect(
@@ -256,7 +256,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         # check the seasons list page
         self.page.get_by_role("link", name=" Seasons").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("table")
+        self.page.get_by_label("Layout*").select_option("list")
         self.page.get_by_role("button", name="Filter").click()
         expect(
             self.page.get_by_role(

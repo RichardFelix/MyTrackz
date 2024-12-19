@@ -383,7 +383,7 @@ class FilterForm(forms.Form):
     layout = forms.ChoiceField(
         choices=[
             ("grid", "Grid"),
-            ("table", "Table"),
+            ("list", "List"),
         ],
     )
 

@@ -5,7 +5,7 @@ from app.models import Item
 
 layouts = [
     ("grid", "Grid"),
-    ("table", "Table"),
+    ("list", "List"),
 ]
 
 
@@ -44,14 +44,14 @@ class User(AbstractUser):
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
-        default="table",
+        default="list",
         choices=layouts,
     )
 
     manga_enabled = models.BooleanField(default=True)
     manga_layout = models.CharField(
         max_length=20,
-        default="table",
+        default="list",
         choices=layouts,
     )
 
@@ -90,7 +90,7 @@ class User(AbstractUser):
         """Return the layout template for the media type."""
         template = {
             "grid": "app/media_grid.html",
-            "table": "app/media_table.html",
+            "list": "app/media_list.html",
         }
         return template[self.get_layout(media_type)]
 
