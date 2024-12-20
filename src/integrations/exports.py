@@ -5,7 +5,7 @@ from django.apps import apps
 from django.db.models import Field
 
 from app import helpers
-from app.models import TV, Anime, Book, Episode, Game, Item, Manga, Movie, Season
+from app.models import Item
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +20,14 @@ def db_to_csv(response, user):
     writer = csv.writer(response, quoting=csv.QUOTE_ALL)
     writer.writerow(fields["item"] + fields["track"])
 
-    write_model_to_csv(writer, fields, Movie.objects.filter(user=user), "movie")
-    write_model_to_csv(writer, fields, TV.objects.filter(user=user), "tv")
-    write_model_to_csv(writer, fields, Season.objects.filter(user=user), "season")
-    write_model_to_csv(
-        writer,
-        fields,
-        Episode.objects.filter(related_season__user=user),
-        "episode",
-    )
-    write_model_to_csv(writer, fields, Anime.objects.filter(user=user), "anime")
-    write_model_to_csv(writer, fields, Manga.objects.filter(user=user), "manga")
-    write_model_to_csv(writer, fields, Game.objects.filter(user=user), "game")
-    write_model_to_csv(writer, fields, Book.objects.filter(user=user), "book")
+    media_types = Item.MediaTypes.values
+    for media_type in media_types:
+        model = apps.get_model("app", media_type)
+        if media_type == "episode":
+            queryset = model.objects.filter(related_season__user=user)
+        else:
+            queryset = model.objects.filter(user=user)
+        write_model_to_csv(writer, fields, queryset, media_type)
 
     return response
 
