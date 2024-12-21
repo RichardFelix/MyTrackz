@@ -2,7 +2,6 @@
 
 import json
 import logging
-from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,6 +9,7 @@ from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -122,7 +122,7 @@ def import_yamtrack(request):
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
-    today = datetime.now(tz=settings.TZ).strftime("%Y-%m-%d")
+    today = timezone.now().strftime("%Y-%m-%d")
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(
         content_type="text/csv",

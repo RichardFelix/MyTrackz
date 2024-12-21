@@ -1,8 +1,6 @@
-from datetime import datetime
-
-from django.conf import settings
 from django.db import models
 from django.db.models import Q, UniqueConstraint
+from django.utils import timezone
 
 from app.models import Item, Media
 
@@ -48,7 +46,7 @@ class EventManager(models.Manager):
 
         items_with_status = Item.objects.filter(query).distinct()
 
-        future_events = Event.objects.filter(date__gte=datetime.now(tz=settings.TZ))
+        future_events = Event.objects.filter(date__gte=timezone.now())
         future_event_item_ids = set(future_events.values_list("item_id", flat=True))
         items_without_events = items_with_status.exclude(
             id__in=Event.objects.values_list("item_id", flat=True),

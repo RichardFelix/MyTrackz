@@ -10,6 +10,7 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import CheckConstraint, Max, Q, Sum, UniqueConstraint
 from django.urls import reverse
+from django.utils import timezone
 from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
@@ -270,7 +271,7 @@ class Media(models.Model):
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        now = datetime.datetime.now(tz=settings.TZ).date()
+        now = timezone.now().date()
 
         if self.status == self.Status.IN_PROGRESS.value:
             if not self.start_date:
@@ -556,7 +557,7 @@ class Season(Media):
             # start watching from the first episode
             next_episode_number = episodes[0]["episode_number"]
 
-        today = datetime.datetime.now(tz=settings.TZ).date()
+        today = timezone.now().date()
 
         if next_episode_number:
             self.watch(next_episode_number, today)
@@ -709,7 +710,7 @@ class Season(Media):
             max_episode_number = 0
 
         episodes_to_create = []
-        today = datetime.datetime.now(tz=settings.TZ).date()
+        today = timezone.now().date()
 
         # Create Episode objects for the remaining episodes
         for episode in reversed(season_metadata["episodes"]):

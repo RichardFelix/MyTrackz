@@ -1,10 +1,9 @@
-import datetime
 from datetime import date
 from pathlib import Path
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from app.models import TV, Anime, Episode, Item, Season
 
@@ -112,7 +111,7 @@ class MediaModel(TestCase):
 
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            datetime.datetime.now(tz=settings.TZ).date(),
+            timezone.now().date(),
         )
 
     def test_completed_end(self):
@@ -162,7 +161,7 @@ class MediaModel(TestCase):
         )
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            datetime.datetime.now(tz=settings.TZ).date(),
+            timezone.now().date(),
         )
 
     def test_progress_is_max_from_repeating(self):

@@ -1,8 +1,7 @@
 import logging
-from datetime import datetime
 
-from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 import app
 from app.models import Media
@@ -222,7 +221,7 @@ def add_tv(media_id, payload, user):
             item=episode_item,
             related_season=season_instance,
             defaults={
-                "watch_date": datetime.now(tz=settings.TZ),
+                "watch_date": timezone.now(),
             },
         )
     else:

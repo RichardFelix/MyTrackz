@@ -1,7 +1,6 @@
-from datetime import datetime
-
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 from app.providers import services
 
@@ -171,9 +170,9 @@ def get_start_date(response):
     # when no release date, first_release_date is not present in the response
     # e.g game: 210710
     try:
-        return datetime.fromtimestamp(
+        return timezone.datetime.fromtimestamp(
             response["first_release_date"],
-            tz=settings.TZ,
+            tz=timezone.get_current_timezone(),
         ).strftime("%Y-%m-%d")
     except KeyError:
         return None
