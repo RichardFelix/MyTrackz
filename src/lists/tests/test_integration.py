@@ -15,7 +15,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         super().setUpClass()
         cls.playwright = sync_playwright().start()
         # use headless=False, slow_mo=400 to see the browser
-        cls.browser = cls.playwright.chromium.launch(headless=False, slow_mo=200)
+        cls.browser = cls.playwright.chromium.launch()
         cls.page = cls.browser.new_page()
 
     def setUp(self):
