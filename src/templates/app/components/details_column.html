@@ -1,0 +1,16 @@
+{% load app_tags %}
+
+<div class="details-column border border-light-subtle rounded shadow-lg p-3">
+  {% for key, value in media.details.items %}
+    <div class="mb-2">
+      <div class="text-body-secondary text-truncate">{{ key|no_underscore|upper }}</div>
+      <div>
+        {% if value|is_list %}
+          {% for item in value %}<div class="text-truncate">{{ item }}</div>{% endfor %}
+        {% else %}
+          <div class="text-truncate">{{ value|default_if_none:"Unknown" }}</div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
