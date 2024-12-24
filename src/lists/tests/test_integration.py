@@ -15,7 +15,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         super().setUpClass()
         cls.playwright = sync_playwright().start()
         # use headless=False, slow_mo=400 to see the browser
-        cls.browser = cls.playwright.chromium.launch()
+        cls.browser = cls.playwright.chromium.launch(headless=False, slow_mo=200)
         cls.page = cls.browser.new_page()
 
     def setUp(self):
@@ -78,7 +78,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="").click()
         expect(
             self.page.locator("#filter-modal div")
-            .filter(has_text="Media type* All Movie TV Show")
+            .filter(has_text="Media type* All TV Show Season")
             .nth(2),
         ).to_be_visible()
         self.page.wait_for_timeout(500)

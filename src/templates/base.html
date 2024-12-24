@@ -1,4 +1,5 @@
 {% load static %}
+{% load app_tags %}
 
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
@@ -55,7 +56,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='tv' %}"
                    class="nav-link {% if media_type == "tv" %}active{% endif %}">
-                  <i class="bi bi-tv me-2 align-middle"></i>
+                  <i class="{{ 'tv'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">TV Shows</span>
                 </a>
               </li>
@@ -65,7 +66,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='season' %}"
                    class="nav-link {% if media_type == "season" %}active{% endif %}">
-                  <i class="bi bi-grid me-2 align-middle"></i>
+                  <i class="{{ 'season'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Seasons</span>
                 </a>
               </li>
@@ -75,7 +76,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='movie' %}"
                    class="nav-link {% if media_type == "movie" %}active{% endif %}">
-                  <i class="bi bi-film me-2 align-middle"></i>
+                  <i class="{{ 'movie'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Movies</span>
                 </a>
               </li>
@@ -85,7 +86,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='anime' %}"
                    class="nav-link {% if media_type == "anime" %}active{% endif %}">
-                  <i class="bi bi-collection-play me-2 align-middle"></i>
+                  <i class="{{ 'anime'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Anime</span>
                 </a>
               </li>
@@ -95,7 +96,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='manga' %}"
                    class="nav-link {% if media_type == "manga" %}active{% endif %}">
-                  <i class="bi bi-book me-2 align-middle"></i>
+                  <i class="{{ 'manga'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Manga</span>
                 </a>
               </li>
@@ -105,7 +106,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='game' %}"
                    class="nav-link {% if media_type == "game" %}active{% endif %}">
-                  <i class="bi bi-joystick me-2 align-middle"></i>
+                  <i class="{{ 'game'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Games</span>
                 </a>
               </li>
@@ -115,7 +116,7 @@
               <li>
                 <a href="{% url 'medialist' media_type='book' %}"
                    class="nav-link {% if media_type == "book" %}active{% endif %}">
-                  <i class="bi bi-journal me-2 align-middle"></i>
+                  <i class="{{ 'book'|icon }} me-2 align-middle"></i>
                   <span class="align-middle">Books</span>
                 </a>
               </li>
@@ -165,8 +166,8 @@
             </li>
           </ul>
         </div>
-        
-        <main class="d-flex flex-column"> 
+
+        <main class="d-flex flex-column">
           {% block search %}
             <div class="search-bar d-flex container">
               <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
@@ -182,17 +183,34 @@
                     method="get"
                     action="{% url 'search' %}">
                 <select name="media_type" class="form-select">
-                  <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-                  <option value="movie"
-                          {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
-                  <option value="anime"
-                          {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
-                  <option value="manga"
-                          {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
-                  <option value="game"
-                          {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
-                  <option value="book"
-                          {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
+                  {% if not user.hide_from_search or user.tv_enabled %}
+                    <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
+                  {% endif %}
+
+                  {% if not user.hide_from_search or user.movie_enabled %}
+                    <option value="movie"
+                            {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+                  {% endif %}
+
+                  {% if not user.hide_from_search or user.anime_enabled %}
+                    <option value="anime"
+                            {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+                  {% endif %}
+
+                  {% if not user.hide_from_search or user.manga_enabled %}
+                    <option value="manga"
+                            {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+                  {% endif %}
+
+                  {% if not user.hide_from_search or user.game_enabled %}
+                    <option value="game"
+                            {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
+                  {% endif %}
+
+                  {% if not user.hide_from_search or user.book_enabled %}
+                    <option value="book"
+                            {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
+                  {% endif %}
                 </select>
                 <input class="form-control"
                        type="search"

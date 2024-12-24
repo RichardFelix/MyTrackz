@@ -44,3 +44,19 @@ def format_time(total_minutes):
 def is_list(arg1):
     """Return True if the object is a list."""
     return isinstance(arg1, list)
+
+
+@register.filter()
+def icon(media_type):
+    """Return the icon of the item for the calendar."""
+    icons = {
+        "anime": "bi bi-collection-play",
+        "manga": "bi bi-book",
+        "game": "bi bi-joystick",
+        "tv": "bi bi-tv",
+        "season": "bi bi-grid",
+        "episode": "bi bi-tv",
+        "movie": "bi bi-film",
+        "book": "bi bi-journal",
+    }
+    return icons[media_type]

@@ -110,8 +110,9 @@ def profile(request):
                     password_form.errors.as_json(),
                 )
         elif "media_types_checkboxes" in request.POST:
-            media_types_checked = request.POST.getlist("media_types_checkboxes")
+            request.user.hide_from_search = "hide_disabled" in request.POST
 
+            media_types_checked = request.POST.getlist("media_types_checkboxes")
             for media_type in media_types:
                 if media_type in media_types_checked:
                     setattr(request.user, f"{media_type}_enabled", True)

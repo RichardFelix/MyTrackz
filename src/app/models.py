@@ -38,10 +38,10 @@ class Item(models.Model):
     class MediaTypes(models.TextChoices):
         """Choices for the media type of the item."""
 
-        MOVIE = "movie", "Movie"
         TV = "tv", "TV Show"
         SEASON = "season", "Season"
         EPISODE = "episode", "Episode"
+        MOVIE = "movie", "Movie"
         ANIME = "anime", "Anime"
         MANGA = "manga", "Manga"
         GAME = "game", "Game"

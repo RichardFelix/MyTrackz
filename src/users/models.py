@@ -69,6 +69,8 @@ class User(AbstractUser):
         choices=layouts,
     )
 
+    hide_from_search = models.BooleanField(default=True)
+
     token = models.CharField(
         max_length=32,
         null=True,
