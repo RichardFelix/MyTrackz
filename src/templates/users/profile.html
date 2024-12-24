@@ -32,7 +32,7 @@
       <legend class="border-bottom mb-4">Media Tracking Preferences</legend>
       <div class="form-switch d-flex justify-content-between border rounded-2 px-3 py-2 mb-3">
         <label class="form-check-label">
-          <i class="bi bi-search me-2 align-middle"></i> Hide disabled media types from search
+          <i class="bi bi-search me-2"></i> Hide disabled media types from search
         </label>
 
         <input class="form-check-input"
@@ -47,7 +47,7 @@
       {% for media_type in media_types %}
         <div class="form-switch d-flex justify-content-between border rounded-2 px-3 py-2 mb-3">
           <label class="form-check-label">
-            <i class="{{ media_type|icon }} me-2 align-middle"></i>
+            <i class="{{ media_type|icon }} me-2"></i>
             {% if media_type == "tv" %}
               TV Show
             {% else %}
