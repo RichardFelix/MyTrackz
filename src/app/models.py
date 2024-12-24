@@ -138,7 +138,7 @@ class Item(models.Model):
         if latest_item is None:
             return 1
 
-        return latest_item.media_id + 1
+        return int(latest_item.media_id) + 1
 
     @property
     def url(self):
