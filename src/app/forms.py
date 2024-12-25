@@ -326,11 +326,11 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = models.Episode
-        fields = ("item", "watch_date", "repeats")
+        fields = ("item", "end_date", "repeats")
 
         widgets = {
             "item": forms.HiddenInput(),
-            "watch_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
         }
 
     def __init__(self, *args, **kwargs):

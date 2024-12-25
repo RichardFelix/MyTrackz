@@ -57,6 +57,54 @@
         </div>
       </div>
     </div>
+
+    <h2 class="mt-3">Statistics</h2>
+    <div class="input-group date-range-stats">
+      <input type="text" class="form-control text-center" name="date-range">
+      <button class="btn btn-secondary" type="button">View</button>
+    </div>
+
+    <div class="row mb-4">
+      <div class="row mb-4">
+        <div class="col-md">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="display-4 text-primary mb-2">
+                <i class="fas fa-car-crash"></i>
+              </div>
+              <h5 class="card-title">Número de accidentes encontrados</h5>
+              <h3 class="card-text">340</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="display-4 text-primary mb-2">
+                <i class="fas fa-car-crash"></i>
+              </div>
+              <h5 class="card-title">Número de accidentes encontrados</h5>
+              <h3 class="card-text">340</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md">
+          <div class="card h-100 sparql-card">
+            <div class="card-body overflow-y-auto">
+              <div class="display-4 text-primary mb-2">
+                <i class="fas fa-car-crash"></i>
+              </div>
+              <h5 class="card-title text-center">Consulta de SPARQL</h5>
+              <h3 class="card-text ">
+                {% for line in data.query %}<p>{{ line }}</p>{% endfor %}
+              </h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock container %}
 

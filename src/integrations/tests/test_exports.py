@@ -82,7 +82,7 @@ class ExportCSVTest(TestCase):
         Episode.objects.create(
             item=item_episode,
             related_season=season,
-            watch_date=date(2023, 6, 1),
+            end_date=date(2023, 6, 1),
         )
 
         item_anime = Item.objects.create(

@@ -198,7 +198,7 @@ class DeleteMedia(TestCase):
         Episode.objects.create(
             item=self.item_ep,
             related_season=season,
-            watch_date=datetime.date(2023, 6, 1),
+            end_date=datetime.date(2023, 6, 1),
         )
 
     def test_delete_movie(self):
@@ -287,7 +287,7 @@ class ProgressEditSeason(TestCase):
         Episode.objects.create(
             item=item_ep,
             related_season=season,
-            watch_date=datetime.date(2023, 6, 1),
+            end_date=datetime.date(2023, 6, 1),
         )
 
     def test_progress_increase(self):

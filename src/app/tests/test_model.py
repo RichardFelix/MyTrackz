@@ -241,7 +241,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep1,
             related_season=season1,
-            watch_date=date(2023, 6, 1),
+            end_date=date(2023, 6, 1),
         )
 
         item_ep2 = Item.objects.create(
@@ -256,7 +256,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep2,
             related_season=season1,
-            watch_date=date(2023, 6, 2),
+            end_date=date(2023, 6, 2),
         )
 
         item_season2 = Item.objects.create(
@@ -288,7 +288,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep3,
             related_season=season2,
-            watch_date=date(2023, 6, 4),
+            end_date=date(2023, 6, 4),
         )
 
         item_ep4 = Item.objects.create(
@@ -303,7 +303,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep4,
             related_season=season2,
-            watch_date=date(2023, 6, 5),
+            end_date=date(2023, 6, 5),
         )
 
     def test_tv_progress(self):
@@ -377,7 +377,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             item=item_ep1,
             related_season=self.season,
-            watch_date=date(2023, 6, 1),
+            end_date=date(2023, 6, 1),
         )
 
         item_ep2 = Item.objects.create(
@@ -392,7 +392,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             item=item_ep2,
             related_season=self.season,
-            watch_date=date(2023, 6, 2),
+            end_date=date(2023, 6, 2),
         )
 
     def test_season_progress(self):
@@ -471,7 +471,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                watch_date=date(2023, 6, i),
+                end_date=date(2023, 6, i),
             )
 
         # if when all episodes are created, the season status should be "Completed"

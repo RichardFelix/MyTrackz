@@ -188,7 +188,7 @@ def process_tv_list(tv_list, user):
                     item=episode_item,
                     related_season=season_obj,
                     defaults={
-                        "watch_date": get_date(episode["watched_at"]),
+                        "end_date": get_date(episode["watched_at"]),
                     },
                 )
     logger.info("Finished processing tv shows")

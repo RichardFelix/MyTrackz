@@ -65,7 +65,7 @@ class JellyfinWebhookTests(TestCase):
             item__season_number=1,
             item__episode_number=1,
         )
-        self.assertIsNotNone(episode.watch_date)
+        self.assertIsNotNone(episode.end_date)
 
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""

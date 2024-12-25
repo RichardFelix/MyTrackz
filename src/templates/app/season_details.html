@@ -118,7 +118,7 @@
                                 <input type="date"
                                        class="form-control pe-2 border-end-0 rounded-end-0"
                                        name="date"
-                                       value="{% if episode.watch_date %}{{ episode.watch_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
+                                       value="{% if episode.end_date %}{{ episode.end_date|date:"Y-m-d" }}{% else %}{% now "Y-m-d" %}{% endif %}">
                                 <button type="submit"
                                         class="btn btn-secondary border-start-0 rounded-start-0">
                                   <i class="bi bi-check-circle-fill"></i>
@@ -146,11 +146,11 @@
                 </div>
 
                 <div class="d-flex align-items-center">
-                  {% if episode.watch_date %}
+                  {% if episode.end_date %}
                     {% if episode.repeats > 0 %}
-                      <small>{{ episode.repeats|add:"1" }} watches, last watched on {{ episode.watch_date|date:"Y-m-d" }}</small>
+                      <small>{{ episode.repeats|add:"1" }} watches, last watched on {{ episode.end_date|date:"Y-m-d" }}</small>
                     {% else %}
-                      <small>On {{ episode.watch_date|date:"Y-m-d" }}</small>
+                      <small>On {{ episode.end_date|date:"Y-m-d" }}</small>
                     {% endif %}
                   {% endif %}
                 </div>

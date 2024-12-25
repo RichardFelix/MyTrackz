@@ -50,6 +50,19 @@ def get_track_fields():
         for field in get_model_fields(model):
             if field not in all_fields:
                 all_fields.append(field)
+
+    # Put start_date and end_date next to each other
+    # happens because Episode has end_date but not start_date
+    if "start_date" in all_fields and "end_date" in all_fields:
+        end_idx = all_fields.index("end_date")
+
+        # Remove both dates
+        all_fields.remove("start_date")
+        all_fields.remove("end_date")
+        # Insert them in the correct order at the earlier index
+        all_fields.insert(end_idx, "end_date")
+        all_fields.insert(end_idx, "start_date")
+
     return list(all_fields)
 
 

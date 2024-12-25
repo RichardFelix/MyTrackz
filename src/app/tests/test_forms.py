@@ -68,7 +68,7 @@ class BasicMediaForm(TestCase):
         """Test the episode form with valid data."""
         form_data = {
             "item": self.item.id,
-            "watch_date": "2023-06-01",
+            "end_date": "2023-06-01",
             "repeats": 0,
         }
         form = EpisodeForm(data=form_data)

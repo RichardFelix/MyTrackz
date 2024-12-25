@@ -385,7 +385,7 @@ def add_tmdb_episodes(entry, season, user):
             item=episode_item,
             related_season=season_obj,
             defaults={
-                "watch_date": get_date(episode["last_watched_at"]),
+                "end_date": get_date(episode["last_watched_at"]),
                 "repeats": episode["plays"] - 1,
             },
         )

@@ -131,7 +131,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         item__source=source,
         item__season_number=season_number,
         related_season__user=request.user,
-    ).values("item__episode_number", "watch_date", "repeats")
+    ).values("item__episode_number", "end_date", "repeats")
 
     if source == "manual":
         season_metadata["episodes"] = manual.process_episodes(
@@ -302,11 +302,11 @@ def episode_handler(request):
 
     else:
         if "release" in request.POST:
-            watch_date = request.POST["release"]
+            end_date = request.POST["release"]
         else:
             # set watch date from form
-            watch_date = request.POST["date"]
-        related_season.watch(episode_number, watch_date)
+            end_date = request.POST["date"]
+        related_season.watch(episode_number, end_date)
 
     return helpers.redirect_back(request)
 

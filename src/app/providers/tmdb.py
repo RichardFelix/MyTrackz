@@ -366,8 +366,8 @@ def process_episodes(season_metadata, episodes_in_db):
                 "title": episode["name"],
                 "overview": episode["overview"],
                 "watched": watched,
-                "watch_date": (
-                    tracked_episodes[episode_number]["watch_date"] if watched else None
+                "end_date": (
+                    tracked_episodes[episode_number]["end_date"] if watched else None
                 ),
                 "repeats": (
                     tracked_episodes[episode_number]["repeats"] if watched else 0

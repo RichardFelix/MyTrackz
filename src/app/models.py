@@ -525,7 +525,7 @@ class Season(Media):
     def start_date(self):
         """Return the date of the first episode watched."""
         return min(
-            (episode.watch_date for episode in self.episodes.all()),
+            (episode.end_date for episode in self.episodes.all()),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
@@ -533,7 +533,7 @@ class Season(Media):
     def end_date(self):
         """Return the date of the last episode watched."""
         return max(
-            (episode.watch_date for episode in self.episodes.all()),
+            (episode.end_date for episode in self.episodes.all()),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
@@ -564,7 +564,7 @@ class Season(Media):
         else:
             logger.info("No more episodes to watch.")
 
-    def watch(self, episode_number, watch_date):
+    def watch(self, episode_number, end_date):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
 
@@ -573,7 +573,7 @@ class Season(Media):
                 related_season=self,
                 item=item,
             )
-            episode.watch_date = watch_date
+            episode.end_date = end_date
             episode.repeats += 1
             episode.save()
             logger.info(
@@ -581,14 +581,14 @@ class Season(Media):
                 episode,
             )
         except Episode.DoesNotExist:
-            # from the form, watch_date is a string
-            if watch_date == "None":
-                watch_date = None
+            # from the form, end_date is a string
+            if end_date == "None":
+                end_date = None
 
             episode = Episode.objects.create(
                 related_season=self,
                 item=item,
-                watch_date=watch_date,
+                end_date=end_date,
             )
             logger.info(
                 "%s created successfully.",
@@ -722,7 +722,7 @@ class Season(Media):
             episode_db = Episode(
                 related_season=self,
                 item=item,
-                watch_date=today,
+                end_date=today,
             )
             episodes_to_create.append(episode_db)
 
@@ -779,7 +779,7 @@ class Episode(models.Model):
         on_delete=models.CASCADE,
         related_name="episodes",
     )
-    watch_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     repeats = models.PositiveIntegerField(default=0)
 
     class Meta:
