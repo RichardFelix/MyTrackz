@@ -15,8 +15,8 @@
 {% block container %}
   <div class="d-flex flex-column align-items-center">
 
-    <h2>Activity History</h2>
-    <div class="d-flex justify-content-start justify-content-xxl-center w-100 overflow-x-scroll overflow-y-hidden py-3">
+    <h2 class="mb-3">Activity History</h2>
+    <div class="d-flex justify-content-start justify-content-xxl-center w-100 overflow-x-scroll overflow-y-hidden">
       <div class="contribution-graph">
         <!-- Months row -->
         <div class="d-flex mb-1 months gap-1">
@@ -58,69 +58,105 @@
       </div>
     </div>
 
-    <h2 class="mt-3">Statistics</h2>
-    <div class="input-group date-range-stats">
+    <h2 class="mt-5 mb-3">Statistics</h2>
+    <form class="input-group date-range-stats mb-5">
       <input type="text" class="form-control text-center" name="date-range">
-      <button class="btn btn-secondary" type="button">View</button>
-    </div>
+      <button class="btn btn-secondary" type="submit">View</button>
+    </form>
 
-    <div class="row mb-4">
-      <div class="row mb-4">
-        <div class="col-md">
-          <div class="card text-center h-100">
-            <div class="card-body">
-              <div class="display-4 text-primary mb-2">
-                <i class="fas fa-car-crash"></i>
-              </div>
-              <h5 class="card-title">Número de accidentes encontrados</h5>
-              <h3 class="card-text">340</h3>
-            </div>
-          </div>
-        </div>
-        <div class="col-md">
-          <div class="card text-center h-100">
-            <div class="card-body">
-              <div class="display-4 text-primary mb-2">
-                <i class="fas fa-car-crash"></i>
-              </div>
-              <h5 class="card-title">Número de accidentes encontrados</h5>
-              <h3 class="card-text">340</h3>
-            </div>
-          </div>
-        </div>
+    <div class="d-flex w-100 flex-wrap">
+
+      <div class="w-100 mb-5 chart">
+        <canvas id="statusDistribution"></canvas>
       </div>
-      <div class="row">
-        <div class="col-md">
-          <div class="card h-100 sparql-card">
-            <div class="card-body overflow-y-auto">
-              <div class="display-4 text-primary mb-2">
-                <i class="fas fa-car-crash"></i>
-              </div>
-              <h5 class="card-title text-center">Consulta de SPARQL</h5>
-              <h3 class="card-text ">
-                {% for line in data.query %}<p>{{ line }}</p>{% endfor %}
-              </h3>
+
+      {% if highest_scored %}
+        <div>
+          <h3 class="text-center">Highest Rated</h3>
+
+          <div class="card">
+            <img src="{{ highest_scored.item.image }}"
+                 class="card-img {% if highest_scored.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                 alt="{{ highest_scored.item.title }}" />
+
+            <div class="card-img-overlay">
+              <div class="card-title">{{ highest_scored.score }}</div>
             </div>
           </div>
         </div>
-      </div>
+      {% endif %}
     </div>
   </div>
+
 {% endblock container %}
 
 {% block js %}
-  <script type="text/javascript"
-          src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-  <script type="text/javascript"
-          src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-  <script type="text/javascript"
-          src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
   <script src="{% static 'js/date-range.js' %}"></script>
 
   {% comment %} Enable bootstrap tooltips {% endcomment %}
   <script>
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+  </script>
+
+  {{ status_distribution|json_script:"status_distribution" }};
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('statusDistribution');
+      const statusData = JSON.parse(document.getElementById('status_distribution').textContent);
+  
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: statusData.labels,
+          datasets: statusData.datasets.map((dataset, index) => ({
+              label: dataset.label,
+              data: dataset.data,
+              backgroundColor: getStatusColor(dataset.label),
+              borderWidth: 1
+          }))
+        },
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          scales: {
+            x: {
+              stacked: true,
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Media Status Distribution'
+            },
+            legend: {
+              position: 'bottom'
+            }
+        }
+        }
+      });
+    });
+    
+    function getStatusColor(status) {
+      const colors = {
+        'In progress': 'rgba(54, 162, 235, 0.8)',
+        'Completed': 'rgba(75, 192, 192, 0.8)',
+        'Repeating': 'rgba(153, 102, 255, 0.8)',
+        'Planning': 'rgba(255, 206, 86, 0.8)',
+        'Paused': 'rgba(255, 159, 64, 0.8)',
+        'Dropped': 'rgba(255, 99, 132, 0.8)'
+      };
+      return colors[status] || 'rgba(201, 203, 207, 0.8)';
+    }
   </script>
 {% endblock js %}

@@ -6,11 +6,12 @@ from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
-from app.models import Episode, Item, Media, Season
+from app.models import BasicMedia, Episode, Item, Media, Season
 from app.providers import manual, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -460,10 +461,40 @@ def statistics(request):
     """Return the statistics page."""
     calendar_weeks, month_data = database.get_activity_data(request.user.id)
 
+    # Set default date range to last year
+    timeformat = "%Y/%m/%d"
+    today = timezone.now().date()
+    one_year_ago = today.replace(year=today.year - 1)
+    default_date_range = (
+        f"{one_year_ago.strftime(timeformat)} - {today.strftime(timeformat)}"
+    )
+
+    # Get and parse date range
+    date_range = request.GET.get("date-range", default_date_range)
+    dates = date_range.split(" - ")
+
+    # Convert strings directly to datetime.date objects
+    start_date = timezone.datetime.strptime(dates[0], timeformat).date()
+    end_date = timezone.datetime.strptime(dates[1], timeformat).date()
+
+    highest_scored = BasicMedia.objects.get_highest_scored_media(
+        request.user,
+        start_date,  # Now passing datetime.date object
+        end_date,  # Now passing datetime.date object
+    )
+
+    status_distribution = BasicMedia.objects.get_status_distribution(
+        request.user,
+        start_date,
+        end_date,
+    )
+
     context = {
         "calendar_weeks": calendar_weeks,
         "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "month_data": month_data,  # List of tuples (month_name, week_count)
+        "highest_scored": highest_scored,
+        "status_distribution": status_distribution,
     }
 
     return render(request, "app/statistics.html", context)
