@@ -142,20 +142,25 @@ debug, info, success, warning, error */
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
 }
 
-.poster {
+.card {
+  /* needed for when image is not found */
   width: 100%;
-  aspect-ratio: 2/3;
-  object-fit: cover;
-  cursor: pointer;
-}
 
-.image-not-found {
-  width: 100%;
-  aspect-ratio: 2/3;
-  object-fit: contain;
-  object-position: center top;
-  background-color: var(--bg-img-none);
-  cursor: pointer;
+  .poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    cursor: pointer;
+  }
+
+  .image-not-found {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: contain;
+    object-position: center top;
+    background-color: var(--bg-img-none);
+    cursor: pointer;
+  }
 }
 
 .card-img-overlay {
