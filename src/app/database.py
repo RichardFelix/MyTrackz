@@ -95,7 +95,7 @@ def get_media(media_type, item, user):
         return None
 
 
-def get_filtered_historical_data(start_date, end_date, user_id):
+def get_filtered_historical_data(start_date, end_date, user):
     """Get historical data filtered by date range."""
     historical_models = get_historical_models()
     combined_data = []
@@ -108,13 +108,13 @@ def get_filtered_historical_data(start_date, end_date, user_id):
         # Get IDs of instances belonging to the user
         if main_model_name == "episode":
             instance_ids = main_model.objects.filter(
-                related_season__user=user_id,
+                related_season__user=user,
             ).values_list(
                 "id",
                 flat=True,
             )
         else:
-            instance_ids = main_model.objects.filter(user=user_id).values_list(
+            instance_ids = main_model.objects.filter(user=user).values_list(
                 "id",
                 flat=True,
             )
@@ -135,7 +135,7 @@ def get_filtered_historical_data(start_date, end_date, user_id):
     return combined_data
 
 
-def get_activity_data(user_id):
+def get_activity_data(user):
     """Get daily activity counts for the last year."""
     end_date = timezone.now().date()
     start_date = end_date - timedelta(days=365)
@@ -153,31 +153,28 @@ def get_activity_data(user_id):
     if days_until_next_month < two_weeks:
         start_date = start_date - timedelta(days=7)
 
-    combined_data = get_filtered_historical_data(start_date, end_date, user_id)
+    combined_data = get_filtered_historical_data(start_date, end_date, user)
 
     # Aggregate counts by date
     date_counts = {}
     for item in combined_data:
         date = item["date"]
-        if date in date_counts:
-            date_counts[date] += item["count"]
-        else:
-            date_counts[date] = item["count"]
+        date_counts[date] = date_counts.get(date, 0) + item["count"]
+
+    date_range = [
+        start_date + timedelta(days=x)
+        for x in range((end_date - start_date).days + 1)
+    ]
 
     # Create complete date range including padding days
-    activity_data = []
-    current_date = start_date
-
-    while current_date <= end_date:
-        count = date_counts.get(current_date, 0)
-        activity_data.append(
-            {
-                "date": current_date.strftime("%Y-%m-%d"),
-                "count": count,
-                "level": get_level(count),
-            },
-        )
-        current_date += timedelta(days=1)
+    activity_data = [
+        {
+            "date": current_date.strftime("%Y-%m-%d"),
+            "count": date_counts.get(current_date, 0),
+            "level": get_level(date_counts.get(current_date, 0)),
+        }
+        for current_date in date_range
+    ]
 
     # Format data into calendar weeks
     calendar_weeks = [activity_data[i : i + 7] for i in range(0, len(activity_data), 7)]
@@ -185,33 +182,26 @@ def get_activity_data(user_id):
     # Generate months list with their Monday counts
     months = []
     mondays_per_month = []
-    current_date = start_date
+    current_month = None
+    monday_count = 0
 
-    while current_date <= end_date:
+    for current_date in date_range:
         month = current_date.strftime("%b")
-        # Calculate number of Mondays for this month
-        month_start = current_date.replace(day=1)
-        if current_date == start_date:
-            month_start = current_date
 
-        next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
-        if next_month > end_date:
-            month_end = end_date
-        else:
-            month_end = next_month - timedelta(days=1)
+        if current_month != month:
+            if current_month and monday_count > 0:
+                months.append(current_month)
+                mondays_per_month.append(monday_count)
+            current_month = month
+            monday_count = 0
 
-        # Count Mondays in this month range
-        monday_count = 0
-        check_date = month_start
-        while check_date <= month_end:
-            if check_date.weekday() == 0:  # Monday is 0
-                monday_count += 1
-            check_date += timedelta(days=1)
+        if current_date.weekday() == 0:
+            monday_count += 1
 
-        months.append(month)
+    # Add the last month
+    if monday_count > 0:
+        months.append(current_month)
         mondays_per_month.append(monday_count)
-
-        current_date = next_month
 
     return calendar_weeks, list(zip(months, mondays_per_month, strict=False))
 

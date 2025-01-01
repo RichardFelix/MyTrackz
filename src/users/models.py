@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -105,3 +106,11 @@ class User(AbstractUser):
         """Set the last search type, used for default search type."""
         self.last_search_type = media_type
         self.save(update_fields=["last_search_type"])
+
+    def get_active_media_types(self):
+        """Return a list of active media types."""
+        return [
+            apps.get_model(app_label="app", model_name=media_type)
+            for media_type in Item.MediaTypes.values
+            if media_type != "episode" and getattr(self, f"{media_type}_enabled")
+        ]

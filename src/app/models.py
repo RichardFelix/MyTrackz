@@ -1,8 +1,8 @@
 import datetime
 import logging
 
-from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.validators import (
     DecimalValidator,
     MaxValueValidator,
@@ -188,56 +188,75 @@ class Item(models.Model):
 class MediaManager(models.Manager):
     """Custom manager for media models."""
 
-    def get_models(self):
-        """Return all media models."""
-        media_types = Item.MediaTypes.values
-        return [
-            apps.get_model(app_label="app", model_name=media_type)
-            for media_type in media_types
+    def get_user_media(self, user, start_date, end_date):
+        """Get all media items for a user within the date range."""
+        media_models = [
+            model for model in user.get_active_media_types() if model != Episode
         ]
 
-    def get_highest_scored_media(self, user_id, start_date, end_date):
-        """Get the highest scored media item within the date range."""
-        media_models = self.get_models()
-        highest_scored = None
-        highest_score = -1
+        user_media = {}
 
         for model in media_models:
-            if model == Episode:
-                continue
+            model_name = model.__name__.lower()
 
             if model in (TV, Season):
-                medias = (
-                    model.objects.filter(
-                        user_id=user_id,
-                        score__isnull=False,
-                    )
+                queryset = (
+                    model.objects.filter(user=user)
                     .select_related("item")
                     .prefetch_related(
                         "seasons__episodes" if model == TV else "episodes",
                     )
                 )
+                # Filter in memory since we need to check end_date
+                user_media[model_name] = [
+                    media
+                    for media in queryset
+                    if start_date <= media.start_date and media.end_date <= end_date
+                ]
+            else:
+                user_media[model_name] = model.objects.filter(
+                    user=user,
+                    start_date__gte=start_date,
+                    end_date__lte=end_date,
+                ).select_related("item")
 
-                for media in medias:
-                    if (
-                        start_date <= media.end_date <= end_date
-                        and media.score > highest_score
-                    ):
+        logging.info(
+            "%s - Retrieved media for date range %s to %s",
+            user,
+            start_date,
+            end_date,
+        )
+        return user_media
+
+    def get_user_media_count(self, user_media):
+        """Get the total number of media items within the date range."""
+        total_media = 0
+
+        for media_list in user_media.values():
+            if isinstance(media_list, list):
+                total_media += len(media_list)
+            else:
+                total_media += media_list.count()
+
+        return total_media
+
+    def get_highest_scored_media(self, user_media):
+        """Get the highest scored media item within the date range."""
+        highest_scored = None
+        highest_score = -1
+
+        for media_list in user_media.values():
+            if isinstance(media_list, list):  # TV, Season case
+                for media in media_list:
+                    if media.score is not None and media.score > highest_score:
                         highest_score = media.score
                         highest_scored = media
-
-            else:
+            else:  # QuerySet case
                 media = (
-                    model.objects.filter(
-                        user_id=user_id,
-                        score__isnull=False,  # Ensure we only get items with scores
-                        start_date__gte=start_date,
-                        end_date__lte=end_date,
+                    media_list.filter(
+                        score__isnull=False,
                     )
-                    .select_related(
-                        "item",
-                    )  # Optimize by fetching item data in same query
-                    .order_by("-score")  # Highest score first
+                    .order_by("-score")
                     .first()
                 )
 
@@ -245,63 +264,36 @@ class MediaManager(models.Manager):
                     highest_score = media.score
                     highest_scored = media
 
-        if highest_scored:
-            return highest_scored
+        return highest_scored
 
-        return None
-
-    def get_status_distribution(self, user_id, start_date, end_date):
+    def get_status_distribution(self, user_media):
         """Get status distribution for each media type within date range."""
-        media_models = self.get_models()
         distribution = {}
 
         # Define status order to ensure consistent stacking
         status_order = list(Media.Status.values)
 
-        for model in media_models:
-            if model == Episode:
-                continue
-
-            model_name = model.__name__.lower()
+        for model_name, media_list in user_media.items():
             status_counts = {status: 0 for status in status_order}
 
-            if model in [TV, Season]:
-                medias = (
-                    model.objects.filter(user_id=user_id)
-                    .select_related("item")
-                    .prefetch_related(
-                        "seasons__episodes" if model == TV else "episodes",
-                    )
-                )
-
-                for media in medias:
-                    if start_date <= media.end_date <= end_date:
-                        status_counts[media.status] += 1
-            else:
-                counts = (
-                    model.objects.filter(
-                        user_id=user_id,
-                        start_date__gte=start_date,
-                        end_date__lte=end_date,
-                    )
-                    .values("status")
-                    .annotate(count=models.Count("id"))
-                )
-
+            if isinstance(media_list, list):  # TV, Season case
+                for media in media_list:
+                    status_counts[media.status] += 1
+            else:  # QuerySet case
+                counts = media_list.values("status").annotate(count=models.Count("id"))
                 for count_data in counts:
                     status_counts[count_data["status"]] = count_data["count"]
 
             distribution[model_name] = status_counts
 
+        # Format the response for charting
         return {
-            "labels": [m.__name__ for m in media_models if m != Episode],
+            "labels": list(distribution.keys()),
             "datasets": [
                 {
                     "label": status,
                     "data": [
-                        distribution[m.__name__.lower()][status]
-                        for m in media_models
-                        if m != Episode
+                        distribution[model_name][status] for model_name in distribution
                     ],
                 }
                 for status in status_order

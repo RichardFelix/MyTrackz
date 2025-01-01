@@ -48,6 +48,10 @@
   --bg-foreground: hsl(210, 10.8%, 16%);
 }
 
+.bg-foreground {
+  background-color: var(--bg-foreground);
+}
+
 p {
   text-wrap: pretty;
 }

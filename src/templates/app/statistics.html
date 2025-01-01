@@ -1,78 +1,136 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block css %}
-  <link rel="stylesheet"
-        type="text/css"
-        href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-  <link rel="stylesheet" type="text/css" href="{% static "css/daterangepicker-bootstrap-dark.css" %}" />
-{% endblock css %}
-
 {% block title %}
   Statistics - Yamtrack
 {% endblock title %}
 
 {% block container %}
-  <div class="d-flex flex-column align-items-center">
+  <div class="py-4">
 
-    <h2 class="mb-3">Activity History</h2>
-    <div class="d-flex justify-content-start justify-content-xxl-center w-100 overflow-x-scroll overflow-y-hidden">
-      <div class="contribution-graph">
-        <!-- Months row -->
-        <div class="d-flex mb-1 months gap-1">
-          {% for month, week_count in month_data %}
-            <div class="month small text-secondary"
-                 style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
-              {{ month }}
+    <!-- Activity Section Header -->
+    <div class="row mb-3">
+      <div class="col">
+        <h4 class="text-light">Annual Activity History</h4>
+      </div>
+    </div>
+    <!-- Activity History Section -->
+    <div class="card bg-foreground mb-5">
+      <div class="card-body">
+        <div class="d-flex justify-content-start justify-content-xxl-center w-100 overflow-x-scroll overflow-y-hidden">
+          <div class="contribution-graph">
+            <!-- Months row -->
+            <div class="d-flex mb-1 months gap-1">
+              {% for month, week_count in month_data %}
+                <div class="month small text-secondary"
+                     style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
+                  {{ month }}
+                </div>
+              {% endfor %}
             </div>
-          {% endfor %}
-        </div>
 
-        <!-- Graph wrapper -->
-        <div class="d-flex gap-1">
-          <!-- Weekday labels -->
-          <div class="d-flex flex-column gap-1 pe-2">
-            {% for weekday in weekdays %}
-              {% if forloop.counter0|divisibleby:2 %}
-                <div class="weekday-label small text-secondary">{{ weekday }}</div>
-              {% else %}
-                <div class="weekday-label"></div>
-              {% endif %}
-            {% endfor %}
-          </div>
-
-          <!-- Weeks grid -->
-          <div class="d-flex gap-1">
-            {% for week in calendar_weeks %}
-              <div class="d-flex flex-column gap-1">
-                {% for day in week %}
-                  <div class="day"
-                       data-level="{{ day.level }}"
-                       data-bs-toggle="tooltip"
-                       data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"></div>
+            <!-- Graph wrapper -->
+            <div class="d-flex gap-1">
+              <!-- Weekday labels -->
+              <div class="d-flex flex-column gap-1 pe-2">
+                {% for weekday in weekdays %}
+                  {% if forloop.counter0|divisibleby:2 %}
+                    <div class="weekday-label small text-secondary">{{ weekday }}</div>
+                  {% else %}
+                    <div class="weekday-label"></div>
+                  {% endif %}
                 {% endfor %}
               </div>
-            {% endfor %}
+
+              <!-- Weeks grid -->
+              <div class="d-flex gap-1">
+                {% for week in calendar_weeks %}
+                  <div class="d-flex flex-column gap-1">
+                    {% for day in week %}
+                      <div class="day"
+                           data-level="{{ day.level }}"
+                           data-bs-toggle="tooltip"
+                           data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"></div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <h2 class="mt-5 mb-3">Statistics</h2>
-    <form class="input-group date-range-stats mb-5">
-      <input type="text" class="form-control text-center" name="date-range">
-      <button class="btn btn-secondary" type="submit">View</button>
-    </form>
+    <!-- Statistics Section Header -->
+    <div class="row mb-3">
+      <div class="col">
+        <h4 class="text-light">Period Statistics</h4>
+      </div>
+    </div>
+
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Select Date Range</h5>
+        <form class="row g-3">
+          <!-- Predefined Ranges -->
+          <div class="col-md-4">
+            <label class="form-label">Predefined Ranges</label>
+            <select class="form-select" id="predefined-range">
+              <option value="">Custom Range</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="thisWeek">This Week</option>
+              <option value="lastWeek">Last Week</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="thisYear">This Year</option>
+              <option value="lastYear">Last Year</option>
+              <option value="allTime">All Time</option>
+            </select>
+          </div>
+          <!-- Custom Date Range -->
+          <div class="col-md-8">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label">Start Date</label>
+                <input type="date"
+                       class="form-control"
+                       id="start-date"
+                       name="start-date"
+                       value="{{ start_date|date:"Y-m-d" }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label">End Date</label>
+                <input type="date"
+                       class="form-control"
+                       id="end-date"
+                       name="end-date"
+                       value="{{ end_date|date:"Y-m-d" }}">
+              </div>
+            </div>
+          </div>
+          <!-- Apply Button -->
+          <div class="col-12 text-center">
+            <button class="btn btn-primary" type="submit">Apply Range</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">{{ total_count }} media item{{ total_count|pluralize }}</h5>
+        <div class="chart">
+          <canvas id="statusDistribution"></canvas>
+        </div>
+      </div>
+    </div>
 
     <div class="d-flex w-100 flex-wrap">
 
-      <div class="w-100 mb-5 chart">
-        <canvas id="statusDistribution"></canvas>
-      </div>
-
       {% if highest_scored %}
         <div>
-          <h3 class="text-center">Highest Rated</h3>
+          <h4 class="text-center">Highest Rated</h4>
 
           <div class="card">
             <img src="{{ highest_scored.item.image }}"
@@ -87,15 +145,11 @@
       {% endif %}
     </div>
   </div>
-
 {% endblock container %}
 
 {% block js %}
   <script src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-  <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
   <script src="{% static 'js/date-range.js' %}"></script>
 
   {% comment %} Enable bootstrap tooltips {% endcomment %}
@@ -135,10 +189,6 @@
             }
           },
           plugins: {
-            title: {
-              display: true,
-              text: 'Media Status Distribution'
-            },
             legend: {
               position: 'bottom'
             }

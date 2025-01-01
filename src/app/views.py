@@ -459,37 +459,30 @@ def history_delete(request):
 @require_GET
 def statistics(request):
     """Return the statistics page."""
-    calendar_weeks, month_data = database.get_activity_data(request.user.id)
-
     # Set default date range to last year
-    timeformat = "%Y/%m/%d"
+    timeformat = "%Y-%m-%d"
     today = timezone.now().date()
     one_year_ago = today.replace(year=today.year - 1)
-    default_date_range = (
-        f"{one_year_ago.strftime(timeformat)} - {today.strftime(timeformat)}"
-    )
 
-    # Get and parse date range
-    date_range = request.GET.get("date-range", default_date_range)
-    dates = date_range.split(" - ")
+    start_date_str = request.GET.get("start-date", one_year_ago.strftime(timeformat))
+    end_date_str = request.GET.get("end-date", today.strftime(timeformat))
 
     # Convert strings directly to datetime.date objects
-    start_date = timezone.datetime.strptime(dates[0], timeformat).date()
-    end_date = timezone.datetime.strptime(dates[1], timeformat).date()
+    start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
+    end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
-    highest_scored = BasicMedia.objects.get_highest_scored_media(
-        request.user,
-        start_date,  # Now passing datetime.date object
-        end_date,  # Now passing datetime.date object
-    )
+    calendar_weeks, month_data = database.get_activity_data(request.user)
 
-    status_distribution = BasicMedia.objects.get_status_distribution(
-        request.user,
-        start_date,
-        end_date,
-    )
+    user_media = BasicMedia.objects.get_user_media(request.user, start_date, end_date)
+
+    total_count = BasicMedia.objects.get_user_media_count(user_media)
+    highest_scored = BasicMedia.objects.get_highest_scored_media(user_media)
+    status_distribution = BasicMedia.objects.get_status_distribution(user_media)
 
     context = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "total_count": total_count,
         "calendar_weeks": calendar_weeks,
         "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "month_data": month_data,  # List of tuples (month_name, week_count)
