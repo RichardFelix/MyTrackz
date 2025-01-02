@@ -2,7 +2,6 @@ import datetime
 import logging
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.validators import (
     DecimalValidator,
     MaxValueValidator,
@@ -47,6 +46,18 @@ class Item(models.Model):
         MANGA = "manga", "Manga"
         GAME = "game", "Game"
         BOOK = "book", "Book"
+
+    class Colors(models.TextChoices):
+        """Colors for different media types."""
+
+        TV = "#198754", "Green"
+        SEASON = "#6f42c1", "Purple"
+        EPISODE = "#6610f2", "Indigo"
+        MOVIE = "#fd7e14", "Orange"
+        ANIME = "#0d6efd", "Blue"
+        MANGA = "#dc3545", "Red"
+        GAME = "#d63384", "Pink"
+        BOOK = "#ffc107", "Yellow"
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
@@ -167,17 +178,7 @@ class Item(models.Model):
     @property
     def event_color(self):
         """Return the color of the item for the calendar."""
-        colors = {
-            "anime": "#0d6efd",  # blue
-            "manga": "#dc3545",  # red
-            "game": "#d63384",  # pink
-            "tv": "#198754",  # green
-            "season": "#6f42c1",  # purple
-            "episode": "#6610f2",  # indigo
-            "movie": "#fd7e14",  # orange
-            "book": "#ffc107",  # yellow
-        }
-        return colors[self.media_type]
+        return self.Colors(self.media_type).value
 
     @property
     def media_type_readable(self):
@@ -230,15 +231,19 @@ class MediaManager(models.Manager):
 
     def get_user_media_count(self, user_media):
         """Get the total number of media items within the date range."""
-        total_media = 0
+        media_count = {
+            "total": 0,
+        }
 
-        for media_list in user_media.values():
+        for media_type, media_list in user_media.items():
             if isinstance(media_list, list):
-                total_media += len(media_list)
+                media_count["total"] += len(media_list)
             else:
-                total_media += media_list.count()
+                media_count["total"] += media_list.count()
 
-        return total_media
+            media_count[media_type] = len(media_list)
+
+        return media_count
 
     def get_highest_scored_media(self, user_media):
         """Get the highest scored media item within the date range."""

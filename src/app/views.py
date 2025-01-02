@@ -475,14 +475,14 @@ def statistics(request):
 
     user_media = BasicMedia.objects.get_user_media(request.user, start_date, end_date)
 
-    total_count = BasicMedia.objects.get_user_media_count(user_media)
+    media_count = BasicMedia.objects.get_user_media_count(user_media)
     highest_scored = BasicMedia.objects.get_highest_scored_media(user_media)
     status_distribution = BasicMedia.objects.get_status_distribution(user_media)
 
     context = {
         "start_date": start_date,
         "end_date": end_date,
-        "total_count": total_count,
+        "media_count": media_count,
         "calendar_weeks": calendar_weeks,
         "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "month_data": month_data,  # List of tuples (month_name, week_count)

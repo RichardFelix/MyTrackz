@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_tags %}
 
 {% block title %}
   Statistics - Yamtrack
@@ -114,6 +115,77 @@
             <button class="btn btn-primary" type="submit">Apply Range</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card bg-foregound h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-4">Media Type Distribution</h5>
+
+            {% for media_type, count in media_count.items %}
+              {% if media_type != "total" %}
+                {% widthratio count media_count.total 100 as width %}
+                <div class="mb-4">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span>{{ media_type|media_type_readable }}</span>
+                    <span>{{ count }}</span>
+                  </div>
+                  <div class="progress" role="progressbar">
+                    <div class="progress-bar"
+                         style="width: {{ width }}%;
+                                background-color: {{ media_type|media_color }}"></div>
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card bg-dark-subtle h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-4">Status Distribution</h5>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Completed</span>
+                <span>65%</span>
+              </div>
+              <div class="progress" role="progressbar">
+                <div class="progress-bar bg-success" style="width: 65%"></div>
+              </div>
+            </div>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>In Progress</span>
+                <span>15%</span>
+              </div>
+              <div class="progress" role="progressbar">
+                <div class="progress-bar bg-info" style="width: 15%"></div>
+              </div>
+            </div>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Planning</span>
+                <span>12%</span>
+              </div>
+              <div class="progress" role="progressbar">
+                <div class="progress-bar bg-warning" style="width: 12%"></div>
+              </div>
+            </div>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Dropped</span>
+                <span>8%</span>
+              </div>
+              <div class="progress" role="progressbar">
+                <div class="progress-bar bg-danger" style="width: 8%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

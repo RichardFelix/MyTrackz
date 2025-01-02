@@ -1,7 +1,7 @@
 from django import template
 from unidecode import unidecode
 
-from app import helpers
+from app import helpers, models
 
 register = template.Library()
 
@@ -60,3 +60,14 @@ def icon(media_type):
         "book": "bi bi-journal",
     }
     return icons[media_type]
+
+
+@register.filter()
+def media_type_readable(media_type):
+    """Return the readable media type."""
+    return models.Item.MediaTypes(media_type).label
+
+@register.filter
+def media_color(media_type):
+    """Return the color associated with the media type."""
+    return models.Item.Colors[media_type.upper()].value
