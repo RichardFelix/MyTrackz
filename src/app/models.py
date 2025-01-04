@@ -56,8 +56,8 @@ class Item(models.Model):
         MOVIE = "#fd7e14", "Orange"
         ANIME = "#0d6efd", "Blue"
         MANGA = "#dc3545", "Red"
-        GAME = "#d63384", "Pink"
-        BOOK = "#ffc107", "Yellow"
+        GAME = "#ffc107", "Yellow"
+        BOOK = "#d63384", "Pink"
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
@@ -178,7 +178,7 @@ class Item(models.Model):
     @property
     def event_color(self):
         """Return the color of the item for the calendar."""
-        return self.Colors(self.media_type).value
+        return self.Colors[self.media_type.upper()].value
 
     @property
     def media_type_readable(self):
