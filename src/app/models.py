@@ -274,20 +274,17 @@ class MediaManager(models.Manager):
     def get_status_distribution(self, user_media):
         """Get status distribution for each media type within date range."""
         distribution = {}
-
+        total_completed = 0
         # Define status order to ensure consistent stacking
         status_order = list(Media.Status.values)
 
         for model_name, media_list in user_media.items():
             status_counts = {status: 0 for status in status_order}
-
-            if isinstance(media_list, list):  # TV, Season case
-                for media in media_list:
-                    status_counts[media.status] += 1
-            else:  # QuerySet case
                 counts = media_list.values("status").annotate(count=models.Count("id"))
                 for count_data in counts:
                     status_counts[count_data["status"]] = count_data["count"]
+                if count_data["status"] == Media.Status.COMPLETED.value:
+                    total_completed += count_data["count"]
 
             distribution[model_name] = status_counts
 
@@ -303,6 +300,7 @@ class MediaManager(models.Manager):
                 }
                 for status in status_order
             ],
+            "total_completed": total_completed,
         }
 
 

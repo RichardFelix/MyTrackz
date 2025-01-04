@@ -146,7 +146,7 @@ debug, info, success, warning, error */
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
 }
 
-.card {
+.media-card {
   /* needed for when image is not found */
   width: 100%;
 
@@ -165,49 +165,49 @@ debug, info, success, warning, error */
     background-color: var(--bg-img-none);
     cursor: pointer;
   }
-}
 
-.card-img-overlay {
-  /* position bottom of card */
-  top: auto;
-  padding: 0.5em;
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  background-color: rgba(0, 0, 0, 0.692);
-}
-
-.card-title {
-  text-align: center;
-  margin-bottom: 0;
-  /* show only 2 lines of text */
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  text-wrap: balance;
-}
-
-.card-text {
-  .open-track-btn {
-    padding: 0;
-    background-color: transparent;
-    border-color: transparent;
+  .card-img-overlay {
+    /* position bottom of card */
+    top: auto;
+    padding: 0.5em;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    background-color: rgba(0, 0, 0, 0.692);
   }
-
-  .progress_count {
+  
+  .card-title {
     text-align: center;
+    margin-bottom: 0;
+    /* show only 2 lines of text */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-wrap: balance;
   }
-
-  .progress-btn {
-    padding: 0.1rem 0.3rem;
-
-    &:disabled {
-      color: transparent;
+  
+  .card-text {
+    .open-track-btn {
+      padding: 0;
+      background-color: transparent;
+      border-color: transparent;
     }
-
-    &:hover {
-      color: white;
+  
+    .progress_count {
+      text-align: center;
+    }
+  
+    .progress-btn {
+      padding: 0.1rem 0.3rem;
+  
+      &:disabled {
+        color: transparent;
+      }
+  
+      &:hover {
+        color: white;
+      }
     }
   }
 }

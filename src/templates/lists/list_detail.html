@@ -87,7 +87,7 @@
   {% if items %}
     <div class="grid mt-5">
       {% for item in items.all %}
-        <div class="card">
+        <div class="card media-card">
           <a href="{{ item.url }}">
             <img src="{{ item.image }}"
                 class="card-img {% if item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"

@@ -37,7 +37,7 @@
 
     <div class="grid">
       {% for media in media_list %}
-        <div class="card">
+        <div class="card media-card">
           <a href="{{ media.item.url }}">
             <img class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                  data-src="{{ media.item.image }}"
