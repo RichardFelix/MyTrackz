@@ -479,7 +479,7 @@ def statistics(request):
         end_date,
     )
 
-    highest_scored = BasicMedia.objects.get_highest_scored_media(user_media)
+    score_distribution = BasicMedia.objects.get_score_distribution(user_media)
     status_distribution = BasicMedia.objects.get_status_distribution(user_media)
 
     context = {
@@ -489,7 +489,7 @@ def statistics(request):
         "calendar_weeks": calendar_weeks,
         "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "month_data": month_data,  # List of tuples (month_name, week_count)
-        "highest_scored": highest_scored,
+        "score_distribution": score_distribution,
         "status_distribution": status_distribution,
     }
 

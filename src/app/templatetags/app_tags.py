@@ -1,4 +1,8 @@
+import json
+
 from django import template
+from django.template.loader import render_to_string
+from django.utils.html import escapejs
 from unidecode import unidecode
 
 from app import helpers, models
@@ -67,7 +71,30 @@ def media_type_readable(media_type):
     """Return the readable media type."""
     return models.Item.MediaTypes(media_type).label
 
+
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
     return models.Item.Colors[media_type.upper()].value
+
+
+@register.simple_tag
+def media_colors_js():
+    """
+    Generate JavaScript function for media type colors with the same mapping as Django.
+
+    Returns:
+        str: JavaScript function definition with safely escaped color mappings.
+    """
+    colors_dict = {
+        color.name.lower(): models.Item.Colors[color.name].value
+        for color in models.Item.Colors
+    }
+
+    # Safely serialize the colors dictionary
+    colors_js = escapejs(json.dumps(colors_dict))
+
+    return render_to_string(
+        "app/components/media_colors.html",
+        {"colors_json": colors_js},
+    )

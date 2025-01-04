@@ -133,8 +133,10 @@
         <div class="card bg-foreground h-100">
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-body-secondary">Average Rating</h6>
-            <h2 class="card-title mb-2">8.2</h2>
-            <p class="card-text text-body-secondary mb-0">From 98 rated items</p>
+            <h2 class="card-title mb-2">{{ score_distribution.average_score }}</h2>
+            <p class="card-text text-body-secondary mb-0">
+              From {{ score_distribution.total_scored }} rated item{{ score_distribution.total_scored|pluralize }}
+            </p>
           </div>
         </div>
       </div>
@@ -233,31 +235,71 @@
 
     <div class="card bg-foreground mb-4">
       <div class="card-body">
-        <h5 class="card-title mb-3">Status Distribution</h5>
+        <h5 class="card-title mb-3 text-center">Status Distribution</h5>
         <div class="chart">
           <canvas id="statusDistribution"></canvas>
         </div>
       </div>
     </div>
 
-    <div class="d-flex w-100 flex-wrap">
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3 text-center">Score Distribution</h5>
+        <div class="chart">
+          <canvas id="scoreDistribution"></canvas>
+        </div>
+      </div>
+    </div>
 
-      {% if highest_scored %}
-        <div>
-          <h4 class="text-center">Highest Rated</h4>
+    {% if score_distribution.highest_rated %}
+      <div class="card bg-foreground mb-5">
+        <div class="card-body">
+          <div class="row g-4">
+            <div class="col-3">
+              <h4 class="text-center">Highest Rated</h4>
 
-          <div class="card">
-            <img src="{{ highest_scored.item.image }}"
-                 class="card-img {% if highest_scored.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                 alt="{{ highest_scored.item.title }}" />
+              <div class="card media-card">
+                <img src="{{ score_distribution.highest_rated.image }}"
+                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                     alt="{{ score_distribution.highest_rated.title }}" />
 
-            <div class="card-img-overlay">
-              <div class="card-title">{{ highest_scored.score }}</div>
+                <div class="card-img-overlay">
+                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-3">
+              <h4 class="text-center">Highest Rated</h4>
+
+              <div class="card media-card">
+                <img src="{{ score_distribution.highest_rated.image }}"
+                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                     alt="{{ score_distribution.highest_rated.title }}" />
+
+                <div class="card-img-overlay">
+                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-3">
+              <h4 class="text-center">Highest Rated</h4>
+
+              <div class="card media-card">
+                <img src="{{ score_distribution.highest_rated.image }}"
+                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                     alt="{{ score_distribution.highest_rated.title }}" />
+
+                <div class="card-img-overlay">
+                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      {% endif %}
-    </div>
+      </div>
+    {% endif %}
   </div>
 {% endblock container %}
 
@@ -273,7 +315,6 @@
   </script>
 
   {{ status_distribution|json_script:"status_distribution" }};
-
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const ctx = document.getElementById('statusDistribution');
@@ -322,5 +363,45 @@
       };
       return colors[status] || 'rgba(201, 203, 207, 0.8)';
     }
+  </script>
+
+  {{ score_distribution|json_script:"score_distribution" }};
+  {% media_colors_js %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('scoreDistribution');
+      const scoreData = JSON.parse(document.getElementById('score_distribution').textContent);
+  
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: scoreData.labels,
+          datasets: scoreData.datasets.map((dataset, index) => ({
+              label: dataset.label,
+              data: dataset.data,
+              backgroundColor: getMediaTypeColor(dataset.label),
+              borderWidth: 1
+          }))
+        },
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          scales: {
+            x: {
+              stacked: true,
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+        }
+        }
+      });
+    });
   </script>
 {% endblock js %}

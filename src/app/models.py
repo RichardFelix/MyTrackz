@@ -270,9 +270,8 @@ class MediaManager(models.Manager):
                     highest_score = media.score
                     highest_rated = {
                         "title": media.item.title,
+                        "image": media.item.image,
                         "score": media.score,
-                        "type": model_name,
-                        "id": media.id,
                     }
 
                 # Bin the score
