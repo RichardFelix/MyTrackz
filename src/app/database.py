@@ -122,7 +122,7 @@ def get_filtered_historical_data(start_date, end_date, user):
         # Filter historical records
         data = (
             historical_model.objects.filter(
-                id__in=instance_ids,  # This is the key part
+                id__in=instance_ids,
                 history_date__date__gte=start_date,
                 history_date__date__lte=end_date,
             )

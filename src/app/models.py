@@ -190,12 +190,13 @@ class MediaManager(models.Manager):
     """Custom manager for media models."""
 
     def get_user_media(self, user, start_date, end_date):
-        """Get all media items for a user within the date range."""
+        """Get all media items and their counts for a user within the date range."""
         media_models = [
             model for model in user.get_active_media_types() if model != Episode
         ]
 
         user_media = {}
+        media_count = {"total": 0}
 
         for model in media_models:
             model_name = model.__name__.lower()
@@ -208,18 +209,26 @@ class MediaManager(models.Manager):
                         "seasons__episodes" if model == TV else "episodes",
                     )
                 )
-                # Filter in memory since we need to check end_date
-                user_media[model_name] = [
-                    media
+                # Filter out TV shows and seasons that are not within the date range
+                matching_ids = [
+                    media.id
                     for media in queryset
                     if start_date <= media.start_date and media.end_date <= end_date
                 ]
+                filtered_queryset = queryset.filter(id__in=matching_ids)
+                user_media[model_name] = filtered_queryset
+                count = filtered_queryset.count()
             else:
-                user_media[model_name] = model.objects.filter(
+                filtered_queryset = model.objects.filter(
                     user=user,
                     start_date__gte=start_date,
                     end_date__lte=end_date,
                 ).select_related("item")
+                user_media[model_name] = filtered_queryset
+                count = filtered_queryset.count()
+
+            media_count[model_name] = count
+            media_count["total"] += count
 
         logging.info(
             "%s - Retrieved media for date range %s to %s",
@@ -227,7 +236,8 @@ class MediaManager(models.Manager):
             start_date,
             end_date,
         )
-        return user_media
+
+        return user_media, media_count
 
     def get_user_media_count(self, user_media):
         """Get the total number of media items within the date range."""

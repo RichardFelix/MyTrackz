@@ -473,9 +473,12 @@ def statistics(request):
 
     calendar_weeks, month_data = database.get_activity_data(request.user)
 
-    user_media = BasicMedia.objects.get_user_media(request.user, start_date, end_date)
+    user_media, media_count = BasicMedia.objects.get_user_media(
+        request.user,
+        start_date,
+        end_date,
+    )
 
-    media_count = BasicMedia.objects.get_user_media_count(user_media)
     highest_scored = BasicMedia.objects.get_highest_scored_media(user_media)
     status_distribution = BasicMedia.objects.get_status_distribution(user_media)
 
