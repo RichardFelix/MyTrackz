@@ -213,7 +213,10 @@ class MediaManager(models.Manager):
                 matching_ids = [
                     media.id
                     for media in queryset
-                    if start_date <= media.start_date and media.end_date <= end_date
+                    if start_date
+                    and end_date
+                    and start_date <= media.start_date
+                    and media.end_date <= end_date
                 ]
                 filtered_queryset = queryset.filter(id__in=matching_ids)
                 user_media[model_name] = filtered_queryset
@@ -239,47 +242,67 @@ class MediaManager(models.Manager):
 
         return user_media, media_count
 
-    def get_user_media_count(self, user_media):
-        """Get the total number of media items within the date range."""
-        media_count = {
-            "total": 0,
-        }
+    def get_score_distribution(self, user_media):
+        """Get score distribution for each media type within date range.
 
-        for media_type, media_list in user_media.items():
-            if isinstance(media_list, list):
-                media_count["total"] += len(media_list)
-            else:
-                media_count["total"] += media_list.count()
-
-            media_count[media_type] = len(media_list)
-
-        return media_count
-
-    def get_highest_scored_media(self, user_media):
-        """Get the highest scored media item within the date range."""
-        highest_scored = None
+        Returns distribution data, average score, total scored items, and highest rated.
+        """
+        distribution = {}
+        total_scored = 0
+        total_score_sum = 0
+        highest_rated = None
         highest_score = -1
 
-        for media_list in user_media.values():
-            if isinstance(media_list, list):  # TV, Season case
-                for media in media_list:
-                    if media.score is not None and media.score > highest_score:
-                        highest_score = media.score
-                        highest_scored = media
-            else:  # QuerySet case
-                media = (
-                    media_list.filter(
-                        score__isnull=False,
-                    )
-                    .order_by("-score")
-                    .first()
-                )
+        # Define score range (0-10)
+        score_range = range(11)
 
-                if media and media.score > highest_score:
+        for model_name, media_list in user_media.items():
+            # Initialize score counts for this media type
+            score_counts = {score: 0 for score in score_range}
+
+            # Get all scored media with their scores
+            scored_media = media_list.exclude(score__isnull=True).select_related("item")
+
+            # Process each media item
+            for media in scored_media:
+                # Update highest rated
+                if media.score > highest_score:
                     highest_score = media.score
-                    highest_scored = media
+                    highest_rated = {
+                        "title": media.item.title,
+                        "score": media.score,
+                        "type": model_name,
+                        "id": media.id,
+                    }
 
-        return highest_scored
+                # Bin the score
+                binned_score = int(media.score)
+                score_counts[binned_score] += 1
+
+                # Update totals with exact score
+                total_scored += 1
+                total_score_sum += media.score
+
+            distribution[model_name] = score_counts
+
+        # Calculate average score
+        average_score = (
+            round(total_score_sum / total_scored, 2) if total_scored > 0 else 0
+        )
+
+        return {
+            "labels": [str(score) for score in score_range],  # 0-10 as labels
+            "datasets": [
+                {
+                    "label": model_name,
+                    "data": [distribution[model_name][score] for score in score_range],
+                }
+                for model_name in distribution
+            ],
+            "average_score": average_score,
+            "total_scored": total_scored,
+            "highest_rated": highest_rated,
+        }
 
     def get_status_distribution(self, user_media):
         """Get status distribution for each media type within date range."""
@@ -290,9 +313,9 @@ class MediaManager(models.Manager):
 
         for model_name, media_list in user_media.items():
             status_counts = {status: 0 for status in status_order}
-                counts = media_list.values("status").annotate(count=models.Count("id"))
-                for count_data in counts:
-                    status_counts[count_data["status"]] = count_data["count"]
+            counts = media_list.values("status").annotate(count=models.Count("id"))
+            for count_data in counts:
+                status_counts[count_data["status"]] = count_data["count"]
                 if count_data["status"] == Media.Status.COMPLETED.value:
                     total_completed += count_data["count"]
 
@@ -661,7 +684,11 @@ class Season(Media):
     def start_date(self):
         """Return the date of the first episode watched."""
         return min(
-            (episode.end_date for episode in self.episodes.all()),
+            (
+                episode.end_date
+                for episode in self.episodes.all()
+                if episode.end_date is not None
+            ),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
@@ -669,7 +696,11 @@ class Season(Media):
     def end_date(self):
         """Return the date of the last episode watched."""
         return max(
-            (episode.end_date for episode in self.episodes.all()),
+            (
+                episode.end_date
+                for episode in self.episodes.all()
+                if episode.end_date is not None
+            ),
             default=datetime.date(datetime.MINYEAR, 1, 1),
         )
 
