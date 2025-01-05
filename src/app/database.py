@@ -4,7 +4,6 @@ from itertools import chain
 from django.apps import apps
 from django.db.models import Count, F
 from django.db.models.functions import TruncDate
-from django.utils import timezone
 
 from app.models import Item, Media
 
@@ -135,12 +134,9 @@ def get_filtered_historical_data(start_date, end_date, user):
     return combined_data
 
 
-def get_activity_data(user):
+def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=365)
-
-    # First align to Monday
+    # Align to Monday
     start_date = start_date - timedelta(days=start_date.weekday())
 
     # Check if it's too close to the end of the month
@@ -162,8 +158,7 @@ def get_activity_data(user):
         date_counts[date] = date_counts.get(date, 0) + item["count"]
 
     date_range = [
-        start_date + timedelta(days=x)
-        for x in range((end_date - start_date).days + 1)
+        start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)
     ]
 
     # Create complete date range including padding days

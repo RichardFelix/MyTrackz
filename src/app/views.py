@@ -471,7 +471,11 @@ def statistics(request):
     start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
     end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
-    calendar_weeks, month_data = database.get_activity_data(request.user)
+    calendar_weeks, month_data = database.get_activity_data(
+        request.user,
+        start_date,
+        end_date,
+    )
 
     user_media, media_count = BasicMedia.objects.get_user_media(
         request.user,
