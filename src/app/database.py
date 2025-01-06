@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from itertools import chain
 
@@ -130,16 +131,85 @@ def get_filtered_historical_data(start_date, end_date, user):
             .annotate(count=Count("id"))
         )
         combined_data = chain(combined_data, data)
-
     return combined_data
+
+
+def calculate_day_of_week_stats(date_counts, start_date):
+    """Calculate the most active day of the week based on activity frequency.
+
+    Returns the day name and its percentage of total activity.
+    """
+    # Initialize counters for each day of the week
+    day_counts = defaultdict(int)
+    total_active_days = 0
+
+    # Count occurrences of each day of the week where activity happened
+    for date in date_counts:
+        if date < start_date:
+            continue
+        if date_counts[date] > 0:
+            day_name = date.strftime("%A")  # Get full day name
+            day_counts[day_name] += 1
+            total_active_days += 1
+
+    if not total_active_days:
+        return None, 0
+
+    # Find the most active day
+    most_active_day = max(day_counts.items(), key=lambda x: x[1])
+    percentage = (most_active_day[1] / total_active_days) * 100
+
+    return most_active_day[0], round(percentage)
+
+
+def calculate_streaks(date_counts, start_date, end_date):
+    """Calculate current and longest activity streaks.
+
+    Returns tuple of (current_streak, longest_streak).
+    """
+    if not date_counts:
+        return 0, 0
+
+    current_streak = 0
+    longest_streak = 0
+    temp_streak = 0
+
+    # Convert date_counts to sorted list of dates
+    active_dates = sorted(date for date in date_counts if date >= start_date)
+
+    # Calculate streaks
+    for i in range(len(active_dates)):
+        if i == 0:
+            temp_streak = 1
+            continue
+
+        if (active_dates[i] - active_dates[i - 1]).days == 1:
+            temp_streak += 1
+        else:
+            longest_streak = max(longest_streak, temp_streak)
+            temp_streak = 1
+
+    # Update longest streak one last time
+    longest_streak = max(longest_streak, temp_streak)
+
+    # Calculate current streak
+    if active_dates:
+        current_date = end_date
+        current_streak = 0
+
+        while current_date in date_counts and current_date >= start_date:
+            current_streak += 1
+            current_date -= timedelta(days=1)
+
+    return current_streak, longest_streak
 
 
 def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
     # Align to Monday
-    start_date = start_date - timedelta(days=start_date.weekday())
+    start_date_aligned = start_date - timedelta(days=start_date.weekday())
 
-    combined_data = get_filtered_historical_data(start_date, end_date, user)
+    combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
 
     # Aggregate counts by date
     date_counts = {}
@@ -148,8 +218,20 @@ def get_activity_data(user, start_date, end_date):
         date_counts[date] = date_counts.get(date, 0) + item["count"]
 
     date_range = [
-        start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)
+        start_date_aligned + timedelta(days=x)
+        for x in range((end_date - start_date_aligned).days + 1)
     ]
+
+    # Calculate activity statistics
+    most_active_day, day_percentage = calculate_day_of_week_stats(
+        date_counts,
+        start_date,
+    )
+    current_streak, longest_streak = calculate_streaks(
+        date_counts,
+        start_date,
+        end_date,
+    )
 
     # Create complete date range including padding days
     activity_data = [
@@ -193,7 +275,17 @@ def get_activity_data(user, start_date, end_date):
         months.append(current_month)
         mondays_per_month.append(monday_count)
 
-    return calendar_weeks, list(zip(months, mondays_per_month, strict=False))
+    return {
+        "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "calendar_weeks": calendar_weeks,
+        "months": list(zip(months, mondays_per_month, strict=False)),
+        "stats": {
+            "most_active_day": most_active_day,
+            "most_active_day_percentage": day_percentage,
+            "current_streak": current_streak,
+            "compared_to_longest_streak": current_streak - longest_streak,
+        },
+    }
 
 
 def get_level(count):

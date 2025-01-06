@@ -73,7 +73,7 @@
           <div class="contribution-graph">
             <!-- Months row -->
             <div class="d-flex mb-1 months gap-1">
-              {% for month, week_count in month_data %}
+              {% for month, week_count in activity_data.months %}
                 <div class="month small text-secondary"
                      style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
                   {{ month }}
@@ -85,7 +85,7 @@
             <div class="d-flex gap-1">
               <!-- Weekday labels -->
               <div class="d-flex flex-column gap-1 pe-2">
-                {% for weekday in weekdays %}
+                {% for weekday in activity_data.weekdays %}
                   {% if forloop.counter0|divisibleby:2 %}
                     <div class="weekday-label small text-secondary">{{ weekday }}</div>
                   {% else %}
@@ -96,7 +96,7 @@
 
               <!-- Weeks grid -->
               <div class="d-flex gap-1">
-                {% for week in calendar_weeks %}
+                {% for week in activity_data.calendar_weeks %}
                   <div class="d-flex flex-column gap-1">
                     {% for day in week %}
                       <div class="day"
@@ -139,19 +139,29 @@
         <div class="card bg-foreground h-100">
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-body-secondary">Most Active Day</h6>
-            <h2 class="card-title mb-2">Sunday</h2>
-            <p class="card-text text-body-secondary mb-0">42% of activity</p>
+            <h2 class="card-title mb-2">{{ activity_data.stats.most_active_day }}</h2>
+            <p class="card-text text-body-secondary mb-0">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
           </div>
         </div>
       </div>
       <div class="col-md-6 col-lg-3">
         <div class="card bg-foreground h-100">
           <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-body-secondary">Time Spent</h6>
-            <h2 class="card-title mb-2">463h</h2>
-            <p class="card-text text-danger mb-0">
-              <i class="bi bi-arrow-down"></i> 5% from previous period
-            </p>
+            <h6 class="card-subtitle mb-2 text-body-secondary">Current Streak</h6>
+            <h2 class="card-title mb-2">{{ activity_data.stats.current_streak }}</h2>
+            {% if activity_data.stats.current_streak == 0 and activity_data.stats.compared_to_longest_streak == 0 %}
+              <p class="card-text text-body-secondary mb-0">
+                <i class="bi bi-arrow-down-up"></i> No streaks
+              </p>
+            {% elif activity_data.stats.compared_to_longest_streak < 0 %}
+              <p class="card-text text-danger mb-0">
+                <i class="bi bi-arrow-down"></i> {{ activity_data.stats.compared_to_longest_streak }} days from longest
+              </p>
+            {% else %}
+              <p class="card-text text-success mb-0">
+                <i class="bi bi-arrow-up"></i> On your longest streak!
+              </p>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -165,15 +175,15 @@
 
             {% for media_type, count in media_count.items %}
               {% if media_type != "total" %}
-                {% widthratio count media_count.total 100 as width %}
+                {% widthratio count media_count.total 100 as ratio %}
                 <div class="mb-4">
                   <div class="d-flex justify-content-between mb-1">
                     <span>{{ media_type|media_type_readable }}</span>
-                    <span>{{ count }}</span>
+                    <span>{{ count }} ({{ ratio }}%)</span>
                   </div>
                   <div class="progress" role="progressbar">
                     <div class="progress-bar"
-                         style="width: {{ width }}%;
+                         style="width: {{ ratio }}%;
                                 background-color: {{ media_type|media_color }}"></div>
                   </div>
                 </div>

@@ -471,7 +471,7 @@ def statistics(request):
     start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
     end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
-    calendar_weeks, month_data = database.get_activity_data(
+    activity_data = database.get_activity_data(
         request.user,
         start_date,
         end_date,
@@ -490,9 +490,7 @@ def statistics(request):
         "start_date": start_date,
         "end_date": end_date,
         "media_count": media_count,
-        "calendar_weeks": calendar_weeks,
-        "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        "month_data": month_data,  # List of tuples (month_name, week_count)
+        "activity_data": activity_data,
         "score_distribution": score_distribution,
         "status_distribution": status_distribution,
     }
