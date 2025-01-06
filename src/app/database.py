@@ -139,16 +139,6 @@ def get_activity_data(user, start_date, end_date):
     # Align to Monday
     start_date = start_date - timedelta(days=start_date.weekday())
 
-    # Check if it's too close to the end of the month
-    next_month = (start_date.replace(day=1) + timedelta(days=32)).replace(day=1)
-    days_until_next_month = (next_month - start_date).days
-
-    # If less than 2 weeks until next month, move back to previous Monday
-    # it's so there is enough space for month labels
-    two_weeks = 14
-    if days_until_next_month < two_weeks:
-        start_date = start_date - timedelta(days=7)
-
     combined_data = get_filtered_historical_data(start_date, end_date, user)
 
     # Aggregate counts by date
@@ -177,15 +167,20 @@ def get_activity_data(user, start_date, end_date):
     # Generate months list with their Monday counts
     months = []
     mondays_per_month = []
-    current_month = None
+    current_month = date_range[0].strftime("%b")
     monday_count = 0
 
     for current_date in date_range:
         month = current_date.strftime("%b")
 
         if current_month != month:
-            if current_month and monday_count > 0:
+            # add the month label if at leat 2 mondays are present
+            # otherwise there is no space for the label
+            if monday_count > 1:
                 months.append(current_month)
+                mondays_per_month.append(monday_count)
+            else:
+                months.append("")
                 mondays_per_month.append(monday_count)
             current_month = month
             monday_count = 0
@@ -193,7 +188,7 @@ def get_activity_data(user, start_date, end_date):
         if current_date.weekday() == 0:
             monday_count += 1
 
-    # Only add the last month if it has at least 2 Mondays
+    # For the last month
     if monday_count > 1:
         months.append(current_month)
         mondays_per_month.append(monday_count)
