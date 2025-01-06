@@ -17,7 +17,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 import events
 from app.providers import services, tmdb
-from app.templatetags.app_tags import slug
+from app.templatetags.app_tags import media_type_readable, slug
 
 logger = logging.getLogger(__name__)
 
@@ -293,8 +293,9 @@ class MediaManager(models.Manager):
             "labels": [str(score) for score in score_range],  # 0-10 as labels
             "datasets": [
                 {
-                    "label": model_name,
+                    "label": media_type_readable(model_name),
                     "data": [distribution[model_name][score] for score in score_range],
+                    "backgroundColor": self.get_media_color(model_name),
                 }
                 for model_name in distribution
             ],
@@ -322,18 +323,44 @@ class MediaManager(models.Manager):
 
         # Format the response for charting
         return {
-            "labels": list(distribution.keys()),
+            "labels": [media_type_readable(x) for x in distribution],
             "datasets": [
                 {
                     "label": status,
                     "data": [
                         distribution[model_name][status] for model_name in distribution
                     ],
+                    "backgroundColor": self.get_status_color(status),
                 }
                 for status in status_order
             ],
             "total_completed": total_completed,
         }
+
+    def get_media_color(self, media_type):
+        """Get the color for the media type."""
+        colors = {
+            "tv": "rgba(75, 192, 192, 0.8)",
+            "season": "rgba(153, 102, 255, 0.8)",
+            "movie": "rgba(255, 159, 64, 0.8)",
+            "anime": "rgba(54, 162, 235, 0.8)",
+            "manga": "rgba(255, 99, 132, 0.8)",
+            "game": "rgba(255, 206, 86, 0.8)",
+            "book": "rgba(255, 182, 193, 0.8)",
+        }
+        return colors.get(media_type, "rgba(201, 203, 207, 0.8)")
+
+    def get_status_color(self, status):
+        """Get the color for the status of the media."""
+        colors = {
+            Media.Status.IN_PROGRESS.value: "rgba(54, 162, 235, 0.8)",
+            Media.Status.COMPLETED.value: "rgba(75, 192, 192, 0.8)",
+            Media.Status.REPEATING.value: "rgba(153, 102, 255, 0.8)",
+            Media.Status.PLANNING.value: "rgba(255, 206, 86, 0.8)",
+            Media.Status.PAUSED.value: "rgba(255, 159, 64, 0.8)",
+            Media.Status.DROPPED.value: "rgba(255, 99, 132, 0.8)",
+        }
+        return colors.get(status, "rgba(201, 203, 207, 0.8)")
 
 
 class Media(models.Model):

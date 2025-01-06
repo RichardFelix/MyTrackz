@@ -299,7 +299,7 @@
 {% endblock container %}
 
 {% block js %}
-  <script src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+<script src="{% static 'js/jquery.min.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="{% static 'js/date-range.js' %}"></script>
 
@@ -308,22 +308,23 @@
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
   </script>
+  {{ status_distribution|json_script:"status_distribution" }}
+  {{ score_distribution|json_script:"score_distribution" }}
 
-  {{ status_distribution|json_script:"status_distribution" }};
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const ctx = document.getElementById('statusDistribution');
-      const statusData = JSON.parse(document.getElementById('status_distribution').textContent);
+    function createStackedBarChart(elementId, dataElementId) {
+      const ctx = document.getElementById(elementId);
+      const chartData = JSON.parse(document.getElementById(dataElementId).textContent);
   
       new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: statusData.labels,
-          datasets: statusData.datasets.map((dataset, index) => ({
-              label: dataset.label,
-              data: dataset.data,
-              backgroundColor: getStatusColor(dataset.label),
-              borderWidth: 1
+          labels: chartData.labels,
+          datasets: chartData.datasets.map((dataset) => ({
+            label: dataset.label,
+            data: dataset.data,
+            backgroundColor: dataset.backgroundColor,
+            borderWidth: 2
           }))
         },
         options: {
@@ -342,61 +343,14 @@
             legend: {
               position: 'bottom'
             }
-        }
+          }
         }
       });
-    });
-    
-    function getStatusColor(status) {
-      const colors = {
-        'In progress': 'rgba(54, 162, 235, 0.8)',
-        'Completed': 'rgba(75, 192, 192, 0.8)',
-        'Repeating': 'rgba(153, 102, 255, 0.8)',
-        'Planning': 'rgba(255, 206, 86, 0.8)',
-        'Paused': 'rgba(255, 159, 64, 0.8)',
-        'Dropped': 'rgba(255, 99, 132, 0.8)'
-      };
-      return colors[status] || 'rgba(201, 203, 207, 0.8)';
     }
-  </script>
-
-  {{ score_distribution|json_script:"score_distribution" }};
-  {% media_colors_js %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const ctx = document.getElementById('scoreDistribution');
-      const scoreData = JSON.parse(document.getElementById('score_distribution').textContent);
   
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: scoreData.labels,
-          datasets: scoreData.datasets.map((dataset, index) => ({
-              label: dataset.label,
-              data: dataset.data,
-              backgroundColor: getMediaTypeColor(dataset.label),
-              borderWidth: 1
-          }))
-        },
-        options: {
-          maintainAspectRatio: false,
-          responsive: true,
-          scales: {
-            x: {
-              stacked: true,
-            },
-            y: {
-              stacked: true,
-              beginAtZero: true
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'bottom'
-            }
-        }
-        }
-      });
+    document.addEventListener('DOMContentLoaded', function() {
+      createStackedBarChart('statusDistribution', 'status_distribution');
+      createStackedBarChart('scoreDistribution', 'score_distribution');
     });
   </script>
   <script>
