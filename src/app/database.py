@@ -193,8 +193,8 @@ def get_activity_data(user, start_date, end_date):
         if current_date.weekday() == 0:
             monday_count += 1
 
-    # Add the last month
-    if monday_count > 0:
+    # Only add the last month if it has at least 2 Mondays
+    if monday_count > 1:
         months.append(current_month)
         mondays_per_month.append(monday_count)
 
