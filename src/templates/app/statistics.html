@@ -187,42 +187,21 @@
         <div class="card bg-foreground h-100">
           <div class="card-body">
             <h5 class="card-title mb-4">Status Distribution</h5>
-            <div class="mb-4">
-              <div class="d-flex justify-content-between mb-1">
-                <span>Completed</span>
-                <span>65%</span>
+
+            {% for status in status_distribution.datasets %}
+              {% widthratio status.total media_count.total 100 as ratio %}
+              <div class="mb-4">
+                <div class="d-flex justify-content-between mb-1">
+                  <span>{{ status.label }}</span>
+                  <span>{{ status.total }} ({{ ratio }}%)</span>
+                </div>
+                <div class="progress" role="progressbar">
+                  <div class="progress-bar"
+                       style="width: {{ ratio }}%;
+                              background-color: {{ status.background_color }}"></div>
+                </div>
               </div>
-              <div class="progress" role="progressbar">
-                <div class="progress-bar bg-success" style="width: 65%"></div>
-              </div>
-            </div>
-            <div class="mb-4">
-              <div class="d-flex justify-content-between mb-1">
-                <span>In Progress</span>
-                <span>15%</span>
-              </div>
-              <div class="progress" role="progressbar">
-                <div class="progress-bar bg-info" style="width: 15%"></div>
-              </div>
-            </div>
-            <div class="mb-4">
-              <div class="d-flex justify-content-between mb-1">
-                <span>Planning</span>
-                <span>12%</span>
-              </div>
-              <div class="progress" role="progressbar">
-                <div class="progress-bar bg-warning" style="width: 12%"></div>
-              </div>
-            </div>
-            <div class="mb-4">
-              <div class="d-flex justify-content-between mb-1">
-                <span>Dropped</span>
-                <span>8%</span>
-              </div>
-              <div class="progress" role="progressbar">
-                <div class="progress-bar bg-danger" style="width: 8%"></div>
-              </div>
-            </div>
+            {% endfor %}
           </div>
         </div>
       </div>
@@ -230,7 +209,7 @@
 
     <div class="card bg-foreground mb-4">
       <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Status Distribution</h5>
+        <h5 class="card-title mb-3 text-center">Media Status Distribution</h5>
         <div class="chart">
           <canvas id="statusDistribution"></canvas>
         </div>
@@ -239,7 +218,7 @@
 
     <div class="card bg-foreground mb-4">
       <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Score Distribution</h5>
+        <h5 class="card-title mb-3 text-center">Media Score Distribution</h5>
         <div class="chart">
           <canvas id="scoreDistribution"></canvas>
         </div>
@@ -299,7 +278,7 @@
 {% endblock container %}
 
 {% block js %}
-<script src="{% static 'js/jquery.min.js' %}"></script>
+  <script src="{% static 'js/jquery.min.js' %}"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="{% static 'js/date-range.js' %}"></script>
 
@@ -323,7 +302,7 @@
           datasets: chartData.datasets.map((dataset) => ({
             label: dataset.label,
             data: dataset.data,
-            backgroundColor: dataset.backgroundColor,
+            backgroundColor: dataset.background_color,
             borderWidth: 2
           }))
         },

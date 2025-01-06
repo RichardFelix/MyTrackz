@@ -295,7 +295,7 @@ class MediaManager(models.Manager):
                 {
                     "label": media_type_readable(model_name),
                     "data": [distribution[model_name][score] for score in score_range],
-                    "backgroundColor": self.get_media_color(model_name),
+                    "background_color": self.get_media_color(model_name),
                 }
                 for model_name in distribution
             ],
@@ -310,7 +310,6 @@ class MediaManager(models.Manager):
         total_completed = 0
         # Define status order to ensure consistent stacking
         status_order = list(Media.Status.values)
-
         for model_name, media_list in user_media.items():
             status_counts = {status: 0 for status in status_order}
             counts = media_list.values("status").annotate(count=models.Count("id"))
@@ -330,7 +329,10 @@ class MediaManager(models.Manager):
                     "data": [
                         distribution[model_name][status] for model_name in distribution
                     ],
-                    "backgroundColor": self.get_status_color(status),
+                    "background_color": self.get_status_color(status),
+                    "total": sum(
+                        distribution[model_name][status] for model_name in distribution
+                    ),
                 }
                 for status in status_order
             ],
@@ -369,8 +371,8 @@ class Media(models.Model):
     class Status(models.TextChoices):
         """Choices for item status."""
 
-        IN_PROGRESS = "In progress", "In Progress"
         COMPLETED = "Completed", "Completed"
+        IN_PROGRESS = "In progress", "In Progress"
         REPEATING = "Repeating", "Repeating"
         PLANNING = "Planning", "Planning"
         PAUSED = "Paused", "Paused"
