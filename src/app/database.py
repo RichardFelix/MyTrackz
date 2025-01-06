@@ -283,7 +283,7 @@ def get_activity_data(user, start_date, end_date):
             "most_active_day": most_active_day,
             "most_active_day_percentage": day_percentage,
             "current_streak": current_streak,
-            "compared_to_longest_streak": current_streak - longest_streak,
+            "compared_to_longest_streak": longest_streak - current_streak,
         },
     }
 

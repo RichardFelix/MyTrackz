@@ -153,9 +153,9 @@
               <p class="card-text text-body-secondary mb-0">
                 <i class="bi bi-arrow-down-up"></i> No streaks
               </p>
-            {% elif activity_data.stats.compared_to_longest_streak < 0 %}
+            {% elif activity_data.stats.compared_to_longest_streak > 0 %}
               <p class="card-text text-danger mb-0">
-                <i class="bi bi-arrow-down"></i> {{ activity_data.stats.compared_to_longest_streak }} days from longest
+                <i class="bi bi-arrow-down"></i> {{ activity_data.stats.compared_to_longest_streak }} day{{ activity_data.stats.compared_to_longest_streak|pluralize }} from longest
               </p>
             {% else %}
               <p class="card-text text-success mb-0">
