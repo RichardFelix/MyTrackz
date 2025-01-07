@@ -99,10 +99,10 @@
                 {% for week in activity_data.calendar_weeks %}
                   <div class="d-flex flex-column gap-1">
                     {% for day in week %}
-                      <div class="day"
+                      <div class="day {% if day.disabled %}opacity-25{% endif %}"
                            data-level="{{ day.level }}"
-                           data-bs-toggle="tooltip"
-                           data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"></div>
+                           {% if not day.disabled %} data-bs-toggle="tooltip" data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"{% endif %}>
+                      </div>
                     {% endfor %}
                   </div>
                 {% endfor %}

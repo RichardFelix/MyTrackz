@@ -174,7 +174,7 @@ debug, info, success, warning, error */
     border-top-right-radius: 0px;
     background-color: rgba(0, 0, 0, 0.692);
   }
-  
+
   .card-title {
     text-align: center;
     margin-bottom: 0;
@@ -186,25 +186,25 @@ debug, info, success, warning, error */
     -webkit-box-orient: vertical;
     text-wrap: balance;
   }
-  
+
   .card-text {
     .open-track-btn {
       padding: 0;
       background-color: transparent;
       border-color: transparent;
     }
-  
+
     .progress_count {
       text-align: center;
     }
-  
+
     .progress-btn {
       padding: 0.1rem 0.3rem;
-  
+
       &:disabled {
         color: transparent;
       }
-  
+
       &:hover {
         color: white;
       }
@@ -510,7 +510,7 @@ debug, info, success, warning, error */
 
 .contribution-graph {
   --square-size: 15px;
-  --gap-size: .25rem;
+  --gap-size: 0.25rem;
 }
 
 .weekday-label {
@@ -529,16 +529,16 @@ debug, info, success, warning, error */
   background-color: #31363a;
 }
 .day[data-level="1"] {
-  background-color: #9be9a8;
+  background-color: #216e39;
 }
 .day[data-level="2"] {
-  background-color: #40c463;
-}
-.day[data-level="3"] {
   background-color: #30a14e;
 }
+.day[data-level="3"] {
+  background-color: #40c463;
+}
 .day[data-level="4"] {
-  background-color: #216e39;
+  background-color: #47dd60;
 }
 
 .months {

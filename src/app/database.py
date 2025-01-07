@@ -206,7 +206,7 @@ def calculate_streaks(date_counts, start_date, end_date):
 
 def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
-    # Align to Monday
+    # Get the Monday of the week containing start_date (for grid alignment)
     start_date_aligned = start_date - timedelta(days=start_date.weekday())
 
     combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
@@ -239,6 +239,7 @@ def get_activity_data(user, start_date, end_date):
             "date": current_date.strftime("%Y-%m-%d"),
             "count": date_counts.get(current_date, 0),
             "level": get_level(date_counts.get(current_date, 0)),
+            "disabled": current_date < start_date,
         }
         for current_date in date_range
     ]
@@ -253,21 +254,20 @@ def get_activity_data(user, start_date, end_date):
     monday_count = 0
 
     for current_date in date_range:
-        month = current_date.strftime("%b")
+        if current_date.weekday() == 0:  # Monday
+            month = current_date.strftime("%b")
 
-        if current_month != month:
-            # add the month label if at leat 2 mondays are present
-            # otherwise there is no space for the label
-            if monday_count > 1:
-                months.append(current_month)
-                mondays_per_month.append(monday_count)
-            else:
-                months.append("")
-                mondays_per_month.append(monday_count)
-            current_month = month
-            monday_count = 0
+            if current_month != month:
+                if current_month is not None:
+                    if monday_count > 1:
+                        months.append(current_month)
+                        mondays_per_month.append(monday_count)
+                    else:
+                        months.append("")
+                        mondays_per_month.append(monday_count)
+                current_month = month
+                monday_count = 0
 
-        if current_date.weekday() == 0:
             monday_count += 1
 
     # For the last month
