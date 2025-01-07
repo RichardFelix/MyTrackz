@@ -11,7 +11,7 @@
       <h1 class="fs-4 text-center mb-2">{{ media_type|capfirst }} in Progress</h1>
       <div class="grid">
         {% for media in media_list %}
-          <div class="card mx-auto">
+          <div class="card media-card mx-auto">
             <a href="{{ media.item.url }}">
               <img data-src="{{ media.item.image }}"
                    class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
