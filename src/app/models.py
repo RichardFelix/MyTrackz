@@ -1,4 +1,6 @@
 import datetime
+import heapq
+import itertools
 import logging
 
 from django.conf import settings
@@ -243,15 +245,15 @@ class MediaManager(models.Manager):
         return user_media, media_count
 
     def get_score_distribution(self, user_media):
-        """Get score distribution for each media type within date range.
-
-        Returns distribution data, average score, total scored items, and highest rated.
-        """
+        """Get score distribution for each media type within date range."""
         distribution = {}
         total_scored = 0
         total_score_sum = 0
-        highest_rated = None
-        highest_score = -1
+
+        # Use heapq to maintain top items efficiently
+        top_rated = []
+        top_rated_count = 12
+        counter = itertools.count()  # For unique identifiers
 
         # Define score range (0-10)
         score_range = range(11)
@@ -265,14 +267,25 @@ class MediaManager(models.Manager):
 
             # Process each media item
             for media in scored_media:
-                # Update highest rated
-                if media.score > highest_score:
-                    highest_score = media.score
-                    highest_rated = {
-                        "title": media.item.title,
-                        "image": media.item.image,
-                        "score": media.score,
-                    }
+                # Update top rated using heap
+                item_data = {
+                    "title": media.item.title,
+                    "image": media.item.image,
+                    "score": media.score,
+                }
+
+                # Use negative score for max heap (heapq implements min heap)
+                # Add counter as tiebreaker
+                if len(top_rated) < top_rated_count:
+                    heapq.heappush(
+                        top_rated,
+                        (float(media.score), next(counter), item_data),
+                    )
+                else:
+                    heapq.heappushpop(
+                        top_rated,
+                        (float(media.score), next(counter), item_data),
+                    )
 
                 # Bin the score
                 binned_score = int(media.score)
@@ -289,6 +302,12 @@ class MediaManager(models.Manager):
             round(total_score_sum / total_scored, 2) if total_scored > 0 else 0
         )
 
+        # Convert heap to sorted list of top rated items
+        top_rated = [
+            item_data
+            for _, _, item_data in sorted(top_rated, key=lambda x: (-x[0], x[1]))
+        ]
+
         return {
             "labels": [str(score) for score in score_range],  # 0-10 as labels
             "datasets": [
@@ -301,7 +320,7 @@ class MediaManager(models.Manager):
             ],
             "average_score": average_score,
             "total_scored": total_scored,
-            "highest_rated": highest_rated,
+            "top_rated": top_rated,
         }
 
     def get_status_distribution(self, user_media):

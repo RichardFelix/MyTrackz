@@ -235,51 +235,24 @@
       </div>
     </div>
 
-    {% if score_distribution.highest_rated %}
+    {% if score_distribution.top_rated %}
       <div class="card bg-foreground mb-5">
         <div class="card-body">
-          <div class="row g-4">
-            <div class="col-3">
-              <h4 class="text-center">Highest Rated</h4>
+          <h5 class="card-title mb-3 text-center">Highest Rated Items</h5>
+          <div class="row g-2">
+            {% for media in score_distribution.top_rated %}
+              <div class="col-2">
+                <div class="card media-card">
+                  <img src="{{ media.image }}"
+                       class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                       alt="{{ media.title }}" />
 
-              <div class="card media-card">
-                <img src="{{ score_distribution.highest_rated.image }}"
-                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                     alt="{{ score_distribution.highest_rated.title }}" />
-
-                <div class="card-img-overlay">
-                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
+                  <div class="card-img-overlay">
+                    <div class="card-title">{{ media.score }}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div class="col-3">
-              <h4 class="text-center">Highest Rated</h4>
-
-              <div class="card media-card">
-                <img src="{{ score_distribution.highest_rated.image }}"
-                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                     alt="{{ score_distribution.highest_rated.title }}" />
-
-                <div class="card-img-overlay">
-                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-3">
-              <h4 class="text-center">Highest Rated</h4>
-
-              <div class="card media-card">
-                <img src="{{ score_distribution.highest_rated.image }}"
-                     class="card-img {% if score_distribution.highest_rated.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                     alt="{{ score_distribution.highest_rated.title }}" />
-
-                <div class="card-img-overlay">
-                  <div class="card-title">{{ score_distribution.highest_rated.score }}</div>
-                </div>
-              </div>
-            </div>
+            {% endfor %}
           </div>
         </div>
       </div>
