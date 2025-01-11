@@ -175,15 +175,14 @@
 
             {% for media_type, count in media_count.items %}
               {% if media_type != "total" %}
-                {% widthratio count media_count.total 100 as ratio %}
                 <div class="mb-4">
                   <div class="d-flex justify-content-between mb-1">
                     <span>{{ media_type|media_type_readable }}</span>
-                    <span>{{ count }} ({{ ratio }}%)</span>
+                    <span>{{ count }} ({{ count|percentage_ratio:media_count.total }}%)</span>
                   </div>
                   <div class="progress" role="progressbar">
                     <div class="progress-bar"
-                         style="width: {{ ratio }}%;
+                         style="width: {{ count|percentage_ratio:media_count.total }}%;
                                 background-color: {{ media_type|media_color }}"></div>
                   </div>
                 </div>
@@ -199,15 +198,14 @@
             <h5 class="card-title mb-4">Status Distribution</h5>
 
             {% for status in status_distribution.datasets %}
-              {% widthratio status.total media_count.total 100 as ratio %}
               <div class="mb-4">
                 <div class="d-flex justify-content-between mb-1">
                   <span>{{ status.label }}</span>
-                  <span>{{ status.total }} ({{ ratio }}%)</span>
+                  <span>{{ status.total }} ({{ status.total|percentage_ratio:media_count.total }}%)</span>
                 </div>
                 <div class="progress" role="progressbar">
                   <div class="progress-bar"
-                       style="width: {{ ratio }}%;
+                       style="width: {{ status.total|percentage_ratio:media_count.total }}%;
                               background-color: {{ status.background_color }}"></div>
                 </div>
               </div>
