@@ -57,7 +57,7 @@ class Item(models.Model):
         EPISODE = "#6610f2", "Indigo"
         MOVIE = "#fd7e14", "Orange"
         ANIME = "#0d6efd", "Blue"
-        MANGA = "#dc3545", "Red"
+        MANGA = "#b02a37", "Red"
         GAME = "#ffc107", "Yellow"
         BOOK = "#d63384", "Pink"
 
