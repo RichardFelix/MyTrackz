@@ -65,54 +65,6 @@
       </div>
     </div>
 
-    <!-- Activity History Section -->
-    <div class="card bg-foreground mb-5">
-      <div class="card-body">
-        <h5 class="card-title mb-4 text-center">Activity History</h5>
-        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden">
-          <div class="contribution-graph">
-            <!-- Months row -->
-            <div class="d-flex mb-1 months gap-1">
-              {% for month, week_count in activity_data.months %}
-                <div class="month small text-secondary"
-                     style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
-                  {{ month }}
-                </div>
-              {% endfor %}
-            </div>
-
-            <!-- Graph wrapper -->
-            <div class="d-flex gap-1">
-              <!-- Weekday labels -->
-              <div class="d-flex flex-column gap-1 pe-2">
-                {% for weekday in activity_data.weekdays %}
-                  {% if forloop.counter0|divisibleby:2 %}
-                    <div class="weekday-label small text-secondary">{{ weekday }}</div>
-                  {% else %}
-                    <div class="weekday-label"></div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-
-              <!-- Weeks grid -->
-              <div class="d-flex gap-1">
-                {% for week in activity_data.calendar_weeks %}
-                  <div class="d-flex flex-column gap-1">
-                    {% for day in week %}
-                      <div class="day {% if day.disabled %}opacity-25{% endif %}"
-                           data-level="{{ day.level }}"
-                           {% if not day.disabled %} data-bs-toggle="tooltip" data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"{% endif %}>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endfor %}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Overview Stats -->
     <div class="row g-4 mb-4">
       <div class="col-md-6 col-lg-3">
@@ -164,6 +116,61 @@
             {% endif %}
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Activity History Section -->
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-4 text-center">Activity on Yamtrack</h5>
+        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden">
+          <div class="contribution-graph">
+            <!-- Months row -->
+            <div class="d-flex mb-1 months gap-1">
+              {% for month, week_count in activity_data.months %}
+                <div class="month small text-secondary"
+                     style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
+                  {{ month }}
+                </div>
+              {% endfor %}
+            </div>
+
+            <!-- Graph wrapper -->
+            <div class="d-flex gap-1">
+              <!-- Weekday labels -->
+              <div class="d-flex flex-column gap-1 pe-2">
+                {% for weekday in activity_data.weekdays %}
+                  {% if forloop.counter0|divisibleby:2 %}
+                    <div class="weekday-label small text-secondary">{{ weekday }}</div>
+                  {% else %}
+                    <div class="weekday-label"></div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+
+              <!-- Weeks grid -->
+              <div class="d-flex gap-1">
+                {% for week in activity_data.calendar_weeks %}
+                  <div class="d-flex flex-column gap-1">
+                    {% for day in week %}
+                      <div class="day {% if day.disabled %}opacity-25{% endif %}"
+                           data-level="{{ day.level }}"
+                           {% if day.count > 0 and not day.disabled %} data-bs-toggle="tooltip" data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"{% endif %}>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3 text-center">Media Timeline</h5>
+        <div id="timeline"></div>
       </div>
     </div>
 
@@ -255,13 +262,6 @@
         </div>
       </div>
     {% endif %}
-
-    <div class="card bg-foreground mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Media Timeline</h5>
-        <div id="timeline"></div>
-      </div>
-    </div>
   </div>
 {% endblock container %}
 

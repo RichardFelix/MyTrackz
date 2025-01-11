@@ -550,7 +550,7 @@ debug, info, success, warning, error */
 
 
 .sg-task {
-  border: 2px solid var(--bs-border-color);
+  border: 1px solid var(--bs-border-color);
 }
 
 .sg-task-content {
