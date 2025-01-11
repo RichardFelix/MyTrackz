@@ -383,6 +383,59 @@ class MediaManager(models.Manager):
         }
         return colors.get(status, "rgba(201, 203, 207)")
 
+    def get_timeline(self, user_media):
+        """Get calendar data formatted for Gantt chart with optimized row layout."""
+        tasks = []
+        rows = [
+            {
+                "id": "row",
+                "label": "Media",
+                "enableDragging": False,
+                "enableResize": False,
+            },
+        ]
+        counter = itertools.count()
+        for model_name, media_list in user_media.items():
+            if model_name == "tv":
+                continue
+            for media in media_list:
+                # use datetime to align columns in Gantt chart
+                start_datetime = timezone.datetime.combine(
+                    media.start_date,
+                    timezone.datetime.min.time(),
+                )
+                end_datetime = timezone.datetime.combine(
+                    media.end_date,
+                    timezone.datetime.min.time(),
+                ) + timezone.timedelta(days=1)
+
+                tasks.extend(
+                    [
+                        {
+                            "id": next(counter),
+                            "resourceId": "row",
+                            "label": media.item.__str__(),
+                            "from": start_datetime.isoformat(),
+                            "to": end_datetime.isoformat(),
+                            "draggable": False,
+                            "resizable": False,
+                            "classes": model_name,
+                            "html": (
+                                f"<div class='text-truncate'>"
+                                f"{media.item.__str__()}"
+                                f"</div>"
+                            ),
+                            "style": {
+                                "background": self.get_media_color(model_name),
+                            },
+                        },
+                    ],
+                )
+        return {
+            "rows": rows,
+            "tasks": tasks[100:],
+        }
+
 
 class Media(models.Model):
     """Abstract model for all media types."""

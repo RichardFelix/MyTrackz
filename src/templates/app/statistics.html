@@ -234,7 +234,7 @@
     </div>
 
     {% if score_distribution.top_rated %}
-      <div class="card bg-foreground mb-5">
+      <div class="card bg-foreground mb-4">
         <div class="card-body">
           <h5 class="card-title mb-3 text-center">Highest Rated Items</h5>
           <div class="row g-2">
@@ -255,6 +255,13 @@
         </div>
       </div>
     {% endif %}
+
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3 text-center">Media Timeline</h5>
+        <div id="timeline"></div>
+      </div>
+    </div>
   </div>
 {% endblock container %}
 
@@ -325,11 +332,9 @@
       const hasOverflow = container.scrollWidth > container.clientWidth;
   
       if (hasOverflow) {
-        console.log('Overflow detected');
           container.classList.remove('justify-content-center');
           container.classList.add('justify-content-start');
       } else {
-        console.log('No overflow');
           container.classList.remove('justify-content-start');
           container.classList.add('justify-content-center');
       }
@@ -344,5 +349,64 @@
   window.addEventListener('resize', () => {
       updateJustification();
   });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/svelte-gantt@4.4.2/index.iife.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+  {{ timeline|json_script:"timeline-data" }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarData = JSON.parse(document.getElementById('timeline-data').textContent);
+
+        // Create dynamic styles for media types
+        const styleSheet = document.createElement('style');
+        document.head.appendChild(styleSheet);
+
+        // Add styles for each task based on their background color
+        calendarData.tasks.forEach(task => {
+            if (task.style && task.style.background) {
+                const className = `task-${task.id}`;
+                styleSheet.sheet.insertRule(
+                    `.${className} { background-color: ${task.style.background} !important; }`,
+                    styleSheet.sheet.cssRules.length
+                );
+                // Add the class to the task
+                task.classes = className;
+            }
+        });
+
+        const tasks = calendarData.tasks.map(task => ({
+          ...task,
+          from: new Date(task.from),
+          to: new Date(task.to)
+        }));
+
+        // Calculate min and max dates with 1 day padding
+        const minDate = new Date(Math.min(...tasks.map(t => t.from)));
+        const maxDate = new Date(Math.max(...tasks.map(t => t.to)));
+
+        // Calculate days between dates and multiply by number of px
+        const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+        const minWidth = daysDiff * 100;
+    
+        const gantt = new SvelteGantt({
+            target: document.getElementById('timeline'),
+            props: {
+              rows: calendarData.rows,
+              tasks: tasks,
+              from: minDate,
+              to: maxDate,
+              fitWidth: true,
+              dateAdapter: new MomentSvelteGanttDateAdapter(moment),
+              headers: [
+              { unit: 'day', format: 'MMM D, YYYY' },
+              ],
+              minWidth: minWidth,
+              columnUnit: 'day',
+              columnOffset: 1,
+              layout: 'expand',     
+            }
+        });
+    });
   </script>
 {% endblock js %}

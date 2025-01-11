@@ -485,6 +485,7 @@ def statistics(request):
 
     score_distribution = BasicMedia.objects.get_score_distribution(user_media)
     status_distribution = BasicMedia.objects.get_status_distribution(user_media)
+    timeline = BasicMedia.objects.get_timeline(user_media)
 
     context = {
         "start_date": start_date,
@@ -493,6 +494,7 @@ def statistics(request):
         "activity_data": activity_data,
         "score_distribution": score_distribution,
         "status_distribution": status_distribution,
+        "timeline": timeline,
     }
 
     return render(request, "app/statistics.html", context)

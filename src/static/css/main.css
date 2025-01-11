@@ -547,3 +547,19 @@ debug, info, success, warning, error */
 .month {
   text-align: left;
 }
+
+
+.sg-task {
+  border: 2px solid var(--bs-border-color);
+}
+
+.sg-task-content {
+  /* allow text truncation */
+  position: relative !important;
+  color: #fff;
+}
+
+/* disable clicking on column header */
+.column-header-cell{
+  pointer-events: none;
+}
