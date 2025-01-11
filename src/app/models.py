@@ -361,27 +361,27 @@ class MediaManager(models.Manager):
     def get_media_color(self, media_type):
         """Get the color for the media type."""
         colors = {
-            "tv": "rgba(75, 192, 192, 0.8)",
-            "season": "rgba(153, 102, 255, 0.8)",
-            "movie": "rgba(255, 159, 64, 0.8)",
-            "anime": "rgba(54, 162, 235, 0.8)",
-            "manga": "rgba(255, 99, 132, 0.8)",
-            "game": "rgba(255, 206, 86, 0.8)",
-            "book": "rgba(255, 182, 193, 0.8)",
+            "tv": "rgba(75, 192, 192)",
+            "season": "rgba(153, 102, 255)",
+            "movie": "rgba(255, 159, 64)",
+            "anime": "rgba(54, 162, 235)",
+            "manga": "rgba(255, 99, 132)",
+            "game": "rgba(255, 206, 86)",
+            "book": "rgba(255, 182, 193)",
         }
-        return colors.get(media_type, "rgba(201, 203, 207, 0.8)")
+        return colors.get(media_type, "rgba(201, 203, 207)")
 
     def get_status_color(self, status):
         """Get the color for the status of the media."""
         colors = {
-            Media.Status.IN_PROGRESS.value: "rgba(54, 162, 235, 0.8)",
-            Media.Status.COMPLETED.value: "rgba(75, 192, 192, 0.8)",
-            Media.Status.REPEATING.value: "rgba(153, 102, 255, 0.8)",
-            Media.Status.PLANNING.value: "rgba(255, 206, 86, 0.8)",
-            Media.Status.PAUSED.value: "rgba(255, 159, 64, 0.8)",
-            Media.Status.DROPPED.value: "rgba(255, 99, 132, 0.8)",
+            Media.Status.IN_PROGRESS.value: "rgba(54, 162, 235)",
+            Media.Status.COMPLETED.value: "rgba(75, 192, 192)",
+            Media.Status.REPEATING.value: "rgba(153, 102, 255)",
+            Media.Status.PLANNING.value: "rgba(255, 206, 86)",
+            Media.Status.PAUSED.value: "rgba(255, 159, 64)",
+            Media.Status.DROPPED.value: "rgba(255, 99, 132)",
         }
-        return colors.get(status, "rgba(201, 203, 207, 0.8)")
+        return colors.get(status, "rgba(201, 203, 207)")
 
 
 class Media(models.Model):
