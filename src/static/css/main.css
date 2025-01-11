@@ -548,15 +548,20 @@ debug, info, success, warning, error */
   text-align: left;
 }
 
+#timeline {
+  border: 1px solid;
+}
 
 .sg-task {
-  border: 1px solid var(--bs-border-color);
+  border-color: var(--bs-border-color);
+  border-radius: 3px;
 }
 
 .sg-task-content {
   /* allow text truncation */
   position: relative !important;
   color: #fff;
+  padding-left: 5px !important;
 }
 
 /* disable clicking on column header */

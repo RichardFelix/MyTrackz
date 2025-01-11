@@ -356,57 +356,77 @@
   {{ timeline|json_script:"timeline-data" }}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const calendarData = JSON.parse(document.getElementById('timeline-data').textContent);
+      const calendarData = JSON.parse(document.getElementById('timeline-data').textContent);
 
-        // Create dynamic styles for media types
-        const styleSheet = document.createElement('style');
-        document.head.appendChild(styleSheet);
+      // Create dynamic styles for media types
+      const styleSheet = document.createElement('style');
+      document.head.appendChild(styleSheet);
 
-        // Add styles for each task based on their background color
-        calendarData.tasks.forEach(task => {
-            if (task.style && task.style.background) {
-                const className = `task-${task.id}`;
-                styleSheet.sheet.insertRule(
-                    `.${className} { background-color: ${task.style.background} !important; }`,
-                    styleSheet.sheet.cssRules.length
-                );
-                // Add the class to the task
-                task.classes = className;
-            }
-        });
+      // Add styles for each task based on their background color
+      calendarData.tasks.forEach(task => {
+          if (task.style && task.style.background) {
+              const className = `task-${task.id}`;
+              styleSheet.sheet.insertRule(
+                  `.${className} { background-color: ${task.style.background} !important; }`,
+                  styleSheet.sheet.cssRules.length
+              );
+              // Add the class to the task
+              task.classes = className;
+          }
+      });
 
-        const tasks = calendarData.tasks.map(task => ({
-          ...task,
-          from: new Date(task.from),
-          to: new Date(task.to)
-        }));
+      const tasks = calendarData.tasks.map(task => ({
+        ...task,
+        from: new Date(task.from),
+        to: new Date(task.to)
+      }));
 
-        // Calculate min and max dates with 1 day padding
-        const minDate = new Date(Math.min(...tasks.map(t => t.from)));
-        const maxDate = new Date(Math.max(...tasks.map(t => t.to)));
+      // Calculate min and max dates with 1 day padding
+      const minDate = new Date(Math.min(...tasks.map(t => t.from)));
+      const maxDate = new Date(Math.max(...tasks.map(t => t.to)));
 
-        // Calculate days between dates and multiply by number of px
-        const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-        const minWidth = daysDiff * 100;
-    
-        const gantt = new SvelteGantt({
-            target: document.getElementById('timeline'),
-            props: {
-              rows: calendarData.rows,
-              tasks: tasks,
-              from: minDate,
-              to: maxDate,
-              fitWidth: true,
-              dateAdapter: new MomentSvelteGanttDateAdapter(moment),
-              headers: [
-              { unit: 'day', format: 'MMM D, YYYY' },
-              ],
-              minWidth: minWidth,
-              columnUnit: 'day',
-              columnOffset: 1,
-              layout: 'expand',     
-            }
-        });
+      // Calculate days between dates and multiply by number of px
+      const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+      const minWidth = Math.min(daysDiff * 100, 32000);
+  
+      const gantt = new SvelteGantt({
+          target: document.getElementById('timeline'),
+          props: {
+            rows: calendarData.rows,
+            tasks: tasks,
+            from: minDate,
+            to: maxDate,
+            fitWidth: true,
+            dateAdapter: new MomentSvelteGanttDateAdapter(moment),
+            headers: [
+            { unit: 'day', format: 'MMM D, YYYY' },
+            ],
+            minWidth: minWidth,
+            columnUnit: 'day',
+            columnOffset: 1,
+            layout: 'expand',     
+          }
+      });
+
+      // Get all task elements and adjust their position and width
+      const taskElements = document.querySelectorAll('.sg-task');
+      taskElements.forEach(task => {
+          // Get current values
+          const currentTop = parseInt(task.style.top);
+          const currentWidth = parseInt(task.style.width);
+          const currentLeft = parseInt(task.style.left);
+
+          // Calculate new values
+          const multiplier = Math.floor(currentTop / 40);
+          const newTop = currentTop + (2 * multiplier);
+          const newWidth = currentWidth - 4;
+          const newLeft = currentLeft + 2;
+
+          // Apply new values
+          task.style.top = `${newTop}px`;
+          task.style.width = `${newWidth}px`;
+          task.style.left = `${newLeft}px`;
+      });
     });
   </script>
 {% endblock js %}
