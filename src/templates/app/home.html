@@ -14,6 +14,7 @@
           <div class="card media-card mx-auto">
             <a href="{{ media.item.url }}">
               <img data-src="{{ media.item.image }}"
+                   src={{ IMG_NONE }}
                    class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
                    alt="{{ media }}"
                    data-expand="1000" />
