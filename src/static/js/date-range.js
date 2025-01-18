@@ -46,14 +46,11 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Last Week
-    const lastWeekStart = new Date(today);
-    const lastWeekOffset = today.getDay() === 0 ? 13 : today.getDay() + 6;
-    lastWeekStart.setDate(today.getDate() - lastWeekOffset);
-    const lastWeekEnd = new Date(lastWeekStart);
-    lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-    if (isSameDay(start, lastWeekStart) && isSameDay(end, lastWeekEnd)) {
-      predefinedRange.value = "lastWeek";
+    // Last 7 days
+    const last7DaysStart = new Date(today);
+    last7DaysStart.setDate(today.getDate() - 6);
+    if (isSameDay(start, last7DaysStart) && isSameDay(end, today)) {
+      predefinedRange.value = "last7Days";
       return;
     }
 
@@ -64,15 +61,19 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Last Month
-    const lastMonthStart = new Date(
-      today.getFullYear(),
-      today.getMonth() - 1,
-      1
-    );
-    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-    if (isSameDay(start, lastMonthStart) && isSameDay(end, lastMonthEnd)) {
-      predefinedRange.value = "lastMonth";
+    // Last 30 days
+    const last30DaysStart = new Date(today);
+    last30DaysStart.setDate(today.getDate() - 29);
+    if (isSameDay(start, last30DaysStart) && isSameDay(end, today)) {
+      predefinedRange.value = "last30Days";
+      return;
+    }
+
+    // Last 90 days
+    const last90DaysStart = new Date(today);
+    last90DaysStart.setDate(today.getDate() - 89);
+    if (isSameDay(start, last90DaysStart) && isSameDay(end, today)) {
+      predefinedRange.value = "last90Days";
       return;
     }
 
@@ -83,23 +84,31 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Last Year
-    const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
-    const lastYearEnd = new Date(today.getFullYear() - 1, 11, 31);
-    if (isSameDay(start, lastYearStart) && isSameDay(end, lastYearEnd)) {
-      predefinedRange.value = "lastYear";
+    // Last 6 months
+    const last6MonthsStart = new Date(today);
+    last6MonthsStart.setMonth(today.getMonth() - 6);
+    if (isSameDay(start, last6MonthsStart) && isSameDay(end, today)) {
+      predefinedRange.value = "last6Months";
+      return;
+    }
+
+    // Last 12 months
+    const last12MonthsStart = new Date(today);
+    last12MonthsStart.setMonth(today.getMonth() - 12);
+    if (isSameDay(start, last12MonthsStart) && isSameDay(end, today)) {
+      predefinedRange.value = "last12Months";
       return;
     }
 
     // All Time
-    const allTimeStart = new Date(1900, 0, 1);
+    const allTimeStart = new Date(1990, 0, 1);
     if (isSameDay(start, allTimeStart) && isSameDay(end, today)) {
       predefinedRange.value = "allTime";
       return;
     }
 
     // If no match found, set to custom range
-    predefinedRange.value = "";
+    predefinedRange.value = "custom";
   }
 
   function updateDatesFromPredefined() {
@@ -115,36 +124,34 @@ document.addEventListener("DOMContentLoaded", function () {
         end = new Date(start);
         break;
       case "thisWeek":
-        // For Monday start, if today.getDay() is 0 (Sunday), we need 6, otherwise subtract 1
         const dayOffset = today.getDay() === 0 ? 6 : today.getDay() - 1;
         start.setDate(today.getDate() - dayOffset);
         break;
-      case "lastWeek":
-        // For last week starting Monday, we go back to previous Monday
-        const lastWeekOffset = today.getDay() === 0 ? 13 : today.getDay() + 6;
-        start.setDate(today.getDate() - lastWeekOffset);
-        end = new Date(start);
-        end.setDate(start.getDate() + 6);
+      case "last7Days":
+        start.setDate(today.getDate() - 6);
         break;
       case "thisMonth":
         start.setDate(1);
         break;
-      case "lastMonth":
-        start.setMonth(today.getMonth() - 1);
-        start.setDate(1);
-        end = new Date(today.getFullYear(), today.getMonth(), 0);
+      case "last30Days":
+        start.setDate(today.getDate() - 29);
+        break;
+      case "last90Days":
+        start.setDate(today.getDate() - 89);
         break;
       case "thisYear":
         start = new Date(today.getFullYear(), 0, 1);
         break;
-      case "lastYear":
-        start = new Date(today.getFullYear() - 1, 0, 1);
-        end = new Date(today.getFullYear() - 1, 11, 31);
+      case "last6Months":
+        start.setMonth(today.getMonth() - 6);
+        break;
+      case "last12Months":
+        start.setMonth(today.getMonth() - 12);
         break;
       case "allTime":
-        start = new Date(1900, 0, 1);
+        start = new Date(1990, 0, 1);
         break;
-      default:
+      case "custom":
         // Custom range - don't update the dates
         return;
     }

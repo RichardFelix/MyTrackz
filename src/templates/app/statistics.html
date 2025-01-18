@@ -24,16 +24,22 @@
           <div class="col-md-4">
             <label class="form-label">Predefined Ranges</label>
             <select class="form-select" id="predefined-range">
-              <option value="">Custom Range</option>
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
-              <option value="thisWeek">This Week</option>
-              <option value="lastWeek">Last Week</option>
-              <option value="thisMonth">This Month</option>
-              <option value="lastMonth">Last Month</option>
-              <option value="thisYear">This Year</option>
-              <option value="lastYear">Last Year</option>
-              <option value="allTime">All Time</option>
+              <hr>
+              <option value="thisWeek">This week</option>
+              <option value="last7Days">Last 7 days</option>
+              <hr>
+              <option value="thisMonth">This month</option>
+              <option value="last30Days">Last 30 days</option>
+              <option value="last90Days">Last 90 days</option>
+              <hr>
+              <option value="thisYear">This year</option>
+              <option value="last6Months">Last 6 months</option>
+              <option value="last12Months" selected="selected">Last 12 months</option>
+              <hr>
+              <option value="allTime">All time</option>
+              <option value="custom">Custom range</option>
             </select>
           </div>
           <!-- Custom Date Range -->
@@ -123,7 +129,7 @@
     <div class="card bg-foreground mb-4">
       <div class="card-body">
         <h5 class="card-title mb-4 text-center">Activity on Yamtrack</h5>
-        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden">
+        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden activity-stats">
           <div class="contribution-graph">
             <!-- Months row -->
             <div class="d-flex mb-1 months gap-1">
@@ -321,7 +327,7 @@
     });
   </script>
   <script>
-    function updateJustification(containerSelector = '.overflow-x-scroll') {
+    function updateJustification(containerSelector = '.activity-stats') {
       const container = document.querySelector(containerSelector);
       if (!container) {
           console.warn('Container not found');
@@ -356,14 +362,14 @@
   {{ timeline|json_script:"timeline-data" }}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const calendarData = JSON.parse(document.getElementById('timeline-data').textContent);
+      const timeline = JSON.parse(document.getElementById('timeline-data').textContent);
 
       // Create dynamic styles for media types
       const styleSheet = document.createElement('style');
       document.head.appendChild(styleSheet);
 
       // Add styles for each task based on their background color
-      calendarData.tasks.forEach(task => {
+      timeline.tasks.forEach(task => {
           if (task.style && task.style.background) {
               const className = `task-${task.id}`;
               styleSheet.sheet.insertRule(
@@ -375,24 +381,28 @@
           }
       });
 
-      const tasks = calendarData.tasks.map(task => ({
+      const tasks = timeline.tasks.map(task => ({
         ...task,
         from: new Date(task.from),
         to: new Date(task.to)
       }));
 
-      // Calculate min and max dates with 1 day padding
-      const minDate = new Date(Math.min(...tasks.map(t => t.from)));
-      const maxDate = new Date(Math.max(...tasks.map(t => t.to)));
+      // Calculate min and max dates with fallback to context variables with 1 day offset
+      const minDate = tasks.length > 0 
+        ? new Date(Math.min(...tasks.map(t => t.from)))
+        : new Date('{{ start_date }}');
 
-      // Calculate days between dates and multiply by number of px
-      const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-      const minWidth = Math.min(daysDiff * 100, 32000);
+      const maxDate = tasks.length > 0 
+        ? new Date(Math.max(...tasks.map(t => t.to)))
+        : new Date(new Date('{{ end_date }}').setDate(new Date('{{ end_date }}').getDate() + 1));
+
+        // Calculate days between dates and multiply by number of px
+      const minWidth = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24)) * 85;
   
       const gantt = new SvelteGantt({
           target: document.getElementById('timeline'),
           props: {
-            rows: calendarData.rows,
+            rows: timeline.rows,
             tasks: tasks,
             from: minDate,
             to: maxDate,

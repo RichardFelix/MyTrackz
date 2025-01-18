@@ -433,7 +433,7 @@ class MediaManager(models.Manager):
                 )
         return {
             "rows": rows,
-            "tasks": tasks[100:],
+            "tasks": tasks,
         }
 
 
