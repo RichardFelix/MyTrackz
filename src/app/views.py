@@ -493,6 +493,7 @@ def statistics(request):
     context = {
         "start_date": start_date,
         "end_date": end_date,
+        "range": request.GET.get("range", "last12Months"),
         "media_count": media_count,
         "activity_data": activity_data,
         "score_distribution": score_distribution,

@@ -23,23 +23,23 @@
           <!-- Predefined Ranges -->
           <div class="col-md-4">
             <label class="form-label">Predefined Ranges</label>
-            <select class="form-select" id="predefined-range">
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
+            <select class="form-select" id="predefined-range" name="range">
+              <option value="today" {% if range == "today" %}selected{% endif %}>Today</option>
+              <option value="yesterday" {% if range == "yesterday" %}selected{% endif %}>Yesterday</option>
               <hr>
-              <option value="thisWeek">This week</option>
-              <option value="last7Days">Last 7 days</option>
+              <option value="thisWeek" {% if range == "thisWeek" %}selected{% endif %}>This week</option>
+              <option value="last7Days" {% if range == "last7Days" %}selected{% endif %}>Last 7 days</option>
               <hr>
-              <option value="thisMonth">This month</option>
-              <option value="last30Days">Last 30 days</option>
-              <option value="last90Days">Last 90 days</option>
+              <option value="thisMonth" {% if range == "thisMonth" %}selected{% endif %}>This month</option>
+              <option value="last30Days" {% if range == "last30Days" %}selected{% endif %}>Last 30 days</option>
+              <option value="last90Days" {% if range == "last90Days" %}selected{% endif %}>Last 90 days</option>
               <hr>
-              <option value="thisYear">This year</option>
-              <option value="last6Months">Last 6 months</option>
-              <option value="last12Months" selected="selected">Last 12 months</option>
+              <option value="thisYear" {% if range == "thisYear" %}selected{% endif %}>This year</option>
+              <option value="last6Months" {% if range == "last6Months" %}selected{% endif %}>Last 6 months</option>
+              <option value="last12Months" {% if range == "last12Months" %}selected{% endif %}>Last 12 months</option>
               <hr>
-              <option value="allTime">All time</option>
-              <option value="custom">Custom range</option>
+              <option value="allTime" {% if range == "allTime" %}selected{% endif %}>All time</option>
+              <option value="custom" {% if range == "custom" %}selected{% endif %}>Custom range</option>
             </select>
           </div>
           <!-- Custom Date Range -->
