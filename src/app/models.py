@@ -272,6 +272,7 @@ class MediaManager(models.Manager):
                     "title": media.item.title,
                     "image": media.item.image,
                     "score": media.score,
+                    "url": media.item.url,
                 }
 
                 # Use negative score for max heap (heapq implements min heap)

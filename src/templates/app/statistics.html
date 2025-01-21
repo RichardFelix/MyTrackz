@@ -35,8 +35,10 @@
               <option value="last90Days" {% if range == "last90Days" %}selected{% endif %}>Last 90 days</option>
               <hr>
               <option value="thisYear" {% if range == "thisYear" %}selected{% endif %}>This year</option>
-              <option value="last6Months" {% if range == "last6Months" %}selected{% endif %}>Last 6 months</option>
-              <option value="last12Months" {% if range == "last12Months" %}selected{% endif %}>Last 12 months</option>
+              <option value="last6Months"
+                      {% if range == "last6Months" %}selected{% endif %}>Last 6 months</option>
+              <option value="last12Months"
+                      {% if range == "last12Months" %}selected{% endif %}>Last 12 months</option>
               <hr>
               <option value="allTime" {% if range == "allTime" %}selected{% endif %}>All time</option>
               <option value="custom" {% if range == "custom" %}selected{% endif %}>Custom range</option>
@@ -254,9 +256,12 @@
             {% for media in score_distribution.top_rated %}
               <div class="col-2">
                 <div class="card media-card">
-                  <img src="{{ media.image }}"
-                       class="card-img {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                       alt="{{ media.title }}" />
+                  <a href="{{ media.url }}">
+                    <img src="{{ IMG_NONE }}"
+                         data-src="{{ media.image }}"
+                         class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                         alt="{{ media.title }}" />
+                  </a>
 
                   <div class="card-img-overlay">
                     <div class="card-title">{{ media.score }}</div>
