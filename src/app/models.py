@@ -755,8 +755,8 @@ class Season(Media):
         return self.episodes.count()
 
     @property
-    def current_episode(self):
-        """Return the current episode of the season."""
+    def current_episode_number(self):
+        """Return the current episode number of the season."""
         # continue initial watch
         if self.status == self.Status.IN_PROGRESS.value:
             sorted_episodes = sorted(
@@ -773,8 +773,8 @@ class Season(Media):
             )
 
         if sorted_episodes:
-            return sorted_episodes[0]
-        return None
+            return sorted_episodes[0].item.episode_number
+        return 0
 
     @property
     def repeats(self):
@@ -807,7 +807,6 @@ class Season(Media):
 
     def increase_progress(self):
         """Watch the next episode of the season."""
-        current_episode = self.current_episode
         season_metadata = services.get_media_metadata(
             "season",
             self.item.media_id,
@@ -816,14 +815,14 @@ class Season(Media):
         )
         episodes = season_metadata["episodes"]
 
-        if current_episode:
-            next_episode_number = tmdb.find_next_episode(
-                current_episode.item.episode_number,
-                episodes,
-            )
-        else:
+        if self.current_episode_number == 0:
             # start watching from the first episode
             next_episode_number = episodes[0]["episode_number"]
+        else:
+            next_episode_number = tmdb.find_next_episode(
+                self.current_episode_number,
+                episodes,
+            )
 
         today = timezone.now().date()
 
@@ -865,8 +864,7 @@ class Season(Media):
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
-        episode_number = self.current_episode.item.episode_number
-        self.unwatch(episode_number)
+        self.unwatch(self.current_episode_number)
 
     def unwatch(self, episode_number):
         """Unwatch the episode instance."""
@@ -907,16 +905,18 @@ class Season(Media):
             self.item.source,
             [self.item.season_number],
         )
-        response = {"item": self.item}
-        max_progress = media_metadata["max_progress"]
+        response = {
+            "item": self.item,
+            "current_episode_number": self.current_episode_number,
+        }
 
-        response["current_episode"] = self.current_episode
-        if self.current_episode:
-            response["max"] = self.current_episode.item.episode_number == max_progress
-            response["min"] = False
-        else:
+        if self.current_episode_number == 0:
             response["max"] = False
             response["min"] = True
+        else:
+            max_progress = media_metadata["max_progress"]
+            response["max"] = self.current_episode_number == max_progress
+            response["min"] = False
 
         return response
 
