@@ -378,10 +378,13 @@ debug, info, success, warning, error */
   width: 12rem; /* need for smaller screens */
   background-color: var(--bg-foreground);
 
-  @media screen and (width <= 575px) {
+  @media screen and (width <= 991px) {
     width: 100%;
-    margin-top: 20rem;
     text-align: center;
+  }
+
+  @media screen and (width <= 575px) {
+    margin-top: 20rem;
   }
 }
 
