@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import timedelta
-from itertools import chain
 
 from django.apps import apps
 from django.db.models import Count, F
@@ -109,15 +108,11 @@ def get_filtered_historical_data(start_date, end_date, user):
         if main_model_name == "episode":
             instance_ids = main_model.objects.filter(
                 related_season__user=user,
-            ).values_list(
-                "id",
-                flat=True,
-            )
+            ).values_list("id", flat=True)
         else:
-            instance_ids = main_model.objects.filter(user=user).values_list(
-                "id",
-                flat=True,
-            )
+            instance_ids = main_model.objects.filter(
+                user=user,
+            ).values_list("id", flat=True)
 
         # Filter historical records
         data = (
@@ -130,7 +125,8 @@ def get_filtered_historical_data(start_date, end_date, user):
             .values("date")
             .annotate(count=Count("id"))
         )
-        combined_data = chain(combined_data, data)
+
+        combined_data.extend(data)
     return combined_data
 
 
