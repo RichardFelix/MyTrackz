@@ -131,7 +131,7 @@
     <div class="card bg-foreground mb-4">
       <div class="card-body">
         <h5 class="card-title mb-4 text-center">Activity on Yamtrack</h5>
-        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden activity-stats">
+        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden activity-stats justify-content-center">
           <div class="contribution-graph">
             <!-- Months row -->
             <div class="d-flex mb-1 months gap-1">
@@ -335,11 +335,7 @@
   <script>
     function updateJustification(containerSelector = '.activity-stats') {
       const container = document.querySelector(containerSelector);
-      if (!container) {
-          console.warn('Container not found');
-          return;
-      }
-  
+
       // Check if content is wider than container
       const hasOverflow = container.scrollWidth > container.clientWidth;
   
