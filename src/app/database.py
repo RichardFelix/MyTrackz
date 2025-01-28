@@ -101,23 +101,11 @@ def get_filtered_historical_data(start_date, end_date, user):
 
     for model_name in historical_models:
         historical_model = apps.get_model("app", model_name)
-        main_model_name = model_name.replace("historical", "")
-        main_model = apps.get_model("app", main_model_name)
-
-        # Get IDs of instances belonging to the user
-        if main_model_name == "episode":
-            instance_ids = main_model.objects.filter(
-                related_season__user=user,
-            ).values_list("id", flat=True)
-        else:
-            instance_ids = main_model.objects.filter(
-                user=user,
-            ).values_list("id", flat=True)
 
         # Filter historical records
         data = (
             historical_model.objects.filter(
-                id__in=instance_ids,
+                history_user_id=user,
                 history_date__date__gte=start_date,
                 history_date__date__lte=end_date,
             )
@@ -127,6 +115,7 @@ def get_filtered_historical_data(start_date, end_date, user):
         )
 
         combined_data.extend(data)
+
     return combined_data
 
 
@@ -265,7 +254,6 @@ def get_activity_data(user, start_date, end_date):
                 monday_count = 0
 
             monday_count += 1
-
     # For the last month
     if monday_count > 1:
         months.append(current_month)
