@@ -335,28 +335,31 @@
   <script>
     function updateJustification(containerSelector = '.activity-stats') {
       const container = document.querySelector(containerSelector);
-
+      const contributionGraph = container.querySelector('.contribution-graph');
+  
       // Check if content is wider than container
       const hasOverflow = container.scrollWidth > container.clientWidth;
   
       if (hasOverflow) {
           container.classList.remove('justify-content-center');
           container.classList.add('justify-content-start');
+          contributionGraph.classList.add('mb-4');
       } else {
           container.classList.remove('justify-content-start');
           container.classList.add('justify-content-center');
+          contributionGraph.classList.remove('mb-4');
       }
-  }
-  
-  // Initial check
-  document.addEventListener('DOMContentLoaded', () => {
-      updateJustification();
-  });
-  
-  // Update on window resize
-  window.addEventListener('resize', () => {
-      updateJustification();
-  });
+    }
+    
+    // Initial check
+    document.addEventListener('DOMContentLoaded', () => {
+        updateJustification();
+    });
+    
+    // Update on window resize
+    window.addEventListener('resize', () => {
+        updateJustification();
+    });
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/svelte-gantt@4.4.2/index.iife.min.js"></script>
