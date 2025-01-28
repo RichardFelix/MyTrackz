@@ -176,9 +176,7 @@ def get_physical_format(response):
 def get_publish_date(response):
     """Get the first publication date."""
     if "publish_date" in response:
-        publish_date = response["publish_date"]
-        if publish_date.startswith("cop. "):
-            publish_date = publish_date[5:]
+        publish_date = response["publish_date"].removeprefix("cop. ")
         try:
             parsed_date = datetime.strptime(publish_date, "%b %d, %Y").replace(
                 tzinfo=ZoneInfo("UTC"),
