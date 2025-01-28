@@ -10,7 +10,7 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import CheckConstraint, Max, Q, Sum, UniqueConstraint
+from django.db.models import CheckConstraint, Max, Prefetch, Q, Sum, UniqueConstraint
 from django.urls import reverse
 from django.utils import timezone
 from model_utils import FieldTracker
@@ -192,56 +192,70 @@ class MediaManager(models.Manager):
     """Custom manager for media models."""
 
     def get_user_media(self, user, start_date, end_date):
-        """Get all media items and their counts for a user within the date range."""
+        """Get all media items and their counts for a user within date range."""
         media_models = [
             model for model in user.get_active_media_types() if model != Episode
         ]
-
         user_media = {}
         media_count = {"total": 0}
 
+        # Cache the base episodes query
+        base_episodes = None
+        if TV in media_models or Season in media_models:
+            base_episodes = Episode.objects.filter(
+                related_season__user=user,
+                end_date__range=(start_date, end_date),
+            )
+
         for model in media_models:
             model_name = model.__name__.lower()
+            queryset = None
 
             if model in (TV, Season):
-                queryset = (
-                    model.objects.filter(user=user)
-                    .select_related("item")
-                    .prefetch_related(
-                        "seasons__episodes" if model == TV else "episodes",
+                if model == TV:
+                    tv_ids = base_episodes.values_list(
+                        "related_season__related_tv",
+                        flat=True,
+                    ).distinct()
+                    queryset = TV.objects.filter(id__in=tv_ids).prefetch_related(
+                        Prefetch(
+                            "seasons",
+                            queryset=Season.objects.select_related(
+                                "item",
+                            ).prefetch_related(
+                                Prefetch(
+                                    "episodes",
+                                    queryset=base_episodes.filter(
+                                        related_season__related_tv__in=tv_ids,
+                                    ),
+                                ),
+                            ),
+                        ),
                     )
-                )
-                # Filter out TV shows and seasons that are not within the date range
-                matching_ids = [
-                    media.id
-                    for media in queryset
-                    if start_date
-                    and end_date
-                    and start_date <= media.start_date
-                    and media.end_date <= end_date
-                ]
-                filtered_queryset = queryset.filter(id__in=matching_ids)
-                user_media[model_name] = filtered_queryset
-                count = filtered_queryset.count()
+                else:
+                    season_ids = base_episodes.values_list(
+                        "related_season",
+                        flat=True,
+                    ).distinct()
+                    queryset = Season.objects.filter(
+                        id__in=season_ids,
+                    ).prefetch_related(
+                        Prefetch("episodes", queryset=base_episodes),
+                    )
             else:
-                filtered_queryset = model.objects.filter(
+                queryset = model.objects.filter(
                     user=user,
                     start_date__gte=start_date,
                     end_date__lte=end_date,
-                ).select_related("item")
-                user_media[model_name] = filtered_queryset
-                count = filtered_queryset.count()
+                )
 
+            queryset = queryset.select_related("item")
+            user_media[model_name] = queryset
+            count = queryset.count()
             media_count[model_name] = count
             media_count["total"] += count
 
-        logging.info(
-            "%s - Retrieved media for date range %s to %s",
-            user,
-            start_date,
-            end_date,
-        )
-
+        logging.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
         return user_media, media_count
 
     def get_score_distribution(self, user_media):
