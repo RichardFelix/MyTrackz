@@ -71,6 +71,9 @@ main {
   display: none;
 }
 
+/* alpinejs hide blip */
+[x-cloak] { display: none !important; }
+
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
 
