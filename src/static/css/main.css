@@ -348,6 +348,12 @@ debug, info, success, warning, error */
   .title {
     font-size: 2.25rem;
     font-weight: 700;
+    /* show only 2 line of text */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   p {
