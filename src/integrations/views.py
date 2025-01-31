@@ -60,12 +60,12 @@ def import_simkl(request):
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
     username = request.GET.get("mal")
-
     if not username:
         messages.error(request, "MyAnimeList username is required.")
         return redirect("profile")
 
-    tasks.import_mal.delay(username, request.user)
+    mode = request.GET["mode"]
+    tasks.import_mal.delay(username, request.user, mode)
     messages.success(request, "MyAnimeList import task queued.")
     return redirect("profile")
 
@@ -93,12 +93,12 @@ def import_tmdb(request):
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
     username = request.GET.get("anilist")
-
     if not username:
         messages.error(request, "AniList username is required.")
         return redirect("profile")
 
-    tasks.import_anilist.delay(username, request.user)
+    mode = request.GET["mode"]
+    tasks.import_anilist.delay(username, request.user, mode)
     messages.success(request, "AniList import task queued.")
     return redirect("profile")
 
@@ -112,7 +112,8 @@ def import_kitsu(request):
         messages.error(request, "Kitsu user ID is required.")
         return redirect("profile")
 
-    tasks.import_kitsu_id.delay(user_id, request.user)
+    mode = request.GET["mode"]
+    tasks.import_kitsu_id.delay(user_id, request.user, mode)
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
 

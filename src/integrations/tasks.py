@@ -11,27 +11,27 @@ ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 def import_trakt(username, user):
     """Celery task for importing anime and manga data from Trakt."""
     try:
-    # Set the request.user on the thread for the history record middleware to use
-    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+        # Set the request.user on the thread for the history record middleware to use
+        HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
-    (
-        num_tv_imported,
-        num_movie_imported,
-        num_watchlist_imported,
-        num_ratings_imported,
-        warning_message,
-    ) = trakt.importer(username, user)
+        (
+            num_tv_imported,
+            num_movie_imported,
+            num_watchlist_imported,
+            num_ratings_imported,
+            warning_message,
+        ) = trakt.importer(username, user)
 
-    info_message = (
-        f"Imported {num_tv_imported} TV shows, "
-        f"{num_movie_imported} movies, "
-        f"{num_watchlist_imported} watchlist items, "
-        f"and {num_ratings_imported} ratings."
-    )
+        info_message = (
+            f"Imported {num_tv_imported} TV shows, "
+            f"{num_movie_imported} movies, "
+            f"{num_watchlist_imported} watchlist items, "
+            f"and {num_ratings_imported} ratings."
+        )
 
-    if warning_message:
-        return f"{info_message} {ERROR_TITLE} {warning_message}"
-    return info_message
+        if warning_message:
+            return f"{info_message} {ERROR_TITLE} {warning_message}"
+        return info_message
     finally:
         # Clean up thread-local storage
         if hasattr(HistoricalRecords.thread, "request"):
@@ -42,25 +42,25 @@ def import_trakt(username, user):
 def import_simkl(token, user):
     """Celery task for importing anime and manga data from SIMKL."""
     try:
-    # Set the request.user on the thread for the history record middleware to use
-    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+        # Set the request.user on the thread for the history record middleware to use
+        HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
-    num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
-        simkl.importer(
-            token,
-            user,
+        num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
+            simkl.importer(
+                token,
+                user,
+            )
         )
-    )
 
-    info_message = (
-        f"Imported {num_tv_imported} TV shows, "
-        f"{num_movie_imported} movies, "
-        f"and {num_anime_imported} anime."
-    )
+        info_message = (
+            f"Imported {num_tv_imported} TV shows, "
+            f"{num_movie_imported} movies, "
+            f"and {num_anime_imported} anime."
+        )
 
-    if warning_message:
-        return f"{info_message} {ERROR_TITLE} {warning_message}"
-    return info_message
+        if warning_message:
+            return f"{info_message} {ERROR_TITLE} {warning_message}"
+        return info_message
     finally:
         # Clean up thread-local storage
         if hasattr(HistoricalRecords.thread, "request"):
@@ -68,10 +68,10 @@ def import_simkl(token, user):
 
 
 @shared_task(name="Import from MyAnimeList")
-def import_mal(username, user):
+def import_mal(username, user, mode):
     """Celery task for importing anime and manga data from MyAnimeList."""
     try:
-        num_anime_imported, num_manga_imported = mal.importer(username, user)
+        num_anime_imported, num_manga_imported = mal.importer(username, user, mode)
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
             msg = f"User {username} not found."
@@ -84,8 +84,8 @@ def import_mal(username, user):
 def import_tmdb(file, user, status):
     """Celery task for importing TMDB tv shows and movies."""
     try:
-    # Set the request.user on the thread for the history record middleware to use
-    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+        # Set the request.user on the thread for the history record middleware to use
+        HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
         num_tv_imported, num_movie_imported = tmdb.importer(file, user, status)
     except UnicodeDecodeError as error:
@@ -95,7 +95,7 @@ def import_tmdb(file, user, status):
         msg = "Error parsing TMDB CSV file."
         raise ValueError(msg) from error
     else:
-    return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
+        return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
     finally:
         # Clean up thread-local storage
         if hasattr(HistoricalRecords.thread, "request"):
@@ -103,12 +103,13 @@ def import_tmdb(file, user, status):
 
 
 @shared_task(name="Import from AniList")
-def import_anilist(username, user):
+def import_anilist(username, user, mode):
     """Celery task for importing anime and manga data from AniList."""
     try:
         num_anime_imported, num_manga_imported, warning_message = anilist.importer(
             username,
             user,
+            mode,
         )
     except requests.exceptions.HTTPError as error:
         error_message = error.response.json()["errors"][0].get("message")
@@ -129,11 +130,12 @@ def import_anilist(username, user):
 
 
 @shared_task(name="Import from Kitsu")
-def import_kitsu_id(user_id, user):
+def import_kitsu_id(user_id, user, mode):
     """Celery task for importing anime and manga data from Kitsu."""
-    num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_user_id(
+    num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
         user_id,
         user,
+        mode,
     )
 
     info_message = (

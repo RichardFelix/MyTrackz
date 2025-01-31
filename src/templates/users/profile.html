@@ -236,6 +236,7 @@
                 action="{% url 'import_tmdb' %}"
                 :class="{ 'opacity-50': frequency !== 'once' }">
             {% csrf_token %}
+            <input type="hidden" name="mode" x-model="importMode">
             <input type="file"
                    accept=".csv"
                    class="form-control rounded-end-0"
@@ -273,9 +274,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_mal' %}">
-            <input type="hidden" :name="frequency" x-model="frequency">
-            <input type="hidden" :name="importTime" x-model="importTime">
-            <input type="hidden" :name="importMode" x-model="importMode">
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
             <input type="text"
                    class="form-control border-end-0 rounded-end-0"
                    name="mal"
@@ -305,9 +306,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_anilist' %}">
-            <input type="hidden" :name="frequency" x-model="frequency">
-            <input type="hidden" :name="importTime" x-model="importTime">
-            <input type="hidden" :name="importMode" x-model="importMode">
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
             <input type="text"
                    class="form-control border-end-0 rounded-end-0"
                    name="anilist"
@@ -337,9 +338,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_trakt' %}">
-            <input type="hidden" :name="frequency" x-model="frequency">
-            <input type="hidden" :name="importTime" x-model="importTime">
-            <input type="hidden" :name="importMode" x-model="importMode">
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
             <span class="badge"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
@@ -377,6 +378,7 @@
           <form method="get"
                 action="{% url 'simkl_oauth' %}"
                 :class="{ 'opacity-50': frequency !== 'once' }">
+            <input type="hidden" name="mode" x-model="importMode">
             <button class="btn btn-secondary" :disabled="frequency !== 'once'">
               <i class="bi bi-box-arrow-in-right me-2"></i>Authenticate
             </button>
@@ -402,9 +404,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_kitsu' %}">
-            <input type="hidden" :name="frequency" x-model="frequency">
-            <input type="hidden" :name="importTime" x-model="importTime">
-            <input type="hidden" :name="importMode" x-model="importMode">
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
             <span class="badge"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
@@ -445,6 +447,7 @@
                 action="{% url 'import_yamtrack' %}"
                 :class="{ 'opacity-50': frequency !== 'once' }">
             {% csrf_token %}
+            <input type="hidden" :name="mode" x-model="importMode">
             <input type="file"
                    accept=".csv"
                    class="form-control rounded-end-0"

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.apps import apps
+from django.db import models
 from django.db.models import Count, F
 from django.db.models.functions import TruncDate
 
@@ -43,6 +44,14 @@ def get_media_list(user, media_type, status_filter, sort_filter):
 def get_fields(model):
     """Get fields of a model."""
     return [f.name for f in model._meta.fields]  # noqa: SLF001
+
+
+def get_unique_constraint_fields(model):
+    """Get fields that make up the unique constraint for the model."""
+    for constraint in model._meta.constraints:  # noqa: SLF001
+        if isinstance(constraint, models.UniqueConstraint):
+            return constraint.fields
+    return None
 
 
 def get_properties(model):
