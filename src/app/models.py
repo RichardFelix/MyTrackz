@@ -504,7 +504,12 @@ class Media(models.Model):
 
         abstract = True
         ordering = ["-score"]
-        unique_together = ["item", "user"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item", "user"],
+                name="%(app_label)s_%(class)s_unique_item_user",
+            ),
+        ]
 
     def __str__(self):
         """Return the title of the media."""
@@ -729,7 +734,12 @@ class Season(Media):
         Only one season per media can have the same season number.
         """
 
-        unique_together = ["related_tv", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["related_tv", "item"],
+                name="%(app_label)s_season_unique_tv_item",
+            ),
+        ]
 
     def __str__(self):
         """Return the title of the media and season number."""
@@ -1070,8 +1080,13 @@ class Episode(models.Model):
         Only one episode per season can have the same episode number.
         """
 
-        unique_together = ["related_season", "item"]
         ordering = ["related_season", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["related_season", "item"],
+                name="%(app_label)s_episode_unique_season_item",
+            ),
+        ]
 
     def __str__(self):
         """Return the season and episode number."""
