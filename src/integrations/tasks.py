@@ -10,6 +10,7 @@ ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 @shared_task(name="Import from Trakt")
 def import_trakt(username, user):
     """Celery task for importing anime and manga data from Trakt."""
+    try:
     # Set the request.user on the thread for the history record middleware to use
     HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
@@ -20,20 +21,27 @@ def import_trakt(username, user):
         num_ratings_imported,
         warning_message,
     ) = trakt.importer(username, user)
+
     info_message = (
         f"Imported {num_tv_imported} TV shows, "
         f"{num_movie_imported} movies, "
         f"{num_watchlist_imported} watchlist items, "
         f"and {num_ratings_imported} ratings."
     )
+
     if warning_message:
         return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
+    finally:
+        # Clean up thread-local storage
+        if hasattr(HistoricalRecords.thread, "request"):
+            delattr(HistoricalRecords.thread, "request")
 
 
 @shared_task(name="Import from SIMKL")
 def import_simkl(token, user):
     """Celery task for importing anime and manga data from SIMKL."""
+    try:
     # Set the request.user on the thread for the history record middleware to use
     HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
@@ -49,9 +57,14 @@ def import_simkl(token, user):
         f"{num_movie_imported} movies, "
         f"and {num_anime_imported} anime."
     )
+
     if warning_message:
         return f"{info_message} {ERROR_TITLE} {warning_message}"
     return info_message
+    finally:
+        # Clean up thread-local storage
+        if hasattr(HistoricalRecords.thread, "request"):
+            delattr(HistoricalRecords.thread, "request")
 
 
 @shared_task(name="Import from MyAnimeList")
@@ -70,10 +83,10 @@ def import_mal(username, user):
 @shared_task(name="Import from TMDB")
 def import_tmdb(file, user, status):
     """Celery task for importing TMDB tv shows and movies."""
+    try:
     # Set the request.user on the thread for the history record middleware to use
     HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
-    try:
         num_tv_imported, num_movie_imported = tmdb.importer(file, user, status)
     except UnicodeDecodeError as error:
         msg = "Invalid file format. Please upload a CSV file."
@@ -81,8 +94,12 @@ def import_tmdb(file, user, status):
     except KeyError as error:
         msg = "Error parsing TMDB CSV file."
         raise ValueError(msg) from error
-
+    else:
     return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
+    finally:
+        # Clean up thread-local storage
+        if hasattr(HistoricalRecords.thread, "request"):
+            delattr(HistoricalRecords.thread, "request")
 
 
 @shared_task(name="Import from AniList")
