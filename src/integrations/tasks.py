@@ -1,5 +1,6 @@
 import requests
 from celery import shared_task
+from simple_history.models import HistoricalRecords
 
 from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
 
@@ -9,6 +10,9 @@ ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 @shared_task(name="Import from Trakt")
 def import_trakt(username, user):
     """Celery task for importing anime and manga data from Trakt."""
+    # Set the request.user on the thread for the history record middleware to use
+    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+
     (
         num_tv_imported,
         num_movie_imported,
@@ -30,6 +34,9 @@ def import_trakt(username, user):
 @shared_task(name="Import from SIMKL")
 def import_simkl(token, user):
     """Celery task for importing anime and manga data from SIMKL."""
+    # Set the request.user on the thread for the history record middleware to use
+    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+
     num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
         simkl.importer(
             token,
@@ -63,6 +70,9 @@ def import_mal(username, user):
 @shared_task(name="Import from TMDB")
 def import_tmdb(file, user, status):
     """Celery task for importing TMDB tv shows and movies."""
+    # Set the request.user on the thread for the history record middleware to use
+    HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
+
     try:
         num_tv_imported, num_movie_imported = tmdb.importer(file, user, status)
     except UnicodeDecodeError as error:
@@ -71,6 +81,7 @@ def import_tmdb(file, user, status):
     except KeyError as error:
         msg = "Error parsing TMDB CSV file."
         raise ValueError(msg) from error
+
     return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
 
 
