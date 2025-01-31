@@ -100,23 +100,7 @@ def import_anilist(username, user):
     return info_message
 
 
-@shared_task(name="Import from Kitsu by username")
-def import_kitsu_name(username, user):
-    """Celery task for importing anime and manga data from Kitsu."""
-    num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_username(
-        username,
-        user,
-    )
-
-    info_message = (
-        f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
-    )
-    if warning_message:
-        return f"{info_message} {ERROR_TITLE} {warning_message}"
-    return info_message
-
-
-@shared_task(name="Import from Kitsu by user ID")
+@shared_task(name="Import from Kitsu")
 def import_kitsu_id(user_id, user):
     """Celery task for importing anime and manga data from Kitsu."""
     num_anime_imported, num_manga_imported, warning_message = kitsu.import_by_user_id(

@@ -24,7 +24,12 @@ logger = logging.getLogger(__name__)
 @require_GET
 def import_trakt(request):
     """View for importing anime and manga data from Trakt."""
-    username = request.GET["trakt"]
+    username = request.GET.get("trakt")
+
+    if not username:
+        messages.error(request, "Trakt username is required.")
+        return redirect("profile")
+
     tasks.import_trakt.delay(username, request.user)
     messages.success(request, "Trakt import task queued.")
     return redirect("profile")
@@ -54,58 +59,59 @@ def import_simkl(request):
 @require_GET
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
-    username = request.GET["mal"]
+    username = request.GET.get("mal")
+
+    if not username:
+        messages.error(request, "MyAnimeList username is required.")
+        return redirect("profile")
+
     tasks.import_mal.delay(username, request.user)
     messages.success(request, "MyAnimeList import task queued.")
     return redirect("profile")
 
 
 @require_POST
-def import_tmdb_ratings(request):
-    """View for importing TMDB movie and TV ratings."""
-    tasks.import_tmdb.delay(
-        request.FILES["tmdb_ratings"],
-        request.user,
-        "Completed",
-    )
-    messages.success(request, "TMDB ratings import task queued.")
-    return redirect("profile")
-
-
-@require_POST
-def import_tmdb_watchlist(request):
+def import_tmdb(request):
     """View for importing TMDB movie and TV watchlist."""
-    tasks.import_tmdb.delay(
-        request.FILES["tmdb_watchlist"],
-        request.user,
-        "Planning",
-    )
-    messages.success(request, "TMDB watchlist import task queued.")
+    file = request.FILES.get("tmdb")
+
+    if not file:
+        messages.error(request, "TMDB CSV file is required.")
+        return redirect("profile")
+
+    if request.POST.get("type") == "ratings":
+        tasks.import_tmdb.delay(file, request.user, "Completed")
+        messages.success(request, "TMDB ratings import task queued.")
+    else:
+        tasks.import_tmdb.delay(file, request.user, "Planning")
+        messages.success(request, "TMDB watchlist import task queued.")
+
     return redirect("profile")
 
 
 @require_GET
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
-    username = request.GET["anilist"]
+    username = request.GET.get("anilist")
+
+    if not username:
+        messages.error(request, "AniList username is required.")
+        return redirect("profile")
+
     tasks.import_anilist.delay(username, request.user)
     messages.success(request, "AniList import task queued.")
     return redirect("profile")
 
 
 @require_GET
-def import_kitsu_name(request):
-    """View for importing anime and manga data from Kitsu by username."""
-    username = request.GET["kitsu_username"]
-    tasks.import_kitsu_name.delay(username, request.user)
-    messages.success(request, "Kitsu import task queued.")
-    return redirect("profile")
-
-
-@require_GET
-def import_kitsu_id(request):
+def import_kitsu(request):
     """View for importing anime and manga data from Kitsu by user ID."""
-    user_id = request.GET["kitsu_id"]
+    user_id = request.GET.get("kitsu")
+
+    if not user_id:
+        messages.error(request, "Kitsu user ID is required.")
+        return redirect("profile")
+
     tasks.import_kitsu_id.delay(user_id, request.user)
     messages.success(request, "Kitsu import task queued.")
     return redirect("profile")
@@ -114,6 +120,12 @@ def import_kitsu_id(request):
 @require_POST
 def import_yamtrack(request):
     """View for importing anime and manga data from Yamtrack CSV."""
+    file = request.FILES.get("yamtrack_csv")
+
+    if not file:
+        messages.error(request, "Yamtrack CSV file is required.")
+        return redirect("profile")
+
     tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user)
     messages.success(request, "Yamtrack import task queued.")
     return redirect("profile")

@@ -27,35 +27,6 @@ def import_by_user_id(kitsu_id, user):
     return num_anime_imported, num_manga_imported, "\n".join(warning_messages)
 
 
-def import_by_username(kitsu_username, user):
-    """Import anime and manga ratings from Kitsu by username."""
-    kitsu_id = get_kitsu_id(kitsu_username)
-    return import_by_user_id(kitsu_id, user)
-
-
-def get_kitsu_id(username):
-    """Get the user ID from Kitsu."""
-    url = f"{KITSU_API_BASE_URL}/users"
-    response = app.providers.services.api_request(
-        "KITSU",
-        "GET",
-        url,
-        params={"filter[name]": username},
-    )
-
-    if not response["data"]:
-        msg = f"User {username} not found."
-        raise ValueError(msg)
-    if len(response["data"]) > 1:
-        msg = (
-            f"Multiple users found for {username}, please use your user ID. "
-            "User IDs can be found in the URL when viewing your Kitsu profile."
-        )
-        raise ValueError(msg)
-
-    return response["data"][0]["id"]
-
-
 def get_media_response(kitsu_id, media_type):
     """Get all media entries for a user from Kitsu."""
     logger.info("Fetching %s from Kitsu", media_type)

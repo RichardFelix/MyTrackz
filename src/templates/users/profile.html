@@ -165,13 +165,15 @@
     </div>
   </div>
 
-  <div class="mb-4">
+  <div class="mb-4"
+       x-data="{ frequency: 'once', importTime: '{% now "H:i" %}', importMode: 'new' }">
+
     <legend class="border-bottom mb-4">Import Media</legend>
 
     <div class="card">
       <div class="card-body">
         <div class="row row-gap-4">
-          <div class="col-md-6" x-data="{ frequency: 'once' }">
+          <div class="col-md-6">
             <label class="form-label">
               <i class="bi bi-calendar me-2"></i>Import Frequency
             </label>
@@ -180,14 +182,13 @@
               <option value="daily">Daily</option>
               <option value="every_2_days">Every 2 days</option>
               <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
             </select>
 
             <div x-show="frequency !== 'once'" x-cloak class="mt-3">
               <label class="form-label">
                 <i class="bi bi-clock me-2"></i> Import Time
               </label>
-              <input type="time" class="form-control" id="importTime" value="00:00">
+              <input type="time" class="form-control" x-model="importTime">
             </div>
           </div>
 
@@ -195,7 +196,7 @@
             <label class="form-label">
               <i class="bi bi-arrow-repeat me-2"></i> Import Mode
             </label>
-            <select class="form-select" id="importMode">
+            <select class="form-select" x-model="importMode">
               <option value="new">Only sync new items</option>
               <option value="overwrite">Sync new items and overwrite existing</option>
             </select>
@@ -205,6 +206,13 @@
     </div>
 
     <hr class="my-4" />
+
+    <template x-if="frequency !== 'once'">
+      <div class="alert alert-info mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        File uploads and OAuth-based imports are only available for one-time imports
+      </div>
+    </template>
 
     <!-- The Movie Database -->
     <div class="card mb-3">
@@ -225,13 +233,22 @@
           <form class="d-flex"
                 method="post"
                 enctype="multipart/form-data"
-                action="{% url 'import_tmdb_ratings' %}">
-            <input type="file" class="form-control rounded-end-0" name="tmdb">
-            <select class="form-select border-start-0 rounded-0 w-auto">
-              <option value="tmdb_ratings" selected>Ratings</option>
-              <option value="tmdb_watchlist">Watchlist</option>
+                action="{% url 'import_tmdb' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
+            {% csrf_token %}
+            <input type="file"
+                   accept=".csv"
+                   class="form-control rounded-end-0"
+                   name="tmdb"
+                   :disabled="frequency !== 'once'">
+            <select class="form-select border-start-0 rounded-0 w-auto"
+                    name="type"
+                    :disabled="frequency !== 'once'">
+              <option value="ratings" selected>Ratings</option>
+              <option value="watchlist">Watchlist</option>
             </select>
-            <button class="btn btn-secondary border-start-0 rounded-start-0">
+            <button class="btn btn-secondary border-start-0 rounded-start-0"
+                    :disabled="frequency !== 'once'">
               <i class="bi bi-file-earmark-arrow-up"></i>
             </button>
           </form>
@@ -256,6 +273,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_mal' %}">
+            <input type="hidden" :name="frequency" x-model="frequency">
+            <input type="hidden" :name="importTime" x-model="importTime">
+            <input type="hidden" :name="importMode" x-model="importMode">
             <input type="text"
                    class="form-control border-end-0 rounded-end-0"
                    name="mal"
@@ -285,6 +305,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_anilist' %}">
+            <input type="hidden" :name="frequency" x-model="frequency">
+            <input type="hidden" :name="importTime" x-model="importTime">
+            <input type="hidden" :name="importMode" x-model="importMode">
             <input type="text"
                    class="form-control border-end-0 rounded-end-0"
                    name="anilist"
@@ -314,6 +337,9 @@
           </div>
 
           <form class="d-flex" method="get" action="{% url 'import_trakt' %}">
+            <input type="hidden" :name="frequency" x-model="frequency">
+            <input type="hidden" :name="importTime" x-model="importTime">
+            <input type="hidden" :name="importMode" x-model="importMode">
             <span class="badge"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
@@ -348,8 +374,10 @@
             </div>
           </div>
 
-          <form method="get" action="{% url 'simkl_oauth' %}">
-            <button class="btn btn-secondary">
+          <form method="get"
+                action="{% url 'simkl_oauth' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
+            <button class="btn btn-secondary" :disabled="frequency !== 'once'">
               <i class="bi bi-box-arrow-in-right me-2"></i>Authenticate
             </button>
           </form>
@@ -373,7 +401,10 @@
             </div>
           </div>
 
-          <form class="d-flex" method="get" action="{% url 'import_kitsu_id' %}">
+          <form class="d-flex" method="get" action="{% url 'import_kitsu' %}">
+            <input type="hidden" :name="frequency" x-model="frequency">
+            <input type="hidden" :name="importTime" x-model="importTime">
+            <input type="hidden" :name="importMode" x-model="importMode">
             <span class="badge"
                   data-bs-toggle="tooltip"
                   data-bs-placement="top"
@@ -382,7 +413,7 @@
             </span>
             <input type="text"
                    class="form-control border-end-0 rounded-end-0"
-                   name="kitsu_id"
+                   name="kitsu"
                    placeholder="Kitsu ID">
             <button class="btn btn-secondary border-start-0 rounded-start-0">
               <i class="bi bi-cloud-download"></i>
@@ -411,10 +442,16 @@
           <form class="d-flex"
                 method="post"
                 enctype="multipart/form-data"
-                action="{% url 'import_yamtrack' %}">
+                action="{% url 'import_yamtrack' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
             {% csrf_token %}
-            <input type="file" class="form-control rounded-end-0" name="yamtrack_csv">
-            <button class="btn btn-secondary border-start-0 rounded-start-0">
+            <input type="file"
+                   accept=".csv"
+                   class="form-control rounded-end-0"
+                   name="yamtrack_csv"
+                   :disabled="frequency !== 'once'">
+            <button class="btn btn-secondary border-start-0 rounded-start-0"
+                    :disabled="frequency !== 'once'">
               <i class="bi bi-file-earmark-arrow-up"></i>
             </button>
           </form>

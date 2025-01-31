@@ -80,4 +80,5 @@ def importer(file, user, status):
         num_imported["tv"],
         num_imported["movie"],
     )
+
     return num_imported["tv"], num_imported["movie"]
