@@ -37,8 +37,8 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
     process_anime_bulk(anime_to_process, events_bulk)
     for event in events_bulk:
         Event.objects.update_or_create(
-            item = event.item,
-            episode_number = event.episode_number,
+            item=event.item,
+            episode_number=event.episode_number,
             defaults={"date": event.date},
         )
 
@@ -90,17 +90,22 @@ def process_anime_bulk(items, events_bulk):
     anime_data = get_anime_schedule_bulk([item.media_id for item in items])
 
     for item in items:
-        episodes = anime_data[item.media_id]
-        for episode in episodes:
-            air_date = datetime.fromtimestamp(episode["airingAt"], tz=ZoneInfo("UTC"))
-            local_air_date = air_date.astimezone(settings.TZ)
-            events_bulk.append(
-                Event(
-                    item=item,
-                    episode_number=episode["episode"],
-                    date=local_air_date,
-                ),
-            )
+        # it may not have the media_id if no matching anime was found
+        episodes = anime_data.get(item.media_id)
+
+        if episodes:
+            for episode in episodes:
+                air_date = datetime.fromtimestamp(
+                    episode["airingAt"], tz=ZoneInfo("UTC")
+                )
+                local_air_date = air_date.astimezone(settings.TZ)
+                events_bulk.append(
+                    Event(
+                        item=item,
+                        episode_number=episode["episode"],
+                        date=local_air_date,
+                    ),
+                )
 
 
 def get_anime_schedule_bulk(media_ids):
