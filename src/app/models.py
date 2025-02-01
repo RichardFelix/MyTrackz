@@ -18,6 +18,7 @@ from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import events
+from app.mixins import CalendarTriggerMixin
 from app.providers import services, tmdb
 from app.templatetags.app_tags import media_type_readable, slug
 
@@ -452,7 +453,7 @@ class MediaManager(models.Manager):
         }
 
 
-class Media(models.Model):
+class Media(CalendarTriggerMixin, models.Model):
     """Abstract model for all media types."""
 
     class Status(models.TextChoices):
@@ -549,7 +550,6 @@ class Media(models.Model):
         if self.status == self.Status.IN_PROGRESS.value:
             if not self.start_date:
                 self.start_date = now
-            events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
         elif self.status == self.Status.COMPLETED.value:
             if not self.end_date:
@@ -567,7 +567,10 @@ class Media(models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        elif self.status in (self.Status.PLANNING.value, self.Status.PAUSED.value):
+        if not self._disable_calendar_triggers and self.status in (
+            self.Status.IN_PROGRESS.value,
+            self.Status.PLANNING.value,
+        ):
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     def increase_progress(self):
@@ -618,10 +621,13 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            elif self.status in (
-                self.Status.IN_PROGRESS.value,
-                self.Status.PLANNING.value,
-                self.Status.PAUSED.value,
+            elif (
+                self.status
+                in (
+                    self.Status.IN_PROGRESS.value,
+                    self.Status.PLANNING.value,
+                )
+                and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
@@ -766,10 +772,13 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            elif self.status in (
-                self.Status.IN_PROGRESS.value,
-                self.Status.PLANNING.value,
-                self.Status.PAUSED.value,
+            elif (
+                self.status
+                in (
+                    self.Status.IN_PROGRESS.value,
+                    self.Status.PLANNING.value,
+                )
+                and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
