@@ -164,11 +164,11 @@ def import_kitsu_id(user_id, user, mode):
 
 
 @shared_task(name="Import from Yamtrack")
-def import_yamtrack(file, user):
+def import_yamtrack(file, user, mode):
     """Celery task for importing media data from Yamtrack."""
     try:
         with disable_all_calendar_triggers():
-            imported_counts = yamtrack.importer(file, user)
+            imported_counts = yamtrack.importer(file, user, mode)
             events.tasks.reload_calendar.delay()
     except UnicodeDecodeError as error:
         msg = "Invalid file format. Please upload a CSV file."

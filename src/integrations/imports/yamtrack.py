@@ -12,7 +12,7 @@ from integrations import helpers
 logger = logging.getLogger(__name__)
 
 
-def importer(file, user):
+def importer(file, user, mode):
     """Import media from CSV file."""
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
@@ -31,6 +31,7 @@ def importer(file, user):
             media_type,
             bulk_media[media_type],
             user,
+            mode,
         )
 
     return imported_counts
@@ -86,22 +87,19 @@ def add_bulk_media(row, user, bulk_media):
         logger.error("Error importing %s: %s", row["title"], form.errors.as_json())
 
 
-def import_media(media_type, bulk_data, user):
+def import_media(media_type, bulk_data, user, mode):
     """Import media and return number of imported objects."""
     if media_type == "season":
-        return import_seasons(bulk_data, user)
+        return import_seasons(bulk_data, user, mode)
     if media_type == "episode":
-        return import_episodes(bulk_data, user)
+        return import_episodes(bulk_data, user, mode)
 
     model = apps.get_model(app_label="app", model_name=media_type)
 
-    num_objects_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_data, model, user)
-    num_objects_after = model.objects.filter(user=user).count()
-    return num_objects_after - num_objects_before
+    return helpers.bulk_chunk_import(bulk_data, model, user, mode)
 
 
-def import_seasons(bulk_data, user):
+def import_seasons(bulk_data, user, mode):
     """Import seasons and return number of imported objects."""
     unique_media_ids = {season.item.media_id for season in bulk_data}
     tv_objects = TV.objects.filter(item__media_id__in=unique_media_ids, user=user)
@@ -110,13 +108,10 @@ def import_seasons(bulk_data, user):
     for season in bulk_data:
         season.related_tv = tv_mapping[season.item.media_id]
 
-    num_seasons_before = Season.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_data, Season, user)
-    num_seasons_after = Season.objects.filter(user=user).count()
-    return num_seasons_after - num_seasons_before
+    return helpers.bulk_chunk_import(bulk_data, Season, user, mode)
 
 
-def import_episodes(bulk_data, user):
+def import_episodes(bulk_data, user, mode):
     """Import episodes and return number of imported objects."""
     unique_season_keys = {
         (episode.item.media_id, episode.item.season_number) for episode in bulk_data
@@ -137,7 +132,4 @@ def import_episodes(bulk_data, user):
         season_key = (episode.item.media_id, episode.item.season_number)
         episode.related_season = season_mapping[season_key]
 
-    num_episodes_before = Episode.objects.filter(related_season__user=user).count()
-    helpers.bulk_chunk_import(bulk_data, Episode, user)
-    num_episodes_after = Episode.objects.filter(related_season__user=user).count()
-    return num_episodes_after - num_episodes_before
+    return helpers.bulk_chunk_import(bulk_data, Episode, user, mode)

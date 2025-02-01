@@ -127,7 +127,8 @@ def import_yamtrack(request):
         messages.error(request, "Yamtrack CSV file is required.")
         return redirect("profile")
 
-    tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user)
+    mode = request.POST["mode"]
+    tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user, mode)
     messages.success(request, "Yamtrack import task queued.")
     return redirect("profile")
 

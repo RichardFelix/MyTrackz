@@ -447,7 +447,7 @@
                 action="{% url 'import_yamtrack' %}"
                 :class="{ 'opacity-50': frequency !== 'once' }">
             {% csrf_token %}
-            <input type="hidden" :name="mode" x-model="importMode">
+            <input type="hidden" name="mode" x-model="importMode">
             <input type="file"
                    accept=".csv"
                    class="form-control rounded-end-0"
