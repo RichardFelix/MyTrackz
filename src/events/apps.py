@@ -12,7 +12,7 @@ class EventsConfig(AppConfig):
 
     def ready(self):
         """Run when the app is ready."""
-        # Mock the reload_calendar task when testing
+        # Disable the reload_calendar task when testing
         if settings.TESTING:
             from events.tasks import reload_calendar
 

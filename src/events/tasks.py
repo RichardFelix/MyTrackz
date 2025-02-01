@@ -96,7 +96,8 @@ def process_anime_bulk(items, events_bulk):
         if episodes:
             for episode in episodes:
                 air_date = datetime.fromtimestamp(
-                    episode["airingAt"], tz=ZoneInfo("UTC")
+                    episode["airingAt"],
+                    tz=ZoneInfo("UTC"),
                 )
                 local_air_date = air_date.astimezone(settings.TZ)
                 events_bulk.append(
