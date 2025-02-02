@@ -51,13 +51,13 @@ def import_trakt(username, user):
 
 
 @shared_task(name="Import from SIMKL")
-def import_simkl(token, user):
+def import_simkl(token, user, mode):
     """Celery task for importing anime and manga data from SIMKL."""
     try:
         setup_historical_request(user)
         with disable_all_calendar_triggers():
             num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
-                simkl.importer(token, user)
+                simkl.importer(token, user, mode)
             )
             events.tasks.reload_calendar.delay()
 

@@ -2,10 +2,11 @@ import datetime
 import logging
 
 import requests
+from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Media
+from integrations import helpers
 
 logger = logging.getLogger(__name__)
 
@@ -48,22 +49,37 @@ def get_token(request):
     return request["access_token"]
 
 
-def importer(token, user):
+def importer(token, user, mode):
     """Import tv shows, movies and anime from SIMKL."""
     data = get_user_list(token)
 
-    # data None when empty profile
-    if data:
-        tv_count, tv_warnings = process_tv_list(data["shows"], user)
-        movie_count, movie_warnings = process_movie_list(data["movies"], user)
-        anime_count, anime_warnings = process_anime_list(data["anime"], user)
+    if not data:
+        return 0, 0, 0, ""
 
-        warning_messages = tv_warnings + movie_warnings + anime_warnings
-    else:
-        tv_count, movie_count, anime_count = 0, 0, 0
-        warning_messages = []
+    bulk_media = {"tv": [], "movie": [], "anime": [], "season": [], "episode": []}
+    warnings = []
 
-    return tv_count, movie_count, anime_count, "\n".join(warning_messages)
+    # Process all media types
+    process_tv_list(data["shows"], user, bulk_media, warnings)
+    process_movie_list(data["movies"], user, bulk_media, warnings)
+    process_anime_list(data["anime"], user, bulk_media, warnings)
+
+    # Import using bulk operations
+    imported_counts = {}
+    for media_type, bulk_list in bulk_media.items():
+        imported_counts[media_type] = helpers.bulk_chunk_import(
+            bulk_list,
+            apps.get_model(app_label="app", model_name=media_type),
+            user,
+            mode,
+        )
+
+    return (
+        imported_counts.get("tv", 0),
+        imported_counts.get("movie", 0),
+        imported_counts.get("anime", 0),
+        "\n".join(warnings),
+    )
 
 
 def get_user_list(token):
@@ -87,25 +103,19 @@ def get_user_list(token):
     )
 
 
-def process_tv_list(tv_list, user):
-    """Process TV list from SIMKL and add to database."""
+def process_tv_list(tv_list, user, bulk_media, warnings):
+    """Process TV list from SIMKL and prepare for bulk creation."""
     logger.info("Processing tv shows")
-    warnings = []
-    tv_count = 0
 
     for tv in tv_list:
         title = tv["show"]["title"]
-        msg = f"Processing {title}"
-        logger.debug(msg)
         tmdb_id = tv["show"]["ids"]["tmdb"]
         tv_status = get_status(tv["status"])
 
         try:
             season_numbers = [season["number"] for season in tv["seasons"]]
         except KeyError:
-            warnings.append(
-                f"{title}: It doesn't have data on episodes viewed.",
-            )
+            warnings.append(f"{title}: It doesn't have data on episodes viewed.")
             continue
 
         try:
@@ -128,71 +138,143 @@ def process_tv_list(tv_list, user):
             },
         )
 
-        tv_obj, tv_created = app.models.TV.objects.get_or_create(
+        tv_instance = app.models.TV(
             item=tv_item,
             user=user,
+            status=tv_status,
+            score=tv["user_rating"],
+        )
+        bulk_media["tv"].append(tv_instance)
+
+        # Process seasons and episodes
+        process_seasons_and_episodes(
+            tv,
+            tv_instance,
+            metadata,
+            season_numbers,
+            user,
+            bulk_media,
+        )
+    logger.info("Processed %d tv shows", len(tv_list))
+
+    update_season_references(bulk_media["season"], user)
+    update_episode_references(bulk_media["episode"], user)
+
+
+def process_seasons_and_episodes(
+    tv,
+    tv_instance,
+    metadata,
+    season_numbers,
+    user,
+    bulk_media,
+):
+    """Process seasons and episodes for bulk creation."""
+    tmdb_id = tv["show"]["ids"]["tmdb"]
+
+    for season in tv["seasons"]:
+        season_number = season["number"]
+        episodes = season["episodes"]
+        season_metadata = metadata[f"season/{season_number}"]
+
+        season_item, _ = app.models.Item.objects.get_or_create(
+            media_id=tmdb_id,
+            source="tmdb",
+            media_type="season",
+            season_number=season_number,
             defaults={
-                "status": tv_status,
-                "score": tv["user_rating"],
+                "title": metadata["title"],
+                "image": season_metadata["image"],
             },
         )
 
-        if tv_created:
-            tv_count += 1
+        # Prepare Season instance for bulk creation
+        season_status = (
+            app.models.Media.Status.COMPLETED.value
+            if season_number != season_numbers[-1]
+            else tv_instance.status
+        )
 
-        for season in tv["seasons"]:
-            season_number = season["number"]
-            episodes = season["episodes"]
-            season_metadata = metadata[f"season/{season_number}"]
+        season_instance = app.models.Season(
+            item=season_item,
+            user=user,
+            related_tv=tv_instance,
+            status=season_status,
+        )
+        bulk_media["season"].append(season_instance)
 
-            season_item, _ = app.models.Item.objects.get_or_create(
+        # Process episodes
+        for episode in episodes:
+            ep_img = get_episode_image(episode, season_number, metadata)
+            episode_item, _ = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
                 source="tmdb",
-                media_type="season",
+                media_type="episode",
                 season_number=season_number,
+                episode_number=episode["number"],
                 defaults={
                     "title": metadata["title"],
-                    "image": season_metadata["image"],
+                    "image": ep_img,
                 },
             )
 
-            if season_number == season_numbers[-1]:  # if last iteration
-                season_status = tv_status
-            else:
-                season_status = Media.Status.COMPLETED.value
-
-            season_obj, _ = app.models.Season.objects.get_or_create(
-                item=season_item,
-                user=user,
-                related_tv=tv_obj,
-                defaults={
-                    "status": season_status,
-                },
+            episode_instance = app.models.Episode(
+                item=episode_item,
+                related_season=season_instance,
+                end_date=get_date(episode["watched_at"]),
             )
+            bulk_media["episode"].append(episode_instance)
 
-            for episode in episodes:
-                ep_img = get_episode_image(episode, season_number, metadata)
-                episode_item, _ = app.models.Item.objects.get_or_create(
-                    media_id=tmdb_id,
-                    source="tmdb",
-                    media_type="episode",
-                    season_number=season_number,
-                    episode_number=episode["number"],
-                    defaults={
-                        "title": metadata["title"],
-                        "image": ep_img,
-                    },
-                )
 
-                app.models.Episode.objects.get_or_create(
-                    item=episode_item,
-                    related_season=season_obj,
-                    defaults={
-                        "end_date": get_date(episode["watched_at"]),
-                    },
-                )
-    logger.info("Finished processing tv shows")
-    return tv_count, warnings
+def update_season_references(seasons, user):
+    """Update season references with actual TV instances.
+
+    When bulk_create skips existing TV shows, seasons would still reference
+    the unsaved TV instances. This updates those references to point to
+    the existing TV shows in the database, preventing the ValueError about
+    unsaved related objects during bulk creation of seasons.
+    """
+    # Get existing TV shows from database
+    existing_tv = {
+        tv.item.media_id: tv
+        for tv in app.models.TV.objects.filter(
+            user=user,
+            item__media_id__in=[season.item.media_id for season in seasons],
+        )
+    }
+
+    # Update references
+    for season in seasons:
+        media_id = season.item.media_id
+        if media_id in existing_tv:
+            season.related_tv = existing_tv[media_id]
+
+
+def update_episode_references(episodes, user):
+    """Update episode references with actual Season instances.
+
+    When bulk_create skips existing seasons, episodes would still reference
+    the unsaved season instances. This updates those references to point to
+    the existing seasons in the database, preventing the ValueError about
+    unsaved related objects during bulk creation of episodes.
+    """
+    # Create mapping of season instances
+    existing_seasons = {
+        (season.item.media_id, season.item.season_number): season
+        for season in app.models.Season.objects.filter(
+            user=user,
+            item__media_id__in={episode.item.media_id for episode in episodes},
+        )
+    }
+
+    # Update references
+    for episode in episodes:
+        season_key = (
+            episode.item.media_id,
+            episode.item.season_number,
+        )
+        if season_key in existing_seasons:
+            episode.related_season = existing_seasons[season_key]
 
 
 def get_episode_image(episode, season_number, metadata):
@@ -203,18 +285,12 @@ def get_episode_image(episode, season_number, metadata):
     return settings.IMG_NONE
 
 
-def process_movie_list(movie_list, user):
-    """Process movie list from SIMKL and add to database."""
+def process_movie_list(movie_list, user, bulk_media, warnings):
+    """Process movie list from SIMKL and prepare for bulk creation."""
     logger.info("Processing movies")
-    warnings = []
-    movie_count = 0
 
     for movie in movie_list:
         title = movie["movie"]["title"]
-
-        msg = f"Processing {title}"
-        logger.debug(msg)
-
         tmdb_id = movie["movie"]["ids"]["tmdb"]
         movie_status = get_status(movie["status"])
 
@@ -238,36 +314,25 @@ def process_movie_list(movie_list, user):
             },
         )
 
-        _, movie_created = app.models.Movie.objects.get_or_create(
+        movie_instance = app.models.Movie(
             item=movie_item,
             user=user,
-            defaults={
-                "status": movie_status,
-                "score": movie["user_rating"],
-                "start_date": get_date(movie["last_watched_at"]),
-                "end_date": get_date(movie["last_watched_at"]),
-            },
+            status=movie_status,
+            score=movie["user_rating"],
+            start_date=get_date(movie["last_watched_at"]),
+            end_date=get_date(movie["last_watched_at"]),
         )
+        bulk_media["movie"].append(movie_instance)
 
-        if movie_created:
-            movie_count += 1
-
-    logger.info("Finished processing movies")
-
-    return movie_count, warnings
+    logger.info("Processed %d movies", len(movie_list))
 
 
-def process_anime_list(anime_list, user):
-    """Process anime list from SIMKL and add to database."""
+def process_anime_list(anime_list, user, bulk_media, warnings):
+    """Process anime list from SIMKL and prepare for bulk creation."""
     logger.info("Processing anime")
-    warnings = []
-    anime_count = 0
 
     for anime in anime_list:
         title = anime["show"]["title"]
-        msg = f"Processing {title}"
-        logger.debug(msg)
-
         mal_id = anime["show"]["ids"]["mal"]
         anime_status = get_status(anime["status"])
 
@@ -275,9 +340,7 @@ def process_anime_list(anime_list, user):
             metadata = app.providers.mal.anime(mal_id)
         except requests.exceptions.HTTPError as error:
             if error.response.status_code == requests.codes.not_found:
-                warnings.append(
-                    f"{title}: Couldn't fetch metadata from TMDB ({mal_id})",
-                )
+                warnings.append(f"{title}: Couldn't fetch metadata from MAL ({mal_id})")
                 continue
             raise
 
@@ -291,38 +354,38 @@ def process_anime_list(anime_list, user):
             },
         )
 
-        _, anime_created = app.models.Anime.objects.get_or_create(
-            item=anime_item,
-            user=user,
-            defaults={
-                "status": anime_status,
-                "score": anime["user_rating"],
-                "progress": anime["watched_episodes_count"],
-                "start_date": get_date(anime["last_watched_at"]),
-                "end_date": get_date(anime["last_watched_at"])
-                if anime_status == Media.Status.COMPLETED.value
-                else None,
-            },
+        # Determine end date based on status
+        end_date = (
+            get_date(anime["last_watched_at"])
+            if anime_status == app.models.Media.Status.COMPLETED.value
+            else None
         )
 
-        if anime_created:
-            anime_count += 1
+        anime_instance = app.models.Anime(
+            item=anime_item,
+            user=user,
+            status=anime_status,
+            score=anime["user_rating"],
+            progress=anime["watched_episodes_count"],
+            start_date=get_date(anime["last_watched_at"]),
+            end_date=end_date,
+        )
+        bulk_media["anime"].append(anime_instance)
 
-    logger.info("Finished processing anime")
-    return anime_count, warnings
+    logger.info("Processed %d anime", len(anime_list))
 
 
 def get_status(status):
     """Map SIMKL status to internal status."""
     status_mapping = {
-        "completed": Media.Status.COMPLETED.value,
-        "watching": Media.Status.IN_PROGRESS.value,
-        "plantowatch": Media.Status.PLANNING.value,
-        "hold": Media.Status.PAUSED.value,
-        "dropped": Media.Status.DROPPED.value,
+        "completed": app.models.Media.Status.COMPLETED.value,
+        "watching": app.models.Media.Status.IN_PROGRESS.value,
+        "plantowatch": app.models.Media.Status.PLANNING.value,
+        "hold": app.models.Media.Status.PAUSED.value,
+        "dropped": app.models.Media.Status.DROPPED.value,
     }
 
-    return status_mapping.get(status, Media.Status.IN_PROGRESS.value)
+    return status_mapping.get(status, app.models.Media.Status.IN_PROGRESS.value)
 
 
 def get_date(date):

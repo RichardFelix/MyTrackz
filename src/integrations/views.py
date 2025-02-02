@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -38,20 +39,26 @@ def import_trakt(request):
 @require_GET
 def simkl_oauth(request):
     """View for initiating the SIMKL OAuth2 authorization flow."""
-    domain = request.get_host()
-    scheme = request.scheme
+    redirect_uri = request.build_absolute_uri(reverse("import_simkl"))
     url = "https://simkl.com/oauth/authorize"
 
+    mode = request.GET["mode"]
+    # store in session because simkl drops all additional parameters
+    request.session["simkl_import_mode"] = mode
+
     return redirect(
-        f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={scheme}://{domain}/import/simkl&response_type=code",
+        f"{url}?client_id={settings.SIMKL_ID}&redirect_uri={redirect_uri}&response_type=code",
     )
 
 
 @require_GET
 def import_simkl(request):
     """View for getting the SIMKL OAuth2 token."""
+    mode = request.session.get("simkl_import_mode")
+    request.session.pop("simkl_import_mode", None)  # Clean up session
+
     token = simkl.get_token(request)
-    tasks.import_simkl.delay(token, request.user)
+    tasks.import_simkl.delay(token, request.user, mode)
     messages.success(request, "SIMKL import task queued.")
     return redirect("profile")
 
