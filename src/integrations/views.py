@@ -31,7 +31,8 @@ def import_trakt(request):
         messages.error(request, "Trakt username is required.")
         return redirect("profile")
 
-    tasks.import_trakt.delay(username, request.user)
+    mode = request.GET["mode"]
+    tasks.import_trakt.delay(username, request.user, mode)
     messages.success(request, "Trakt import task queued.")
     return redirect("profile")
 

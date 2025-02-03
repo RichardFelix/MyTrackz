@@ -10,7 +10,10 @@ ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
 
 def setup_historical_request(user):
-    """Set up historical records request context."""
+    """Set up historical records request context.
+
+    Enable historical records to track the user who initiated the import.
+    """
     HistoricalRecords.thread.request = type("FakeRequest", (), {"user": user})
 
 
@@ -21,7 +24,7 @@ def cleanup_historical_request():
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(username, user):
+def import_trakt(username, user, mode):
     """Celery task for importing anime and manga data from Trakt."""
     try:
         setup_historical_request(user)
@@ -29,17 +32,15 @@ def import_trakt(username, user):
             (
                 num_tv_imported,
                 num_movie_imported,
-                num_watchlist_imported,
-                num_ratings_imported,
+                num_anime_imported,
                 warning_message,
-            ) = trakt.importer(username, user)
+            ) = trakt.importer(username, user, mode)
             events.tasks.reload_calendar.delay()
 
         info_message = (
             f"Imported {num_tv_imported} TV shows, "
             f"{num_movie_imported} movies, "
-            f"{num_watchlist_imported} watchlist items, "
-            f"and {num_ratings_imported} ratings."
+            f"and {num_anime_imported} anime."
         )
         return (
             f"{info_message} {ERROR_TITLE} {warning_message}"
