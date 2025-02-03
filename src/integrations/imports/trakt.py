@@ -98,8 +98,8 @@ def importer(username, user, mode):
     )
 
     # Update references before bulk creation
-    update_season_references(bulk_media["season"], user)
-    update_episode_references(bulk_media["episode"], user)
+    helpers.update_season_references(bulk_media["season"], user)
+    helpers.update_episode_references(bulk_media["episode"], user)
 
     # Bulk create all media types
     imported_counts = {}
@@ -698,41 +698,6 @@ def prepare_mal_anime(entry, mal_id, user, defaults, bulk_media, media_instances
     )
     bulk_media["anime"].append(anime_instance)
     media_instances["anime"][mal_id] = anime_instance
-
-
-def update_season_references(seasons, user):
-    """Update season references with actual TV instances."""
-    existing_tv = {
-        tv.item.media_id: tv
-        for tv in app.models.TV.objects.filter(
-            user=user,
-            item__media_id__in=[season.item.media_id for season in seasons],
-        )
-    }
-
-    for season in seasons:
-        media_id = season.item.media_id
-        if media_id in existing_tv:
-            season.related_tv = existing_tv[media_id]
-
-
-def update_episode_references(episodes, user):
-    """Update episode references with actual Season instances."""
-    existing_seasons = {
-        (season.item.media_id, season.item.season_number): season
-        for season in app.models.Season.objects.filter(
-            user=user,
-            item__media_id__in={episode.item.media_id for episode in episodes},
-        )
-    }
-
-    for episode in episodes:
-        season_key = (
-            episode.item.media_id,
-            episode.item.season_number,
-        )
-        if season_key in existing_seasons:
-            episode.related_season = existing_seasons[season_key]
 
 
 def get_episode_image(episode_number, season_metadata):

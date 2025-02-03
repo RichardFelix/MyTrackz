@@ -157,8 +157,8 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
         )
     logger.info("Processed %d tv shows", len(tv_list))
 
-    update_season_references(bulk_media["season"], user)
-    update_episode_references(bulk_media["episode"], user)
+    helpers.update_season_references(bulk_media["season"], user)
+    helpers.update_episode_references(bulk_media["episode"], user)
 
 
 def process_seasons_and_episodes(
@@ -224,57 +224,6 @@ def process_seasons_and_episodes(
                 end_date=get_date(episode["watched_at"]),
             )
             bulk_media["episode"].append(episode_instance)
-
-
-def update_season_references(seasons, user):
-    """Update season references with actual TV instances.
-
-    When bulk_create skips existing TV shows, seasons would still reference
-    the unsaved TV instances. This updates those references to point to
-    the existing TV shows in the database, preventing the ValueError about
-    unsaved related objects during bulk creation of seasons.
-    """
-    # Get existing TV shows from database
-    existing_tv = {
-        tv.item.media_id: tv
-        for tv in app.models.TV.objects.filter(
-            user=user,
-            item__media_id__in=[season.item.media_id for season in seasons],
-        )
-    }
-
-    # Update references
-    for season in seasons:
-        media_id = season.item.media_id
-        if media_id in existing_tv:
-            season.related_tv = existing_tv[media_id]
-
-
-def update_episode_references(episodes, user):
-    """Update episode references with actual Season instances.
-
-    When bulk_create skips existing seasons, episodes would still reference
-    the unsaved season instances. This updates those references to point to
-    the existing seasons in the database, preventing the ValueError about
-    unsaved related objects during bulk creation of episodes.
-    """
-    # Create mapping of season instances
-    existing_seasons = {
-        (season.item.media_id, season.item.season_number): season
-        for season in app.models.Season.objects.filter(
-            user=user,
-            item__media_id__in={episode.item.media_id for episode in episodes},
-        )
-    }
-
-    # Update references
-    for episode in episodes:
-        season_key = (
-            episode.item.media_id,
-            episode.item.season_number,
-        )
-        if season_key in existing_seasons:
-            episode.related_season = existing_seasons[season_key]
 
 
 def get_episode_image(episode, season_number, metadata):
