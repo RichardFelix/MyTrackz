@@ -149,12 +149,7 @@ def process_watched_shows(
 
     for entry in watched:
         trakt_id = entry["show"]["ids"]["trakt"]
-        tmdb_id = entry["show"]["ids"]["tmdb"]
         trakt_title = entry["show"]["title"]
-
-        if not tmdb_id:
-            warnings.append(f"No TMDB ID found for {trakt_title} in watch history")
-            continue
 
         try:
             for season in entry["seasons"]:
@@ -172,6 +167,13 @@ def process_watched_shows(
                         media_instances,
                     )
                 else:
+                    tmdb_id = entry["show"]["ids"]["tmdb"]
+                    if not tmdb_id:
+                        warnings.append(
+                            f"No TMDB ID found for {trakt_title} in watch history",
+                        )
+                        break
+
                     # Only create TV and seasons for TMDB content
                     if tmdb_id not in media_instances["tv"]:
                         # Get metadata for all seasons at once

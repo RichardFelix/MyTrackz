@@ -39,7 +39,7 @@ class ImportMAL(TestCase):
         manga_mock.json.return_value = manga_response
         mock_request.side_effect = [anime_mock, manga_mock]
 
-        mal.importer("bloodthirstiness", self.user)
+        mal.importer("bloodthirstiness", self.user, "new")
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -65,6 +65,7 @@ class ImportMAL(TestCase):
             mal.importer,
             "fhdsufdsu",
             self.user,
+            "new",
         )
 
 
@@ -83,7 +84,7 @@ class ImportAniList(TestCase):
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
-        anilist.importer("bloodthirstiness", self.user)
+        anilist.importer("bloodthirstiness", self.user, "new")
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -102,6 +103,7 @@ class ImportAniList(TestCase):
             anilist.importer,
             "fhdsufdsu",
             self.user,
+            "new",
         )
 
 
@@ -116,7 +118,7 @@ class ImportYamtrack(TestCase):
     def test_import_yamtrack(self):
         """Basic test importing media from Yamtrack."""
         with Path(mock_path / "import_yamtrack.csv").open("rb") as file:
-            yamtrack.importer(file, self.user)
+            yamtrack.importer(file, self.user, "new")
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)
@@ -161,7 +163,7 @@ class ImportKitsu(TestCase):
         ]
 
         num_anime_imported, num_manga_imported, warning_message = (
-            kitsu.import_by_user_id("123", self.user)
+            kitsu.importer("123", self.user, "new")
         )
 
         self.assertEqual(num_anime_imported, 5)
@@ -271,7 +273,7 @@ class ImportTrakt(TestCase):
             [],  # empty ratings
         ]
 
-        trakt.importer("testuser", self.user)
+        trakt.importer("testuser", self.user, "new")
 
         self.assertEqual(Item.objects.count(), 1)
 
@@ -299,7 +301,7 @@ class ImportTrakt(TestCase):
             [],  # empty ratings
         ]
 
-        trakt.importer("testuser", self.user)
+        trakt.importer("testuser", self.user, "new")
 
         self.assertEqual(Item.objects.count(), 1)
 
@@ -308,21 +310,68 @@ class ImportTrakt(TestCase):
         with Path(mock_path / "import_trakt_watched.json").open() as file:
             watched = json.load(file)
 
-        trakt.process_watched_shows(watched, {}, self.user)
+        bulk_media = {
+            "tv": [],
+            "movie": [],
+            "anime": [],
+            "season": [],
+            "episode": [],
+        }
+        # Keep track of created instances for watchlist and ratings updates
+        media_instances = {
+            "tv": {},
+            "movie": {},
+            "anime": {},
+            "season": {},
+            "episode": {},
+        }
+        trakt.process_watched_shows(
+            watched,
+            {},
+            self.user,
+            bulk_media,
+            media_instances,
+            [],
+        )
 
         self.assertEqual(Item.objects.count(), 15)
-        self.assertEqual(Episode.objects.count(), 13)
+        self.assertEqual(len(bulk_media["tv"]), 1)
+        self.assertEqual(len(bulk_media["season"]), 1)
+        self.assertEqual(len(bulk_media["episode"]), 13)
 
     def test_process_ratings(self):
         """Test processing watched shows from Trakt."""
         with Path(mock_path / "import_trakt_ratings.json").open() as file:
             ratings = json.load(file)
-
-        trakt.process_list(ratings, {}, {}, self.user, "ratings")
+        bulk_media = {
+            "tv": [],
+            "movie": [],
+            "anime": [],
+            "season": [],
+            "episode": [],
+        }
+        # Keep track of created instances for watchlist and ratings updates
+        media_instances = {
+            "tv": {},
+            "movie": {},
+            "anime": {},
+            "season": {},
+            "episode": {},
+        }
+        trakt.process_list(
+            ratings,
+            {},
+            {},
+            self.user,
+            "ratings",
+            bulk_media,
+            media_instances,
+            [],
+        )
 
         self.assertEqual(Item.objects.count(), 1)
-        movie = Movie.objects.first()
-        self.assertEqual(movie.score, 8)
+        self.assertEqual(len(bulk_media["movie"]), 1)
+        self.assertEqual(bulk_media["movie"][0].score, 8)
 
     def test_get_date(self):
         """Test getting date from Trakt."""
@@ -384,6 +433,7 @@ class ImportSimkl(TestCase):
         tv_count, movie_count, anime_count, warnings = simkl.importer(
             "token",
             self.user,
+            "new",
         )
 
         # Check the results
