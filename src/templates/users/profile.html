@@ -214,43 +214,66 @@
       </div>
     </template>
 
-    <!-- The Movie Database -->
+    <!-- Trakt -->
     <div class="card mb-3">
       <div class="card-body d-flex flex-column justify-content-between">
         <div class="d-flex flex-wrap justify-content-center justify-content-lg-between align-items-center row-gap-4">
           <div class="d-flex gap-3 flex-wrap justify-content-center">
-            <img src="https://www.themoviedb.org/assets/2/v4/logos/v2/blue_square_2-d537fb228cf3ded904ef09b136fe3fec72548ebc1fea3fbbd1ad9e36364db38b.svg"
+            <img src="https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg"
                  alt="Trakt logo"
                  class="rounded"
                  width="58"
                  height="58">
             <div>
-              <h5 class="card-title mb-1 text-center text-sm-start">The Movie Database</h5>
-              <p class="text-muted mb-0">Import TV shows and movies</p>
+              <h5 class="card-title mb-1 text-center text-sm-start">Trakt</h5>
+              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
             </div>
           </div>
 
-          <form class="d-flex"
-                method="post"
-                enctype="multipart/form-data"
-                action="{% url 'import_tmdb' %}"
-                :class="{ 'opacity-50': frequency !== 'once' }">
-            {% csrf_token %}
+          <form class="d-flex" method="get" action="{% url 'import_trakt' %}">
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
-            <input type="file"
-                   accept=".csv"
-                   class="form-control rounded-end-0"
-                   name="tmdb"
-                   :disabled="frequency !== 'once'">
-            <select class="form-select border-start-0 rounded-0 w-auto"
-                    name="type"
-                    :disabled="frequency !== 'once'">
-              <option value="ratings" selected>Ratings</option>
-              <option value="watchlist">Watchlist</option>
-            </select>
-            <button class="btn btn-secondary border-start-0 rounded-start-0"
-                    :disabled="frequency !== 'once'">
-              <i class="bi bi-file-earmark-arrow-up"></i>
+            <span class="badge"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Found at your Trakt profile URL">
+              <i class="bi bi-question-circle"></i>
+            </span>
+            <input type="text"
+                   class="form-control border-end-0 rounded-end-0"
+                   name="trakt"
+                   placeholder="Trakt Username Slug">
+            <button class="btn btn-secondary border-start-0 rounded-start-0">
+              <i class="bi bi-cloud-download"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMKL -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-wrap justify-content-center justify-content-lg-between align-items-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap justify-content-center">
+            <img src="https://eu.simkl.in/img_favicon/v2/favicon-192x192.png"
+                 alt="SIMKL logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1 text-center text-sm-start">SIMKL</h5>
+              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
+            </div>
+          </div>
+
+          <form method="get"
+                action="{% url 'simkl_oauth' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
+            <input type="hidden" name="mode" x-model="importMode">
+            <button class="btn btn-secondary" :disabled="frequency !== 'once'">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Authenticate
             </button>
           </form>
         </div>
@@ -315,72 +338,6 @@
                    placeholder="AniList Username">
             <button class="btn btn-secondary border-start-0 rounded-start-0">
               <i class="bi bi-cloud-download"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trakt -->
-    <div class="card mb-3">
-      <div class="card-body d-flex flex-column justify-content-between">
-        <div class="d-flex flex-wrap justify-content-center justify-content-lg-between align-items-center row-gap-4">
-          <div class="d-flex gap-3 flex-wrap justify-content-center">
-            <img src="https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg"
-                 alt="Trakt logo"
-                 class="rounded"
-                 width="58"
-                 height="58">
-            <div>
-              <h5 class="card-title mb-1 text-center text-sm-start">Trakt</h5>
-              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
-            </div>
-          </div>
-
-          <form class="d-flex" method="get" action="{% url 'import_trakt' %}">
-            <input type="hidden" name="frequency" x-model="frequency">
-            <input type="hidden" name="time" x-model="importTime">
-            <input type="hidden" name="mode" x-model="importMode">
-            <span class="badge"
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="top"
-                  title="Found at your Trakt profile URL">
-              <i class="bi bi-question-circle"></i>
-            </span>
-            <input type="text"
-                   class="form-control border-end-0 rounded-end-0"
-                   name="trakt"
-                   placeholder="Trakt Username Slug">
-            <button class="btn btn-secondary border-start-0 rounded-start-0">
-              <i class="bi bi-cloud-download"></i>
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- SIMKL -->
-    <div class="card mb-3">
-      <div class="card-body d-flex flex-column justify-content-between">
-        <div class="d-flex flex-wrap justify-content-center justify-content-lg-between align-items-center row-gap-4">
-          <div class="d-flex gap-3 flex-wrap justify-content-center">
-            <img src="https://eu.simkl.in/img_favicon/v2/favicon-192x192.png"
-                 alt="SIMKL logo"
-                 class="rounded"
-                 width="58"
-                 height="58">
-            <div>
-              <h5 class="card-title mb-1 text-center text-sm-start">SIMKL</h5>
-              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
-            </div>
-          </div>
-
-          <form method="get"
-                action="{% url 'simkl_oauth' %}"
-                :class="{ 'opacity-50': frequency !== 'once' }">
-            <input type="hidden" name="mode" x-model="importMode">
-            <button class="btn btn-secondary" :disabled="frequency !== 'once'">
-              <i class="bi bi-box-arrow-in-right me-2"></i>Authenticate
             </button>
           </form>
         </div>

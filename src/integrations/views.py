@@ -78,25 +78,6 @@ def import_mal(request):
     return redirect("profile")
 
 
-@require_POST
-def import_tmdb(request):
-    """View for importing TMDB movie and TV watchlist."""
-    file = request.FILES.get("tmdb")
-
-    if not file:
-        messages.error(request, "TMDB CSV file is required.")
-        return redirect("profile")
-
-    if request.POST.get("type") == "ratings":
-        tasks.import_tmdb.delay(file, request.user, "Completed")
-        messages.success(request, "TMDB ratings import task queued.")
-    else:
-        tasks.import_tmdb.delay(file, request.user, "Planning")
-        messages.success(request, "TMDB watchlist import task queued.")
-
-    return redirect("profile")
-
-
 @require_GET
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""

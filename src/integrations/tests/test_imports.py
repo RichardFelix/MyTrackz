@@ -9,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
-from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 app_mock_path = (
@@ -66,29 +66,6 @@ class ImportMAL(TestCase):
             "fhdsufdsu",
             self.user,
         )
-
-
-class ImportTMDB(TestCase):
-    """Test importing media from TMDB."""
-
-    def setUp(self):
-        """Create user for the tests."""
-        self.credentials = {"username": "test", "password": "12345"}
-        self.user = get_user_model().objects.create_user(**self.credentials)
-
-    def test_tmdb_import_ratings(self):
-        """Test importing ratings from TMDB."""
-        with Path(mock_path / "import_tmdb_ratings.csv").open("rb") as file:
-            tmdb.importer(file, self.user, "Completed")
-        self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
-        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
-
-    def test_tmdb_import_watchlist(self):
-        """Test importing watchlist from TMDB."""
-        with Path(mock_path / "import_tmdb_watchlist.csv").open("rb") as file:
-            tmdb.importer(file, self.user, "Planning")
-
-        self.assertEqual(TV.objects.filter(user=self.user).count(), 2)
 
 
 class ImportAniList(TestCase):

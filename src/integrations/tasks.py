@@ -4,7 +4,7 @@ from simple_history.models import HistoricalRecords
 
 import events
 from app.mixins import disable_all_calendar_triggers
-from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
+from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
@@ -90,26 +90,6 @@ def import_mal(username, user, mode):
         raise
     else:
         return f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
-
-
-@shared_task(name="Import from TMDB")
-def import_tmdb(file, user, status):
-    """Celery task for importing TMDB tv shows and movies."""
-    try:
-        setup_historical_request(user)
-        with disable_all_calendar_triggers():
-            num_tv_imported, num_movie_imported = tmdb.importer(file, user, status)
-            events.tasks.reload_calendar.delay()
-    except UnicodeDecodeError as error:
-        msg = "Invalid file format. Please upload a CSV file."
-        raise ValueError(msg) from error
-    except KeyError as error:
-        msg = "Error parsing TMDB CSV file."
-        raise ValueError(msg) from error
-    else:
-        return f"Imported {num_tv_imported} TV shows and {num_movie_imported} movies."
-    finally:
-        cleanup_historical_request()
 
 
 @shared_task(name="Import from AniList")
