@@ -11,7 +11,7 @@
     </div>
 
     <div class="modal-body">
-      <div class="d-flex column-gap-2">
+      <div class="d-flex gap-2 flex-wrap">
         {% for custom_list in custom_lists %}
           <button class="btn btn-secondary"
                   hx-post="{% url 'list_item_toggle' %}"
