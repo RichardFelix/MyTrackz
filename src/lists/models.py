@@ -51,23 +51,22 @@ class CustomList(models.Model):
         """Meta options for the model."""
 
         ordering = ["name"]
-        unique_together = ["name", "owner"]
 
     def __str__(self):
         """Return the name of the custom list."""
         return self.name
 
+    def user_can_view(self, user):
+        """Check if the user can view the list."""
+        return self.owner == user or user in self.collaborators.all()
+
     def user_can_edit(self, user):
         """Check if the user can edit the list."""
-        return self.owner == user
+        return self.owner == user or user in self.collaborators.all()
 
     def user_can_delete(self, user):
         """Check if the user can delete the list."""
         return self.owner == user
-
-    def user_can_view(self, user):
-        """Check if the user can view the list."""
-        return self.owner == user or user in self.collaborators.all()
 
 
 class CustomListItemManager(models.Manager):
@@ -94,7 +93,12 @@ class CustomListItem(models.Model):
         """Meta options for the model."""
 
         ordering = ["date_added"]
-        unique_together = ["item", "custom_list"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item", "custom_list"],
+                name="%(app_label)s_customlistitem_unique_item_list",
+            ),
+        ]
 
     def __str__(self):
         """Return the name of the list item."""

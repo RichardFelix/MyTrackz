@@ -34,19 +34,6 @@ class CustomListForm(forms.ModelForm):
         self.owner = kwargs.pop("owner", None)
         super().__init__(*args, **kwargs)
 
-    def clean(self):
-        """Check if a list with the same name already exists for the user."""
-        cleaned_data = super().clean()
-        name = cleaned_data.get("name")
-        if (
-            name
-            and self.owner
-            and CustomList.objects.filter(name=name, owner=self.owner).exists()
-        ):
-            msg = "A list with this name already exists."
-            raise forms.ValidationError(msg)
-        return cleaned_data
-
 
 class FilterListItemsForm(forms.Form):
     """Form for filtering media on media list view."""
