@@ -22,23 +22,22 @@ from integrations.webhooks import jellyfin
 logger = logging.getLogger(__name__)
 
 
-@require_GET
+@require_POST
 def import_trakt(request):
     """View for importing anime and manga data from Trakt."""
-    username = request.GET.get("trakt")
-
+    username = request.POST.get("trakt")
     if not username:
         messages.error(request, "Trakt username is required.")
         return redirect("profile")
 
-    mode = request.GET["mode"]
-    frequency = request.GET["frequency"]
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_trakt.delay(username=username, user_id=request.user.id, mode=mode)
         messages.success(request, "Trakt import task queued.")
     else:
-        import_time = request.GET["time"]
+        import_time = request.POST["time"]
         helpers.create_import_schedule(
             username,
             request,
@@ -47,17 +46,16 @@ def import_trakt(request):
             import_time,
             "Trakt",
         )
-
     return redirect("profile")
 
 
-@require_GET
+@require_POST
 def simkl_oauth(request):
     """View for initiating the SIMKL OAuth2 authorization flow."""
     redirect_uri = request.build_absolute_uri(reverse("import_simkl"))
     url = "https://simkl.com/oauth/authorize"
 
-    mode = request.GET["mode"]
+    mode = request.POST["mode"]
     # store in session because simkl drops all additional parameters
     request.session["simkl_import_mode"] = mode
 
@@ -78,22 +76,22 @@ def import_simkl(request):
     return redirect("profile")
 
 
-@require_GET
+@require_POST
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
-    username = request.GET.get("mal")
+    username = request.POST.get("mal")
     if not username:
         messages.error(request, "MyAnimeList username is required.")
         return redirect("profile")
 
-    mode = request.GET["mode"]
-    frequency = request.GET["frequency"]
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_mal.delay(username=username, user_id=request.user.id, mode=mode)
         messages.success(request, "MyAnimeList import task queued.")
     else:
-        import_time = request.GET["time"]
+        import_time = request.POST["time"]
         helpers.create_import_schedule(
             username,
             request,
@@ -105,16 +103,16 @@ def import_mal(request):
     return redirect("profile")
 
 
-@require_GET
+@require_POST
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
-    username = request.GET.get("anilist")
+    username = request.POST.get("anilist")
     if not username:
         messages.error(request, "AniList username is required.")
         return redirect("profile")
 
-    mode = request.GET["mode"]
-    frequency = request.GET["frequency"]
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_anilist.delay(
@@ -124,7 +122,7 @@ def import_anilist(request):
         )
         messages.success(request, "AniList import task queued.")
     else:
-        import_time = request.GET["time"]
+        import_time = request.POST["time"]
         helpers.create_import_schedule(
             username,
             request,
@@ -136,23 +134,22 @@ def import_anilist(request):
     return redirect("profile")
 
 
-@require_GET
+@require_POST
 def import_kitsu(request):
     """View for importing anime and manga data from Kitsu by user ID."""
-    kitsu_id = request.GET.get("kitsu")
-
+    kitsu_id = request.POST.get("kitsu")
     if not kitsu_id:
         messages.error(request, "Kitsu user ID is required.")
         return redirect("profile")
 
-    mode = request.GET["mode"]
-    frequency = request.GET["frequency"]
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_kitsu.delay(username=kitsu_id, user_id=request.user.id, mode=mode)
         messages.success(request, "Kitsu import task queued.")
     else:
-        import_time = request.GET["time"]
+        import_time = request.POST["time"]
         helpers.create_import_schedule(
             kitsu_id,
             request,
