@@ -1,3 +1,9 @@
+import datetime
+import json
+
+from django.contrib import messages
+from django.utils import timezone
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import app
@@ -156,3 +162,40 @@ def bulk_create_update_with_history(
         )
 
     return num_created + num_updated
+
+
+def create_schedule(username, request, mode, frequency, import_time, source):
+    """Create or update an import schedule."""
+    try:
+        import_time = (
+            datetime.datetime.strptime(import_time, "%H:%M")
+            .astimezone(
+                timezone.get_default_timezone(),
+            )
+            .time()
+        )
+    except ValueError:
+        messages.error(request, "Invalid import time.")
+    else:
+        crontab = CrontabSchedule.objects.create(
+            hour=import_time.hour,
+            minute=import_time.minute,
+            day_of_week="*" if frequency == "daily" else "*/2",
+            timezone=timezone.get_default_timezone(),
+        )
+        task_name = f"Import from {source} for {username} at {import_time} {frequency}"
+        # Create new periodic task
+        PeriodicTask.objects.create(
+            name=task_name,
+            task=f"Import from {source}",
+            crontab=crontab,
+            kwargs=json.dumps(
+                {
+                    "username": username,
+                    "user_id": request.user.id,
+                    "mode": mode,
+                },
+            ),
+            start_time=timezone.now(),
+        )
+        messages.success(request, f"{source} import task scheduled.")

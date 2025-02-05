@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 import users
-from integrations import exports, tasks
+from integrations import exports, helpers, tasks
 from integrations.imports import simkl
 from integrations.webhooks import jellyfin
 
@@ -32,8 +32,22 @@ def import_trakt(request):
         return redirect("profile")
 
     mode = request.GET["mode"]
-    tasks.import_trakt.delay(username, request.user, mode)
-    messages.success(request, "Trakt import task queued.")
+    frequency = request.GET["frequency"]
+
+    if frequency == "once":
+        tasks.import_trakt.delay(username, request.user.id, mode)
+        messages.success(request, "Trakt import task queued.")
+    else:
+        import_time = request.GET["time"]
+        helpers.create_schedule(
+            username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Trakt",
+        )
+
     return redirect("profile")
 
 
@@ -73,8 +87,21 @@ def import_mal(request):
         return redirect("profile")
 
     mode = request.GET["mode"]
-    tasks.import_mal.delay(username, request.user, mode)
-    messages.success(request, "MyAnimeList import task queued.")
+    frequency = request.GET["frequency"]
+
+    if frequency == "once":
+        tasks.import_mal.delay(username, request.user.id, mode)
+        messages.success(request, "MyAnimeList import task queued.")
+    else:
+        import_time = request.GET["time"]
+        helpers.create_schedule(
+            username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "MyAnimeList",
+        )
     return redirect("profile")
 
 
@@ -87,23 +114,49 @@ def import_anilist(request):
         return redirect("profile")
 
     mode = request.GET["mode"]
-    tasks.import_anilist.delay(username, request.user, mode)
-    messages.success(request, "AniList import task queued.")
+    frequency = request.GET["frequency"]
+
+    if frequency == "once":
+        tasks.import_anilist.delay(username, request.user.id, mode)
+        messages.success(request, "AniList import task queued.")
+    else:
+        import_time = request.GET["time"]
+        helpers.create_schedule(
+            username,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "AniList",
+        )
     return redirect("profile")
 
 
 @require_GET
 def import_kitsu(request):
     """View for importing anime and manga data from Kitsu by user ID."""
-    user_id = request.GET.get("kitsu")
+    kitsu_id = request.GET.get("kitsu")
 
-    if not user_id:
+    if not kitsu_id:
         messages.error(request, "Kitsu user ID is required.")
         return redirect("profile")
 
     mode = request.GET["mode"]
-    tasks.import_kitsu_id.delay(user_id, request.user, mode)
-    messages.success(request, "Kitsu import task queued.")
+    frequency = request.GET["frequency"]
+
+    if frequency == "once":
+        tasks.import_kitsu.delay(kitsu_id, request.user.id, mode)
+        messages.success(request, "Kitsu import task queued.")
+    else:
+        import_time = request.GET["time"]
+        helpers.create_schedule(
+            kitsu_id,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Kitsu",
+        )
     return redirect("profile")
 
 

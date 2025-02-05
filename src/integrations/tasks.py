@@ -1,5 +1,6 @@
 import requests
 from celery import shared_task
+from django.contrib.auth import get_user_model
 
 import events
 from app.mixins import disable_all_calendar_triggers
@@ -9,8 +10,10 @@ ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(username, user, mode):
+def import_trakt(username, user_id, mode):
     """Celery task for importing anime and manga data from Trakt."""
+    user = get_user_model().objects.get(id=user_id)
+
     with disable_all_calendar_triggers():
         (
             num_tv_imported,
@@ -54,9 +57,10 @@ def import_simkl(token, user, mode):
 
 
 @shared_task(name="Import from MyAnimeList")
-def import_mal(username, user, mode):
+def import_mal(username, user_id, mode):
     """Celery task for importing anime and manga data from MyAnimeList."""
     try:
+        user = get_user_model().objects.get(id=user_id)
         with disable_all_calendar_triggers():
             num_anime_imported, num_manga_imported = mal.importer(username, user, mode)
             events.tasks.reload_calendar.delay()
@@ -70,8 +74,9 @@ def import_mal(username, user, mode):
 
 
 @shared_task(name="Import from AniList")
-def import_anilist(username, user, mode):
+def import_anilist(username, user_id, mode):
     """Celery task for importing anime and manga data from AniList."""
+    user = get_user_model().objects.get(id=user_id)
     try:
         with disable_all_calendar_triggers():
             num_anime_imported, num_manga_imported, warning_message = anilist.importer(
@@ -101,11 +106,12 @@ def import_anilist(username, user, mode):
 
 
 @shared_task(name="Import from Kitsu")
-def import_kitsu_id(user_id, user, mode):
+def import_kitsu(username, user_id, mode):
     """Celery task for importing anime and manga data from Kitsu."""
+    user = get_user_model().objects.get(id=user_id)
     with disable_all_calendar_triggers():
         num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
-            user_id,
+            username,
             user,
             mode,
         )
