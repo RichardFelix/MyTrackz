@@ -9,6 +9,7 @@ from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
+from django_celery_beat.models import PeriodicTask
 
 import app
 from users import helpers
@@ -122,7 +123,6 @@ def profile(request):
             messages.error(request, "There was an error with your request")
 
     import_tasks = request.user.get_import_tasks()
-
     context = {
         "user_form": user_form,
         "password_form": password_form,
@@ -131,6 +131,22 @@ def profile(request):
     }
 
     return render(request, "users/profile.html", context)
+
+
+@require_POST
+def delete_import_schedule(request):
+    """Delete an import schedule."""
+    task_name = request.POST.get("task_name")
+    try:
+        task = PeriodicTask.objects.get(
+            name=task_name,
+            kwargs__contains=f'"user_id": {request.user.id}',
+        )
+        task.delete()
+        messages.success(request, "Import schedule deleted.")
+    except PeriodicTask.DoesNotExist:
+        messages.error(request, "Import schedule not found.")
+    return redirect("profile")
 
 
 @require_POST
