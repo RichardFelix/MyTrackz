@@ -35,11 +35,11 @@ def import_trakt(request):
     frequency = request.GET["frequency"]
 
     if frequency == "once":
-        tasks.import_trakt.delay(username, request.user.id, mode)
+        tasks.import_trakt.delay(username=username, user_id=request.user.id, mode=mode)
         messages.success(request, "Trakt import task queued.")
     else:
         import_time = request.GET["time"]
-        helpers.create_schedule(
+        helpers.create_import_schedule(
             username,
             request,
             mode,
@@ -73,7 +73,7 @@ def import_simkl(request):
     request.session.pop("simkl_import_mode", None)  # Clean up session
 
     token = simkl.get_token(request)
-    tasks.import_simkl.delay(token, request.user, mode)
+    tasks.import_simkl.delay(username=token, user_id=request.user.id, mode=mode)
     messages.success(request, "SIMKL import task queued.")
     return redirect("profile")
 
@@ -90,11 +90,11 @@ def import_mal(request):
     frequency = request.GET["frequency"]
 
     if frequency == "once":
-        tasks.import_mal.delay(username, request.user.id, mode)
+        tasks.import_mal.delay(username=username, user_id=request.user.id, mode=mode)
         messages.success(request, "MyAnimeList import task queued.")
     else:
         import_time = request.GET["time"]
-        helpers.create_schedule(
+        helpers.create_import_schedule(
             username,
             request,
             mode,
@@ -117,11 +117,15 @@ def import_anilist(request):
     frequency = request.GET["frequency"]
 
     if frequency == "once":
-        tasks.import_anilist.delay(username, request.user.id, mode)
+        tasks.import_anilist.delay(
+            username=username,
+            user_id=request.user.id,
+            mode=mode,
+        )
         messages.success(request, "AniList import task queued.")
     else:
         import_time = request.GET["time"]
-        helpers.create_schedule(
+        helpers.create_import_schedule(
             username,
             request,
             mode,
@@ -145,11 +149,11 @@ def import_kitsu(request):
     frequency = request.GET["frequency"]
 
     if frequency == "once":
-        tasks.import_kitsu.delay(kitsu_id, request.user.id, mode)
+        tasks.import_kitsu.delay(username=kitsu_id, user_id=request.user.id, mode=mode)
         messages.success(request, "Kitsu import task queued.")
     else:
         import_time = request.GET["time"]
-        helpers.create_schedule(
+        helpers.create_import_schedule(
             kitsu_id,
             request,
             mode,
@@ -170,7 +174,11 @@ def import_yamtrack(request):
         return redirect("profile")
 
     mode = request.POST["mode"]
-    tasks.import_yamtrack.delay(request.FILES["yamtrack_csv"], request.user, mode)
+    tasks.import_yamtrack.delay(
+        file=request.FILES["yamtrack_csv"],
+        user_id=request.user.id,
+        mode=mode,
+    )
     messages.success(request, "Yamtrack import task queued.")
     return redirect("profile")
 

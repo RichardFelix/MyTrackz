@@ -248,6 +248,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.trakt source="trakt" %}
       </div>
     </div>
 
@@ -276,6 +278,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.simkl source="simkl" %}
       </div>
     </div>
 
@@ -308,6 +312,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.myanimelist source="myanimelist" %}
       </div>
     </div>
 
@@ -340,6 +346,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.anilist source="anilist" %}
       </div>
     </div>
 
@@ -378,6 +386,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.kitsu source="kitsu" %}
       </div>
     </div>
 
@@ -415,6 +425,8 @@
             </button>
           </form>
         </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.yamtrack source="yamtrack" %}
       </div>
     </div>
   </div>

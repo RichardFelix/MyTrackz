@@ -164,8 +164,8 @@ def bulk_create_update_with_history(
     return num_created + num_updated
 
 
-def create_schedule(username, request, mode, frequency, import_time, source):
-    """Create or update an import schedule."""
+def create_import_schedule(username, request, mode, frequency, import_time, source):
+    """Create an import schedule."""
     try:
         import_time = (
             datetime.datetime.strptime(import_time, "%H:%M")

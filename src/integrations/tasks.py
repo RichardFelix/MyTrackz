@@ -36,11 +36,12 @@ def import_trakt(username, user_id, mode):
 
 
 @shared_task(name="Import from SIMKL")
-def import_simkl(token, user, mode):
+def import_simkl(username, user_id, mode):
     """Celery task for importing anime and manga data from SIMKL."""
+    user = get_user_model().objects.get(id=user_id)
     with disable_all_calendar_triggers():
         num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
-            simkl.importer(token, user, mode)
+            simkl.importer(username, user, mode)
         )
         events.tasks.reload_calendar.delay()
 
@@ -128,9 +129,10 @@ def import_kitsu(username, user_id, mode):
 
 
 @shared_task(name="Import from Yamtrack")
-def import_yamtrack(file, user, mode):
+def import_yamtrack(file, user_id, mode):
     """Celery task for importing media data from Yamtrack."""
     try:
+        user = get_user_model().objects.get(id=user_id)
         with disable_all_calendar_triggers():
             imported_counts = yamtrack.importer(file, user, mode)
             events.tasks.reload_calendar.delay()

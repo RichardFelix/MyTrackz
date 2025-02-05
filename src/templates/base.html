@@ -157,14 +157,7 @@
               {% url 'lists' as lists_url %}
               <a href="{{ lists_url }}"
                  class="nav-link {% if request.path == lists_url %}active{% endif %}">
-                <i class="bi bi-collection me-2 align-middle"></i> Lists
-              </a>
-            </li>
-            <li>
-              {% url 'tasks' as tasks_url %}
-              <a href="{{ tasks_url }}"
-                 class="nav-link {% if request.path == tasks_url %}active{% endif %}">
-                <i class="bi bi-list-task me-2 align-middle"></i> Tasks
+                <i class="bi bi-list-ul me-2 align-middle"></i> Lists
               </a>
             </li>
             <li>
