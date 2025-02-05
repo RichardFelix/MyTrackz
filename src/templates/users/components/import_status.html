@@ -42,19 +42,19 @@
   </div>
 {% endif %}
 
-{% if import_task.schedule %}
-  <div class="card card-body mt-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>{{ import_task.next_run_text }}</div>
-      <form action="{% url 'delete_import_schedule' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden"
-               name="task_name"
-               value="{{ import_task.schedule.name }}">
-        <button class="btn btn-danger btn-sm">
-          <i class="bi bi-x-circle me-2"></i>Cancel Schedule
-        </button>
-      </form>
+{% if import_task.schedules %}
+  {% for schedule in import_task.schedules %}
+    <div class="card card-body {% if forloop.first %}mt-4{% else %}mt-3{% endif %}">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>{{ schedule.next_run_text }}</div>
+        <form action="{% url 'delete_import_schedule' %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="task_name" value="{{ schedule.task.name }}">
+          <button class="btn btn-danger btn-sm">
+            <i class="bi bi-x-circle me-2"></i>Cancel Schedule
+          </button>
+        </form>
+      </div>
     </div>
-  </div>
+  {% endfor %}
 {% endif %}

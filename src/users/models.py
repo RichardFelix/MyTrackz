@@ -160,24 +160,32 @@ class User(AbstractUser):
         # Build result dictionary
         result = {}
         for key, task_name in import_tasks.items():
-            periodic_task = next(
-                (pt for pt in periodic_tasks if pt.task == task_name),
-                None,
-            )
-            schedule_info = (
-                helpers.get_next_run_info(periodic_task) if periodic_task else None
-            )
+            # Get all periodic tasks for this import type
+            tasks_for_import = [pt for pt in periodic_tasks if pt.task == task_name]
+
+            # Get schedule info for all tasks
+            schedule_info_list = []
+            for periodic_task in tasks_for_import:
+                schedule_info = helpers.get_next_run_info(periodic_task)
+                if schedule_info:
+                    schedule_info_list.append(
+                        {
+                            "task": periodic_task,
+                            "next_run_text": (
+                                f"Periodic Import Active: Next import scheduled for "
+                                f"{
+                                    schedule_info['next_run'].strftime(
+                                        '%Y-%m-%d, %I:%M:%S %p'
+                                    )
+                                } "
+                                f"({schedule_info['frequency']})"
+                            ),
+                        },
+                    )
 
             result[key] = {
                 "last_run": task_map.get(task_name),
-                "schedule": periodic_task,
-                "next_run_text": (
-                    f"Periodic Import Active: Next import scheduled for "
-                    f"{schedule_info['next_run'].strftime('%Y-%m-%d, %I:%M:%S %p')} "
-                    f"({schedule_info['frequency']})"
-                )
-                if schedule_info
-                else "No active schedule",
+                "schedules": schedule_info_list,
             }
 
         return result
