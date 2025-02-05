@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -80,7 +81,7 @@ class CustomListModelTest(TestCase):
             custom_list=self.custom_list,
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             CustomListItem.objects.create(
                 item=self.item,
                 custom_list=self.custom_list,
@@ -328,7 +329,6 @@ class ListItemToggleViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(self.item, self.list.items.all())
 
-
     def test_list_item_collaborator_toggle(self):
         """Test adding an item to a list."""
         self.client.login(**self.collaborator_credentials)
@@ -355,6 +355,7 @@ class ListItemToggleViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(self.item, self.list.items.all())
+
 
 class CustomListFormTest(TestCase):
     """Test the Custom List form."""
