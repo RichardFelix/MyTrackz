@@ -168,16 +168,15 @@ class User(AbstractUser):
             for periodic_task in tasks_for_import:
                 schedule_info = helpers.get_next_run_info(periodic_task)
                 if schedule_info:
+                    next_run_formatted = schedule_info["next_run"].strftime(
+                        "%Y-%m-%d, %I:%M:%S %p",
+                    )
                     schedule_info_list.append(
                         {
                             "task": periodic_task,
                             "next_run_text": (
-                                f"Periodic Import Active: Next import scheduled for "
-                                f"{
-                                    schedule_info['next_run'].strftime(
-                                        '%Y-%m-%d, %I:%M:%S %p'
-                                    )
-                                } "
+                                "Periodic Import Active: "
+                                f"Next import scheduled for {next_run_formatted} "
                                 f"({schedule_info['frequency']})"
                             ),
                         },
