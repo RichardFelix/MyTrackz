@@ -22,7 +22,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
 - Multi-users functionality allowing individual accounts with personalized tracking.
 - Integration with [Jellyfin](https://jellyfin.org/), to automatically track new media watched.
-- Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [The Movie Database](https://www.themoviedb.org/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
+- Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
 - Export all your tracked media to a CSV file and import it back.
 
 ## Installing with Docker
