@@ -19,17 +19,20 @@
     {% endif %}
 
     <div x-data="{ isOpen: false }">
-      <span class="text-muted mb-2 me-2">Last import: {{ import_task.last_run.date_done|date:"Y-m-d, h:i A" }}</span>
-      <a class="btn btn-outline-secondary btn-sm text-white"
-         data-bs-toggle="collapse"
-         href="#{{ source }}-details"
-         role="button"
-         aria-expanded="false"
-         aria-controls="{{ source }}-details"
-         @click="isOpen = !isOpen">
-        <i class="bi" :class="isOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        <span class="ms-2">Show details</span>
-      </a>
+      <div class="d-flex gap-3 align-items-center">
+        <div class="text-muted">Last import: {{ import_task.last_run.date_done|date:"Y-m-d, h:i A" }} ({{ import_task.last_run.mode }})</div>
+
+        <a class="btn btn-outline-secondary btn-sm text-white"
+           data-bs-toggle="collapse"
+           href="#{{ source }}-details"
+           role="button"
+           aria-expanded="false"
+           aria-controls="{{ source }}-details"
+           @click="isOpen = !isOpen">
+          <i class="bi" :class="isOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          <span class="ms-2">Show details</span>
+        </a>
+      </div>
 
       <div class="collapse mt-2" id="{{ source }}-details">
         <div class="card card-body">

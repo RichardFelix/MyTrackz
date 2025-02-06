@@ -171,13 +171,15 @@ class User(AbstractUser):
                     next_run_formatted = schedule_info["next_run"].strftime(
                         "%Y-%m-%d, %I:%M:%S %p",
                     )
+                    schedule_text = (
+                        f"({schedule_info['frequency']} - {schedule_info['mode']})"
+                    )
                     schedule_info_list.append(
                         {
                             "task": periodic_task,
                             "next_run_text": (
-                                "Periodic Import Active: "
-                                f"Next import scheduled for {next_run_formatted} "
-                                f"({schedule_info['frequency']})"
+                                f"Import scheduled for {next_run_formatted} "
+                                f"{schedule_text}"
                             ),
                         },
                     )

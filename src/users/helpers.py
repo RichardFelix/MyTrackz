@@ -28,12 +28,28 @@ def process_task_result(task):
     except TypeError:
         result_json = "Waiting for task to start"
 
+    try:
+        if isinstance(task.task_kwargs, str):
+            kwargs = json.loads(task.task_kwargs)
+        else:
+            kwargs = task.task_kwargs
+        mode = kwargs.get("mode", "new")  # Default to 'new' if not specified
+    except (TypeError, json.JSONDecodeError, AttributeError):
+        mode = "new"
+
+    if mode == "new":
+        mode = "Sync new items"
+    else:
+        mode = "Sync new items and overwrite existing"
+
     if task.status == "FAILURE":
         task.result = result_json["exc_message"][0]
     elif task.status == "STARTED":
         task.result = "Task in progress"
     else:
         task.result = result_json
+
+    task.mode = mode  # Add mode to task object
     return task
 
 
@@ -41,6 +57,17 @@ def get_next_run_info(periodic_task):
     """Calculate next run time and frequency for a periodic task."""
     if not periodic_task.crontab:
         return None
+
+    try:
+        kwargs = json.loads(periodic_task.kwargs)
+        mode = kwargs.get("mode", "new")  # Default to 'new' if not specified
+    except json.JSONDecodeError:
+        mode = "new"
+
+    if mode == "new":
+        mode = "Sync new items"
+    else:
+        mode = "Sync new items and overwrite existing"
 
     cron = periodic_task.crontab
     tz = zoneinfo.ZoneInfo(str(cron.timezone))
@@ -65,4 +92,5 @@ def get_next_run_info(periodic_task):
     return {
         "next_run": next_run,
         "frequency": frequency,
+        "mode": mode,
     }
