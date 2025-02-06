@@ -121,7 +121,7 @@ Then run the following commands.
 python -m pip install -U -r requirements-dev.txt
 cd src
 python manage.py migrate
-python manage.py runserver & celery --app config worker --beat -S django --loglevel DEBUG
+python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG
 ```
 
 Go to: http://localhost:8000
