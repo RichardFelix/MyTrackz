@@ -1,14 +1,16 @@
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
+from integrations import helpers
 from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -162,8 +164,10 @@ class ImportKitsu(TestCase):
             self.sample_manga_response,
         ]
 
-        num_anime_imported, num_manga_imported, warning_message = (
-            kitsu.importer("123", self.user, "new")
+        num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
+            "123",
+            self.user,
+            "new",
         )
 
         self.assertEqual(num_anime_imported, 5)
@@ -476,3 +480,209 @@ class ImportSimkl(TestCase):
         """Test getting date from SIMKL."""
         self.assertEqual(simkl.get_date("2023-01-01T00:00:00Z"), date(2023, 1, 1))
         self.assertIsNone(simkl.get_date(None))
+
+
+class HelpersTest(TestCase):
+    """Test helper functions for imports."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def test_update_season_references(self):
+        """Test updating season references with actual TV instances."""
+        # Create test data
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        tv = TV.objects.create(item=item, user=self.user, status="Planning")
+
+        # Create season with unsaved TV reference
+        new_season = Season(
+            item=item,
+            user=self.user,
+            related_tv=TV(item=item, user=self.user),
+        )
+
+        # Update references
+        helpers.update_season_references([new_season], self.user)
+
+        # Check if reference was updated
+        self.assertEqual(new_season.related_tv.id, tv.id)
+
+    def test_update_episode_references(self):
+        """Test updating episode references with actual Season instances."""
+        tv_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        tv = TV.objects.create(item=tv_item, user=self.user, status="Planning")
+
+        season_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="season",
+            title="Test Show",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status="Planning",
+        )
+
+        episode_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="episode",
+            title="Test Show",
+            season_number=1,
+            episode_number=1,
+        )
+
+        # Create episode with unsaved Season reference
+        new_episode = Episode(
+            item=episode_item,
+            related_season=Season(item=season_item, related_tv=tv, user=self.user),
+        )
+
+        # Update references
+        helpers.update_episode_references([new_episode], self.user)
+
+        # Check if reference was updated
+        self.assertEqual(new_episode.related_season.id, season.id)
+
+    def test_bulk_chunk_import_new(self):
+        """Test bulk importing new records."""
+        # Create test data
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+
+        # Create bulk media list
+        bulk_media = [
+            TV(item=item, user=self.user, status="Planning"),
+            TV(
+                item=Item.objects.create(
+                    media_id="2",
+                    source="tmdb",
+                    media_type="tv",
+                    title="Test Show 2",
+                ),
+                user=self.user,
+                status="Completed",
+            ),
+        ]
+
+        # Test import
+        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "new")
+
+        # Check results
+        self.assertEqual(num_imported, 2)
+        self.assertEqual(TV.objects.count(), 2)
+
+    def test_bulk_chunk_import_overwrite(self):
+        """Test bulk importing with overwrite mode."""
+        # Create existing record
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        TV.objects.create(item=item, user=self.user, status="Planning")
+
+        # Create bulk media list with updated status
+        bulk_media = [
+            TV(item=item, user=self.user, status="Completed"),
+        ]
+
+        # Test import
+        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "overwrite")
+
+        # Check results
+        self.assertEqual(num_imported, 1)
+        self.assertEqual(TV.objects.get(item=item).status, "Completed")
+
+    @patch("django.contrib.messages.error")
+    def test_create_import_schedule(self, mock_messages):
+        """Test creating import schedule."""
+        request = Mock()
+        request.user = self.user
+
+        # Test valid schedule creation
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "14:30",
+            "TestSource",
+        )
+
+        # Check if schedule was created
+        schedule = PeriodicTask.objects.first()
+        self.assertIsNotNone(schedule)
+        self.assertEqual(
+            schedule.name,
+            "Import from TestSource for testuser at 14:30:00 daily",
+        )
+
+        # Test duplicate schedule
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "14:30",
+            "TestSource",
+        )
+        mock_messages.assert_called_with(
+            request,
+            "The same import task is already scheduled.",
+        )
+
+    @patch("django.contrib.messages.error")
+    def test_create_import_schedule_invalid_time(self, mock_messages):
+        """Test creating import schedule with invalid time."""
+        request = Mock()
+        request.user = self.user
+
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "25:00",  # Invalid time
+            "TestSource",
+        )
+
+        mock_messages.assert_called_with(request, "Invalid import time.")
+        self.assertEqual(PeriodicTask.objects.count(), 0)
+
+    def test_create_import_schedule_every_2_days(self):
+        """Test creating import schedule for every 2 days."""
+        request = Mock()
+        request.user = self.user
+
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "every_2_days",
+            "14:30",
+            "TestSource",
+        )
+
+        schedule = CrontabSchedule.objects.first()
+        self.assertEqual(schedule.day_of_week, "*/2")
