@@ -39,7 +39,7 @@ Alternatively, if you need a PostgreSQL database, you can use the `docker-compos
 
 ### Reverse Proxy Setup
 
-When using a reverse proxy, if you see a Forbidden error, you need to set the `URLS` environment variable to the URL you are using for the app.
+When using a reverse proxy, if you see a `403 - Forbidden` error, you need to set the `URLS` environment variable to the URL you are using for the app.
 
 ```bash
 services:

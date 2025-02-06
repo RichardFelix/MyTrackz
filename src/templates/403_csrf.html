@@ -13,6 +13,12 @@
         {% if exception %}{{ exception }}<br>{% endif %}
         If you believe this was a bug, please <a href="https://github.com/fuzzygrim/yamtrack/issues">report the issue.</a>
       </p>
+      <div class="alert alert-warning mt-4" role="alert" style="max-width: 500px;">
+        <h4 class="alert-heading fs-5">Using a Reverse Proxy?</h4>
+        <p class="mb-0">
+          If you're accessing YamTrack through a reverse proxy, you need to set the <code>URLS</code> environment variable to your application URL (e.g., <code>https://yamtrack.mydomain.com</code>).
+        </p>
+      </div>
     </div>
   </div>
 {% endblock body %}
