@@ -81,16 +81,19 @@ class Item(models.Model):
         """Meta options for the model."""
 
         constraints = [
+            # Ensures items without season/episode numbers are unique
             UniqueConstraint(
                 fields=["media_id", "source", "media_type"],
                 condition=Q(season_number__isnull=True, episode_number__isnull=True),
                 name="unique_item_without_season_episode",
             ),
+            # Ensures seasons are unique within a show
             UniqueConstraint(
                 fields=["media_id", "source", "media_type", "season_number"],
                 condition=Q(season_number__isnull=False, episode_number__isnull=True),
                 name="unique_item_with_season",
             ),
+            # Ensures episodes are unique within a season
             UniqueConstraint(
                 fields=[
                     "media_id",
@@ -102,6 +105,7 @@ class Item(models.Model):
                 condition=Q(season_number__isnull=False, episode_number__isnull=False),
                 name="unique_item_with_season_episode",
             ),
+            # Enforces that season items must have a season number but no episode number
             CheckConstraint(
                 check=Q(
                     media_type="season",
@@ -111,6 +115,7 @@ class Item(models.Model):
                 | ~Q(media_type="season"),
                 name="season_number_required_for_season",
             ),
+            # Enforces that episode items must have both season and episode numbers
             CheckConstraint(
                 check=Q(
                     media_type="episode",
@@ -120,6 +125,7 @@ class Item(models.Model):
                 | ~Q(media_type="episode"),
                 name="season_and_episode_required_for_episode",
             ),
+            # Prevents season/episode numbers from being set on non-TV media types
             CheckConstraint(
                 check=Q(
                     ~Q(media_type__in=["season", "episode"]),
