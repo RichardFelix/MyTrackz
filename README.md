@@ -54,40 +54,40 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 
 ### Environment variables
 
-| Name            | Type   | Notes                                                                                                                                                                                                |
-| --------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TMDB_API        | String | The Movie Database API key for movies and tv shows, a default key is provided                                                                                                                        |
-| TMDB_NSFW       | Bool   | Default to false, set to true to include adult content in tv and movie searches                                                                                                                      |
-| TMDB_LANG       | String | TMDB metadata language, uses a Language code in ISO 639-1 e.g "en", for more specific results a country code in ISO 3166-1 can be added e.g "en-US"                                                  |
-| MAL_API         | String | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                                                  |
-| MAL_NSFW        | Bool   | Default to false, set to true to include adult content in anime and manga searches from MyAnimeList                                                                                                  |
-| MU_NSFW         | Bool   | Default to false, set to true to include adult content in manga searches from MangaUpdates                                                                                                           |
-| IGDB_ID         | String | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit                                                                                    |
-| IGDB_SECRET     | String | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit                                                                               |
-| IGDB_NSFW       | Bool   | Default to false, set to true to include adult content in game searches                                                                                                                              |
-| SIMKL_ID        | String | Simkl API key only needed for importing media from Simkl, a default key is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/) if needed      |
-| SIMKL_SECRET    | String | Simkl API secret for importing media from Simkl, a default secret is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/) if needed            |
-| REDIS_URL       | String | Default to redis://localhost:6379, Redis is needed for processing background tasks, set this to your redis server url                                                                                |
-| SECRET          | String | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                                            |
-| URLS            | List   | This setting can be used to set the URLs of the app for the CSRF and ALLOWED_HOSTS settings, e.g. `https://yamtrack.mydomain.com`                                                                     |
-| ALLOWED_HOSTS   | List   | Host/domain names that this Django site can serve, e.g. `yamtrack.mydomain.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts) for more details.   |
-| CSRF            | List   | A list of trusted origins for unsafe requests, e.g. `https://yamtrack.mydomain.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#csrf-trusted-origins) for more |
-| REGISTRATION    | Bool   | Default to true, set to false to disable user registration                                                                                                                                           |
-| DEBUG           | Bool   | Default to false, set to true for debugging                                                                                                                                                          |
-| PUID            | Int    | User ID for the app, default to 1000                                                                                                                                                                 |
-| PGID            | Int    | Group ID for the app, default to 1000                                                                                                                                                                |
-| TZ              | String | Timezone, default to UTC                                                                                                                                                                             |
-| WEB_CONCURRENCY | Int    | Number of webserver processes, default to 1 but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)                          |
+| Name            | Notes                                                                                                                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TMDB_API        | The Movie Database API key for movies and tv shows, a default key is provided                                                                                                                                                |
+| TMDB_NSFW       | Default to `False`, set to `True` to include adult content in tv and movie searches                                                                                                                                          |
+| TMDB_LANG       | TMDB metadata language, uses a Language code in ISO 639-1 e.g `en`, for more specific results a country code in ISO 3166-1 can be added e.g `en-US`                                                                          |
+| MAL_API         | MyAnimeList API key, for anime and manga, a default key is provided                                                                                                                                                          |
+| MAL_NSFW        | Default to `False`, set to `True` to include adult content in anime and manga searches from MyAnimeList                                                                                                                      |
+| MU_NSFW         | Default to `False`, set to `True` to include adult content in manga searches from MangaUpdates                                                                                                                               |
+| IGDB_ID         | IGDB API key for games, a default key is provided but it's recommended to get your own as it has a low rate limit                                                                                                            |
+| IGDB_SECRET     | IGDB API secret for games, a default value is provided but it's recommended to get your own as it has a low rate limit                                                                                                       |
+| IGDB_NSFW       | Default to `False`, set to `True` to include adult content in game searches                                                                                                                                                  |
+| SIMKL_ID        | Simkl API key only needed for importing media from Simkl, a default key is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/) if needed                              |
+| SIMKL_SECRET    | Simkl API secret for importing media from Simkl, a default secret is provided but you can get one at [Simkl Developer](https://simkl.com/settings/developer/new/custom-search/) if needed                                    |
+| REDIS_URL       | Default to `redis://localhost:6379`, Redis is needed for processing background tasks, set this to your redis server url                                                                                                      |
+| SECRET          | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing, should be a random string                                                                                    |
+| URLS            | Used to set both the `CSRF` and `ALLOWED_HOSTS` settings, comma separated list of URLs, e.g. `https://yamtrack.mydomain.com` or `https://yamtrack.mydomain.com, https://yamtrack.mydomain2.com`                              |
+| ALLOWED_HOSTS   | Comma separated list of host/domain names that this Django site can serve, e.g. `yamtrack.mydomain.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#allowed-hosts) for more details.  |
+| CSRF            | Comma separated list of trusted origins for `POST` requests, e.g. `https://yamtrack.mydomain.com`. See [Django documentation](https://docs.djangoproject.com/en/stable/ref/settings/#csrf-trusted-origins) for more details. |
+| REGISTRATION    | Default to `True`, set to `False` to disable user registration                                                                                                                                                               |
+| DEBUG           | Default to `False`, set to `True` for debugging                                                                                                                                                                              |
+| PUID            | User ID for the app, default to `1000`                                                                                                                                                                                       |
+| PGID            | Group ID for the app, default to `1000`                                                                                                                                                                                      |
+| TZ              | Timezone, like `Europe/Berlin`. Default to `UTC`                                                                                                                                                                             |
+| WEB_CONCURRENCY | Number of webserver processes, default to `1` but it's recommended to have a value of [(2 x num cores) + 1](https://docs.gunicorn.org/en/latest/design.html#how-many-workers)                                                |
 
 ### Environment variables for PostgreSQL
 
-| Name        | Type   | Notes                        |
-| ----------- | ------ | ---------------------------- |
-| DB_HOST     | String | When not set, sqlite is used |
-| DB_PORT     | Int    |                              |
-| DB_NAME     | String |                              |
-| DB_USER     | String |                              |
-| DB_PASSWORD | String |                              |
+| Name        | Notes                        |
+| ----------- | ---------------------------- |
+| DB_HOST     | When not set, sqlite is used |
+| DB_PORT     |                              |
+| DB_NAME     |                              |
+| DB_USER     |                              |
+| DB_PASSWORD |                              |
 
 ## Local development
 
