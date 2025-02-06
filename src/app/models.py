@@ -18,6 +18,7 @@ from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import events
+from app.mixins import CalendarTriggerMixin
 from app.providers import services, tmdb
 from app.templatetags.app_tags import media_type_readable, slug
 
@@ -80,16 +81,19 @@ class Item(models.Model):
         """Meta options for the model."""
 
         constraints = [
+            # Ensures items without season/episode numbers are unique
             UniqueConstraint(
                 fields=["media_id", "source", "media_type"],
                 condition=Q(season_number__isnull=True, episode_number__isnull=True),
                 name="unique_item_without_season_episode",
             ),
+            # Ensures seasons are unique within a show
             UniqueConstraint(
                 fields=["media_id", "source", "media_type", "season_number"],
                 condition=Q(season_number__isnull=False, episode_number__isnull=True),
                 name="unique_item_with_season",
             ),
+            # Ensures episodes are unique within a season
             UniqueConstraint(
                 fields=[
                     "media_id",
@@ -101,6 +105,7 @@ class Item(models.Model):
                 condition=Q(season_number__isnull=False, episode_number__isnull=False),
                 name="unique_item_with_season_episode",
             ),
+            # Enforces that season items must have a season number but no episode number
             CheckConstraint(
                 check=Q(
                     media_type="season",
@@ -110,6 +115,7 @@ class Item(models.Model):
                 | ~Q(media_type="season"),
                 name="season_number_required_for_season",
             ),
+            # Enforces that episode items must have both season and episode numbers
             CheckConstraint(
                 check=Q(
                     media_type="episode",
@@ -119,6 +125,7 @@ class Item(models.Model):
                 | ~Q(media_type="episode"),
                 name="season_and_episode_required_for_episode",
             ),
+            # Prevents season/episode numbers from being set on non-TV media types
             CheckConstraint(
                 check=Q(
                     ~Q(media_type__in=["season", "episode"]),
@@ -452,7 +459,7 @@ class MediaManager(models.Manager):
         }
 
 
-class Media(models.Model):
+class Media(CalendarTriggerMixin, models.Model):
     """Abstract model for all media types."""
 
     class Status(models.TextChoices):
@@ -504,7 +511,12 @@ class Media(models.Model):
 
         abstract = True
         ordering = ["-score"]
-        unique_together = ["item", "user"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item", "user"],
+                name="%(app_label)s_%(class)s_unique_item_user",
+            ),
+        ]
 
     def __str__(self):
         """Return the title of the media."""
@@ -544,7 +556,6 @@ class Media(models.Model):
         if self.status == self.Status.IN_PROGRESS.value:
             if not self.start_date:
                 self.start_date = now
-            events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
         elif self.status == self.Status.COMPLETED.value:
             if not self.end_date:
@@ -562,7 +573,10 @@ class Media(models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        elif self.status in (self.Status.PLANNING.value, self.Status.PAUSED.value):
+        if not self._disable_calendar_triggers and self.status in (
+            self.Status.IN_PROGRESS.value,
+            self.Status.PLANNING.value,
+        ):
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     def increase_progress(self):
@@ -613,10 +627,13 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            elif self.status in (
-                self.Status.IN_PROGRESS.value,
-                self.Status.PLANNING.value,
-                self.Status.PAUSED.value,
+            elif (
+                self.status
+                in (
+                    self.Status.IN_PROGRESS.value,
+                    self.Status.PLANNING.value,
+                )
+                and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
@@ -729,7 +746,12 @@ class Season(Media):
         Only one season per media can have the same season number.
         """
 
-        unique_together = ["related_tv", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["related_tv", "item"],
+                name="%(app_label)s_season_unique_tv_item",
+            ),
+        ]
 
     def __str__(self):
         """Return the title of the media and season number."""
@@ -756,10 +778,13 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            elif self.status in (
-                self.Status.IN_PROGRESS.value,
-                self.Status.PLANNING.value,
-                self.Status.PAUSED.value,
+            elif (
+                self.status
+                in (
+                    self.Status.IN_PROGRESS.value,
+                    self.Status.PLANNING.value,
+                )
+                and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
@@ -1070,8 +1095,13 @@ class Episode(models.Model):
         Only one episode per season can have the same episode number.
         """
 
-        unique_together = ["related_season", "item"]
         ordering = ["related_season", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["related_season", "item"],
+                name="%(app_label)s_episode_unique_season_item",
+            ),
+        ]
 
     def __str__(self):
         """Return the season and episode number."""

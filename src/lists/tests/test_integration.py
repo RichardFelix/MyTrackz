@@ -68,7 +68,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("button", name=" test")).to_be_visible()
         self.page.get_by_role("button", name=" test").click()
         self.page.get_by_label("Close").click()
-        self.page.get_by_role("link", name=" Lists").click()
+        self.page.get_by_role("link", name=" Lists").click()
         expect(self.page.get_by_text("test (1 item) test description")).to_be_visible()
 
         # check item

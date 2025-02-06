@@ -12,23 +12,23 @@
 
   <form method="post" class="mb-4">
     {% csrf_token %}
-    <fieldset class="form-group">
+    <div class="form-group">
       <legend class="border-bottom mb-4">Profile</legend>
       {% crispy user_form %}
-    </fieldset>
+    </div>
   </form>
 
   <form method="post" class="mb-4">
     {% csrf_token %}
-    <fieldset class="form-group">
+    <div class="form-group">
       <legend class="border-bottom mb-4">Password Update</legend>
       {% crispy password_form %}
-    </fieldset>
+    </div>
   </form>
 
   <form method="post" class="mb-4">
     {% csrf_token %}
-    <fieldset class="form-group">
+    <div class="form-group">
       <legend class="border-bottom mb-4">Media Tracking Preferences</legend>
       <div class="form-switch d-flex justify-content-between border rounded-2 px-3 py-2 mb-3">
         <label class="form-check-label">
@@ -42,7 +42,7 @@
                {% if request.user.hide_from_search %}checked{% endif %}>
       </div>
 
-      <hr class="my-4"/>
+      <hr class="my-4" />
 
       {% for media_type in media_types %}
         <div class="form-switch d-flex justify-content-between border rounded-2 px-3 py-2 mb-3">
@@ -68,7 +68,7 @@
       <div class="mb-3">
         <button type="submit" class="btn btn-secondary">Update</button>
       </div>
-    </fieldset>
+    </div>
   </form>
 
   <div class="mb-4">
@@ -165,164 +165,303 @@
     </div>
   </div>
 
-  <div class="mb-4">
-    <legend class="border-bottom mb-4">Import</legend>
+  <div class="mb-4"
+       x-data="{ frequency: 'once', importTime: '{% now "H:i" %}', importMode: 'new' }">
 
-    <fieldset class="input-group profile-grid">
-      <form class="p-2 grid-item import-form"
-            method="post"
-            enctype="multipart/form-data"
-            action="{% url 'import_tmdb_ratings' %}">
-        {% csrf_token %}
-        <div class="import-name">TMDB Ratings</div>
-        <div class="input-group">
-          <input type="file" class="form-control" name="tmdb_ratings">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
+    <legend class="border-bottom mb-4">Import Media</legend>
 
-      <form class="p-2 grid-item import-form"
-            method="post"
-            enctype="multipart/form-data"
-            action="{% url 'import_tmdb_watchlist' %}">
-        {% csrf_token %}
-        <div class="import-name">TMDB Watchlist</div>
-        <div class="input-group">
-          <input type="file" class="form-control" name="tmdb_watchlist">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
+    <div class="card">
+      <div class="card-body">
+        <div class="row row-gap-4">
+          <div class="col-md-6">
+            <label class="form-label">
+              <i class="bi bi-calendar me-2"></i>Import Frequency
+            </label>
+            <select class="form-select" x-model="frequency">
+              <option value="once">One-time Import</option>
+              <option value="daily">Daily</option>
+              <option value="every_2_days">Every 2 days</option>
+            </select>
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'import_mal' %}">
-        <div class="import-name">MyAnimeList Username</div>
-        <div class="input-group">
-          <input type="text" class="form-control" name="mal">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
+            <div x-show="frequency !== 'once'" x-cloak class="mt-3">
+              <label class="form-label">
+                <i class="bi bi-clock me-2"></i> Import Time
+              </label>
+              <input type="time" class="form-control" x-model="importTime">
+            </div>
+          </div>
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'import_anilist' %}">
-        <div class="import-name">AniList Username</div>
-        <div class="input-group">
-          <input type="text" class="form-control" name="anilist">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
+          <div class="col-md-6">
+            <label class="form-label">
+              <i class="bi bi-arrow-repeat me-2"></i> Import Mode
+            </label>
+            <select class="form-select" x-model="importMode">
+              <option value="new">Only sync new items</option>
+              <option value="overwrite">Sync new items and overwrite existing</option>
+            </select>
+          </div>
         </div>
-      </form>
+      </div>
+    </div>
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'import_trakt' %}">
-        <div class="import-name">
-          Trakt Username Slug
-          <span class="badge"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
-                title="Found at your Trakt profile URL">
-            <i class="bi bi-question-circle"></i>
-          </span>
-        </div>
-        <div class="input-group">
-          <input type="text" class="form-control" name="trakt">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
+    <hr class="my-4" />
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'simkl_oauth' %}">
-        <div class="import-name">SIMKL</div>
-        <button class="btn btn-secondary w-100" type="submit">Authenticate</button>
-      </form>
+    <template x-if="frequency !== 'once'">
+      <div class="alert alert-info mb-3">
+        <i class="bi bi-info-circle me-2"></i>
+        File uploads and OAuth-based imports are only available for one-time imports
+      </div>
+    </template>
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'import_kitsu_name' %}">
-        <div class="import-name">Kitsu by Username</div>
-        <div class="input-group">
-          <input type="text" class="form-control" name="kitsu_username">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
+    <!-- Trakt -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg"
+                 alt="Trakt logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">Trakt</h5>
+              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
+            </div>
+          </div>
 
-      <form class="p-2 grid-item import-form"
-            method="get"
-            action="{% url 'import_kitsu_id' %}">
-        <div class="import-name">
-          Kitsu by ID
-          <span class="badge"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
-                title="Found at your Kitsu profile URL">
-            <i class="bi bi-question-circle"></i>
-          </span>
+          <form class="d-flex" method="post" action="{% url 'import_trakt' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <span class="badge"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Found at your Trakt profile URL">
+              <i class="bi bi-question-circle"></i>
+            </span>
+            <input type="text"
+                   class="form-control border-end-0 rounded-end-0"
+                   name="trakt"
+                   placeholder="Trakt Username Slug">
+            <button class="btn btn-secondary border-start-0 rounded-start-0">
+              <i class="bi bi-cloud-download"></i>
+            </button>
+          </form>
         </div>
-        <div class="input-group">
-          <input type="text" class="form-control" name="kitsu_id">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
-        </div>
-      </form>
 
-      <form class="p-2 grid-item import-form"
-            method="post"
-            enctype="multipart/form-data"
-            action="{% url 'import_yamtrack' %}">
-        {% csrf_token %}
-        <div class="import-name">Yamtrack CSV</div>
-        <div class="input-group">
-          <input type="file" class="form-control" name="yamtrack_csv">
-          <button class="btn btn-secondary" type="submit">
-            <i class="bi bi-check-lg"></i>
-          </button>
+        {% include "users/components/import_status.html" with import_task=import_tasks.trakt source="trakt" %}
+      </div>
+    </div>
+
+    <!-- SIMKL -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="https://eu.simkl.in/img_favicon/v2/favicon-192x192.png"
+                 alt="SIMKL logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">SIMKL</h5>
+              <p class="text-muted mb-0">Import TV shows, movies and anime</p>
+            </div>
+          </div>
+
+          <form method="post"
+                action="{% url 'simkl_oauth' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
+            {% csrf_token %}
+            <input type="hidden" name="mode" x-model="importMode">
+            <button class="btn btn-secondary" :disabled="frequency !== 'once'">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Authenticate
+            </button>
+          </form>
         </div>
-      </form>
-    </fieldset>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.simkl source="simkl" %}
+      </div>
+    </div>
+
+    <!-- MyAnimeList -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="https://cdn.myanimelist.net/img/sp/icon/apple-touch-icon-256.png"
+                 alt="MyAnimeList logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">MyAnimeList</h5>
+              <p class="text-muted mb-0">Import anime and manga</p>
+            </div>
+          </div>
+
+          <form class="d-flex" method="post" action="{% url 'import_mal' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <input type="text"
+                   class="form-control border-end-0 rounded-end-0"
+                   name="mal"
+                   placeholder="MAL Username">
+            <button class="btn btn-secondary border-start-0 rounded-start-0">
+              <i class="bi bi-cloud-download"></i>
+            </button>
+          </form>
+        </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.myanimelist source="myanimelist" %}
+      </div>
+    </div>
+
+    <!-- AniList -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="https://anilist.co/img/icons/icon.svg"
+                 alt="AniList logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">AniList</h5>
+              <p class="text-muted mb-0">Import anime and manga</p>
+            </div>
+          </div>
+
+          <form class="d-flex" method="post" action="{% url 'import_anilist' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <input type="text"
+                   class="form-control border-end-0 rounded-end-0"
+                   name="anilist"
+                   placeholder="AniList Username">
+            <button class="btn btn-secondary border-start-0 rounded-start-0">
+              <i class="bi bi-cloud-download"></i>
+            </button>
+          </form>
+        </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.anilist source="anilist" %}
+      </div>
+    </div>
+
+    <!-- Kitsu -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="https://kitsu.app/favicon-194x194-2f4dbec5ffe82b8f61a3c6d28a77bc6e.png"
+                 alt="Kitsu logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">Kitsu</h5>
+              <p class="text-muted mb-0">Import anime and manga</p>
+            </div>
+          </div>
+
+          <form class="d-flex" method="post" action="{% url 'import_kitsu' %}">
+            {% csrf_token %}
+            <input type="hidden" name="frequency" x-model="frequency">
+            <input type="hidden" name="time" x-model="importTime">
+            <input type="hidden" name="mode" x-model="importMode">
+            <span class="badge"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="top"
+                  title="Found at your Kitsu profile URL">
+              <i class="bi bi-question-circle"></i>
+            </span>
+            <input type="text"
+                   class="form-control border-end-0 rounded-end-0"
+                   name="kitsu"
+                   placeholder="Kitsu ID">
+            <button class="btn btn-secondary border-start-0 rounded-start-0">
+              <i class="bi bi-cloud-download"></i>
+            </button>
+          </form>
+        </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.kitsu source="kitsu" %}
+      </div>
+    </div>
+
+    <!-- YamTrack CSV -->
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <div class="d-flex flex-column flex-lg-row flex-wrap justify-content-between align-items-lg-center row-gap-4">
+          <div class="d-flex gap-3 flex-wrap">
+            <img src="{% static "favicon/apple-touch-icon.png" %}"
+                 alt="Kitsu logo"
+                 class="rounded"
+                 width="58"
+                 height="58">
+            <div>
+              <h5 class="card-title mb-1">YamTrack CSV</h5>
+              <p class="text-muted mb-0">Import from YamTrack backup</p>
+            </div>
+          </div>
+
+          <form class="d-flex"
+                method="post"
+                enctype="multipart/form-data"
+                action="{% url 'import_yamtrack' %}"
+                :class="{ 'opacity-50': frequency !== 'once' }">
+            {% csrf_token %}
+            <input type="hidden" name="mode" x-model="importMode">
+            <input type="file"
+                   accept=".csv"
+                   class="form-control rounded-end-0"
+                   name="yamtrack_csv"
+                   :disabled="frequency !== 'once'">
+            <button class="btn btn-secondary border-start-0 rounded-start-0"
+                    :disabled="frequency !== 'once'">
+              <i class="bi bi-file-earmark-arrow-up"></i>
+            </button>
+          </form>
+        </div>
+
+        {% include "users/components/import_status.html" with import_task=import_tasks.yamtrack source="yamtrack" %}
+      </div>
+    </div>
   </div>
 
   <div class="mb-4">
-    <legend class="border-bottom mb-4">Export</legend>
+    <legend class="border-bottom mb-4">Export Media</legend>
 
-    <fieldset class="input-group profile-grid">
+    <div class="input-group profile-grid">
       <form class="p-2 grid-item" method="get" action="{% url 'export_csv' %}">
         <button class="btn btn-secondary w-100" type="submit">Export as CSV</button>
       </form>
-    </fieldset>
+    </div>
   </div>
 
   <div class="mb-4">
     <legend class="border-bottom mb-4">Other</legend>
 
-    <fieldset class="input-group profile-grid">
+    <div class="input-group profile-grid">
       <form class="p-2 grid-item"
             method="post"
             action="{% url 'reload_calendar' %}">
         {% csrf_token %}
         <button class="btn btn-secondary w-100" type="submit">Reload Calendar</button>
       </form>
-    </fieldset>
+    </div>
   </div>
 
 {% endblock container %}
 
 {% block js %}
-  <script src="{% static 'js/spinner.js' %}"></script>
   <script src="{% static 'js/copy-token.js' %}"></script>
 
   {% comment %} Enable bootstrap tooltips {% endcomment %}

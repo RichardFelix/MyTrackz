@@ -1,4 +1,3 @@
-import json
 import logging
 import secrets
 
@@ -9,11 +8,11 @@ from django.contrib.auth.views import LoginView
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from django_celery_results.models import TaskResult
+from django.views.decorators.http import require_http_methods, require_POST
+from django_celery_beat.models import PeriodicTask
 
 import app
-from users import services
+from users import helpers
 from users.forms import (
     PasswordChangeForm,
     UserLoginForm,
@@ -36,7 +35,7 @@ def register(request):
         logger.info(
             "New user registered: %s at %s",
             form.cleaned_data.get("username"),
-            services.get_client_ip(request),
+            helpers.get_client_ip(request),
         )
         return redirect("login")
 
@@ -56,7 +55,7 @@ class CustomLoginView(LoginView):
         logger.info(
             "User logged in as: %s at %s",
             self.request.POST["username"],
-            services.get_client_ip(self.request),
+            helpers.get_client_ip(self.request),
         )
         return super().form_valid(form)
 
@@ -65,7 +64,7 @@ class CustomLoginView(LoginView):
         logger.error(
             "Failed login attempt for: %s at %s",
             self.request.POST["username"],
-            services.get_client_ip(self.request),
+            helpers.get_client_ip(self.request),
         )
         return super().form_invalid(form)
 
@@ -123,13 +122,31 @@ def profile(request):
         else:
             messages.error(request, "There was an error with your request")
 
+    import_tasks = request.user.get_import_tasks()
     context = {
         "user_form": user_form,
         "password_form": password_form,
         "media_types": media_types,
+        "import_tasks": import_tasks,
     }
 
     return render(request, "users/profile.html", context)
+
+
+@require_POST
+def delete_import_schedule(request):
+    """Delete an import schedule."""
+    task_name = request.POST.get("task_name")
+    try:
+        task = PeriodicTask.objects.get(
+            name=task_name,
+            kwargs__contains=f'"user_id": {request.user.id}',
+        )
+        task.delete()
+        messages.success(request, "Import schedule deleted.")
+    except PeriodicTask.DoesNotExist:
+        messages.error(request, "Import schedule not found.")
+    return redirect("profile")
 
 
 @require_POST
@@ -143,33 +160,3 @@ def regenerate_token(request):
         except IntegrityError:
             continue
     return redirect("profile")
-
-
-@require_GET
-def tasks(request):
-    """Return the user tasks page."""
-    user_name = request.user.username
-
-    filter_text = f"<SimpleLazyObject: <User: {user_name}>>"
-    tasks = TaskResult.objects.filter(task_args__contains=filter_text)
-
-    for task in tasks:
-        try:
-            result_json = json.loads(task.result)
-        except TypeError:
-            # when pending and no result
-            result_json = "Waiting for task to start"
-        if task.status == "FAILURE":
-            task.result = result_json["exc_message"][0]
-        elif task.status == "STARTED":
-            # by default, it shows pid and hostname
-            task.result = "Task in progress"
-        else:
-            # removes double quotes from the result
-            task.result = result_json
-
-    return render(
-        request,
-        "users/tasks.html",
-        {"tasks": tasks},
-    )

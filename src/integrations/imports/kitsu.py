@@ -15,24 +15,6 @@ KITSU_API_BASE_URL = "https://kitsu.io/api/edge"
 KITSU_PAGE_LIMIT = 500
 
 
-def import_by_user_id(kitsu_id, user):
-    """Import anime and manga ratings from Kitsu by user ID."""
-    anime_response = get_media_response(kitsu_id, "anime")
-    num_anime_imported, anime_warnings = importer(anime_response, "anime", user)
-
-    manga_response = get_media_response(kitsu_id, "manga")
-    num_manga_imported, manga_warning = importer(manga_response, "manga", user)
-
-    warning_messages = anime_warnings + manga_warning
-    return num_anime_imported, num_manga_imported, "\n".join(warning_messages)
-
-
-def import_by_username(kitsu_username, user):
-    """Import anime and manga ratings from Kitsu by username."""
-    kitsu_id = get_kitsu_id(kitsu_username)
-    return import_by_user_id(kitsu_id, user)
-
-
 def get_kitsu_id(username):
     """Get the user ID from Kitsu."""
     url = f"{KITSU_API_BASE_URL}/users"
@@ -54,6 +36,32 @@ def get_kitsu_id(username):
         raise ValueError(msg)
 
     return response["data"][0]["id"]
+
+
+def importer(kitsu_id, user, mode):
+    """Import anime and manga ratings from Kitsu by user ID."""
+    # Check if given ID is a username
+    if not kitsu_id.isdigit():
+        kitsu_id = get_kitsu_id(kitsu_id)
+
+    anime_response = get_media_response(kitsu_id, "anime")
+    num_anime_imported, anime_warnings = import_media(
+        anime_response,
+        "anime",
+        user,
+        mode,
+    )
+
+    manga_response = get_media_response(kitsu_id, "manga")
+    num_manga_imported, manga_warning = import_media(
+        manga_response,
+        "manga",
+        user,
+        mode,
+    )
+
+    warning_messages = anime_warnings + manga_warning
+    return num_anime_imported, num_manga_imported, "\n".join(warning_messages)
 
 
 def get_media_response(kitsu_id, media_type):
@@ -80,7 +88,7 @@ def get_media_response(kitsu_id, media_type):
     return all_data
 
 
-def importer(response, media_type, user):
+def import_media(response, media_type, user, mode):
     """Import media from Kitsu and return the number of items imported."""
     logger.info("Importing %s from Kitsu", media_type)
 
@@ -114,10 +122,7 @@ def importer(response, media_type, user):
             else:
                 bulk_data.append(instance)
 
-    num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_data, model, user)
-    num_after = model.objects.filter(user=user).count()
-    num_imported = num_after - num_before
+    num_imported = helpers.bulk_chunk_import(bulk_data, model, user, mode)
 
     logger.info("Imported %s %s", num_imported, media_type)
 

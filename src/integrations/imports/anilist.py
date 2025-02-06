@@ -10,7 +10,7 @@ from integrations import helpers
 logger = logging.getLogger(__name__)
 
 
-def importer(username, user):
+def importer(username, user, mode):
     """Import anime and manga ratings from Anilist."""
     query = """
     query ($userName: String){
@@ -94,19 +94,21 @@ def importer(username, user):
         response["data"]["anime"],
         "anime",
         user,
+        mode,
     )
 
     manga_imported, manga_warnings = import_media(
         response["data"]["manga"],
         "manga",
         user,
+        mode,
     )
 
     warning_messages = anime_warnings + manga_warnings
     return anime_imported, manga_imported, "\n".join(warning_messages)
 
 
-def import_media(media_data, media_type, user):
+def import_media(media_data, media_type, user, mode):
     """Import media of a specific type from Anilist."""
     logger.info("Importing %s from Anilist", media_type)
 
@@ -123,10 +125,7 @@ def import_media(media_data, media_type, user):
             )
 
     model = apps.get_model(app_label="app", model_name=media_type)
-    num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_media, model, user)
-    num_after = model.objects.filter(user=user).count()
-    num_imported = num_after - num_before
+    num_imported = helpers.bulk_chunk_import(bulk_media, model, user, mode)
 
     logger.info("Imported %s %s", num_imported, media_type)
 

@@ -22,8 +22,8 @@ def get_access_token():
         cache.set(
             "igdb_access_token",
             access_token,
-            response["expires_in"] - 5,
-        )  # 5 seconds buffer to avoid using an expired token
+            response["expires_in"] - 60,
+        )  # 1 min buffer to avoid using an expired token
     return access_token
 
 

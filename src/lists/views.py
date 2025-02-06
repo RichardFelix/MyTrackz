@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import messages
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
@@ -149,7 +150,7 @@ def lists_modal(
         },
     )
 
-    custom_lists = CustomList.objects.filter(owner=request.user)
+    custom_lists = CustomList.objects.get_user_lists(request.user)
 
     return render(
         request,
@@ -165,7 +166,12 @@ def list_item_toggle(request):
     custom_list_id = request.POST["custom_list_id"]
 
     item = get_object_or_404(Item, id=item_id)
-    custom_list = get_object_or_404(CustomList, id=custom_list_id, owner=request.user)
+    custom_list = get_object_or_404(
+        CustomList.objects.filter(
+            Q(owner=request.user) | Q(collaborators=request.user),
+        ),
+        id=custom_list_id,
+    )
 
     if item in custom_list.items.all():
         custom_list.items.remove(item)

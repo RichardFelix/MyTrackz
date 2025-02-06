@@ -42,7 +42,6 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Application definition
 
 INSTALLED_APPS = [
-    "whitenoise.runserver_nostatic",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -56,16 +55,11 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap5",
     "debug_toolbar",
+    "django_celery_beat",
     "django_celery_results",
     "django_select2",
     "simple_history",
 ]
-
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-    },
-}
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -76,7 +70,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
 ]
@@ -272,9 +265,15 @@ DEBUG_TOOLBAR_CONFIG = {
 }
 
 SELECT2_CACHE_BACKEND = "default"
-SELECT2_JS = ["js/jquery.min.js", "js/select2.min.js"]
+SELECT2_JS = [
+    "https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js",
+    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",
+]
 SELECT2_I18N_PATH = "js/i18n"
-SELECT2_CSS = ["css/select2.min.css", "css/select2-bootstrap-5.min.css"]
+SELECT2_CSS = [
+    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css",
+    "https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css",
+]
 SELECT2_THEME = "bootstrap-5"
 
 # Celery settings
@@ -286,6 +285,7 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BEAT_SYNC_EVERY = 1
 
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 60 * 6  # 6 hours

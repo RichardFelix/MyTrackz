@@ -1,0 +1,63 @@
+{% if import_task.last_run %}
+  <div class="mt-4">
+    {% if import_task.last_run.status == "SUCCESS" %}
+      <p class="text-success-emphasis fs-5">
+        <i class="bi bi-check2-circle me-2"></i>Import completed successfully
+      </p>
+    {% elif import_task.last_run.status == "FAILURE" %}
+      <p class="text-danger-emphasis fs-5">
+        <i class="bi bi-x-circle me-2"></i>Import failed
+      </p>
+    {% elif import_task.last_run.status == "STARTED" %}
+      <p class="text-info-emphasis fs-5">
+        <i class="bi bi-skip-end-circle me-2"></i>Import process initiated
+      </p>
+    {% else %}
+      <p class="text-warning-emphasis fs-5">
+        <i class="bi bi-clock me-2"></i>Import is pending
+      </p>
+    {% endif %}
+
+    <div x-data="{ isOpen: false }">
+      <div class="d-flex gap-3 align-items-center">
+        <div class="text-muted">Last import: {{ import_task.last_run.date_done|date:"Y-m-d, h:i A" }} ({{ import_task.last_run.mode }})</div>
+
+        <a class="btn btn-outline-secondary btn-sm text-white"
+           data-bs-toggle="collapse"
+           href="#{{ source }}-details"
+           role="button"
+           aria-expanded="false"
+           aria-controls="{{ source }}-details"
+           @click="isOpen = !isOpen">
+          <i class="bi" :class="isOpen ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          <span class="ms-2">Show details</span>
+        </a>
+      </div>
+
+      <div class="collapse mt-2" id="{{ source }}-details">
+        <div class="card card-body">
+          <div>{{ import_task.last_run.result|linebreaksbr }}</div>
+        </div>
+
+        <hr class="mt-4 mb-0">
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if import_task.schedules %}
+  {% for schedule in import_task.schedules %}
+    <div class="card card-body {% if forloop.first %}mt-4{% else %}mt-3{% endif %}">
+      <div class="d-flex flex-wrap row-gap-3 justify-content-between align-items-center">
+        <div>{{ schedule.next_run_text }}</div>
+        <form action="{% url 'delete_import_schedule' %}" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="task_name" value="{{ schedule.task.name }}">
+          <button class="btn btn-danger btn-sm">
+            <i class="bi bi-x-circle me-2"></i>Cancel Schedule
+          </button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+{% endif %}

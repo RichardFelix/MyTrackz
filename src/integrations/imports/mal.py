@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2/users"
 
 
-def importer(username, user):
+def importer(username, user, mode):
     """Import anime and manga from MyAnimeList."""
-    anime_imported = import_media(username, user, "anime")
-    manga_imported = import_media(username, user, "manga")
+    anime_imported = import_media(username, user, "anime", mode)
+    manga_imported = import_media(username, user, "manga", mode)
     return anime_imported, manga_imported
 
 
-def import_media(username, user, media_type):
+def import_media(username, user, media_type, mode):
     """Import media of a specific type from MyAnimeList."""
     logger.info("Fetching %s from MyAnimeList", media_type)
     params = {
@@ -32,11 +32,7 @@ def import_media(username, user, media_type):
     bulk_media = add_media_list(media_data, media_type, user)
 
     model = apps.get_model(app_label="app", model_name=media_type)
-    num_before = model.objects.filter(user=user).count()
-    helpers.bulk_chunk_import(bulk_media, model, user)
-    num_after = model.objects.filter(user=user).count()
-
-    num_imported = num_after - num_before
+    num_imported = helpers.bulk_chunk_import(bulk_media, model, user, mode)
     logger.info("Imported %s %s", num_imported, media_type)
 
     return num_imported

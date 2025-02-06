@@ -1,15 +1,17 @@
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
-from integrations.imports import anilist, kitsu, mal, simkl, tmdb, trakt, yamtrack
+from integrations import helpers
+from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 app_mock_path = (
@@ -39,7 +41,7 @@ class ImportMAL(TestCase):
         manga_mock.json.return_value = manga_response
         mock_request.side_effect = [anime_mock, manga_mock]
 
-        mal.importer("bloodthirstiness", self.user)
+        mal.importer("bloodthirstiness", self.user, "new")
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -65,30 +67,8 @@ class ImportMAL(TestCase):
             mal.importer,
             "fhdsufdsu",
             self.user,
+            "new",
         )
-
-
-class ImportTMDB(TestCase):
-    """Test importing media from TMDB."""
-
-    def setUp(self):
-        """Create user for the tests."""
-        self.credentials = {"username": "test", "password": "12345"}
-        self.user = get_user_model().objects.create_user(**self.credentials)
-
-    def test_tmdb_import_ratings(self):
-        """Test importing ratings from TMDB."""
-        with Path(mock_path / "import_tmdb_ratings.csv").open("rb") as file:
-            tmdb.importer(file, self.user, "Completed")
-        self.assertEqual(Movie.objects.filter(user=self.user).count(), 2)
-        self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
-
-    def test_tmdb_import_watchlist(self):
-        """Test importing watchlist from TMDB."""
-        with Path(mock_path / "import_tmdb_watchlist.csv").open("rb") as file:
-            tmdb.importer(file, self.user, "Planning")
-
-        self.assertEqual(TV.objects.filter(user=self.user).count(), 2)
 
 
 class ImportAniList(TestCase):
@@ -106,7 +86,7 @@ class ImportAniList(TestCase):
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
-        anilist.importer("bloodthirstiness", self.user)
+        anilist.importer("bloodthirstiness", self.user, "new")
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
@@ -125,6 +105,7 @@ class ImportAniList(TestCase):
             anilist.importer,
             "fhdsufdsu",
             self.user,
+            "new",
         )
 
 
@@ -139,7 +120,7 @@ class ImportYamtrack(TestCase):
     def test_import_yamtrack(self):
         """Basic test importing media from Yamtrack."""
         with Path(mock_path / "import_yamtrack.csv").open("rb") as file:
-            yamtrack.importer(file, self.user)
+            yamtrack.importer(file, self.user, "new")
 
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)
@@ -183,8 +164,10 @@ class ImportKitsu(TestCase):
             self.sample_manga_response,
         ]
 
-        num_anime_imported, num_manga_imported, warning_message = (
-            kitsu.import_by_user_id("123", self.user)
+        num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
+            "123",
+            self.user,
+            "new",
         )
 
         self.assertEqual(num_anime_imported, 5)
@@ -294,7 +277,7 @@ class ImportTrakt(TestCase):
             [],  # empty ratings
         ]
 
-        trakt.importer("testuser", self.user)
+        trakt.importer("testuser", self.user, "new")
 
         self.assertEqual(Item.objects.count(), 1)
 
@@ -322,7 +305,7 @@ class ImportTrakt(TestCase):
             [],  # empty ratings
         ]
 
-        trakt.importer("testuser", self.user)
+        trakt.importer("testuser", self.user, "new")
 
         self.assertEqual(Item.objects.count(), 1)
 
@@ -331,21 +314,68 @@ class ImportTrakt(TestCase):
         with Path(mock_path / "import_trakt_watched.json").open() as file:
             watched = json.load(file)
 
-        trakt.process_watched_shows(watched, {}, self.user)
+        bulk_media = {
+            "tv": [],
+            "movie": [],
+            "anime": [],
+            "season": [],
+            "episode": [],
+        }
+        # Keep track of created instances for watchlist and ratings updates
+        media_instances = {
+            "tv": {},
+            "movie": {},
+            "anime": {},
+            "season": {},
+            "episode": {},
+        }
+        trakt.process_watched_shows(
+            watched,
+            {},
+            self.user,
+            bulk_media,
+            media_instances,
+            [],
+        )
 
         self.assertEqual(Item.objects.count(), 15)
-        self.assertEqual(Episode.objects.count(), 13)
+        self.assertEqual(len(bulk_media["tv"]), 1)
+        self.assertEqual(len(bulk_media["season"]), 1)
+        self.assertEqual(len(bulk_media["episode"]), 13)
 
     def test_process_ratings(self):
         """Test processing watched shows from Trakt."""
         with Path(mock_path / "import_trakt_ratings.json").open() as file:
             ratings = json.load(file)
-
-        trakt.process_list(ratings, {}, {}, self.user, "ratings")
+        bulk_media = {
+            "tv": [],
+            "movie": [],
+            "anime": [],
+            "season": [],
+            "episode": [],
+        }
+        # Keep track of created instances for watchlist and ratings updates
+        media_instances = {
+            "tv": {},
+            "movie": {},
+            "anime": {},
+            "season": {},
+            "episode": {},
+        }
+        trakt.process_list(
+            ratings,
+            {},
+            {},
+            self.user,
+            "ratings",
+            bulk_media,
+            media_instances,
+            [],
+        )
 
         self.assertEqual(Item.objects.count(), 1)
-        movie = Movie.objects.first()
-        self.assertEqual(movie.score, 8)
+        self.assertEqual(len(bulk_media["movie"]), 1)
+        self.assertEqual(bulk_media["movie"][0].score, 8)
 
     def test_get_date(self):
         """Test getting date from Trakt."""
@@ -407,6 +437,7 @@ class ImportSimkl(TestCase):
         tv_count, movie_count, anime_count, warnings = simkl.importer(
             "token",
             self.user,
+            "new",
         )
 
         # Check the results
@@ -449,3 +480,209 @@ class ImportSimkl(TestCase):
         """Test getting date from SIMKL."""
         self.assertEqual(simkl.get_date("2023-01-01T00:00:00Z"), date(2023, 1, 1))
         self.assertIsNone(simkl.get_date(None))
+
+
+class HelpersTest(TestCase):
+    """Test helper functions for imports."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+    def test_update_season_references(self):
+        """Test updating season references with actual TV instances."""
+        # Create test data
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        tv = TV.objects.create(item=item, user=self.user, status="Planning")
+
+        # Create season with unsaved TV reference
+        new_season = Season(
+            item=item,
+            user=self.user,
+            related_tv=TV(item=item, user=self.user),
+        )
+
+        # Update references
+        helpers.update_season_references([new_season], self.user)
+
+        # Check if reference was updated
+        self.assertEqual(new_season.related_tv.id, tv.id)
+
+    def test_update_episode_references(self):
+        """Test updating episode references with actual Season instances."""
+        tv_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        tv = TV.objects.create(item=tv_item, user=self.user, status="Planning")
+
+        season_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="season",
+            title="Test Show",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status="Planning",
+        )
+
+        episode_item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="episode",
+            title="Test Show",
+            season_number=1,
+            episode_number=1,
+        )
+
+        # Create episode with unsaved Season reference
+        new_episode = Episode(
+            item=episode_item,
+            related_season=Season(item=season_item, related_tv=tv, user=self.user),
+        )
+
+        # Update references
+        helpers.update_episode_references([new_episode], self.user)
+
+        # Check if reference was updated
+        self.assertEqual(new_episode.related_season.id, season.id)
+
+    def test_bulk_chunk_import_new(self):
+        """Test bulk importing new records."""
+        # Create test data
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+
+        # Create bulk media list
+        bulk_media = [
+            TV(item=item, user=self.user, status="Planning"),
+            TV(
+                item=Item.objects.create(
+                    media_id="2",
+                    source="tmdb",
+                    media_type="tv",
+                    title="Test Show 2",
+                ),
+                user=self.user,
+                status="Completed",
+            ),
+        ]
+
+        # Test import
+        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "new")
+
+        # Check results
+        self.assertEqual(num_imported, 2)
+        self.assertEqual(TV.objects.count(), 2)
+
+    def test_bulk_chunk_import_overwrite(self):
+        """Test bulk importing with overwrite mode."""
+        # Create existing record
+        item = Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test Show",
+        )
+        TV.objects.create(item=item, user=self.user, status="Planning")
+
+        # Create bulk media list with updated status
+        bulk_media = [
+            TV(item=item, user=self.user, status="Completed"),
+        ]
+
+        # Test import
+        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "overwrite")
+
+        # Check results
+        self.assertEqual(num_imported, 1)
+        self.assertEqual(TV.objects.get(item=item).status, "Completed")
+
+    @patch("django.contrib.messages.error")
+    def test_create_import_schedule(self, mock_messages):
+        """Test creating import schedule."""
+        request = Mock()
+        request.user = self.user
+
+        # Test valid schedule creation
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "14:30",
+            "TestSource",
+        )
+
+        # Check if schedule was created
+        schedule = PeriodicTask.objects.first()
+        self.assertIsNotNone(schedule)
+        self.assertEqual(
+            schedule.name,
+            "Import from TestSource for testuser at 14:30:00 daily",
+        )
+
+        # Test duplicate schedule
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "14:30",
+            "TestSource",
+        )
+        mock_messages.assert_called_with(
+            request,
+            "The same import task is already scheduled.",
+        )
+
+    @patch("django.contrib.messages.error")
+    def test_create_import_schedule_invalid_time(self, mock_messages):
+        """Test creating import schedule with invalid time."""
+        request = Mock()
+        request.user = self.user
+
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "daily",
+            "25:00",  # Invalid time
+            "TestSource",
+        )
+
+        mock_messages.assert_called_with(request, "Invalid import time.")
+        self.assertEqual(PeriodicTask.objects.count(), 0)
+
+    def test_create_import_schedule_every_2_days(self):
+        """Test creating import schedule for every 2 days."""
+        request = Mock()
+        request.user = self.user
+
+        helpers.create_import_schedule(
+            "testuser",
+            request,
+            "new",
+            "every_2_days",
+            "14:30",
+            "TestSource",
+        )
+
+        schedule = CrontabSchedule.objects.first()
+        self.assertEqual(schedule.day_of_week, "*/2")

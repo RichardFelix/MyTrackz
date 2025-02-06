@@ -71,6 +71,9 @@ main {
   display: none;
 }
 
+/* alpinejs hide blip */
+[x-cloak] { display: none !important; }
+
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
 
@@ -348,6 +351,12 @@ debug, info, success, warning, error */
   .title {
     font-size: 2.25rem;
     font-weight: 700;
+    /* show only 2 line of text */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   p {

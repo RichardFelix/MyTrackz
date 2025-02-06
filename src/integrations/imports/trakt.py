@@ -4,25 +4,43 @@ import re
 
 import requests
 from bs4 import BeautifulSoup
+from django.apps import apps
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Sum
 
 import app
 from app.models import Media
+from integrations import helpers
 
 logger = logging.getLogger(__name__)
 
 TRAKT_API_BASE_URL = "https://api.trakt.tv"
 
 
-def importer(username, user):
+def importer(username, user, mode):
     """Import the user's data from Trakt."""
     user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
     mal_shows_map = get_mal_mappings(is_show=True)
     mal_movies_map = get_mal_mappings(is_show=False)
 
-    # check if the user exists
+    # Initialize bulk media dictionary for all types
+    bulk_media = {
+        "tv": [],
+        "movie": [],
+        "anime": [],
+        "season": [],
+        "episode": [],
+    }
+    # Keep track of created instances for watchlist and ratings updates
+    media_instances = {
+        "tv": {},
+        "movie": {},
+        "anime": {},
+        "season": {},
+        "episode": {},
+    }
+    warnings = []
+
     try:
         watched_shows = get_response(f"{user_base_url}/watched/shows")
     except requests.exceptions.HTTPError as error:
@@ -32,45 +50,73 @@ def importer(username, user):
                 "User slug can be found in the URL when viewing your Trakt profile."
             )
             raise ValueError(msg) from error
-        raise  # re-raise for other errors
-    shows_msg, shows_num = process_watched_shows(
+        raise
+
+    # Process watched media first
+    process_watched_shows(
         watched_shows,
         mal_shows_map,
         user,
+        bulk_media,
+        media_instances,
+        warnings,
     )
 
     watched_movies = get_response(f"{user_base_url}/watched/movies")
-    movies_msg, movies_num = process_watched_movies(
+    process_watched_movies(
         watched_movies,
         mal_movies_map,
         user,
+        bulk_media,
+        media_instances,
+        warnings,
     )
 
+    # Process lists that might modify existing entries
     watchlist = get_response(f"{user_base_url}/watchlist")
-    watchlist_msg, watchlist_num = process_list(
+    process_list(
         watchlist,
         mal_shows_map,
         mal_movies_map,
         user,
         "watchlist",
+        bulk_media,
+        media_instances,
+        warnings,
     )
 
     ratings = get_response(f"{user_base_url}/ratings")
-    ratings_msg, ratings_num = process_list(
+    process_list(
         ratings,
         mal_shows_map,
         mal_movies_map,
         user,
         "ratings",
+        bulk_media,
+        media_instances,
+        warnings,
     )
 
-    warning_messages = shows_msg + movies_msg + watchlist_msg + ratings_msg
+    # Update references before bulk creation
+    helpers.update_season_references(bulk_media["season"], user)
+    helpers.update_episode_references(bulk_media["episode"], user)
+
+    # Bulk create all media types
+    imported_counts = {}
+    for media_type, bulk_list in bulk_media.items():
+        if bulk_list:  # Only process non-empty lists
+            imported_counts[media_type] = helpers.bulk_chunk_import(
+                bulk_list,
+                apps.get_model(app_label="app", model_name=media_type),
+                user,
+                mode,
+            )
+
     return (
-        shows_num,
-        movies_num,
-        watchlist_num,
-        ratings_num,
-        "\n".join(warning_messages),
+        imported_counts.get("tv", 0),
+        imported_counts.get("movie", 0),
+        imported_counts.get("anime", 0),
+        "\n".join(warnings),
     )
 
 
@@ -83,144 +129,369 @@ def get_response(url):
         "trakt-api-key": trakt_api,
     }
     return app.providers.services.api_request(
-        "KITSU",
+        "TRAKT",
         "GET",
         url,
         headers=headers,
     )
 
 
-def process_watched_shows(watched, mal_mapping, user):
-    """Process the watched shows from Trakt."""
+def process_watched_shows(
+    watched,
+    mal_mapping,
+    user,
+    bulk_media,
+    media_instances,
+    warnings,
+):
+    """Process watched shows from Trakt and prepare for bulk creation."""
     logger.info("Processing watched shows")
-    warning_messages = []
-    num_imported = 0
 
     for entry in watched:
-        mal_id = None
         trakt_id = entry["show"]["ids"]["trakt"]
+        trakt_title = entry["show"]["title"]
 
-        # only track number of tv shows imported
-        show_added = False
+        try:
+            for season in entry["seasons"]:
+                season_number = season["number"]
+                mal_id = mal_mapping.get((trakt_id, season_number))
 
-        for season in entry["seasons"]:
-            mal_id = mal_mapping.get((trakt_id, season["number"]))
-            try:
                 if mal_id and user.anime_enabled:
-                    defaults = get_anime_default_fields(season)
-                    add_mal_anime(entry, mal_id, user, defaults)
+                    defaults = get_anime_default_fields(trakt_title, season, mal_id)
+                    prepare_mal_anime(
+                        entry,
+                        mal_id,
+                        user,
+                        defaults,
+                        bulk_media,
+                        media_instances,
+                    )
                 else:
-                    add_tmdb_episodes(entry, season, user)
-            except ValueError as e:
-                warning_messages.append(str(e))
-                break
+                    tmdb_id = entry["show"]["ids"]["tmdb"]
+                    if not tmdb_id:
+                        warnings.append(
+                            f"No TMDB ID found for {trakt_title} in watch history",
+                        )
+                        break
 
-            if not show_added:
-                num_imported += 1
-                show_added = True
-    logger.info("Finished processing watched shows")
-    return warning_messages, num_imported
+                    # Only create TV and seasons for TMDB content
+                    if tmdb_id not in media_instances["tv"]:
+                        # Get metadata for all seasons at once
+                        season_numbers = [s["number"] for s in entry["seasons"]]
+                        metadata = get_metadata(
+                            app.providers.tmdb.tv_with_seasons,
+                            "TMDB",
+                            trakt_title,
+                            tmdb_id,
+                            season_numbers,
+                        )
+
+                        tv_item, _ = app.models.Item.objects.get_or_create(
+                            media_id=tmdb_id,
+                            source="tmdb",
+                            media_type="tv",
+                            defaults={
+                                "title": metadata["title"],
+                                "image": metadata["image"],
+                            },
+                        )
+                        total_episodes_watched = sum(
+                            len(season["episodes"]) for season in entry["seasons"]
+                        )
+
+                        status = get_status(
+                            total_episodes_watched,
+                            entry["plays"],
+                            metadata["max_progress"],
+                        )
+
+                        tv_instance = app.models.TV(
+                            item=tv_item,
+                            user=user,
+                            status=status,
+                        )
+                        bulk_media["tv"].append(tv_instance)
+                        media_instances["tv"][tmdb_id] = tv_instance
+
+                    prepare_tmdb_season_and_episodes(
+                        season,
+                        metadata,
+                        tmdb_id,
+                        user,
+                        bulk_media,
+                        media_instances,
+                    )
+
+        except ValueError as e:
+            warnings.append(str(e))
+            continue
+
+    logger.info("Processed %d shows", len(watched))
 
 
-def get_anime_default_fields(season):
+def get_anime_default_fields(title, season, mal_id):
     """Get the defaults tracking fields for watched anime."""
+    metadata = get_metadata(app.providers.mal.anime, "MAL", title, mal_id)
+
     start_date = season["episodes"][0]["last_watched_at"]
     end_date = season["episodes"][-1]["last_watched_at"]
-    repeats = 0
+    anime_repeats = 0
+    total_plays = 0
     for episode in season["episodes"]:
         current_watch = episode["last_watched_at"]
         start_date = min(start_date, current_watch)
         end_date = max(end_date, current_watch)
-        repeats = max(repeats, episode["plays"] - 1)
+        anime_repeats = max(anime_repeats, episode["plays"] - 1)
+        total_plays += episode["plays"]
+
+    status = get_status(
+        season["episodes"][-1]["number"],
+        total_plays,
+        metadata["max_progress"],
+    )
 
     return {
         "progress": season["episodes"][-1]["number"],
-        "status": Media.Status.IN_PROGRESS.value,
-        "repeats": repeats,
+        "status": status,
+        "repeats": anime_repeats,
         "start_date": get_date(start_date),
         "end_date": get_date(end_date),
     }
 
 
-def process_watched_movies(watched, mal_mapping, user):
-    """Process the watched movies from Trakt."""
+def get_status(episodes_wached, total_plays, max_progress):
+    """Get the status of the media."""
+    if max_progress == episodes_wached:
+        if total_plays % max_progress != 0:
+            return Media.Status.REPEATING.value
+        return Media.Status.COMPLETED.value
+    return Media.Status.IN_PROGRESS.value
+
+
+def process_watched_movies(
+    watched,
+    mal_mapping,
+    user,
+    bulk_media,
+    media_instances,
+    warnings,
+):
+    """Process watched movies from Trakt and prepare for bulk creation."""
     logger.info("Processing watched movies")
-    warning_messages = []
-    num_imported = 0
 
     for entry in watched:
-        defaults = {
-            "progress": 1,
-            "status": Media.Status.COMPLETED.value,
-            "repeats": entry["plays"] - 1,
-            "start_date": get_date(entry["last_watched_at"]),
-            "end_date": get_date(entry["last_watched_at"]),
-        }
         try:
-            add_movie(entry, user, defaults, "history", mal_mapping)
+            update_or_prepare_movie(
+                entry,
+                user,
+                {
+                    "progress": 1,
+                    "status": Media.Status.COMPLETED.value,
+                    "repeats": entry["plays"] - 1,
+                    "start_date": get_date(entry["last_watched_at"]),
+                    "end_date": get_date(entry["last_watched_at"]),
+                },
+                "history",
+                mal_mapping,
+                bulk_media,
+                media_instances,
+            )
         except ValueError as e:
-            warning_messages.append(str(e))
-        else:
-            num_imported += 1
+            warnings.append(str(e))
 
-    logger.info("Finished processing watched movies")
-    return warning_messages, num_imported
+    logger.info("Processed %d movies", len(watched))
 
 
-def process_list(entries, mal_shows_map, mal_movies_map, user, list_type):
-    """Process the default lists from Trakt, either watchlist or ratings."""
+def process_list(
+    entries,
+    mal_shows_map,
+    mal_movies_map,
+    user,
+    list_type,
+    bulk_media,
+    media_instances,
+    warnings,
+):
+    """Process watchlist or ratings from Trakt."""
     logger.info("Processing %s", list_type)
-    warning_messages = []
-    num_imported = 0
-
-    type_processors = {
-        "show": lambda: add_show(entry, user, defaults, list_type, mal_shows_map),
-        "season": lambda: add_season(entry, user, defaults, list_type, mal_shows_map),
-        "movie": lambda: add_movie(entry, user, defaults, list_type, mal_movies_map),
-    }
 
     for entry in entries:
-        if list_type == "watchlist":
-            defaults = {"status": Media.Status.PLANNING.value}
-        elif list_type == "ratings":
-            defaults = {"score": entry["rating"]}
-        trakt_type = entry["type"]
-
-        entry_processor = type_processors.get(trakt_type)
-        # skip if the type is not supported, like episode
-        if not entry_processor:
-            continue
-
         try:
-            entry_processor()
+            if list_type == "watchlist":
+                defaults = {"status": Media.Status.PLANNING.value}
+            elif list_type == "ratings":
+                defaults = {"score": entry["rating"]}
+
+            if entry["type"] == "show":
+                update_or_prepare_show(
+                    entry,
+                    user,
+                    defaults,
+                    list_type,
+                    mal_shows_map,
+                    bulk_media,
+                    media_instances,
+                )
+            elif entry["type"] == "season":
+                update_or_prepare_season(
+                    entry,
+                    user,
+                    defaults,
+                    list_type,
+                    mal_shows_map,
+                    bulk_media,
+                    media_instances,
+                )
+            elif entry["type"] == "movie":
+                update_or_prepare_movie(
+                    entry,
+                    user,
+                    defaults,
+                    list_type,
+                    mal_movies_map,
+                    bulk_media,
+                    media_instances,
+                )
         except ValueError as e:
-            warning_messages.append(str(e))
-        else:
-            num_imported += 1
+            warnings.append(str(e))
 
-    logger.info("Finished processing %s", list_type)
-    return warning_messages, num_imported
+    logger.info("Processed %d entries from %s", len(entries), list_type)
 
 
-def add_show(entry, user, defaults, list_type, mal_shows_map):
-    """Add a show to the user's library."""
+def update_or_prepare_show(
+    entry,
+    user,
+    defaults,
+    list_type,
+    mal_shows_map,
+    bulk_media,
+    media_instances,
+):
+    """Update existing show or prepare new one for bulk creation."""
     trakt_id = entry["show"]["ids"]["trakt"]
+    tmdb_id = entry["show"]["ids"]["tmdb"]
     mal_id = mal_shows_map.get((trakt_id, 1))
 
     if mal_id and user.anime_enabled:
-        add_mal_anime(entry, mal_id, user, defaults)
+        if mal_id in media_instances["anime"]:
+            # Update existing instance
+            for attr, value in defaults.items():
+                setattr(media_instances["anime"][mal_id], attr, value)
+        else:
+            prepare_mal_anime(
+                entry,
+                mal_id,
+                user,
+                defaults,
+                bulk_media,
+                media_instances,
+            )
+    elif tmdb_id in media_instances["tv"]:
+        # Update existing instance
+        for attr, value in defaults.items():
+            setattr(media_instances["tv"][tmdb_id], attr, value)
     else:
-        add_tmdb_show(entry, user, defaults, list_type)
+        prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instances)
 
 
-def add_tmdb_show(entry, user, defaults, list_type):
-    """Add a show from TMDB to the user's library."""
+def update_or_prepare_movie(
+    entry,
+    user,
+    defaults,
+    list_type,
+    mal_mapping,
+    bulk_media,
+    media_instances,
+):
+    """Update existing movie or prepare new one for bulk creation."""
+    trakt_id = entry["movie"]["ids"]["trakt"]
+    tmdb_id = entry["movie"]["ids"]["tmdb"]
+    mal_id = mal_mapping.get((trakt_id, 1))
+
+    if mal_id and user.anime_enabled:
+        if mal_id in media_instances["anime"]:
+            # Update existing instance
+            for attr, value in defaults.items():
+                setattr(media_instances["anime"][mal_id], attr, value)
+        else:
+            prepare_mal_anime(
+                entry,
+                mal_id,
+                user,
+                defaults,
+                bulk_media,
+                media_instances,
+            )
+    elif tmdb_id in media_instances["movie"]:
+        # Update existing instance
+        for attr, value in defaults.items():
+            setattr(media_instances["movie"][tmdb_id], attr, value)
+    else:
+        prepare_tmdb_movie(
+            entry,
+            user,
+            defaults,
+            list_type,
+            bulk_media,
+            media_instances,
+        )
+
+
+def update_or_prepare_season(
+    entry,
+    user,
+    defaults,
+    list_type,
+    mal_shows_map,
+    bulk_media,
+    media_instances,
+):
+    """Update existing season or prepare new one for bulk creation."""
+    trakt_id = entry["show"]["ids"]["trakt"]
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    season_number = entry["season"]["number"]
+    mal_id = mal_shows_map.get((trakt_id, season_number))
+
+    if mal_id and user.anime_enabled:
+        if mal_id in media_instances["anime"]:
+            # Update existing instance
+            for attr, value in defaults.items():
+                setattr(media_instances["anime"][mal_id], attr, value)
+        else:
+            prepare_mal_anime(
+                entry,
+                mal_id,
+                user,
+                defaults,
+                bulk_media,
+                media_instances,
+            )
+    else:
+        season_key = (tmdb_id, season_number)
+        if season_key in media_instances["season"]:
+            # Update existing instance
+            for attr, value in defaults.items():
+                setattr(media_instances["season"][season_key], attr, value)
+        else:
+            prepare_tmdb_season(
+                entry,
+                user,
+                defaults,
+                list_type,
+                bulk_media,
+                media_instances,
+            )
+
+
+def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instances):
+    """Prepare TMDB show for bulk creation."""
     tmdb_id = entry["show"]["ids"]["tmdb"]
     trakt_title = entry["show"]["title"]
 
     if not tmdb_id:
         msg = f"No TMDB ID found for {trakt_title} in {list_type}"
         raise ValueError(msg)
+
     metadata = get_metadata(app.providers.tmdb.tv, "TMDB", trakt_title, tmdb_id)
 
     item, _ = app.models.Item.objects.get_or_create(
@@ -232,29 +503,91 @@ def add_tmdb_show(entry, user, defaults, list_type):
             "image": metadata["image"],
         },
     )
-    app.models.TV.objects.update_or_create(
+
+    tv_instance = app.models.TV(
         item=item,
         user=user,
-        defaults=defaults,
+        **defaults,
+    )
+    bulk_media["tv"].append(tv_instance)
+    media_instances["tv"][tmdb_id] = tv_instance
+
+
+def prepare_tmdb_season_and_episodes(
+    season,
+    metadata,
+    tmdb_id,
+    user,
+    bulk_media,
+    media_instances,
+):
+    """Prepare TMDB season and its episodes for bulk creation."""
+    season_number = season["number"]
+    season_metadata = metadata[f"season/{season_number}"]
+
+    # Create season item
+    season_item, _ = app.models.Item.objects.get_or_create(
+        media_id=tmdb_id,
+        source="tmdb",
+        media_type="season",
+        season_number=season_number,
+        defaults={
+            "title": metadata["title"],
+            "image": season_metadata["image"],
+        },
+    )
+
+    tv_instance = media_instances["tv"][tmdb_id]
+    season_instance = app.models.Season(
+        item=season_item,
+        user=user,
+        related_tv=tv_instance,
+    )
+    bulk_media["season"].append(season_instance)
+    media_instances["season"][(tmdb_id, season_number)] = season_instance
+
+    # Prepare episodes
+    total_plays = 0
+    for episode in season["episodes"]:
+        total_plays += episode["plays"]
+        episode_number = episode["number"]
+        ep_img = get_episode_image(episode_number, season_metadata)
+
+        episode_item, _ = app.models.Item.objects.get_or_create(
+            media_id=tmdb_id,
+            source="tmdb",
+            media_type="episode",
+            season_number=season_number,
+            episode_number=episode_number,
+            defaults={
+                "title": metadata["title"],
+                "image": ep_img,
+            },
+        )
+
+        episode_instance = app.models.Episode(
+            item=episode_item,
+            related_season=season_instance,
+            end_date=get_date(episode["last_watched_at"]),
+            repeats=episode["plays"] - 1,
+        )
+        bulk_media["episode"].append(episode_instance)
+        media_instances["episode"][(tmdb_id, season_number, episode_number)] = (
+            episode_instance
+        )
+
+    season_instance.status = get_status(
+        season["episodes"][-1]["number"],
+        total_plays,
+        season_metadata["max_progress"],
     )
 
 
-def add_season(entry, user, defaults, list_type, mal_shows_map):
-    """Add a season to the user's library."""
-    trakt_id = entry["show"]["ids"]["trakt"]
-    season_number = entry["season"]["number"]
-    mal_id = mal_shows_map.get((trakt_id, season_number))
-
-    if mal_id and user.anime_enabled:
-        add_mal_anime(entry, mal_id, user, defaults)
-    else:
-        add_tmdb_season(entry, season_number, user, defaults, list_type)
-
-
-def add_tmdb_season(entry, season_number, user, defaults, list_type):
-    """Add a season from TMDB to the user's library."""
+def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_instances):
+    """Prepare TMDB season for bulk creation."""
     tmdb_id = entry["show"]["ids"]["tmdb"]
     trakt_title = entry["show"]["title"]
+    season_number = entry["season"]["number"]
 
     if not tmdb_id:
         msg = f"No TMDB ID found for {trakt_title} S{season_number} in {list_type}"
@@ -268,20 +601,26 @@ def add_tmdb_season(entry, season_number, user, defaults, list_type):
         [season_number],
     )
 
-    tv_item, _ = app.models.Item.objects.get_or_create(
-        media_id=tmdb_id,
-        source="tmdb",
-        media_type="tv",
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
-    )
-    tv_obj, _ = app.models.TV.objects.get_or_create(
-        item=tv_item,
-        user=user,
-        defaults=defaults,
-    )
+    # Prepare TV show if it doesn't exist
+    if tmdb_id not in media_instances["tv"]:
+        tv_item, _ = app.models.Item.objects.get_or_create(
+            media_id=tmdb_id,
+            source="tmdb",
+            media_type="tv",
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        tv_instance = app.models.TV(
+            item=tv_item,
+            user=user,
+            status=Media.Status.IN_PROGRESS.value,
+        )
+        bulk_media["tv"].append(tv_instance)
+        media_instances["tv"][tmdb_id] = tv_instance
+    else:
+        tv_instance = media_instances["tv"][tmdb_id]
 
     season_metadata = metadata[f"season/{season_number}"]
     season_item, _ = app.models.Item.objects.get_or_create(
@@ -294,141 +633,19 @@ def add_tmdb_season(entry, season_number, user, defaults, list_type):
             "image": season_metadata["image"],
         },
     )
-    app.models.Season.objects.update_or_create(
+
+    season_instance = app.models.Season(
         item=season_item,
         user=user,
-        related_tv=tv_obj,
-        defaults=defaults,
+        related_tv=tv_instance,
+        **defaults,
     )
+    bulk_media["season"].append(season_instance)
+    media_instances["season"][(tmdb_id, season_number)] = season_instance
 
 
-def add_tmdb_episodes(entry, season, user):
-    """Add episodes from TMDB to the user's library."""
-    tmdb_id = entry["show"]["ids"]["tmdb"]
-    trakt_title = entry["show"]["title"]
-
-    if not tmdb_id:
-        msg = f"No TMDB ID found for {trakt_title} in watch history"
-        raise ValueError(msg)
-
-    # collect all seasons metadata at once
-    season_numbers = [season["number"] for season in entry["seasons"]]
-    metadata = get_metadata(
-        app.providers.tmdb.tv_with_seasons,
-        "TMDB",
-        trakt_title,
-        tmdb_id,
-        season_numbers,
-    )
-
-    tv_item, _ = app.models.Item.objects.get_or_create(
-        media_id=tmdb_id,
-        source="tmdb",
-        media_type="tv",
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
-    )
-    tv_obj, _ = app.models.TV.objects.get_or_create(
-        item=tv_item,
-        user=user,
-        defaults={
-            "status": Media.Status.IN_PROGRESS.value,
-        },
-    )
-
-    season_number = season["number"]
-    season_item, _ = app.models.Item.objects.get_or_create(
-        media_id=tmdb_id,
-        source="tmdb",
-        media_type="season",
-        season_number=season_number,
-        defaults={
-            "title": metadata["title"],
-            "image": metadata[f"season/{season_number}"]["image"],
-        },
-    )
-    season_obj, _ = app.models.Season.objects.get_or_create(
-        item=season_item,
-        user=user,
-        related_tv=tv_obj,
-        defaults={
-            "status": Media.Status.IN_PROGRESS.value,
-        },
-    )
-
-    for episode in season["episodes"]:
-        ep_img = None
-        for episode_metadata in metadata[f"season/{season_number}"]["episodes"]:
-            if episode_metadata["episode_number"] == episode["number"]:
-                ep_img = (
-                    f"https://image.tmdb.org/t/p/w500{episode_metadata['still_path']}"
-                )
-                break
-
-        if not ep_img:
-            ep_img = settings.IMG_NONE
-
-        episode_item, _ = app.models.Item.objects.get_or_create(
-            media_id=tmdb_id,
-            source="tmdb",
-            media_type="episode",
-            season_number=season_number,
-            episode_number=episode["number"],
-            defaults={
-                "title": metadata["title"],
-                "image": ep_img,
-            },
-        )
-        ep, _ = app.models.Episode.objects.get_or_create(
-            item=episode_item,
-            related_season=season_obj,
-            defaults={
-                "end_date": get_date(episode["last_watched_at"]),
-                "repeats": episode["plays"] - 1,
-            },
-        )
-
-        consider_repeating(ep, metadata, season_number)
-
-
-def consider_repeating(episode, metadata, season_number):
-    """Set the season and show to repeating if necessary."""
-    max_progress = len(metadata[f"season/{season_number}"]["episodes"])
-    total_repeats = episode.related_season.episodes.aggregate(
-        total_repeats=Sum("repeats"),
-    )["total_repeats"]
-
-    total_watches = episode.related_season.progress + total_repeats
-    if (
-        total_watches > max_progress
-        and episode.related_season.status == Media.Status.IN_PROGRESS.value
-    ):
-        episode.related_season.status = Media.Status.REPEATING.value
-        episode.related_season.save_base(update_fields=["status"])
-
-        if (
-            episode.related_season.related_tv.progress
-            >= metadata["details"]["episodes"]
-        ):
-            episode.related_season.related_tv.status = Media.Status.COMPLETED.value
-            episode.related_season.related_tv.save_base(update_fields=["status"])
-
-
-def add_movie(entry, user, defaults, list_type, mal_movies_map):
-    """Add a movie to the user's library."""
-    trakt_id = entry["movie"]["ids"]["trakt"]
-    mal_id = mal_movies_map.get((trakt_id, 1))
-
-    if mal_id and user.anime_enabled:
-        add_mal_anime(entry, mal_id, user, defaults)
-    else:
-        add_tmdb_movie(entry, user, defaults, list_type)
-
-
-def add_tmdb_movie(entry, user, defaults, list_type):
-    """Add a movie from TMDB to the user's library."""
+def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_instances):
+    """Prepare TMDB movie for bulk creation."""
     tmdb_id = entry["movie"]["ids"]["tmdb"]
     trakt_title = entry["movie"]["title"]
 
@@ -447,19 +664,23 @@ def add_tmdb_movie(entry, user, defaults, list_type):
             "image": metadata["image"],
         },
     )
-    app.models.Movie.objects.get_or_create(
+
+    movie_instance = app.models.Movie(
         item=item,
         user=user,
-        defaults=defaults,
+        **defaults,
     )
+    bulk_media["movie"].append(movie_instance)
+    media_instances["movie"][tmdb_id] = movie_instance
 
 
-def add_mal_anime(entry, mal_id, user, defaults):
-    """Add an anime from MAL to the user's library."""
+def prepare_mal_anime(entry, mal_id, user, defaults, bulk_media, media_instances):
+    """Prepare MAL anime for bulk creation."""
     try:
         title = entry["show"]["title"]
     except KeyError:
         title = entry["movie"]["title"]
+
     metadata = get_metadata(app.providers.mal.anime, "MAL", title, mal_id)
 
     item, _ = app.models.Item.objects.get_or_create(
@@ -471,11 +692,24 @@ def add_mal_anime(entry, mal_id, user, defaults):
             "image": metadata["image"],
         },
     )
-    app.models.Anime.objects.update_or_create(
+
+    anime_instance = app.models.Anime(
         item=item,
         user=user,
-        defaults=defaults,
+        **defaults,
     )
+    bulk_media["anime"].append(anime_instance)
+    media_instances["anime"][mal_id] = anime_instance
+
+
+def get_episode_image(episode_number, season_metadata):
+    """Get episode image from metadata."""
+    for episode in season_metadata["episodes"]:
+        if episode["episode_number"] == episode_number:
+            if episode.get("still_path"):
+                return f"https://image.tmdb.org/t/p/w500{episode['still_path']}"
+            break
+    return settings.IMG_NONE
 
 
 def get_metadata(fetch_func, source, title, *args, **kwargs):
@@ -487,7 +721,7 @@ def get_metadata(fetch_func, source, title, *args, **kwargs):
             msg = f"{title}: Couldn't fetch metadata from {source} ({args[0]})"
             logger.warning(msg)
             raise ValueError(msg) from e
-        raise  # Re-raise other HTTP errors
+        raise
     except KeyError as e:
         msg = f"{title}: Couldn't parse incomplete metadata from {source} ({args[0]})"
         logger.warning(msg)
