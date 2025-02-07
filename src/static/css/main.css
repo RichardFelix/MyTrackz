@@ -56,23 +56,15 @@ p {
   text-wrap: pretty;
 }
 
-main {
-  height: 100svh;
-  overflow-y: auto;
-  width: 100%;
-}
-
-.container {
-  padding: 1rem;
-}
-
 /* hides asterisk for required fields in form */
 .asteriskField {
   display: none;
 }
 
 /* alpinejs hide blip */
-[x-cloak] { display: none !important; }
+[x-cloak] {
+  display: none !important;
+}
 
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
@@ -83,7 +75,7 @@ debug, info, success, warning, error */
   color: #ea868f;
 }
 
-.chart {
+.svh-50 {
   height: 50svh;
 }
 
@@ -192,10 +184,6 @@ debug, info, success, warning, error */
       padding: 0;
       background-color: transparent;
       border-color: transparent;
-    }
-
-    .progress_count {
-      text-align: center;
     }
 
     .progress-btn {
@@ -330,16 +318,6 @@ debug, info, success, warning, error */
     object-fit: contain;
     aspect-ratio: 2/3;
     background-color: var(--bg-img-none);
-  }
-
-  /* xs */
-  @media screen and (width <= 575px) {
-    flex-direction: column;
-
-    .image {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
   }
 }
 

@@ -184,9 +184,9 @@
           </ul>
         </div>
 
-        <main class="d-flex flex-column">
+        <main class="d-flex flex-column vh-100 w-100 overflow-y-auto">
           {% block search %}
-            <div class="search-bar d-flex container">
+            <div class="search-bar d-flex container p-3">
               <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
                       type="button"
                       data-bs-toggle="offcanvas"
@@ -244,7 +244,7 @@
           {% endblock search %}
 
           {% comment %} flex-fill is needed to make the container fill the remaining space {% endcomment %}
-          <div class="container flex-fill">
+          <div class="container p-3 flex-fill">
             {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
             {% block container %}
             {% endblock container %}
