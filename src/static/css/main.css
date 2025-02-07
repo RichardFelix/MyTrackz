@@ -89,15 +89,46 @@ debug, info, success, warning, error */
 }
 
 .nav-pills {
+  .nav-link {
+    border-radius: 0;
+    position: relative;
+    transition: background-color 0.2s ease;
+  }
+
   .nav-link.active {
     background-color: transparent;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0.25rem;
+      top: 25%;
+      height: 50%;
+      width: 2px;
+      background-color: white;
+    }
+
+    &:hover {
+      background-color: #2c3034;
+    }
   }
 
   .nav-link:not(.active) {
     color: hsl(0, 0%, 75%);
 
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0.25rem;
+      top: 25%;
+      height: 50%;
+      width: 2px;
+      background-color: transparent;
+    }
+
     &:hover {
       color: white;
+      background-color: #2c3034; /* Slightly lighter than #212529 */
     }
   }
 }
