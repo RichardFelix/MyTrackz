@@ -44,6 +44,8 @@ def importer(kitsu_id, user, mode):
     if not kitsu_id.isdigit():
         kitsu_id = get_kitsu_id(kitsu_id)
 
+    logger.info("Starting Kitsu import for user id %s with mode %s", kitsu_id, mode)
+
     anime_response = get_media_response(kitsu_id, "anime")
     num_anime_imported, anime_warnings = import_media(
         anime_response,
@@ -191,7 +193,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
         external_id = mappings[site]
         if site == f"myanimelist/{media_type}":
-            media_id = int(external_id)
+            media_id = external_id
             season_number = None
             source = "mal"
             break
@@ -206,7 +208,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
                     continue
 
             # decode the base36 encoded ID
-            media_id = int(external_id, 36)
+            media_id = str(int(external_id, 36))
             media_type = "manga"
             season_number = None
             source = "mangaupdates"

@@ -19,6 +19,8 @@ TRAKT_API_BASE_URL = "https://api.trakt.tv"
 
 def importer(username, user, mode):
     """Import the user's data from Trakt."""
+    logger.info("Starting Trakt import for user %s with mode %s", username, mode)
+
     user_base_url = f"{TRAKT_API_BASE_URL}/users/{username}"
     mal_shows_map = get_mal_mappings(is_show=True)
     mal_movies_map = get_mal_mappings(is_show=False)
@@ -104,6 +106,8 @@ def importer(username, user, mode):
     # Bulk create all media types
     imported_counts = {}
     for media_type, bulk_list in bulk_media.items():
+        logger.info("Bulk creating %d %s", len(bulk_list), media_type)
+
         if bulk_list:  # Only process non-empty lists
             imported_counts[media_type] = helpers.bulk_chunk_import(
                 bulk_list,
@@ -167,7 +171,7 @@ def process_watched_shows(
                         media_instances,
                     )
                 else:
-                    tmdb_id = entry["show"]["ids"]["tmdb"]
+                    tmdb_id = str(entry["show"]["ids"]["tmdb"])
                     if not tmdb_id:
                         warnings.append(
                             f"No TMDB ID found for {trakt_title} in watch history",
@@ -369,8 +373,8 @@ def update_or_prepare_show(
 ):
     """Update existing show or prepare new one for bulk creation."""
     trakt_id = entry["show"]["ids"]["trakt"]
-    tmdb_id = entry["show"]["ids"]["tmdb"]
-    mal_id = mal_shows_map.get((trakt_id, 1))
+    tmdb_id = str(entry["show"]["ids"]["tmdb"])
+    mal_id = str(mal_shows_map.get((trakt_id, 1)))
 
     if mal_id and user.anime_enabled:
         if mal_id in media_instances["anime"]:
@@ -405,7 +409,7 @@ def update_or_prepare_movie(
 ):
     """Update existing movie or prepare new one for bulk creation."""
     trakt_id = entry["movie"]["ids"]["trakt"]
-    tmdb_id = entry["movie"]["ids"]["tmdb"]
+    tmdb_id = str(entry["movie"]["ids"]["tmdb"])
     mal_id = mal_mapping.get((trakt_id, 1))
 
     if mal_id and user.anime_enabled:
@@ -448,7 +452,7 @@ def update_or_prepare_season(
 ):
     """Update existing season or prepare new one for bulk creation."""
     trakt_id = entry["show"]["ids"]["trakt"]
-    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(entry["show"]["ids"]["tmdb"])
     season_number = entry["season"]["number"]
     mal_id = mal_shows_map.get((trakt_id, season_number))
 
@@ -485,7 +489,7 @@ def update_or_prepare_season(
 
 def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB show for bulk creation."""
-    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(entry["show"]["ids"]["tmdb"])
     trakt_title = entry["show"]["title"]
 
     if not tmdb_id:
@@ -585,7 +589,7 @@ def prepare_tmdb_season_and_episodes(
 
 def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB season for bulk creation."""
-    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(entry["show"]["ids"]["tmdb"])
     trakt_title = entry["show"]["title"]
     season_number = entry["season"]["number"]
 
@@ -646,7 +650,7 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
 
 def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB movie for bulk creation."""
-    tmdb_id = entry["movie"]["ids"]["tmdb"]
+    tmdb_id = str(entry["movie"]["ids"]["tmdb"])
     trakt_title = entry["movie"]["title"]
 
     if not tmdb_id:

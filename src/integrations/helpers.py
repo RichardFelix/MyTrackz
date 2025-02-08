@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 
 from django.contrib import messages
 from django.utils import timezone
@@ -7,6 +8,8 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import app
+
+logger = logging.getLogger(__name__)
 
 
 def update_season_references(seasons, user):
@@ -31,6 +34,7 @@ def update_season_references(seasons, user):
         media_id = season.item.media_id
         if media_id in existing_tv:
             season.related_tv = existing_tv[media_id]
+            logger.debug("Updated season %s with TV %s", season, existing_tv[media_id])
 
 
 def update_episode_references(episodes, user):
@@ -58,6 +62,11 @@ def update_episode_references(episodes, user):
         )
         if season_key in existing_seasons:
             episode.related_season = existing_seasons[season_key]
+            logger.debug(
+                "Updated episode %s with season %s",
+                episode,
+                existing_seasons[season_key],
+            )
 
 
 def bulk_chunk_import(bulk_media, model, user, mode):

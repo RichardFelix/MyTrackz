@@ -14,6 +14,8 @@ base_url = "https://api.myanimelist.net/v2/users"
 
 def importer(username, user, mode):
     """Import anime and manga from MyAnimeList."""
+    logger.info("Starting MyAnimeList import for user %s with mode %s", username, mode)
+
     anime_imported = import_media(username, user, "anime", mode)
     manga_imported = import_media(username, user, "manga", mode)
     return anime_imported, manga_imported
@@ -90,7 +92,7 @@ def add_media_list(response, media_type, user):
             image_url = settings.IMG_NONE
 
         item, _ = app.models.Item.objects.get_or_create(
-            media_id=content["node"]["id"],
+            media_id=str(content["node"]["id"]),
             source="mal",
             media_type=media_type,
             defaults={

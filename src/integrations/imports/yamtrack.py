@@ -14,13 +14,12 @@ logger = logging.getLogger(__name__)
 
 def importer(file, user, mode):
     """Import media from CSV file."""
+    logger.info("Starting Yamtrack import with mode %s", mode)
+
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
-    logger.info("Importing from Yamtrack")
-
     bulk_media = {media_type: [] for media_type in Item.MediaTypes.values}
-
     imported_counts = {}
 
     for row in reader:

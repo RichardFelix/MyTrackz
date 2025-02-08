@@ -51,6 +51,8 @@ def get_token(request):
 
 def importer(token, user, mode):
     """Import tv shows, movies and anime from SIMKL."""
+    logger.info("Starting SIMKL import with mode %s", mode)
+
     data = get_user_list(token)
 
     if not data:
@@ -67,12 +69,15 @@ def importer(token, user, mode):
     # Import using bulk operations
     imported_counts = {}
     for media_type, bulk_list in bulk_media.items():
-        imported_counts[media_type] = helpers.bulk_chunk_import(
-            bulk_list,
-            apps.get_model(app_label="app", model_name=media_type),
-            user,
-            mode,
-        )
+        logger.info("Bulk creating %d %s", len(bulk_list), media_type)
+
+        if bulk_list:
+            imported_counts[media_type] = helpers.bulk_chunk_import(
+                bulk_list,
+                apps.get_model(app_label="app", model_name=media_type),
+                user,
+                mode,
+            )
 
     return (
         imported_counts.get("tv", 0),

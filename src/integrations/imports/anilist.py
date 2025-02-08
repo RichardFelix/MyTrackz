@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 def importer(username, user, mode):
     """Import anime and manga ratings from Anilist."""
+    logger.info("Starting AniList import for user %s with mode %s", username, mode)
+
     query = """
     query ($userName: String){
         anime: MediaListCollection(userName: $userName, type: ANIME) {
@@ -147,7 +149,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warnings):
             notes = content["notes"] or ""
 
             item, _ = app.models.Item.objects.get_or_create(
-                media_id=content["media"]["idMal"],
+                media_id=str(content["media"]["idMal"]),
                 source="mal",
                 media_type=media_type,
                 defaults={
