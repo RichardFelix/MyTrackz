@@ -91,12 +91,7 @@ debug, info, success, warning, error */
   }
 }
 
-.search-bar {
-  background-color: rgba(33, 37, 41, 0.8);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  transition: all 0.3s ease;
-
+.search-bar {  
   &:hover {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   }
@@ -114,15 +109,8 @@ debug, info, success, warning, error */
     width: 100%;
   }
 
-  .search-btn {
-    background-color: rgba(33, 37, 41, 0.1);
-    &:hover {
-      color: rgba(255, 255, 255, 1);
-    }
-  }
-
-  .form-control {
-    background-color: rgba(33, 37, 41, 0.1);
+  .search-btn, .form-control, .form-select {
+    background-color: rgba(33, 37, 41, 0.3);
     &:hover {
       color: rgba(255, 255, 255, 1);
     }
@@ -131,10 +119,9 @@ debug, info, success, warning, error */
   .form-select {
     flex-grow: 0;
     width: auto;
-    background-color: rgba(33, 37, 41, 0.1);
-    color: white;
-    &:hover:not(:focus) {
-      color: rgba(255, 255, 255, 1);
+
+    option {
+      background: rgba(33, 37, 41, 0.95);
     }
   }
 }
