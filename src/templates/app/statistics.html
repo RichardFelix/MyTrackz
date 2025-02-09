@@ -7,274 +7,271 @@
 {% endblock title %}
 
 {% block container %}
-  <div class="py-4">
-
-    <!-- Statistics Section Header -->
-    <div class="row mb-3">
-      <div class="col">
-        <h4 class="text-light">Period Statistics</h4>
-      </div>
+  <!-- Statistics Section Header -->
+  <div class="row mb-3">
+    <div class="col">
+      <h3 class="text-light">Period Statistics</h3>
     </div>
+  </div>
 
-    <div class="card bg-foreground mb-5">
-      <div class="card-body">
-        <h5 class="card-title mb-3">Select Date Range</h5>
-        <form class="row g-3">
-          <!-- Predefined Ranges -->
-          <div class="col-md-4">
-            <label class="form-label">Predefined Ranges</label>
-            <select class="form-select" id="predefined-range" name="range">
-              <option value="today" {% if range == "today" %}selected{% endif %}>Today</option>
-              <option value="yesterday" {% if range == "yesterday" %}selected{% endif %}>Yesterday</option>
-              <hr>
-              <option value="thisWeek" {% if range == "thisWeek" %}selected{% endif %}>This week</option>
-              <option value="last7Days" {% if range == "last7Days" %}selected{% endif %}>Last 7 days</option>
-              <hr>
-              <option value="thisMonth" {% if range == "thisMonth" %}selected{% endif %}>This month</option>
-              <option value="last30Days" {% if range == "last30Days" %}selected{% endif %}>Last 30 days</option>
-              <option value="last90Days" {% if range == "last90Days" %}selected{% endif %}>Last 90 days</option>
-              <hr>
-              <option value="thisYear" {% if range == "thisYear" %}selected{% endif %}>This year</option>
-              <option value="last6Months"
-                      {% if range == "last6Months" %}selected{% endif %}>Last 6 months</option>
-              <option value="last12Months"
-                      {% if range == "last12Months" %}selected{% endif %}>Last 12 months</option>
-              <hr>
-              <option value="allTime" {% if range == "allTime" %}selected{% endif %}>All time</option>
-              <option value="custom" {% if range == "custom" %}selected{% endif %}>Custom range</option>
-            </select>
-          </div>
-          <!-- Custom Date Range -->
-          <div class="col-md-8">
-            <div class="row g-3">
-              <div class="col-6">
-                <label class="form-label">Start Date</label>
-                <input type="date"
-                       class="form-control"
-                       id="start-date"
-                       name="start-date"
-                       value="{{ start_date|date:"Y-m-d" }}">
-              </div>
-              <div class="col-6">
-                <label class="form-label">End Date</label>
-                <input type="date"
-                       class="form-control"
-                       id="end-date"
-                       name="end-date"
-                       value="{{ end_date|date:"Y-m-d" }}">
-              </div>
+  <div class="card bg-foreground mb-5">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Select Date Range</h5>
+      <form class="row g-3">
+        <!-- Predefined Ranges -->
+        <div class="col-md-4">
+          <label class="form-label">Predefined Ranges</label>
+          <select class="form-select" id="predefined-range" name="range">
+            <option value="today" {% if range == "today" %}selected{% endif %}>Today</option>
+            <option value="yesterday" {% if range == "yesterday" %}selected{% endif %}>Yesterday</option>
+            <hr>
+            <option value="thisWeek" {% if range == "thisWeek" %}selected{% endif %}>This week</option>
+            <option value="last7Days" {% if range == "last7Days" %}selected{% endif %}>Last 7 days</option>
+            <hr>
+            <option value="thisMonth" {% if range == "thisMonth" %}selected{% endif %}>This month</option>
+            <option value="last30Days" {% if range == "last30Days" %}selected{% endif %}>Last 30 days</option>
+            <option value="last90Days" {% if range == "last90Days" %}selected{% endif %}>Last 90 days</option>
+            <hr>
+            <option value="thisYear" {% if range == "thisYear" %}selected{% endif %}>This year</option>
+            <option value="last6Months"
+                    {% if range == "last6Months" %}selected{% endif %}>Last 6 months</option>
+            <option value="last12Months"
+                    {% if range == "last12Months" %}selected{% endif %}>Last 12 months</option>
+            <hr>
+            <option value="allTime" {% if range == "allTime" %}selected{% endif %}>All time</option>
+            <option value="custom" {% if range == "custom" %}selected{% endif %}>Custom range</option>
+          </select>
+        </div>
+        <!-- Custom Date Range -->
+        <div class="col-md-8">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">Start Date</label>
+              <input type="date"
+                     class="form-control"
+                     id="start-date"
+                     name="start-date"
+                     value="{{ start_date|date:"Y-m-d" }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label">End Date</label>
+              <input type="date"
+                     class="form-control"
+                     id="end-date"
+                     name="end-date"
+                     value="{{ end_date|date:"Y-m-d" }}">
             </div>
           </div>
-          <!-- Apply Button -->
-          <div class="col-12 text-center">
-            <button class="btn btn-primary" type="submit">Apply Range</button>
-          </div>
-        </form>
-      </div>
+        </div>
+        <!-- Apply Button -->
+        <div class="col-12 text-center">
+          <button class="btn btn-primary" type="submit">Apply Range</button>
+        </div>
+      </form>
     </div>
+  </div>
 
-    <!-- Overview Stats -->
-    <div class="row g-4 mb-4">
-      <div class="col-md-6 col-lg-3">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-body-secondary">Total Items Completed</h6>
-            <h2 class="card-title mb-2">{{ status_distribution.total_completed }}</h2>
-            <p class="card-text text-body-secondary mb-0">From {{ media_count.total }} items</p>
-          </div>
+  <!-- Overview Stats -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+      <div class="card bg-foreground h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-body-secondary">Total Items Completed</h6>
+          <h2 class="card-title mb-2">{{ status_distribution.total_completed }}</h2>
+          <p class="card-text text-body-secondary mb-0">From {{ media_count.total }} items</p>
         </div>
       </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-body-secondary">Average Rating</h6>
-            <h2 class="card-title mb-2">{{ score_distribution.average_score }}</h2>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card bg-foreground h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-body-secondary">Average Rating</h6>
+          <h2 class="card-title mb-2">{{ score_distribution.average_score }}</h2>
+          <p class="card-text text-body-secondary mb-0">
+            From {{ score_distribution.total_scored }} rated item{{ score_distribution.total_scored|pluralize }}
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card bg-foreground h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-body-secondary">Most Active Day</h6>
+          <h2 class="card-title mb-2">{{ activity_data.stats.most_active_day }}</h2>
+          <p class="card-text text-body-secondary mb-0">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+      <div class="card bg-foreground h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle mb-2 text-body-secondary">Current Streak</h6>
+          <h2 class="card-title mb-2">{{ activity_data.stats.current_streak }}</h2>
+          {% if activity_data.stats.current_streak == 0 and activity_data.stats.compared_to_longest_streak == 0 %}
             <p class="card-text text-body-secondary mb-0">
-              From {{ score_distribution.total_scored }} rated item{{ score_distribution.total_scored|pluralize }}
+              <i class="bi bi-arrow-down-up"></i> No streaks
             </p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-body-secondary">Most Active Day</h6>
-            <h2 class="card-title mb-2">{{ activity_data.stats.most_active_day }}</h2>
-            <p class="card-text text-body-secondary mb-0">{{ activity_data.stats.most_active_day_percentage }}% of activity</p>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6 col-lg-3">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h6 class="card-subtitle mb-2 text-body-secondary">Current Streak</h6>
-            <h2 class="card-title mb-2">{{ activity_data.stats.current_streak }}</h2>
-            {% if activity_data.stats.current_streak == 0 and activity_data.stats.compared_to_longest_streak == 0 %}
-              <p class="card-text text-body-secondary mb-0">
-                <i class="bi bi-arrow-down-up"></i> No streaks
-              </p>
-            {% elif activity_data.stats.compared_to_longest_streak > 0 %}
-              <p class="card-text text-danger mb-0">
-                <i class="bi bi-arrow-down"></i> {{ activity_data.stats.compared_to_longest_streak }} day{{ activity_data.stats.compared_to_longest_streak|pluralize }} from longest
-              </p>
-            {% else %}
-              <p class="card-text text-success mb-0">
-                <i class="bi bi-arrow-up"></i> On your longest streak!
-              </p>
-            {% endif %}
-          </div>
+          {% elif activity_data.stats.compared_to_longest_streak > 0 %}
+            <p class="card-text text-danger mb-0">
+              <i class="bi bi-arrow-down"></i> {{ activity_data.stats.compared_to_longest_streak }} day{{ activity_data.stats.compared_to_longest_streak|pluralize }} from longest
+            </p>
+          {% else %}
+            <p class="card-text text-success mb-0">
+              <i class="bi bi-arrow-up"></i> On your longest streak!
+            </p>
+          {% endif %}
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Activity History Section -->
-    <div class="card bg-foreground mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-4 text-center">Activity on Yamtrack</h5>
-        <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden activity-stats justify-content-center">
-          <div class="contribution-graph">
-            <!-- Months row -->
-            <div class="d-flex mb-1 months gap-1">
-              {% for month, week_count in activity_data.months %}
-                <div class="month small text-secondary"
-                     style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
-                  {{ month }}
-                </div>
+  <!-- Activity History Section -->
+  <div class="card bg-foreground mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-4 text-center">Activity on Yamtrack</h5>
+      <div class="d-flex w-100 overflow-x-scroll overflow-y-hidden activity-stats justify-content-center">
+        <div class="contribution-graph">
+          <!-- Months row -->
+          <div class="d-flex mb-1 months gap-1">
+            {% for month, week_count in activity_data.months %}
+              <div class="month small text-secondary"
+                   style="width: calc(({{ week_count }} * var(--square-size)) + (({{ week_count }} - 1) * var(--gap-size)))">
+                {{ month }}
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Graph wrapper -->
+          <div class="d-flex gap-1">
+            <!-- Weekday labels -->
+            <div class="d-flex flex-column gap-1 pe-2">
+              {% for weekday in activity_data.weekdays %}
+                {% if forloop.counter0|divisibleby:2 %}
+                  <div class="weekday-label small text-secondary">{{ weekday }}</div>
+                {% else %}
+                  <div class="weekday-label"></div>
+                {% endif %}
               {% endfor %}
             </div>
 
-            <!-- Graph wrapper -->
+            <!-- Weeks grid -->
             <div class="d-flex gap-1">
-              <!-- Weekday labels -->
-              <div class="d-flex flex-column gap-1 pe-2">
-                {% for weekday in activity_data.weekdays %}
-                  {% if forloop.counter0|divisibleby:2 %}
-                    <div class="weekday-label small text-secondary">{{ weekday }}</div>
-                  {% else %}
-                    <div class="weekday-label"></div>
-                  {% endif %}
-                {% endfor %}
-              </div>
-
-              <!-- Weeks grid -->
-              <div class="d-flex gap-1">
-                {% for week in activity_data.calendar_weeks %}
-                  <div class="d-flex flex-column gap-1">
-                    {% for day in week %}
-                      <div class="day {% if day.disabled %}opacity-25{% endif %}"
-                           data-level="{{ day.level }}"
-                           {% if day.count > 0 and not day.disabled %} data-bs-toggle="tooltip" data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"{% endif %}>
-                      </div>
-                    {% endfor %}
-                  </div>
-                {% endfor %}
-              </div>
+              {% for week in activity_data.calendar_weeks %}
+                <div class="d-flex flex-column gap-1">
+                  {% for day in week %}
+                    <div class="day {% if day.disabled %}opacity-25{% endif %}"
+                         data-level="{{ day.level }}"
+                         {% if day.count > 0 and not day.disabled %} data-bs-toggle="tooltip" data-bs-title="{{ day.count }} action{{ day.count|pluralize }} on {{ day.date }}"{% endif %}>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endfor %}
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="card bg-foreground mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Media Timeline</h5>
-        <div id="timeline"></div>
-      </div>
+  <div class="card bg-foreground mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3 text-center">Media Timeline</h5>
+      <div id="timeline"></div>
     </div>
+  </div>
 
-    <div class="row g-4 mb-4">
-      <div class="col-lg-6">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h5 class="card-title mb-4">Media Type Distribution</h5>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card bg-foreground h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-4">Media Type Distribution</h5>
 
-            {% for media_type, count in media_count.items %}
-              {% if media_type != "total" %}
-                <div class="mb-4">
-                  <div class="d-flex justify-content-between mb-1">
-                    <span>{{ media_type|media_type_readable }}</span>
-                    <span>{{ count }} ({{ count|percentage_ratio:media_count.total }}%)</span>
-                  </div>
-                  <div class="progress" role="progressbar">
-                    <div class="progress-bar"
-                         style="width: {{ count|percentage_ratio:media_count.total }}%;
-                                background-color: {{ media_type|media_color }}"></div>
-                  </div>
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card bg-foreground h-100">
-          <div class="card-body">
-            <h5 class="card-title mb-4">Status Distribution</h5>
-
-            {% for status in status_distribution.datasets %}
+          {% for media_type, count in media_count.items %}
+            {% if media_type != "total" %}
               <div class="mb-4">
                 <div class="d-flex justify-content-between mb-1">
-                  <span>{{ status.label }}</span>
-                  <span>{{ status.total }} ({{ status.total|percentage_ratio:media_count.total }}%)</span>
+                  <span>{{ media_type|media_type_readable }}</span>
+                  <span>{{ count }} ({{ count|percentage_ratio:media_count.total }}%)</span>
                 </div>
                 <div class="progress" role="progressbar">
                   <div class="progress-bar"
-                       style="width: {{ status.total|percentage_ratio:media_count.total }}%;
-                              background-color: {{ status.background_color }}"></div>
+                       style="width: {{ count|percentage_ratio:media_count.total }}%;
+                              background-color: {{ media_type|media_color }}"></div>
                 </div>
               </div>
-            {% endfor %}
-          </div>
+            {% endif %}
+          {% endfor %}
         </div>
       </div>
     </div>
 
-    <div class="card bg-foreground mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Media Status Distribution</h5>
-        <div class="svh-50">
-          <canvas id="statusDistribution"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="card bg-foreground mb-4">
-      <div class="card-body">
-        <h5 class="card-title mb-3 text-center">Media Score Distribution</h5>
-        <div class="svh-50">
-          <canvas id="scoreDistribution"></canvas>
-        </div>
-      </div>
-    </div>
-
-    {% if score_distribution.top_rated %}
-      <div class="card bg-foreground mb-4">
+    <div class="col-lg-6">
+      <div class="card bg-foreground h-100">
         <div class="card-body">
-          <h5 class="card-title mb-3 text-center">Highest Rated Media</h5>
-          <div class="row g-2">
-            {% for media in score_distribution.top_rated %}
-              <div class="col-2">
-                <div class="card media-card">
-                  <a href="{{ media.url }}">
-                    <img src="{{ IMG_NONE }}"
-                         data-src="{{ media.image }}"
-                         class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                         alt="{{ media.title }}" />
-                  </a>
+          <h5 class="card-title mb-4">Status Distribution</h5>
 
-                  <div class="card-img-overlay">
-                    <div class="card-title">{{ media.title }}</div>
-                    <div class="text-center">{{ media.score }}</div>
-                  </div>
-                </div>
+          {% for status in status_distribution.datasets %}
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <span>{{ status.label }}</span>
+                <span>{{ status.total }} ({{ status.total|percentage_ratio:media_count.total }}%)</span>
               </div>
-            {% endfor %}
-          </div>
+              <div class="progress" role="progressbar">
+                <div class="progress-bar"
+                     style="width: {{ status.total|percentage_ratio:media_count.total }}%;
+                            background-color: {{ status.background_color }}"></div>
+              </div>
+            </div>
+          {% endfor %}
         </div>
       </div>
-    {% endif %}
+    </div>
   </div>
+
+  <div class="card bg-foreground mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3 text-center">Media Status Distribution</h5>
+      <div class="svh-50">
+        <canvas id="statusDistribution"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-foreground mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3 text-center">Media Score Distribution</h5>
+      <div class="svh-50">
+        <canvas id="scoreDistribution"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {% if score_distribution.top_rated %}
+    <div class="card bg-foreground mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3 text-center">Highest Rated Media</h5>
+        <div class="row g-2">
+          {% for media in score_distribution.top_rated %}
+            <div class="col-2">
+              <div class="card media-card">
+                <a href="{{ media.url }}">
+                  <img src="{{ IMG_NONE }}"
+                       data-src="{{ media.image }}"
+                       class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                       alt="{{ media.title }}" />
+                </a>
+
+                <div class="card-img-overlay">
+                  <div class="card-title">{{ media.title }}</div>
+                  <div class="text-center">{{ media.score }}</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock container %}
 
 {% block js %}

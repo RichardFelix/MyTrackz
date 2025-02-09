@@ -1,12 +1,12 @@
 {% load app_tags %}
 
-<button class="btn progress-btn"
+{% comment %} needs media.progress == 0 to not show on first load {% endcomment %}
+<button class="btn btn-sm progress-btn border-0 {% if media.min or media.progress == 0 %}invisible{% endif %}"
         hx-post="{% url 'progress_edit' %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
         hx-target="closest .card-text"
-        hx-vals='{"item": {{ media.item.id }}, "operation": "decrease"}'
-        {% if media.min or media.progress == 0 %}disabled{% endif %}>
+        hx-vals='{"item": {{ media.item.id }}, "operation": "decrease"}'>
   <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
 </button>
 
@@ -22,12 +22,11 @@
   {% endif %}
 </div>
 
-<button class="btn progress-btn"
+<button class="btn btn-sm progress-btn border-0 {% if media.max %}invisible{% endif %}"
         hx-post="{% url 'progress_edit' %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
         hx-target="closest .card-text"
-        hx-vals='{"item": {{ media.item.id }}, "operation": "increase"}'
-        {% if media.max %}disabled{% endif %}>
+        hx-vals='{"item": {{ media.item.id }}, "operation": "increase"}'>
   <i class="bi bi-plus"></i> {% comment %} increase progress button {% endcomment %}
 </button>

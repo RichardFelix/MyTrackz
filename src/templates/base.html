@@ -49,17 +49,77 @@
 
   <body>
     {% block body %}
-      <div class="d-flex flex-nowrap">
+      <div class="navbar sticky-top d-flex align-items-center border-bottom p-3">
+        <a href="{% url 'home' %}"
+           class="text-decoration-none text-white order-first">
+          <div class="app-title ps-lg-3 fs-4 fw-semibold">Yamtrack</div>
+        </a>
+
+        <div class="search-bar mx-auto border rounded order-md-2 order-last mt-3 mt-md-0">
+          <form id="search-form"
+                class="input-group"
+                method="get"
+                action="{% url 'search' %}">
+            <button class="search-btn btn border-0" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
+
+            <input class="form-control border-0"
+                   type="search"
+                   name="q"
+                   placeholder="Search media"
+                   aria-label="Search"
+                   value="{{ request.GET.q }}"
+                   required>
+
+            <select name="media_type" class="form-select border-0">
+              {% if not user.hide_from_search or user.tv_enabled %}
+                <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
+              {% endif %}
+
+              {% if not user.hide_from_search or user.movie_enabled %}
+                <option value="movie"
+                        {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+              {% endif %}
+
+              {% if not user.hide_from_search or user.anime_enabled %}
+                <option value="anime"
+                        {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+              {% endif %}
+
+              {% if not user.hide_from_search or user.manga_enabled %}
+                <option value="manga"
+                        {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+              {% endif %}
+
+              {% if not user.hide_from_search or user.game_enabled %}
+                <option value="game"
+                        {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
+              {% endif %}
+
+              {% if not user.hide_from_search or user.book_enabled %}
+                <option value="book"
+                        {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
+              {% endif %}
+            </select>
+          </form>
+        </div>
+
+        <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2 order-2"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#sidebar"
+                aria-controls="sidebar">
+          <i class="bi bi-list"></i>
+        </button>
+      </div>
+
+      <div class="d-flex">
         {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
         <div class="d-flex flex-column flex-shrink-0 p-3 border-end offcanvas-lg offcanvas-start"
              id="sidebar"
              tabindex="-1"
              aria-labelledby="sidebarLabel">
-          <a href="{% url 'home' %}"
-             class="text-center text-decoration-none text-white">
-            <span class="fs-4">Yamtrack</span>
-          </a>
-          <hr>
           <ul class="nav nav-pills flex-column mb-auto">
             <li>
               <a href="{% url 'home' %}"
@@ -185,67 +245,12 @@
           </ul>
         </div>
 
-        <main class="d-flex flex-column vh-100 w-100 overflow-y-auto">
-          {% block search %}
-            <div class="search-bar d-flex container p-3">
-              <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
-                      type="button"
-                      data-bs-toggle="offcanvas"
-                      data-bs-target="#sidebar"
-                      aria-controls="sidebar">
-                <i class="bi bi-list"></i>
-              </button>
-
-              <form id="search-form"
-                    class="input-group"
-                    method="get"
-                    action="{% url 'search' %}">
-                <select name="media_type" class="form-select">
-                  {% if not user.hide_from_search or user.tv_enabled %}
-                    <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.movie_enabled %}
-                    <option value="movie"
-                            {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.anime_enabled %}
-                    <option value="anime"
-                            {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.manga_enabled %}
-                    <option value="manga"
-                            {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.game_enabled %}
-                    <option value="game"
-                            {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.book_enabled %}
-                    <option value="book"
-                            {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
-                  {% endif %}
-                </select>
-                <input class="form-control"
-                       type="search"
-                       name="q"
-                       placeholder="Search"
-                       aria-label="Search"
-                       value="{{ request.GET.q }}"
-                       required>
-                <button class="btn btn-secondary rounded-end" type="submit">
-                  <i class="bi bi-search"></i>
-                </button>
-              </form>
-            </div>
-          {% endblock search %}
+        <main class="d-flex flex-column w-100">
+          {% block outer %}
+          {% endblock outer %}
 
           {% comment %} flex-fill is needed to make the container fill the remaining space {% endcomment %}
-          <div class="container p-3 flex-fill">
+          <div class="container flex-fill pt-5">
             {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
             {% block container %}
             {% endblock container %}
@@ -257,6 +262,7 @@
               crossorigin="anonymous"></script>
       <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
       <script src="https://unpkg.com/lazysizes@5.3.2/lazysizes.min.js" async></script>
+      <script src="{% static "js/navbar-height.js" %}"></script>
       {% block js %}
       {% endblock js %}
     {% endblock body %}
