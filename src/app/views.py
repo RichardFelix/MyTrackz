@@ -113,7 +113,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
 
-    context = {"media": media_metadata}
+    context = {"media": media_metadata, "media_type": media_type}
     return render(request, "app/media_details.html", context)
 
 
@@ -145,7 +145,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             episodes_in_db,
         )
 
-    context = {"season": season_metadata, "tv": tv_with_seasons_metadata}
+    context = {
+        "season": season_metadata,
+        "tv": tv_with_seasons_metadata,
+        "media_type": "season",
+    }
     return render(request, "app/season_details.html", context)
 
 
