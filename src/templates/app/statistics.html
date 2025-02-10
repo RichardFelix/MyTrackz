@@ -250,21 +250,19 @@
     <div class="card bg-foreground mb-4">
       <div class="card-body">
         <h5 class="card-title mb-3 text-center">Highest Rated Media</h5>
-        <div class="row g-2">
+        <div class="grid">
           {% for media in score_distribution.top_rated %}
-            <div class="col-2">
-              <div class="card media-card">
-                <a href="{{ media.url }}">
-                  <img src="{{ IMG_NONE }}"
-                       data-src="{{ media.image }}"
-                       class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                       alt="{{ media.title }}" />
-                </a>
+            <div class="card media-card">
+              <a href="{{ media.url }}">
+                <img src="{{ IMG_NONE }}"
+                     data-src="{{ media.image }}"
+                     class="card-img lazyload {% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                     alt="{{ media.title }}" />
+              </a>
 
-                <div class="card-img-overlay">
-                  <div class="card-title">{{ media.title }}</div>
-                  <div class="text-center">{{ media.score }}</div>
-                </div>
+              <div class="card-img-overlay">
+                <div class="card-title">{{ media.title }}</div>
+                <div class="text-center">{{ media.score }}</div>
               </div>
             </div>
           {% endfor %}
