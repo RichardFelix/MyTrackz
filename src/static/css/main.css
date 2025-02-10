@@ -46,6 +46,7 @@
   --bs-body-font-family: "Roboto", sans-serif;
   --bg-img-none: hsl(210, 10%, 23%);
   --bg-foreground: hsl(210, 10.8%, 16%);
+  --navbar-height: 4.4rem;
 }
 
 .bg-foreground {
