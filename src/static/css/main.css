@@ -91,7 +91,7 @@ debug, info, success, warning, error */
   }
 }
 
-.search-bar {  
+.search-bar {
   &:hover {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   }
@@ -109,19 +109,24 @@ debug, info, success, warning, error */
     width: 100%;
   }
 
-  .search-btn, .form-control, .form-select {
+  .search-btn,
+  .form-control,
+  .form-select {
     background-color: rgba(33, 37, 41, 0.3);
     &:hover {
       color: rgba(255, 255, 255, 1);
     }
   }
 
-  .form-select {
-    flex-grow: 0;
-    width: auto;
+  .dropdown-menu {
+    min-width: auto;
+    width: 5rem;
+    overflow: hidden; /* Prevents hovering child elements from breaking border-radius */
 
-    option {
-      background: rgba(33, 37, 41, 0.95);
+    .dropdown-item {
+      &:active {
+        background-color: rgba(33, 37, 41, 0.3);
+      }
     }
   }
 }

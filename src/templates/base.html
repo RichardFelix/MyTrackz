@@ -51,8 +51,13 @@
     {% block body %}
       <div class="navbar sticky-top d-flex align-items-center border-bottom p-3">
         <a href="{% url 'home' %}"
-           class="text-decoration-none text-white order-first">
-          <div class="app-title ps-lg-3 fs-4 fw-semibold">Yamtrack</div>
+           class="text-decoration-none text-white order-first d-flex">
+          <img src="{% static "favicon/favicon-32x32.png" %}"
+               alt="Yamtrack"
+               class="me-2"
+               width="32"
+               height="32">
+          <div class="app-title fs-4 fw-semibold">Yamtrack</div>
         </a>
 
         <div class="search-bar mx-auto border rounded order-md-2 order-last mt-3 mt-md-0">
@@ -64,44 +69,62 @@
               <i class="bi bi-search"></i>
             </button>
 
-            <input class="form-control border-0"
+            <input class="form-control border-0 ps-0"
                    type="search"
                    name="q"
-                   placeholder="Search media"
+                   placeholder="Search by media title..."
                    aria-label="Search"
                    value="{{ request.GET.q }}"
                    required>
 
-            <select name="media_type" class="form-select border-0">
-              {% if not user.hide_from_search or user.tv_enabled %}
-                <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-              {% endif %}
+            <div class="dropdown" x-data="{ selectedType: '{{ user.last_search_type }}', mediaTypes: {
+              {% if not user.hide_from_search or user.tv_enabled %}tv: { label: 'TV', color: '{{ 'tv'|media_color }}' },{% endif %}
 
               {% if not user.hide_from_search or user.movie_enabled %}
-                <option value="movie"
-                        {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
+                movie: { label: 'Movie', color: '{{ 'movie'|media_color }}' },
               {% endif %}
 
               {% if not user.hide_from_search or user.anime_enabled %}
-                <option value="anime"
-                        {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
+                anime: { label: 'Anime', color: '{{ 'anime'|media_color }}' },
               {% endif %}
 
               {% if not user.hide_from_search or user.manga_enabled %}
-                <option value="manga"
-                        {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
+                manga: { label: 'Manga', color: '{{ 'manga'|media_color }}' },
               {% endif %}
 
               {% if not user.hide_from_search or user.game_enabled %}
-                <option value="game"
-                        {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
+                game: { label: 'Game', color: '{{ 'game'|media_color }}' },
               {% endif %}
 
               {% if not user.hide_from_search or user.book_enabled %}
-                <option value="book"
-                        {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
+                book: { label: 'Book', color: '{{ 'book'|media_color }}' },
               {% endif %}
-            </select>
+              }, get mediaTypeKeys() { return Object.keys(this.mediaTypes) } }">
+              <input type="hidden" name="media_type" :value="selectedType">
+
+              <button class="btn border-0"
+                      type="button"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false">
+                <span class="badge rounded-1 text-white"
+                      :style="`background-color: ${mediaTypes[selectedType]?.color}`"
+                      x-text="mediaTypes[selectedType]?.label"></span>
+              </button>
+
+              <ul class="dropdown-menu p-0">
+                <template x-for="(type, key) in mediaTypes" :key="key">
+                  <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-center"
+                       :class="key === mediaTypeKeys[mediaTypeKeys.length - 1] ? 'pt-2 pb-2' : 'pt-2'"
+                       @click.prevent="selectedType = key">
+                      <span class="badge rounded-1 text-white"
+                            :style="`background-color: ${type.color}`"
+                            x-text="type.label"></span>
+                    </a>
+                  </li>
+                </template>
+              </ul>
+            </div>
           </form>
         </div>
 
