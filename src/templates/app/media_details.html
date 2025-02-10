@@ -6,9 +6,14 @@
   {{ media.title }} - Yamtrack
 {% endblock title %}
 
-{% block outer %}
-  {% include "app/components/media_description.html" with media=media request=request source=media.source media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
-{% endblock outer %}
+{% block search %}
+  <div {% if media.backdrop and media.backdrop != IMG_NONE %}class="banner text-light" style="background-image: url({{ media.backdrop }})"{% else %}class="banner text-light no-backdrop"{% endif %}>
+    <div class="banner-shadow shadow-lg">
+      {{ block.super }}
+      {% include "app/components/media_description.html" with media=media request=request source=media.source media_type=media.media_type media_id=media.media_id title=media.title IMG_NONE=IMG_NONE only %}
+    </div>
+  </div>
+{% endblock search %}
 
 {% block container %}
   <div class="row gap-4 mx-0 align-items-start">

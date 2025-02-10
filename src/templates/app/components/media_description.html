@@ -1,20 +1,17 @@
 {% load app_tags %}
 
-<div {% if media.backdrop and media.backdrop != IMG_NONE %}class="banner" style="background-image: url({{ media.backdrop }})"{% else %}class="banner no-background"{% endif %}>
-</div>
-
-<div class="container d-flex flex-sm-row flex-column py-3 gap-sm-4 header banner-content">
+<div class="container d-flex flex-sm-row flex-column p-3 mb-4 gap-sm-4 header">
   <div class="text-center text-sm-start mb-3 mb-sm-0 ">
     <img class="{% if media.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
          src="{{ media.image }}"
          alt="{{ media.title }}" />
   </div>
-  <div class="d-flex flex-column">
+
+  <div class="content d-flex flex-column">
     <div class="content-main d-flex flex-column text-sm-start text-center">
       {% if tv %}
         <h2 class="tv-title fs-5 mb-0">
-          <a class="text-reset"
-             href="{% url 'media_details' source=tv.source media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
+          <a class="text-reset" href="{% url 'media_details' source=tv.source media_type="tv" media_id=tv.media_id title=tv.title|slug %}">
             {{ tv.title|capfirst }}
           </a>
         </h2>
@@ -26,8 +23,10 @@
 
       <p class="mt-2">{{ media.synopsis|safe }}</p>
 
-      <div class="mt-sm-auto mt-3 mb-3 d-flex flex-wrap gap-2 justify-content-sm-start justify-content-center">
-        {% for genre in media.genres %}<span class="badge text-bg-light">{{ genre }}</span>{% endfor %}
+      <div class="mt-sm-auto mt-3 mb-lg-3 mb-2 d-flex flex-wrap gap-2 justify-content-sm-start justify-content-center">
+        {% for genre in media.genres %}
+          <span class="badge bg-light-subtle">{{ genre }}</span>
+        {% endfor %}
       </div>
     </div>
 
