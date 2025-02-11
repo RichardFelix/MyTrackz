@@ -48,43 +48,21 @@
         </thead>
 
         <tbody>
-          {% for media in media_list %}
-            <tr>
-              <td class="nostretch">
-                <a href="{{ media.item.url }}">
-                  <img class="lazyload object-fit-cover"
-                       data-src="{{ media.item.image }}"
-                       src="{{ IMG_NONE }}"
-                       data-expand="1000"
-                       width="40"
-                       height="40"
-                       alt="img" />
-                </a>
-              </td>
-              <td class="media-title text-truncate">
-                <a href="{{ media.item.url }}">{{ media }}</a>
-              </td>
-              <td>{{ media.score }}</td>
-              <td>{{ media.status }}</td>
-              <td>
-                {% if media_type == "game" %}
-                  {{ media.progress|format_time }}
-                {% else %}
-                  {{ media.progress }}
-                {% endif %}
-              </td>
-              <td>
-                {% if media.item.season_number != None %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" source=media.item.source media_id=media.item.media_id season_number=media.item.season_number only %}
-                {% else %}
-                  {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type source=media.item.source media_id=media.item.media_id only %}
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
+          {% include "app/components/media_list_items.html" %}
         </tbody>
       </table>
+
+      {% if media_list.has_next %}
+        <div id="loading-indicator-{{ current_page }}"
+             class="htmx-indicator d-flex justify-content-center my-3"
+             hx-swap-oob="true">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      {% endif %}
     </div>
+
   {% else %}
     <div class="no-content">
       <div>

@@ -93,7 +93,9 @@ def media_list(request, media_type):
     }
 
     if request.headers.get("HX-Request"):
-        return render(request, "app/components/media_grid_items.html", context)
+        if request.GET.get("layout") == "grid":
+            return render(request, "app/components/media_grid_items.html", context)
+        return render(request, "app/components/media_list_items.html", context)
 
     context["filter_form"] = filter_form
     return render(request, request.user.get_layout_template(media_type), context)
