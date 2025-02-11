@@ -1,0 +1,189 @@
+{% load app_tags %}
+
+<h3 class="text-light">{{ media_type|media_type_readable_plural }}</h3>
+
+<div class="filter-bar d-flex gap-2 align-items-center justify-content-between mt-3 mb-4"
+     x-data="{ status: '{{ request.GET.status|default:'all' }}', sort: '{{ request.GET.sort|default:'score' }}', layout: '{{ request.GET.layout|default:'grid' }}' }">
+  <!-- Hidden inputs for state -->
+  <input type="hidden" name="status" x-model="status">
+  <input type="hidden" name="sort" x-model="sort">
+  <input type="hidden" name="layout" x-model="layout">
+
+  <div class="search-container w-25">
+    <div class="input-group">
+      <span class="input-group-text border-secondary bg-transparent">
+        <i class="bi bi-search"></i>
+      </span>
+      <input type="text"
+             class="form-control border-secondary border-start-0 ps-0"
+             placeholder="Filter"
+             name="search"
+             value="{{ request.GET.search }}"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-trigger="keyup changed delay:500ms"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='status'],[name='sort'],[name='layout']">
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 align-items-center">
+    <div class="dropdown">
+      <button class="btn border-secondary dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+        <i class="bi bi-funnel-fill"></i>
+        Status
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'all' }"
+             @click="status = 'all'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "all"}'>All</a>
+        </li>
+        <li>
+          <hr class="dropdown-divider">
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'completed' }"
+             @click="status = 'completed'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "completed"}'>Completed</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'in progress' }"
+             @click="status = 'in progress'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "in progress"}'>In Progress</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'repeating' }"
+             @click="status = 'repeating'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "repeating"}'>Repeating</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'planning' }"
+             @click="status = 'planning'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "planning"}'>Planning</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'paused' }"
+             @click="status = 'paused'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "paused"}'>Paused</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': status === 'dropped' }"
+             @click="status = 'dropped'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='sort'],[name='layout']"
+             hx-vals='{"status": "dropped"}'>Dropped</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="dropdown">
+      <button class="btn border-secondary dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+        <i class="bi bi-sort-down"></i>
+        Sort
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'score' }"
+             @click="sort = 'score'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "score"}'>Score</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'title' }"
+             @click="sort = 'title'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "title"}'>Title</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'progress' }"
+             @click="sort = 'progress'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "progress"}'>Progress</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'repeats' }"
+             @click="sort = 'repeats'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "repeats"}'>Repeats</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'start_date' }"
+             @click="sort = 'start_date'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "start_date"}'>Start Date</a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             :class="{ 'active': sort === 'end_date' }"
+             @click="sort = 'end_date'"
+             hx-get="{% url 'medialist' media_type %}"
+             hx-target="{% if request.GET.layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-include="[name='search'],[name='status'],[name='layout']"
+             hx-vals='{"sort": "end_date"}'>End Date</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="btn-group" role="group">
+      <a href="{% url 'medialist' media_type %}?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}layout=grid"
+         class="btn border-secondary"
+         :class="{ 'btn-primary': layout !== 'list' }"
+         @click="layout = 'grid'">
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+      </a>
+      <a href="{% url 'medialist' media_type %}?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}layout=list"
+         class="btn border-secondary"
+         :class="{ 'btn-primary': layout === 'list' }"
+         @click="layout = 'list'">
+        <i class="bi bi-table"></i>
+      </a>
+    </div>
+  </div>
+</div>

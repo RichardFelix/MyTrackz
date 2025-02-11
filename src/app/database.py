@@ -9,13 +9,16 @@ from django.db.models.functions import TruncDate
 from app.models import Item, Media
 
 
-def get_media_list(user, media_type, status_filter, sort_filter):
-    """Get media list based on filters and sorting."""
+def get_media_list(user, media_type, status_filter, sort_filter, search=None):
+    """Get media list based on filters, sorting and search."""
     model = apps.get_model(app_label="app", model_name=media_type)
     queryset = model.objects.filter(user=user.id)
 
     if "All" not in status_filter:
         queryset = queryset.filter(status__in=status_filter)
+
+    if search:
+        queryset = queryset.filter(item__title__icontains=search)
 
     # Apply prefetch related based on media type
     prefetch_map = {

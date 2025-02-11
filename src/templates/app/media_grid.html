@@ -1,39 +1,15 @@
 {% extends "base.html" %}
 {% load static %}
 {% load crispy_forms_tags %}
+{% load app_tags %}
 
 {% block title %}
-  {% if media_type == "tv" %}
-    TV shows - Yamtrack
-  {% else %}
-    {{ media_type|title }}s - Yamtrack
-  {% endif %}
+  {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
 {% block container %}
   {% if media_list %}
-    <div class="mb-3">
-      <button type="button"
-              class="btn btn-secondary"
-              data-bs-toggle="modal"
-              data-bs-target="#filter-modal">
-        <i class="bi bi-funnel-fill"></i>
-      </button>
-      <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-body">
-              <form method="get">
-                {{ filter_form|crispy }}
-                <div class="text-center">
-                  <button class="btn btn-secondary" type="submit">Filter</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    {% include "app/components/filter_bar.html" %}
 
     <div class="grid">{% include "app/components/media_grid_items.html" %}</div>
 

@@ -4,41 +4,18 @@
 {% load app_tags %}
 
 {% block title %}
-  {% if media_type == "tv" %}
-    TV shows - Yamtrack
-  {% else %}
-    {{ media_type|title }}s - Yamtrack
-  {% endif %}
+  {{ media_type|media_type_readable_plural }} - Yamtrack
 {% endblock title %}
 
 {% block container %}
   {% if media_list %}
+    {% include "app/components/filter_bar.html" %}
+
     <div class="table-responsive rounded border p-4 mb-4">
       <table class="table table-borderless table-hover align-middle text-center">
         <thead>
           <tr>
-            <th>
-              <button type="button"
-                      class="btn btn-secondary filter-btn"
-                      data-bs-toggle="modal"
-                      data-bs-target="#filter-modal">
-                <i class="bi bi-funnel-fill"></i>
-              </button>
-              <div class="modal fade" id="filter-modal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-sm modal-dialog-centered">
-                  <div class="modal-content text-start">
-                    <div class="modal-body">
-                      <form method="get">
-                        {{ filter_form|crispy }}
-                        <div class="text-center">
-                          <button class="btn btn-secondary" type="submit">Filter</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </th>
+            <th></th>
             <th class="media-title">Title</th>
             <th>Score</th>
             <th>Status</th>

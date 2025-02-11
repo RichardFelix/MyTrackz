@@ -70,6 +70,18 @@ def media_type_readable(media_type):
     return models.Item.MediaTypes(media_type).label
 
 
+@register.filter()
+def media_type_readable_plural(media_type):
+    """Return the readable media type in plural form."""
+    singular = models.Item.MediaTypes(media_type).label
+
+    # Special cases that don't change in plural form
+    if singular.lower() in ["anime", "manga"]:
+        return singular
+
+    return f"{singular}s"
+
+
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""

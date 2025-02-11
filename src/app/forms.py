@@ -356,7 +356,23 @@ class GameForm(MediaForm):
 class FilterForm(forms.Form):
     """Form for filtering media on media list view."""
 
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Search...",
+                "hx-get": "",
+                "hx-trigger": "keyup changed delay:500ms",
+                "hx-include": "[name=status],[name=sort],[name=layout]",
+                "hx-target": ".grid, tbody",
+                "name": "search",
+            },
+        ),
+    )
+
     status = forms.ChoiceField(
+        required=False,
         choices=[
             # left side in lower case for better looking url when filtering
             ("all", "All"),
@@ -370,6 +386,7 @@ class FilterForm(forms.Form):
     )
 
     sort = forms.ChoiceField(
+        required=False,
         choices=[
             ("score", "Score"),
             ("title", "Title"),
@@ -381,6 +398,7 @@ class FilterForm(forms.Form):
     )
 
     layout = forms.ChoiceField(
+        required=False,
         choices=[
             ("grid", "Grid"),
             ("list", "List"),
@@ -392,5 +410,4 @@ class FilterForm(forms.Form):
         layout = kwargs.pop("layout")
 
         super().__init__(*args, **kwargs)
-
         self.fields["layout"].initial = layout

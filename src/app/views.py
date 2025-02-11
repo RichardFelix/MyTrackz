@@ -68,37 +68,44 @@ def media_list(request, media_type):
         filter_form = FilterForm(request.GET, layout=layout_request)
         if filter_form.is_valid() and layout_request != layout_user:
             request.user.set_layout(media_type, layout_request)
+        else:
+            logger.error(filter_form.errors.as_json())
     else:
         filter_form = FilterForm(layout=layout_user)
 
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")
+    search_query = request.GET.get("search", "")
+    page = request.GET.get("page", 1)
 
     media_queryset = database.get_media_list(
         user=request.user,
         media_type=media_type,
         status_filter=[status_filter.capitalize()],
         sort_filter=sort_filter,
+        search=search_query,
     )
 
-    page_size = 24  # Number of items per page
-    paginator = Paginator(media_queryset, page_size)
-    page = int(request.GET.get("page", 1))
-    media_page = paginator.page(page)
-    logging.debug("Loading page %d of %d", page, paginator.num_pages)
+    items_per_page = 25
+    paginator = Paginator(media_queryset, items_per_page)
+    media_page = paginator.get_page(page)
 
     context = {
         "media_type": media_type,
         "media_list": media_page,
+        "current_page": page,
     }
 
     if request.headers.get("HX-Request"):
         if request.GET.get("layout") == "grid":
-            return render(request, "app/components/media_grid_items.html", context)
-        return render(request, "app/components/media_list_items.html", context)
+            template_name = "app/components/media_grid_items.html"
+        else:
+            template_name = "app/components/media_list_items.html"
+    else:
+        template_name = request.user.get_layout_template(media_type)
+        context["filter_form"] = filter_form
 
-    context["filter_form"] = filter_form
-    return render(request, request.user.get_layout_template(media_type), context)
+    return render(request, template_name, context)
 
 
 @require_GET
