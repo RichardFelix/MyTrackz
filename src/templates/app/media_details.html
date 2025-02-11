@@ -34,13 +34,15 @@
                          alt="{{ related.title }}" />
                   </a>
 
-                  <div class="card-img-overlay">
+                  <div class="card-img-overlay pb-1">
                     <div class="card-title">{{ related.title }}</div>
-                    <div class="card-text d-flex justify-content-center align-items-center">
+                    <div class="card-text d-flex justify-content-evenly align-items-center">
                       {% if name == "seasons" %}
                         {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
+                        {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
                       {% else %}
                         {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
+                        {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
                       {% endif %}
                     </div>
                   </div>

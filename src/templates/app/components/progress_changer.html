@@ -1,7 +1,7 @@
 {% load app_tags %}
 
 {% comment %} needs media.progress == 0 to not show on first load {% endcomment %}
-<button class="btn btn-sm progress-btn border-0 {% if media.min or media.progress == 0 %}invisible{% endif %}"
+<button class="bg-transparent border-0 progress-btn {% if media.min or media.progress == 0 %}invisible{% endif %}"
         hx-post="{% url 'progress_edit' %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"
@@ -22,7 +22,7 @@
   {% endif %}
 </div>
 
-<button class="btn btn-sm progress-btn border-0 {% if media.max %}invisible{% endif %}"
+<button class="bg-transparent border-0 progress-btn {% if media.max %}invisible{% endif %}"
         hx-post="{% url 'progress_edit' %}"
         hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
         hx-trigger="click"

@@ -136,18 +136,27 @@ debug, info, success, warning, error */
     cursor: pointer;
   }
 
+  .rating {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: rgba(0,0,0,0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
   .card-img-overlay {
     /* position bottom of card */
     top: auto;
     padding: 0.5em;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    background-color: rgba(0, 0, 0, 0.692);
+    background-color: rgba(0, 0, 0, 0.7);
   }
 
   .card-title {
     text-align: center;
-    margin-bottom: 0;
+    margin-bottom: 0.25rem;
     /* show only 2 lines of text */
     overflow: hidden;
     display: -webkit-box;
@@ -158,10 +167,14 @@ debug, info, success, warning, error */
   }
 
   .card-text {
-    .open-track-btn {
+    .open-track-btn, .open-lists-btn {
       padding: 0;
       background-color: transparent;
       border-color: transparent;
+
+      &:hover {
+        color: white;
+      }
     }
 
     .progress-btn {

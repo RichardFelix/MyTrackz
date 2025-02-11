@@ -96,6 +96,15 @@
 
           <div class="card-img-overlay">
             <div class="card-title">{{ item }}</div>
+            <div class="card-text d-flex justify-content-evenly align-items-center">
+              {% if media.item.season_number != None %}
+                {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" source=item.source media_id=item.media_id season_number=item.season_number only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type="season" source=item.source media_id=item.media_id season_number=item.season_number only %}
+              {% else %}
+                {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=item.media_type source=item.source media_id=item.media_id only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type=item.media_type source=item.source media_id=item.media_id only %}
+              {% endif %}
+            </div>
           </div>
         </div>
       {% endfor %}

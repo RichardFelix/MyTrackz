@@ -45,14 +45,19 @@
                  data-expand="1000"
                  alt="{{ media }}" />
           </a>
-          <div class="card-img-overlay">
+          {% if media.score %}
+            <div class="rating"><i class="bi bi-star-fill me-1 text-warning"></i>{{ media.score }}</div>
+          {% endif %}
+
+          <div class="card-img-overlay pb-1">
             <div class="card-title">{{ media }}</div>
             <div class="card-text d-flex justify-content-evenly align-items-center">
-              <span>{{ media.score }}</span>
               {% if media.item.season_number != None %}
                 {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" source=media.item.source media_id=media.item.media_id season_number=media.item.season_number only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type="season" source=media.item.source media_id=media.item.media_id season_number=media.item.season_number only %}
               {% else %}
                 {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type source=media.item.source media_id=media.item.media_id only %}
+                {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type=media_type source=media.item.source media_id=media.item.media_id only %}
               {% endif %}
             </div>
           </div>
