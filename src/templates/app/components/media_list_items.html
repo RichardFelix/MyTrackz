@@ -16,7 +16,13 @@
     <td class="media-title text-truncate">
       <a href="{{ media.item.url }}">{{ media }}</a>
     </td>
-    <td>{{ media.score }}</td>
+    <td>
+      {% if media.score %}
+        <i class="bi bi-star-fill me-2 text-warning"></i>{{ media.score }}
+      {% else %}
+        <i class="bi bi-star"></i>
+      {% endif %}
+    </td>
     <td>{{ media.status }}</td>
     <td>
       {% if media_type == "game" %}

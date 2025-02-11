@@ -219,9 +219,7 @@ debug, info, success, warning, error */
 
   .media-title {
     text-align: left;
-    /* auto adjust width of title */
-    max-width: 30svw;
-    margin-left: 0;
+    width: 30svw;
   }
 
   a {
