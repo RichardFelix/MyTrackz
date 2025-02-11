@@ -1,6 +1,6 @@
 {% for media in media_list %}
   <div class="card media-card"
-       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}" hx-trigger="intersect once" hx-swap="afterend" hx-include="[name='status'],[name='sort'],[name='layout']" hx-vals='{"page": {{ media_list.next_page_number }} }' hx-indicator="#loading-indicator-{{ current_page }}" {% endif %}>
+       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}" hx-trigger="intersect once" hx-swap="afterend" hx-include="[name='status'],[name='sort'],[name='layout']" hx-vals='{"page": {{ media_list.next_page_number }} }' hx-indicator="#loading-indicator" {% endif %}>
     <a href="{{ media.item.url }}">
       <img class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
            src="{{ IMG_NONE }}"

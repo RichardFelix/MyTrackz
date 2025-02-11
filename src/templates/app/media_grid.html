@@ -14,7 +14,7 @@
     <div class="grid">{% include "app/components/media_grid_items.html" %}</div>
 
     {% if media_list.has_next %}
-      <div id="loading-indicator-{{ current_page }}"
+      <div id="loading-indicator"
            class="htmx-indicator text-center mt-5 mb-3">
         <div class="spinner-border" role="status">
           <span class="visually-hidden">Loading...</span>
