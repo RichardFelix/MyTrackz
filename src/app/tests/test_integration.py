@@ -44,9 +44,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.locator(".mt-auto > div > div > button").first.click()
         self.page.get_by_role("button", name="Release date").click()
         self.page.get_by_role("link", name=" Seasons").click()
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(self.page.get_by_role("cell", name="1", exact=True)).to_be_visible()
         self.page.get_by_role("link", name=" Home").click()
         self.page.get_by_role("button", name="").click()
@@ -85,9 +83,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="").first.click()
         self.page.get_by_role("button", name="Save").click()
         self.page.get_by_role("link", name=" TV Shows").click()
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(self.page.locator("tbody")).to_contain_text("62")
 
     def test_season_completed(self):
@@ -103,14 +99,11 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_text("S01.E01 - Pilot 1994-09-22 An")).to_be_visible()
         self.page.get_by_role("link", name=" TV Shows").click()
         self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(self.page.get_by_role("cell", name="24")).to_be_visible()
         expect(self.page.get_by_role("cell", name="In progress")).to_be_visible()
         self.page.get_by_role("link", name=" Seasons").click()
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(self.page.locator("tbody")).to_contain_text("Completed")
 
     def test_tv_manual(self):  # noqa: PLR0915
@@ -128,16 +121,8 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Submit").click()
         expect(self.page.get_by_text("example added successfully.")).to_be_visible()
         self.page.get_by_role("link", name=" TV Shows").click()
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(self.page.get_by_role("cell", name="5.0")).to_be_visible()
-        expect(
-            self.page.get_by_role(
-                "row",
-                name="img example 5.0 Completed 0 ",
-            ).get_by_role("button"),
-        ).to_be_visible()
         self.page.get_by_role("cell", name="example").click()
         self.page.get_by_role("link", name="example").click()
 
@@ -179,7 +164,6 @@ class IntegrationTest(StaticLiveServerTestCase):
         )
         self.page.get_by_label("Episode number").click()
         self.page.get_by_label("Episode number").fill("1")
-        self.page.pause()
         self.page.get_by_label("End date").fill("2024-11-01")
         self.page.get_by_role("button", name="Submit").click()
         expect(
@@ -256,19 +240,17 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # check the seasons list page
         self.page.get_by_role("link", name=" Seasons").click()
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_label("Layout*").select_option("list")
-        self.page.get_by_role("button", name="Filter").click()
+        self.page.get_by_role("link", name="").click()
         expect(
             self.page.get_by_role(
                 "row",
-                name="img example S1 8.0 Completed",
+                name="img example S1  8.0",
             ).get_by_role("button"),
         ).to_be_visible()
         expect(
             self.page.get_by_role(
                 "row",
-                name="img example S2 5.0 Completed",
+                name="img example S2  5.0",
             ).get_by_role("button"),
         ).to_be_visible()
         expect(self.page.get_by_role("cell", name="3", exact=True)).to_be_visible()
@@ -312,19 +294,19 @@ class IntegrationTest(StaticLiveServerTestCase):
         # set tv show to in progress and check the tv show list
         self.page.get_by_role("link", name=" TV Shows").click()
         expect(self.page.get_by_role("cell", name="3")).to_be_visible()
-        self.page.get_by_role("row", name="img example 5.0 Completed 3 ").get_by_role(
+        self.page.get_by_role("row", name="img example  5.0 Completed 3").get_by_role(
             "button",
         ).click()
-        self.page.get_by_role("row", name="img example 5.0 Completed 3 ").locator(
+        self.page.get_by_role("row", name="img example  5.0 Completed 3").locator(
             "#id_status",
         ).select_option("In progress")
         self.page.get_by_role("button", name="Save").click()
 
         # set tv show to completed and check the tv show list
-        self.page.get_by_role("row", name="img example 5.0 In progress 3").get_by_role(
+        self.page.get_by_role("row", name="img example  5.0 In progress").get_by_role(
             "button",
         ).click()
-        self.page.get_by_role("row", name="img example 5.0 In progress 3").locator(
+        self.page.get_by_role("row", name="img example  5.0 In progress").locator(
             "#id_status",
         ).select_option("Completed")
         self.page.get_by_role("button", name="Save").click()

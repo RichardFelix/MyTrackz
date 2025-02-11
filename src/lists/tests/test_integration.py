@@ -35,7 +35,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         cls.playwright.stop()
 
     def test_blank_modal(self):
-        """Test the register and login pages."""
+        """Test the blank modal for creating a list."""
         self.page.get_by_role("combobox").select_option("anime")
         self.page.get_by_placeholder("Search").click()
         self.page.get_by_placeholder("Search").fill("perfect blue")
@@ -43,7 +43,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_placeholder("Search").press("Enter")
         self.page.get_by_role("button", name="").click()
         self.page.get_by_role("link", name="Perfect Blue").click()
-        self.page.get_by_role("button", name="").click()
+        self.page.locator(".mt-sm-auto > button:nth-child(3)").click()
         expect(self.page.get_by_text("No custom lists found.")).to_be_visible()
 
     def test_flow(self):
@@ -64,7 +64,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_placeholder("Search").fill("perfect blue")
         self.page.get_by_role("button", name="").click()
         self.page.get_by_role("link", name="Perfect Blue").click()
-        self.page.get_by_role("button", name="").click()
+        self.page.locator(".mt-sm-auto > button:nth-child(3)").click()
         expect(self.page.get_by_role("button", name=" test")).to_be_visible()
         self.page.get_by_role("button", name=" test").click()
         self.page.get_by_label("Close").click()
@@ -84,7 +84,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.wait_for_timeout(500)
         self.page.locator("#filter-modal").press("Escape")
         self.page.wait_for_timeout(500)
-        self.page.get_by_role("button", name="").click()
+        self.page.get_by_role("button", name="").first.click()
 
         # edit list
         expect(
