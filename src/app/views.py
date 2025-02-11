@@ -2,6 +2,7 @@ import logging
 
 from django.apps import apps
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -73,22 +74,29 @@ def media_list(request, media_type):
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")
 
-    media_list = database.get_media_list(
+    media_queryset = database.get_media_list(
         user=request.user,
         media_type=media_type,
         status_filter=[status_filter.capitalize()],
         sort_filter=sort_filter,
     )
 
-    return render(
-        request,
-        request.user.get_layout_template(media_type),
-        {
-            "media_type": media_type,
-            "media_list": media_list,
-            "filter_form": filter_form,
-        },
-    )
+    page_size = 24  # Number of items per page
+    paginator = Paginator(media_queryset, page_size)
+    page = int(request.GET.get("page", 1))
+    media_page = paginator.page(page)
+    logging.debug("Loading page %d of %d", page, paginator.num_pages)
+
+    context = {
+        "media_type": media_type,
+        "media_list": media_page,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "app/components/media_grid_items.html", context)
+
+    context["filter_form"] = filter_form
+    return render(request, request.user.get_layout_template(media_type), context)
 
 
 @require_GET

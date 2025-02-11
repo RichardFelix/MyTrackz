@@ -1,0 +1,31 @@
+{% for media in media_list %}
+  <div class="card media-card"
+       {% if forloop.last %} hx-get="{% url 'medialist' media_type %}" hx-trigger="intersect once" hx-swap="afterend" hx-include="[name='status'],[name='sort'],[name='layout']" hx-vals='{"page": {{ media_list.next_page_number }} }' hx-indicator="#loading-indicator-{{ current_page }}" {% if not media_list.has_next %}hx-disable{% endif %}
+       {% endif %}>
+    <a href="{{ media.item.url }}">
+      <img class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+           src="{{ IMG_NONE }}"
+           data-src="{{ media.item.image }}"
+           data-expand="1000"
+           alt="{{ media }}" />
+    </a>
+    {% if media.score %}
+      <div class="rating">
+        <i class="bi bi-star-fill me-1 text-warning"></i>{{ media.score }}
+      </div>
+    {% endif %}
+
+    <div class="card-img-overlay pb-1">
+      <div class="card-title">{{ media }}</div>
+      <div class="card-text d-flex justify-content-evenly align-items-center">
+        {% if media.item.season_number != None %}
+          {% include "app/components/open_modal.html" with modal_type="track" request=request media_type="season" source=media.item.source media_id=media.item.media_id season_number=media.item.season_number only %}
+          {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type="season" source=media.item.source media_id=media.item.media_id season_number=media.item.season_number only %}
+        {% else %}
+          {% include "app/components/open_modal.html" with modal_type="track" request=request media_type=media_type source=media.item.source media_id=media.item.media_id only %}
+          {% include "app/components/open_modal.html" with modal_type="lists" request=request media_type=media_type source=media.item.source media_id=media.item.media_id only %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endfor %}
