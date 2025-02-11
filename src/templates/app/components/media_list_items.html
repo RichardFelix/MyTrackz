@@ -1,15 +1,7 @@
 {% load app_tags %}
 
 {% for media in media_list %}
-  <tr {% if forloop.last %} 
-      hx-get="{% url 'medialist' media_type %}" 
-      hx-trigger="intersect once" 
-      hx-swap="afterend" 
-      hx-include="[name='status'],[name='sort'],[name='layout']" 
-      hx-vals='{"page": {{ media_list.next_page_number }} }' 
-      hx-indicator="#loading-indicator-{{ current_page }}"
-      {% if not media_list.has_next %}hx-disable{% endif %}
-      {% endif %}>
+  <tr {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}" hx-trigger="intersect once" hx-swap="afterend" hx-include="[name='status'],[name='sort'],[name='layout']" hx-vals='{"page": {{ media_list.next_page_number }} }' hx-indicator="#loading-indicator-{{ current_page }}" {% endif %}>
     <td class="nostretch">
       <a href="{{ media.item.url }}">
         <img class="lazyload object-fit-cover"

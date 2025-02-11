@@ -28,17 +28,6 @@ p {
   display: none !important;
 }
 
-.htmx-indicator {
-  opacity: 0;
-  transition: opacity 200ms ease-in;
-}
-.htmx-request .htmx-indicator {
-  opacity: 1;
-}
-.htmx-request.htmx-indicator {
-  opacity: 1;
-}
-
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
 
