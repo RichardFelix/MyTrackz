@@ -10,7 +10,16 @@ from django.core.validators import (
     MinValueValidator,
 )
 from django.db import models
-from django.db.models import CheckConstraint, Max, Prefetch, Q, Sum, UniqueConstraint
+from django.db.models import (
+    CheckConstraint,
+    IntegerField,
+    Max,
+    Prefetch,
+    Q,
+    Sum,
+    UniqueConstraint,
+)
+from django.db.models.functions import Cast
 from django.urls import reverse
 from django.utils import timezone
 from model_utils import FieldTracker
@@ -152,14 +161,17 @@ class Item(models.Model):
         """Generate a new ID for manual items."""
         latest_item = (
             cls.objects.filter(source="manual", media_type=media_type)
-            .order_by("-media_id")
+            .annotate(
+                media_id_int=Cast("media_id", IntegerField()),
+            )
+            .order_by("-media_id_int")
             .first()
         )
 
         if latest_item is None:
-            return 1
+            return "1"
 
-        return int(latest_item.media_id) + 1
+        return str(int(latest_item.media_id) + 1)
 
     @property
     def url(self):
