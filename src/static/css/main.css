@@ -28,6 +28,14 @@ p {
   display: none !important;
 }
 
+.htmx-indicator {
+  display: none;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: block;
+}
+
 /* bootstrap alert CSS, translated to the django-standard levels of
 debug, info, success, warning, error */
 
@@ -40,7 +48,6 @@ debug, info, success, warning, error */
 .svh-50 {
   height: 50svh;
 }
-
 
 .search-bar {
   @media screen and (width >= 1400px) {
@@ -140,7 +147,7 @@ debug, info, success, warning, error */
     position: absolute;
     top: 5px;
     right: 5px;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(0, 0, 0, 0.8);
     padding: 2px 6px;
     border-radius: 4px;
   }
@@ -167,7 +174,8 @@ debug, info, success, warning, error */
   }
 
   .card-text {
-    .open-track-btn, .open-lists-btn {
+    .open-track-btn,
+    .open-lists-btn {
       padding: 0;
       background-color: transparent;
       border-color: transparent;

@@ -245,7 +245,7 @@
           {% endblock search %}
 
           {% comment %} flex-fill is needed to make the container fill the remaining space {% endcomment %}
-          <div class="container p-3 flex-fill">
+          <div class="container pt-3 pb-5 flex-fill">
             {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
             {% block container %}
             {% endblock container %}
