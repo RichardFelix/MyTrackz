@@ -343,6 +343,10 @@ debug, info, success, warning, error */
     -webkit-box-orient: vertical;
   }
 
+  .badge-genre {
+    background-color: #ffffff38;
+  }
+
   /* xs */
   @media screen and (width <= 575px) {
     margin-left: 0;
