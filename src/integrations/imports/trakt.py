@@ -161,6 +161,7 @@ def process_watched_shows(
                 mal_id = mal_mapping.get((trakt_id, season_number))
 
                 if mal_id and user.anime_enabled:
+                    mal_id = str(mal_id)
                     defaults = get_anime_default_fields(trakt_title, season, mal_id)
                     prepare_mal_anime(
                         entry,
@@ -171,12 +172,13 @@ def process_watched_shows(
                         media_instances,
                     )
                 else:
-                    tmdb_id = str(entry["show"]["ids"]["tmdb"])
+                    tmdb_id = entry["show"]["ids"]["tmdb"]
                     if not tmdb_id:
                         warnings.append(
                             f"No TMDB ID found for {trakt_title} in watch history",
                         )
                         break
+                    tmdb_id = str(tmdb_id)
 
                     # Only create TV and seasons for TMDB content
                     if tmdb_id not in media_instances["tv"]:
@@ -373,10 +375,13 @@ def update_or_prepare_show(
 ):
     """Update existing show or prepare new one for bulk creation."""
     trakt_id = entry["show"]["ids"]["trakt"]
-    tmdb_id = str(entry["show"]["ids"]["tmdb"])
-    mal_id = str(mal_shows_map.get((trakt_id, 1)))
+    mal_id = mal_shows_map.get((trakt_id, 1))
+
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(tmdb_id) if tmdb_id else None
 
     if mal_id and user.anime_enabled:
+        mal_id = str(mal_id)
         if mal_id in media_instances["anime"]:
             # Update existing instance
             for attr, value in defaults.items():
@@ -409,10 +414,13 @@ def update_or_prepare_movie(
 ):
     """Update existing movie or prepare new one for bulk creation."""
     trakt_id = entry["movie"]["ids"]["trakt"]
-    tmdb_id = str(entry["movie"]["ids"]["tmdb"])
     mal_id = mal_mapping.get((trakt_id, 1))
 
+    tmdb_id = str(entry["movie"]["ids"]["tmdb"])
+    tmdb_id = str(tmdb_id) if tmdb_id else None
+
     if mal_id and user.anime_enabled:
+        mal_id = str(mal_id)
         if mal_id in media_instances["anime"]:
             # Update existing instance
             for attr, value in defaults.items():
@@ -451,12 +459,15 @@ def update_or_prepare_season(
     media_instances,
 ):
     """Update existing season or prepare new one for bulk creation."""
-    trakt_id = entry["show"]["ids"]["trakt"]
-    tmdb_id = str(entry["show"]["ids"]["tmdb"])
     season_number = entry["season"]["number"]
+    trakt_id = entry["show"]["ids"]["trakt"]
     mal_id = mal_shows_map.get((trakt_id, season_number))
 
+    tmdb_id = str(entry["show"]["ids"]["tmdb"])
+    tmdb_id = str(tmdb_id) if tmdb_id else None
+
     if mal_id and user.anime_enabled:
+        mal_id = str(mal_id)
         if mal_id in media_instances["anime"]:
             # Update existing instance
             for attr, value in defaults.items():
@@ -489,7 +500,8 @@ def update_or_prepare_season(
 
 def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB show for bulk creation."""
-    tmdb_id = str(entry["show"]["ids"]["tmdb"])
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(tmdb_id) if tmdb_id else None
     trakt_title = entry["show"]["title"]
 
     if not tmdb_id:
@@ -589,7 +601,8 @@ def prepare_tmdb_season_and_episodes(
 
 def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB season for bulk creation."""
-    tmdb_id = str(entry["show"]["ids"]["tmdb"])
+    tmdb_id = entry["show"]["ids"]["tmdb"]
+    tmdb_id = str(tmdb_id) if tmdb_id else None
     trakt_title = entry["show"]["title"]
     season_number = entry["season"]["number"]
 
@@ -650,7 +663,8 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
 
 def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_instances):
     """Prepare TMDB movie for bulk creation."""
-    tmdb_id = str(entry["movie"]["ids"]["tmdb"])
+    tmdb_id = entry["movie"]["ids"]["tmdb"]
+    tmdb_id = str(tmdb_id) if tmdb_id else None
     trakt_title = entry["movie"]["title"]
 
     if not tmdb_id:
