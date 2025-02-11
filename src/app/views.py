@@ -66,11 +66,12 @@ def media_list(request, media_type):
     if request.GET:
         layout_request = request.GET.get("layout", layout_user)
         filter_form = FilterForm(request.GET, layout=layout_request)
-        if filter_form.is_valid() and layout_request != layout_user:
-            request.user.set_layout(media_type, layout_request)
-        else:
-            logger.error(filter_form.errors.as_json())
-    else:
+        if layout_request != layout_user:
+            if filter_form.is_valid():
+                request.user.set_layout(media_type, layout_request)
+            else:
+                logger.error(filter_form.errors.as_json())
+    else: # first time access
         filter_form = FilterForm(layout=layout_user)
 
     status_filter = request.GET.get("status", "all")
@@ -94,6 +95,7 @@ def media_list(request, media_type):
         "media_type": media_type,
         "media_list": media_page,
         "current_page": page,
+        "user_layout": layout_user,
     }
 
     if request.headers.get("HX-Request"):
