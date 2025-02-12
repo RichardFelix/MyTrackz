@@ -219,7 +219,7 @@ debug, info, success, warning, error */
 
   .media-title {
     text-align: left;
-    width: 30svw;
+    max-width: 25svw;
   }
 
   a {
