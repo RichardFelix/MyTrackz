@@ -10,7 +10,7 @@ from users import helpers
 
 layouts = [
     ("grid", "Grid"),
-    ("list", "List"),
+    ("table", "Table"),
 ]
 
 
@@ -49,14 +49,14 @@ class User(AbstractUser):
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
-        default="list",
+        default="table",
         choices=layouts,
     )
 
     manga_enabled = models.BooleanField(default=True)
     manga_layout = models.CharField(
         max_length=20,
-        default="list",
+        default="table",
         choices=layouts,
     )
 
@@ -92,14 +92,6 @@ class User(AbstractUser):
     def get_layout(self, media_type):
         """Return the layout for the media type."""
         return getattr(self, f"{media_type}_layout")
-
-    def get_layout_template(self, media_type):
-        """Return the layout template for the media type."""
-        template = {
-            "grid": "app/media_grid.html",
-            "list": "app/media_list.html",
-        }
-        return template[self.get_layout(media_type)]
 
     def set_layout(self, media_type, layout):
         """Set the layout for the media type."""

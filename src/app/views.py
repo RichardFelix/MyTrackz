@@ -69,6 +69,7 @@ def media_list(request, media_type):
         if layout_request != layout_user:
             if filter_form.is_valid():
                 request.user.set_layout(media_type, layout_request)
+                layout_user = layout_request
             else:
                 logger.error(filter_form.errors.as_json())
     else: # first time access
@@ -103,10 +104,10 @@ def media_list(request, media_type):
         if request.GET.get("layout") == "grid":
             template_name = "app/components/media_grid_items.html"
         else:
-            template_name = "app/components/media_list_items.html"
+            template_name = "app/components/media_table_items.html"
     else:
-        template_name = request.user.get_layout_template(media_type)
-        context["filter_form"] = filter_form
+        template_name = "app/media_list.html"
+        context["layout"] = layout_user
 
     return render(request, template_name, context)
 

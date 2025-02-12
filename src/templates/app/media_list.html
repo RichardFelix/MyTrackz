@@ -11,32 +11,45 @@
   {% if media_list or not first_request %}
     {% include "app/components/filter_bar.html" %}
 
-    <div class="table-responsive rounded border p-4 mb-4">
-      <table class="table table-borderless table-hover align-middle text-center">
-        <thead>
-          <tr>
-            <th></th>
-            <th class="media-title">Title</th>
-            <th>Score</th>
-            <th>Status</th>
-            <th>Progress</th>
-            <th>Edit</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% include "app/components/media_list_items.html" %}
-        </tbody>
-      </table>
+    {% if layout == "grid" %}
+      <div class="grid">{% include "app/components/media_grid_items.html" %}</div>
 
       {% if media_list.has_next %}
-        <div id="loading-indicator" class="htmx-indicator text-center my-3">
+        <div id="loading-indicator" class="htmx-indicator text-center mt-5 mb-3">
           <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
       {% endif %}
-    </div>
+
+    {% else %}
+      <div class="table-responsive rounded border p-4 mb-4">
+        <table class="table table-borderless table-hover align-middle text-center">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="media-title">Title</th>
+              <th>Score</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Edit</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% include "app/components/media_table_items.html" %}
+          </tbody>
+        </table>
+
+        {% if media_list.has_next %}
+          <div id="loading-indicator" class="htmx-indicator text-center my-3">
+            <div class="spinner-border" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
 
   {% else %}
     <div class="no-content">

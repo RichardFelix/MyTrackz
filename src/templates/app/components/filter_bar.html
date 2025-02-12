@@ -22,7 +22,7 @@
              value="{{ request.GET.search }}"
              hx-get="{% url 'medialist' media_type %}"
              hx-trigger="keyup changed delay:300ms"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='status'],[name='sort'],[name='layout']">
     </div>
   </div>
@@ -42,7 +42,7 @@
              :class="{ 'active': status === 'all' }"
              @click="status = 'all'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "all"}'>All</a>
         </li>
@@ -54,7 +54,7 @@
              :class="{ 'active': status === 'completed' }"
              @click="status = 'completed'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "completed"}'>Completed</a>
         </li>
@@ -63,7 +63,7 @@
              :class="{ 'active': status === 'in progress' }"
              @click="status = 'in progress'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "in progress"}'>In Progress</a>
         </li>
@@ -72,7 +72,7 @@
              :class="{ 'active': status === 'repeating' }"
              @click="status = 'repeating'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "repeating"}'>Repeating</a>
         </li>
@@ -81,7 +81,7 @@
              :class="{ 'active': status === 'planning' }"
              @click="status = 'planning'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "planning"}'>Planning</a>
         </li>
@@ -90,7 +90,7 @@
              :class="{ 'active': status === 'paused' }"
              @click="status = 'paused'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "paused"}'>Paused</a>
         </li>
@@ -99,7 +99,7 @@
              :class="{ 'active': status === 'dropped' }"
              @click="status = 'dropped'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='sort'],[name='layout']"
              hx-vals='{"status": "dropped"}'>Dropped</a>
         </li>
@@ -120,7 +120,7 @@
              :class="{ 'active': sort === 'score' }"
              @click="sort = 'score'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "score"}'>Score</a>
         </li>
@@ -129,7 +129,7 @@
              :class="{ 'active': sort === 'title' }"
              @click="sort = 'title'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "title"}'>Title</a>
         </li>
@@ -138,7 +138,7 @@
              :class="{ 'active': sort === 'progress' }"
              @click="sort = 'progress'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "progress"}'>Progress</a>
         </li>
@@ -147,7 +147,7 @@
              :class="{ 'active': sort === 'repeats' }"
              @click="sort = 'repeats'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "repeats"}'>Repeats</a>
         </li>
@@ -156,7 +156,7 @@
              :class="{ 'active': sort === 'start_date' }"
              @click="sort = 'start_date'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "start_date"}'>Start Date</a>
         </li>
@@ -165,7 +165,7 @@
              :class="{ 'active': sort === 'end_date' }"
              @click="sort = 'end_date'"
              hx-get="{% url 'medialist' media_type %}"
-             hx-target="{% if request.GET.layout|default:user_layout == 'list' %}tbody{% else %}.grid{% endif %}"
+             hx-target="{% if request.GET.layout|default:user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
              hx-include="[name='search'],[name='status'],[name='layout']"
              hx-vals='{"sort": "end_date"}'>End Date</a>
         </li>
@@ -179,10 +179,10 @@
          @click="layout = 'grid'">
         <i class="bi bi-grid-3x3-gap-fill"></i>
       </a>
-      <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=list`"
+      <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=table`"
          class="btn border-secondary"
-         :class="{ 'btn-primary': layout === 'list' }"
-         @click="layout = 'list'">
+         :class="{ 'btn-primary': layout === 'table' }"
+         @click="layout = 'table'">
         <i class="bi bi-table"></i>
       </a>
     </div>

@@ -401,7 +401,7 @@ class FilterForm(forms.Form):
         required=False,
         choices=[
             ("grid", "Grid"),
-            ("list", "List"),
+            ("table", "Table"),
         ],
     )
 
