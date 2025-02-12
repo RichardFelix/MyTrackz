@@ -88,7 +88,7 @@ def media_list(request, media_type):
         search=search_query,
     )
 
-    items_per_page = 25
+    items_per_page = 32
     paginator = Paginator(media_queryset, items_per_page)
     media_page = paginator.get_page(page)
 
