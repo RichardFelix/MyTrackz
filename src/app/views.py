@@ -96,6 +96,7 @@ def media_list(request, media_type):
         "media_list": media_page,
         "current_page": page,
         "user_layout": layout_user,
+        "first_request": not request.GET,
     }
 
     if request.headers.get("HX-Request"):

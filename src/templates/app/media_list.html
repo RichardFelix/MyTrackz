@@ -8,7 +8,7 @@
 {% endblock title %}
 
 {% block container %}
-  {% if media_list %}
+  {% if media_list or not first_request %}
     {% include "app/components/filter_bar.html" %}
 
     <div class="table-responsive rounded border p-4 mb-4">
@@ -30,8 +30,7 @@
       </table>
 
       {% if media_list.has_next %}
-        <div id="loading-indicator"
-             class="htmx-indicator text-center my-3">
+        <div id="loading-indicator" class="htmx-indicator text-center my-3">
           <div class="spinner-border" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>

@@ -8,7 +8,7 @@
 {% endblock title %}
 
 {% block container %}
-  {% if media_list %}
+  {% if media_list or not first_request %}
     {% include "app/components/filter_bar.html" %}
 
     <div class="grid">{% include "app/components/media_grid_items.html" %}</div>
