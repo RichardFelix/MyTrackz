@@ -3,7 +3,7 @@
 <h3 class="text-light">{{ media_type|media_type_readable_plural }}</h3>
 
 <div class="filter-bar d-flex gap-2 align-items-center justify-content-between mt-3 mb-4"
-     x-data="{ status: '{{ request.GET.status|default:'all' }}', sort: '{{ request.GET.sort|default:'score' }}', layout: '{{ request.GET.layout|default:user_layout }}' }">
+     x-data="{ status: '{{ request.GET.status|default:'all' }}', sort: '{{ request.GET.sort|default:'score' }}', layout: '{{ request.GET.layout|default:user_layout }}', search: '{{ request.GET.search|default:'' }}' }">
   <!-- Hidden inputs for state -->
   <input type="hidden" name="status" x-model="status">
   <input type="hidden" name="sort" x-model="sort">
@@ -18,6 +18,7 @@
              class="form-control border-secondary border-start-0 ps-0"
              placeholder="Filter"
              name="search"
+             x-model="search"
              value="{{ request.GET.search }}"
              hx-get="{% url 'medialist' media_type %}"
              hx-trigger="keyup changed delay:300ms"
@@ -172,13 +173,13 @@
     </div>
 
     <div class="btn-group" role="group">
-      <a href="{% url 'medialist' media_type %}?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}layout=grid"
+      <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=grid`"
          class="btn border-secondary"
          :class="{ 'btn-primary': layout === 'grid' }"
          @click="layout = 'grid'">
         <i class="bi bi-grid-3x3-gap-fill"></i>
       </a>
-      <a href="{% url 'medialist' media_type %}?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}layout=list"
+      <a :href="`{% url 'medialist' media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}layout=list`"
          class="btn border-secondary"
          :class="{ 'btn-primary': layout === 'list' }"
          @click="layout = 'list'">
