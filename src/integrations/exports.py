@@ -10,16 +10,29 @@ from app.models import Item
 logger = logging.getLogger(__name__)
 
 
-def db_to_csv(response, user):
-    """Export a CSV file of the user's media."""
+class Echo:
+    """An object that implements just the write method of the file-like interface."""
+
+    def write(self, value):
+        """Write the value by returning it, instead of storing in a buffer."""
+        return value
+
+
+def generate_rows(user):
+    """Generate CSV rows."""
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer, quoting=csv.QUOTE_ALL)
+
+    # Get fields
     fields = {
         "item": get_model_fields(Item),
         "track": get_track_fields(),
     }
 
-    writer = csv.writer(response, quoting=csv.QUOTE_ALL)
-    writer.writerow(fields["item"] + fields["track"])
+    # Yield header row
+    yield writer.writerow(fields["item"] + fields["track"])
 
+    # Yield data rows
     media_types = Item.MediaTypes.values
     for media_type in media_types:
         model = apps.get_model("app", media_type)
@@ -27,9 +40,26 @@ def db_to_csv(response, user):
             queryset = model.objects.filter(related_season__user=user)
         else:
             queryset = model.objects.filter(user=user)
-        write_model_to_csv(writer, fields, queryset, media_type)
 
-    return response
+        logger.debug("Streaming %ss to CSV", media_type)
+
+        # Stream each row
+        for media in queryset.iterator():  # Using iterator() for memory efficiency
+            # Build row data
+            row = [getattr(media.item, field, "") for field in fields["item"]] + [
+                getattr(media, field, "") for field in fields["track"]
+            ]
+
+            if media_type == "game":
+                # calculate index of progress field
+                progress_index = fields["track"].index("progress")
+                row[progress_index + len(fields["item"])] = helpers.minutes_to_hhmm(
+                    media.progress,
+                )
+
+            yield writer.writerow(row)
+
+        logger.debug("Finished streaming %ss to CSV", media_type)
 
 
 def get_model_fields(model):
@@ -64,23 +94,3 @@ def get_track_fields():
         all_fields.insert(end_idx, "start_date")
 
     return list(all_fields)
-
-
-def write_model_to_csv(writer, fields, queryset, media_type):
-    """Export entries from a model to a CSV file."""
-    logger.info("Adding %ss to CSV", media_type)
-
-    for media in queryset:
-        # row with item and track fields
-        row = [getattr(media.item, field, "") for field in fields["item"]] + [
-            getattr(media, field, "") for field in fields["track"]
-        ]
-
-        if media_type == "game":
-            # calculate index of progress field
-            progress_index = fields["track"].index("progress")
-            row[progress_index + len(fields["item"])] = helpers.minutes_to_hhmm(
-                media.progress,
-            )
-
-        writer.writerow(row)

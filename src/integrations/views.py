@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -184,16 +184,12 @@ def import_yamtrack(request):
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
     today = timezone.now().strftime("%Y-%m-%d")
-    # Create the HttpResponse object with the appropriate CSV header.
-    response = HttpResponse(
+    response = StreamingHttpResponse(
+        streaming_content=exports.generate_rows(request.user),
         content_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="yamtrack_{today}.csv"'},
     )
-
-    response = exports.db_to_csv(response, request.user)
-
-    logger.info("User %s successfully exported their data", request.user.username)
-
+    logger.info("User %s started CSV export", request.user.username)
     return response
 
 

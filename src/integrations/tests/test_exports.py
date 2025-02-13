@@ -3,6 +3,7 @@ from datetime import date
 from io import StringIO
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.test import TestCase
 from django.urls import reverse
 
@@ -156,52 +157,26 @@ class ExportCSVTest(TestCase):
         # Assert that the response content type is text/csv
         self.assertEqual(response["Content-Type"], "text/csv")
 
-        # Read the CSV content from the response
-        csv_content = response.content.decode("utf-8")
+        # Read the streaming content and decode it
+        content = b"".join(response.streaming_content).decode("utf-8")
 
         # Create a CSV reader from the CSV content
-        reader = csv.DictReader(StringIO(csv_content))
+        reader = csv.DictReader(StringIO(content))
 
-        # Get all media IDs from the database
         db_media_ids = set(
-            TV.objects.values_list("item__media_id", flat=True).filter(user=self.user),
-        )
-        db_media_ids.update(
-            Movie.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Season.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Episode.objects.values_list("item__media_id", flat=True).filter(
-                related_season__user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Anime.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Manga.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Game.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
-        )
-        db_media_ids.update(
-            Book.objects.values_list("item__media_id", flat=True).filter(
-                user=self.user,
-            ),
+            Item.objects.filter(
+                Q(tv__user=self.user)
+                | Q(movie__user=self.user)
+                | Q(season__user=self.user)
+                | Q(episode__related_season__user=self.user)
+                | Q(anime__user=self.user)
+                | Q(manga__user=self.user)
+                | Q(game__user=self.user)
+                | Q(book__user=self.user),
+            ).values_list("media_id", flat=True),
         )
 
+        # Verify each row in the CSV exists in the database
         for row in reader:
             media_id = row["media_id"]
             self.assertIn(media_id, db_media_ids)
