@@ -186,8 +186,7 @@
         </div>
 
         <main class="d-flex flex-column vh-100 w-100 overflow-y-auto">
-          {% block search %}
-            <div class="search-bar d-flex container p-3">
+            <div class="search-bar d-flex container pt-4 pb-3">
               <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
                       type="button"
                       data-bs-toggle="offcanvas"
@@ -200,7 +199,7 @@
                     class="input-group"
                     method="get"
                     action="{% url 'search' %}">
-                <select name="media_type" class="form-select">
+                <select name="media_type" class="form-select secondary-bg border-0">
                   {% if not user.hide_from_search or user.tv_enabled %}
                     <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
                   {% endif %}
@@ -230,19 +229,18 @@
                             {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
                   {% endif %}
                 </select>
-                <input class="form-control"
+                <input class="form-control secondary-bg border-0 border-start border-light-subtle"
                        type="search"
                        name="q"
-                       placeholder="Search"
+                       placeholder="Search Media"
                        aria-label="Search"
                        value="{{ request.GET.q }}"
                        required>
-                <button class="btn btn-secondary rounded-end" type="submit">
+                <button class="btn secondary-bg-hover rounded-end" type="submit">
                   <i class="bi bi-search"></i>
                 </button>
               </form>
             </div>
-          {% endblock search %}
 
           {% comment %} flex-fill is needed to make the container fill the remaining space {% endcomment %}
           <div class="container pt-3 pb-5 flex-fill">

@@ -8,10 +8,30 @@
   --bs-body-font-family: "Roboto Flex", sans-serif;
   --bg-img-none: hsl(210, 10%, 23%);
   --bg-foreground: hsl(210, 10.8%, 16%);
+  --sec-bg: #343a40;
 }
 
 .bg-foreground {
   background-color: var(--bg-foreground);
+}
+
+.secondary-bg {
+  background-color: var(--sec-bg);
+
+  &:active,
+  &:focus {
+    background-color: var(--sec-bg);
+  }
+}
+
+.secondary-bg-hover {
+  background-color: var(--sec-bg);
+
+  &:hover,
+  &:active,
+  &:focus {
+    background-color: #5c636a;
+  }
 }
 
 p {
@@ -124,6 +144,7 @@ debug, info, success, warning, error */
 .media-card {
   /* needed for when image is not found */
   width: 100%;
+  border-width: 0;
 
   .poster {
     width: 100%;
@@ -366,10 +387,6 @@ debug, info, success, warning, error */
   @media screen and (width <= 991px) {
     width: 100%;
     text-align: center;
-  }
-
-  @media screen and (width <= 575px) {
-    margin-top: 20rem;
   }
 }
 
