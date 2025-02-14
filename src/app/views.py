@@ -212,10 +212,6 @@ def track_modal(
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
 
-    title = metadata["title"]
-    if season_number:
-        title = f"{title} S{season_number}"
-
     form_id = f"form-{item.id}"
     form.helper.form_id = form_id
 
@@ -223,7 +219,7 @@ def track_modal(
         request,
         "app/components/fill_track.html",
         {
-            "title": title,
+            "title": item,
             "form_id": form_id,
             "form": form,
             "media": media,
