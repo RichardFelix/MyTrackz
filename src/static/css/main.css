@@ -141,6 +141,58 @@ debug, info, success, warning, error */
   grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
 }
 
+.grid-item {
+  .card-buttons {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in;
+    background-color: rgba(26, 29, 32, 0.8);
+    border-top-left-radius: calc(0.375rem - 1px);
+    border-bottom-right-radius: calc(0.375rem - 1px);
+  }
+
+  .media-card:hover ~ .card-buttons,
+  .media-card:active ~ .card-buttons,
+  .card-buttons:hover,
+  .card-buttons:active {
+    opacity: 1;
+  }
+
+  .open-track-btn:first-child {
+    border-top-left-radius: 3px;
+  }
+
+  .open-lists-btn:last-child {
+    border-bottom-right-radius: 3px;
+  }
+
+  /* Common button styles */
+  .open-track-btn,
+  .open-lists-btn {
+    border-width: 0;
+    border-radius: 0px;
+    font-size: 1.15rem;
+    background-color: rgba(26, 29, 32, 0.7);
+  }
+
+  /* Specific button colors */
+  .open-track-btn {
+    color: #955ad8; /* Purple */
+  }
+
+  .open-lists-btn {
+    color: #2ecc71; /* Green */
+  }
+
+  /* Hover effects */
+  .open-track-btn:hover,
+  .open-lists-btn:hover {
+    background-color: #363a3d;
+  }
+}
+
 .media-card {
   /* needed for when image is not found */
   width: 100%;
@@ -150,7 +202,6 @@ debug, info, success, warning, error */
     width: 100%;
     aspect-ratio: 2/3;
     object-fit: cover;
-    cursor: pointer;
   }
 
   .image-not-found,
@@ -159,9 +210,8 @@ debug, info, success, warning, error */
     width: 100%;
     aspect-ratio: 2/3;
     object-fit: contain;
-    object-position: center top;
+    object-position: center 25%;
     background-color: var(--bg-img-none);
-    cursor: pointer;
   }
 
   .rating {
@@ -176,15 +226,16 @@ debug, info, success, warning, error */
   .card-img-overlay {
     /* position bottom of card */
     top: auto;
-    padding: 0.5em;
-    border-top-left-radius: 0px;
-    border-top-right-radius: 0px;
-    background-color: rgba(0, 0, 0, 0.7);
+    padding-top: 0.25rem;
+    padding-bottom: 0.5rem;
+    border-radius: 0 0 4px 4px;
+    background-color: rgba(0, 0, 0, 0.75);
   }
 
-  .card-title {
+  .title {
     text-align: center;
-    margin-bottom: 0.25rem;
+    line-height: 1.25;
+
     /* show only 2 lines of text */
     overflow: hidden;
     display: -webkit-box;
@@ -195,17 +246,6 @@ debug, info, success, warning, error */
   }
 
   .card-text {
-    .open-track-btn,
-    .open-lists-btn {
-      padding: 0;
-      background-color: transparent;
-      border-color: transparent;
-
-      &:hover {
-        color: white;
-      }
-    }
-
     .progress-btn {
       padding: 0.1rem 0.3rem;
 

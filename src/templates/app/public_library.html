@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% load app_tags %}
+
+{% block title %}
+    {{ library_owner.username }}'s Library - Yamtrack
+{% endblock title %}
+
+{% block container %}
+    <div class="mb-4">
+        <h1 class="h3">{{ library_owner.username }}'s Library</h1>
+    </div>
+
+    <div class="mb-4">
+        <ul class="nav nav-pills">
+            {% comment %} {% for type in "tv,movie,anime,manga,game,book"|split:"," %}
+                {% if type|get_enabled:library_owner %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if media_type == type %}active{% endif %}"
+                           href="{% url 'public_library_media' library_owner.username type %}">
+                            <i class="{{ type|icon }} me-1"></i>
+                            {{ type|media_type_readable_plural }}
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %} {% endcomment %}
+        </ul>
+    </div>
+
+    {% if media_list %}
+        {% include "app/components/filter_bar.html" with public_view=True %}
+        <div class="grid">{% include "app/components/media_grid_items.html" with public_view=True %}</div>
+    {% else %}
+        <div class="alert alert-info">No items found in this library.</div>
+    {% endif %}
+{% endblock container %}

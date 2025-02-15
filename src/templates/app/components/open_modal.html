@@ -7,26 +7,22 @@
         class="btn btn-secondary open-{{ modal_type }}-btn"
         data-bs-toggle="modal"
         data-bs-target="#{{ modal_type }}-modal-{{ media_type }}_{{ media_id }}{% if season_number != None %}_{{ season_number }}{% endif %}{% if episode_number != None %}_{{ episode_number }}{% endif %}">
-    {% if modal_type == "track" %}
-        <i class="bi bi-pencil-square"></i>
-    {% elif modal_type == "history" %}
-        <i class="bi bi-hourglass-split"></i>
-    {% elif modal_type == "lists" %}
-        <i class="bi bi-collection"></i>
-    {% endif %}
+  {% if modal_type == "track" %}
+    <i class="bi bi-pencil-square"></i>
+  {% elif modal_type == "history" %}
+    <i class="bi bi-hourglass-split"></i>
+  {% elif modal_type == "lists" %}
+    <i class="bi bi-collection"></i>
+  {% endif %}
 </button>
 
-<div class="modal fade {{ modal_type }}-modal"
-     id="{{ modal_type }}-modal-{{ media_type }}_{{ media_id }}{% if season_number != None %}_{{ season_number }}{% endif %}{% if episode_number != None %}_{{ episode_number }}{% endif %}"
-     tabindex="-1"
-     aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-body text-center">
-                <div class="spinner-grow" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% if include_modal|default_if_none:True %}
+  {% comment %} {% if media_type == "season" %}
+    {% include "app/components/modal_container.html" with modal_type=modal_type media_type=media_type media_id=media_id season_number=season_number only %}
+  {% elif media_type == "episode" %}
+    {% include "app/components/modal_container.html" with modal_type=modal_type media_type=media_type media_id=media_id season_number=season_number episode_number=episode_number only %}
+  {% else %}
+    {% include "app/components/modal_container.html" with modal_type=modal_type media_type=media_type media_id=media_id only %}
+  {% endif %} {% endcomment %}
+  {% include "app/components/modal_container.html" with modal_type=modal_type media_type=media_type media_id=media_id season_number=season_number episode_number=episode_number only %}
+{% endif %}

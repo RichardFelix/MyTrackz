@@ -19,28 +19,44 @@
         {% if related_items %}
           <div class="bg-foreground border border-light-subtle rounded shadow-lg p-3 mb-3">
             <h2 class="fs-5 fw-semibold">{{ name|no_underscore|title }}</h2>
-            <div class="grid grid-details">
+            <div class="grid">
               {% for related in related_items %}
-                <div class="card media-card">
-                  <a href="{% if name == "seasons" %}{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' source=media.source media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
-                    <img src="{{ IMG_NONE }}"
-                         data-src="{{ related.image }}"
-                         class="card-img lazyload {% if related.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                         alt="{{ related.title }}" />
-                  </a>
+                <div class="grid-item position-relative">
+                  <div class="card media-card" tabindex="0" ontouchstart="">
+                    {#  tabindex="0" ontouchstart="" for mobile compability #}
+                    <a href="{% if name == "seasons" %}{% url 'season_details' source=media.source media_id=media.media_id title=media.title|slug season_number=related.season_number %}{% else %}{% url 'media_details' source=media.source media_type=media.media_type media_id=related.media_id title=related.title|slug %}{% endif %}">
+                      <img src="{{ IMG_NONE }}"
+                           data-src="{{ related.image }}"
+                           class="card-img lazyload {% if related.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
+                           alt="{{ related.title }}" />
+                    </a>
 
-                  <div class="card-img-overlay pb-1">
-                    <div class="card-title">{{ related.title }}</div>
-                    <div class="card-text d-flex justify-content-evenly align-items-center">
-                      {% if name == "seasons" %}
-                        {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
-                        {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number only %}
-                      {% else %}
-                        {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
-                        {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type=media.media_type media_id=related.media_id only %}
-                      {% endif %}
+                    <div class="card-img-overlay">
+                      <div class="title">{{ related.title }}</div>
                     </div>
                   </div>
+
+                  {% if name == "seasons" or media.media_type == "seasons" %}
+                    <div class="d-flex flex-column justify-content-evenly align-items-center card-buttons">
+                      {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number include_modal=False only %}
+                      {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type="season" media_id=media.media_id season_number=related.season_number include_modal=False only %}
+                    </div>
+
+                    <div class="card-modals">
+                      {% include "app/components/modal_container.html" with modal_type="track" media_type="season" media_id=related.media_id season_number=related.season_number only %}
+                      {% include "app/components/modal_container.html" with modal_type="lists" media_type="season" media_id=related.media_id season_number=related.season_number only %}
+                    </div>
+                  {% else %}
+                    <div class="d-flex flex-column justify-content-evenly align-items-center card-buttons">
+                      {% include "app/components/open_modal.html" with modal_type="track" request=request source=media.source media_type=media.media_type media_id=related.media_id include_modal=False only %}
+                      {% include "app/components/open_modal.html" with modal_type="lists" request=request source=media.source media_type=media.media_type media_id=related.media_id include_modal=False only %}
+                    </div>
+
+                    <div class="card-modals">
+                      {% include "app/components/modal_container.html" with modal_type="track" media_type=media.media_type media_id=related.media_id only %}
+                      {% include "app/components/modal_container.html" with modal_type="lists" media_type=media.media_type media_id=related.media_id only %}
+                    </div>
+                  {% endif %}
                 </div>
               {% endfor %}
             </div>
@@ -50,5 +66,4 @@
       {% endfor %}
     </div>
   </div>
-
 {% endblock container %}

@@ -1,0 +1,14 @@
+<div class="modal fade {{ modal_type }}-modal"
+     id="{{ modal_type }}-modal-{{ media_type }}_{{ media_id }}{% if season_number != None %}_{{ season_number }}{% endif %}{% if episode_number != None %}_{{ episode_number }}{% endif %}"
+     tabindex="-1"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-grow" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

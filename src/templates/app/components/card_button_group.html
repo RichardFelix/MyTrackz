@@ -1,0 +1,15 @@
+{% load app_tags %}
+
+{% with modal_types="track,lists" %}
+  <div class="d-flex flex-column justify-content-evenly align-items-center card-buttons">
+    {% for modal_type in modal_types|split:"," %}
+      {% include "app/components/open_modal.html" with modal_type=modal_type request=request source=source media_type=media_type media_id=media_id season_number=season_number include_modal=False only %}
+    {% endfor %}
+  </div>
+
+  <div class="card-modals">
+    {% for modal_type in modal_types|split:"," %}
+      {% include "app/components/modal_container.html" with modal_type=modal_type media_type=media_type media_id=media_id season_number=season_number only %}
+    {% endfor %}
+  </div>
+{% endwith %}
