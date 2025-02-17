@@ -19,6 +19,4 @@ urlpatterns = [
 
 
 if settings.DEBUG:
-    import debug_toolbar  # noqa: F401
-
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))

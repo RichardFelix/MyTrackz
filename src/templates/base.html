@@ -2,25 +2,28 @@
 {% load app_tags %}
 
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" class="bg-[#212529]">
   <head>
     <!-- Required meta tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="Yamtrack, Media Tracker">
     <meta name="description" content="Search and track media on Yamtrack.">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-          crossorigin="anonymous">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <title>
+      {% block title %}
+        Yamtrack
+      {% endblock title %}
+    </title>
+
     <link rel="stylesheet" type="text/css" href="{% static "css/main.css" %}" />
-    {% block css %}
-    {% endblock css %}
+
+    {% block extra_head %}
+    {% endblock extra_head %}
+
     <script defer
             src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <link rel="apple-touch-icon"
           sizes="180x180"
           href="{% static "favicon/apple-touch-icon.png" %}">
@@ -40,219 +43,275 @@
     <meta name="msapplication-config"
           content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color" content="#181a1b">
-    <title>
-      {% block title %}
-        Yamtrack
-      {% endblock title %}
-    </title>
+
   </head>
 
   <body>
     {% block body %}
-      <div class="d-flex flex-nowrap">
-        {% comment %} sidebar id needed for offcanvas toggler {% endcomment %}
-        <div class="d-flex flex-column flex-shrink-0 p-3 border-end offcanvas-lg offcanvas-start"
-             id="sidebar"
-             tabindex="-1"
-             aria-labelledby="sidebarLabel">
-          <a href="{% url 'home' %}"
-             class="text-center text-decoration-none text-white">
-            <span class="fs-4 fw-bold">Yamtrack</span>
-          </a>
-          <hr>
-          <ul class="nav nav-pills flex-column mb-auto">
-            <li>
-              <a href="{% url 'home' %}"
-                 class="nav-link {% if request.path == "/" %}active{% endif %}">
-                <i class="bi bi-house-door me-2 align-middle"></i>
-                <span class="align-middle">Home</span>
-              </a>
-            </li>
+      <div class="flex h-screen bg-[#212529] text-gray-100"
+           x-data="{ isMobileMenuOpen: false }">
+        <div x-show="isMobileMenuOpen"
+             class="fixed inset-0 bg-black/50 z-30 lg:hidden"
+             @click="isMobileMenuOpen = false"></div>
 
-            {% if request.user.tv_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='tv' %}"
-                   class="nav-link {% if media_type == "tv" %}active{% endif %}">
-                  <i class="{{ 'tv'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">TV Shows</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.season_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='season' %}"
-                   class="nav-link {% if media_type == "season" %}active{% endif %}">
-                  <i class="{{ 'season'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Seasons</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.movie_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='movie' %}"
-                   class="nav-link {% if media_type == "movie" %}active{% endif %}">
-                  <i class="{{ 'movie'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Movies</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.anime_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='anime' %}"
-                   class="nav-link {% if media_type == "anime" %}active{% endif %}">
-                  <i class="{{ 'anime'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Anime</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.manga_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='manga' %}"
-                   class="nav-link {% if media_type == "manga" %}active{% endif %}">
-                  <i class="{{ 'manga'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Manga</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.game_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='game' %}"
-                   class="nav-link {% if media_type == "game" %}active{% endif %}">
-                  <i class="{{ 'game'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Games</span>
-                </a>
-              </li>
-            {% endif %}
-
-            {% if request.user.book_enabled %}
-              <li>
-                <a href="{% url 'medialist' media_type='book' %}"
-                   class="nav-link {% if media_type == "book" %}active{% endif %}">
-                  <i class="{{ 'book'|icon }} me-2 align-middle"></i>
-                  <span class="align-middle">Books</span>
-                </a>
-              </li>
-            {% endif %}
-            <hr>
-            <li>
-              {% url 'create_item' as create_item_url %}
-              <a href="{{ create_item_url }}"
-                 class="nav-link {% if request.path == create_item_url %}active{% endif %}">
-                <i class="bi bi-plus-circle me-2 align-middle"></i> Create
-              </a>
-            </li>
-            <li>
-              {% url 'statistics' as statistics %}
-              <a href="{{ statistics }}"
-                 class="nav-link {% if request.path == statistics %}active{% endif %}">
-                <i class="bi bi-bar-chart-line me-2 align-middle"></i> Statistics
-              </a>
-            </li>
-            <li>
-              {% url 'lists' as lists_url %}
-              <a href="{{ lists_url }}"
-                 class="nav-link {% if request.path == lists_url %}active{% endif %}">
-                <i class="bi bi-list-ul me-2 align-middle"></i> Lists
-              </a>
-            </li>
-            <li>
-              {% url 'calendar' as calendar_url %}
-              <a href="{{ calendar_url }}"
-                 class="nav-link {% if request.path == calendar_url %}active{% endif %}">
-                <i class="bi bi-calendar me-2"></i> Calendar
-              </a>
-            </li>
-            <li>
-              {% url 'profile' as profile_url %}
-              <a href="{{ profile_url }}"
-                 class="nav-link {% if request.path == profile_url %}active{% endif %}">
-                <i class="bi bi-person-circle me-2"></i> Profile
-              </a>
-            </li>
-            <li>
-              <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <button class="nav-link w-100 text-start" type="submit">
-                  <i class="bi bi-box-arrow-left me-2"></i> Logout
-                </button>
-              </form>
-            </li>
-          </ul>
-        </div>
-
-        <main class="d-flex flex-column vh-100 w-100 overflow-y-auto">
-            <div class="search-bar d-flex container pt-4 pb-3">
-              <button class="btn btn-secondary offcanvas-toggler rounded d-lg-none me-2"
-                      type="button"
-                      data-bs-toggle="offcanvas"
-                      data-bs-target="#sidebar"
-                      aria-controls="sidebar">
-                <i class="bi bi-list"></i>
-              </button>
-
-              <form id="search-form"
-                    class="input-group"
-                    method="get"
-                    action="{% url 'search' %}">
-                <select name="media_type" class="form-select secondary-bg border-0">
-                  {% if not user.hide_from_search or user.tv_enabled %}
-                    <option value="tv" {% if user.last_search_type == 'tv' %}selected{% endif %}>TV</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.movie_enabled %}
-                    <option value="movie"
-                            {% if user.last_search_type == 'movie' %}selected{% endif %}>Movie</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.anime_enabled %}
-                    <option value="anime"
-                            {% if user.last_search_type == 'anime' %}selected{% endif %}>Anime</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.manga_enabled %}
-                    <option value="manga"
-                            {% if user.last_search_type == 'manga' %}selected{% endif %}>Manga</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.game_enabled %}
-                    <option value="game"
-                            {% if user.last_search_type == 'game' %}selected{% endif %}>Game</option>
-                  {% endif %}
-
-                  {% if not user.hide_from_search or user.book_enabled %}
-                    <option value="book"
-                            {% if user.last_search_type == 'book' %}selected{% endif %}>Book</option>
-                  {% endif %}
-                </select>
-                <input class="form-control secondary-bg border-0 border-start border-light-subtle"
-                       type="search"
-                       name="q"
-                       placeholder="Search Media"
-                       aria-label="Search"
-                       value="{{ request.GET.q }}"
-                       required>
-                <button class="btn secondary-bg-hover rounded-end" type="submit">
-                  <i class="bi bi-search"></i>
-                </button>
-              </form>
-            </div>
-
-          {% comment %} flex-fill is needed to make the container fill the remaining space {% endcomment %}
-          <div class="container pt-3 pb-5 flex-fill">
-            {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message|linebreaksbr }}</div>{% endfor %}
-            {% block container %}
-            {% endblock container %}
+        <aside x-cloak class="fixed top-0 left-0 z-40 h-full w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static border-r border-[#2c3136]"
+               :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
+          <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
+            <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
           </div>
-        </main>
+          <nav class="p-4">
+            <ul class="space-y-1 mb-6">
+              <li>
+                <a href="{% url 'home' %}"
+                   class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                  {% icon 'home' is_active=request.path|str_equals:"/" %}
+                  <span>Home</span>
+                </a>
+              </li>
+
+              {% if request.user.tv_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='tv' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'tv' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'tv' is_active=media_type|str_equals:"tv" %}
+                    <span>{{ "tv"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.season_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='season' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'season' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'season' is_active=media_type|str_equals:"season" %}
+                    <span>{{ "season"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.movie_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='movie' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'movie' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'movie' is_active=media_type|str_equals:"movie" %}
+                    <span>{{ "movie"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.anime_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='anime' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'anime' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'anime' is_active=media_type|str_equals:"anime" %}
+                    <span>{{ "anime"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.manga_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='manga' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'manga' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'manga' is_active=media_type|str_equals:"manga" %}
+                    <span>{{ "manga"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.game_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='game' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'game' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'game' is_active=media_type|str_equals:"game" %}
+                    <span>{{ "game"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% if request.user.book_enabled %}
+                <li>
+                  <a href="{% url 'medialist' media_type='book' %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'book' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'book' is_active=media_type|str_equals:"book" %}
+                    <span>{{ "book"|media_type_readable_plural }}</span>
+                  </a>
+                </li>
+              {% endif %}
+            </ul>
+
+            <div class="border-t border-[#2c3136] pt-4">
+              <ul class="space-y-1">
+                {% url 'create_item' as create_item_url %}
+                <li>
+                  <a href="{{ create_item_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_item_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'create' is_active=request.path|str_equals:create_item_url %}
+                    <span>Create Custom</span>
+                  </a>
+                </li>
+
+                {% url 'statistics' as statistics %}
+                <li>
+                  <a href="{{ statistics }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'statistics' is_active=request.path|str_equals:statistics %}
+                    <span>Statistics</span>
+                  </a>
+                </li>
+
+                {% url 'lists' as lists_url %}
+                <li>
+                  <a href="{{ lists_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'lists' is_active=request.path|str_equals:lists_url %}
+                    <span>Custom Lists</span>
+                  </a>
+                </li>
+
+                {% url 'calendar' as calendar_url %}
+                <li>
+                  <a href="{{ calendar_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'calendar' is_active=request.path|str_equals:calendar_url %}
+                    <span>Calendar</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+
+          <div class="absolute bottom-4 left-4 right-4">
+            {% url 'profile' as profile_url %}
+            <a href="{{ profile_url }}"
+               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == profile_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+              {% icon 'profile' is_active=request.path|str_equals:profile_url %}
+              <span>Profile</span>
+            </a>
+
+            <form method="post" action="{% url 'logout' %}" class="w-full">
+              {% csrf_token %}
+              <button type="submit"
+                      class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
+                {% icon 'logout' is_active=False %}
+                <span>Logout</span>
+              </button>
+            </form>
+          </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+          <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
+            <div class="container mx-auto px-4">
+              <div class="flex items-center justify-between lg:justify-center h-16">
+                <button @click="isMobileMenuOpen = !isMobileMenuOpen"
+                        class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-6 h-6">
+                    <line x1="4" x2="20" y1="12" y2="12"></line>
+                    <line x1="4" x2="20" y1="6" y2="6"></line>
+                    <line x1="4" x2="20" y1="18" y2="18"></line>
+                  </svg>
+                </button>
+                <div class="relative w-full max-w-2xl">
+                  <form method="get" action="{% url 'search' %}" x-data="{ isOpen: false, selectedType: { display: '{{ user.last_search_type|media_type_readable_plural }}', value: '{{ user.last_search_type }}' }, mediaTypes: [
+                    {% if not user.hide_from_search or user.tv_enabled %}
+                      { display: '{{ "tv"|media_type_readable_plural }}', value: 'tv' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.movie_enabled %}
+                      { display: '{{ "movie"|media_type_readable_plural }}', value: 'movie' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.game_enabled %}
+                      { display: '{{ "game"|media_type_readable_plural }}', value: 'game' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.book_enabled %}
+                      { display: '{{ "book"|media_type_readable_plural }}', value: 'book' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.anime_enabled %}
+                      { display: '{{ "anime"|media_type_readable_plural }}', value: 'anime' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.manga_enabled %}
+                      { display: '{{ "manga"|media_type_readable_plural }}', value: 'manga' },
+                    {% endif %}
+                    ], getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
+                    <div class="flex">
+                      <div class="relative flex-grow">
+                        <input type="search"
+                               name="q"
+                               :placeholder="getPlaceholder()"
+                               class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#23272b] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] placeholder-gray-500">
+                        <button type="submit"
+                                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
+                          <svg xmlns="http://www.w3.org/2000/svg"
+                               width="24"
+                               height="24"
+                               viewBox="0 0 24 24"
+                               fill="none"
+                               stroke="currentColor"
+                               stroke-width="2"
+                               stroke-linecap="round"
+                               stroke-linejoin="round"
+                               class="w-5 h-5">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                          </svg>
+                        </button>
+                      </div>
+                      <input type="hidden" name="media_type" :value="selectedType.value">
+                      <button type="button"
+                              @click="isOpen = !isOpen"
+                              @click.away="isOpen = false"
+                              class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#23272b] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                        <span x-text="selectedType.display"></span>
+                        <svg class="w-4 h-4 ml-2"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24"
+                             xmlns="http://www.w3.org/2000/svg">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </button>
+                      <ul x-show="isOpen"
+                          x-transition:enter="transition ease-out duration-100"
+                          x-transition:enter-start="transform opacity-0 scale-95"
+                          x-transition:enter-end="transform opacity-100 scale-100"
+                          x-transition:leave="transition ease-in duration-75"
+                          x-transition:leave-start="transform opacity-100 scale-100"
+                          x-transition:leave-end="transform opacity-0 scale-95"
+                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg max-h-60 right-0 w-[128px]">
+                        <template x-for="type in mediaTypes" :key="type.value">
+                          <li @click="selectedType = type; isOpen = false"
+                              class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
+                              x-text="type.display"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          <main class="flex-1 overflow-y-auto bg-[#212529]">
+            <div class="container mx-auto px-4 py-8">
+              {% block content %}
+              {% endblock content %}
+            </div>
+          </main>
+        </div>
       </div>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-              integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-              crossorigin="anonymous"></script>
       <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
       <script src="https://unpkg.com/lazysizes@5.3.2/lazysizes.min.js" async></script>
       {% block js %}
