@@ -4,7 +4,7 @@
 <!DOCTYPE html>
 <html lang="en" class="bg-[#212529]">
   <head>
-    <!-- Required meta tags -->
+    {# Required meta tags #}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="keywords" content="Yamtrack, Media Tracker">
@@ -48,13 +48,18 @@
 
   <body>
     {% block body %}
+      {# Main container for the layout #}
       <div class="flex h-screen bg-[#212529] text-gray-100"
            x-data="{ isMobileMenuOpen: false }">
+        
+        {# Mobile menu overlay #}
         <div x-show="isMobileMenuOpen"
              class="fixed inset-0 bg-black/50 z-30 lg:hidden"
              @click="isMobileMenuOpen = false"></div>
 
-        <aside x-cloak class="fixed top-0 left-0 z-40 h-full w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static border-r border-[#2c3136]"
+        {# Sidebar #}
+        <aside x-cloak
+               class="fixed top-0 left-0 z-40 h-full w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static border-r border-[#2c3136]"
                :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
           <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
             <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
@@ -199,11 +204,14 @@
             </form>
           </div>
         </aside>
-
+        
+        {# Main content #}
         <div class="flex-1 flex flex-col overflow-hidden">
+          {# Top bar #}
           <div class="sticky top-0 z-10 bg-[#1a1d20] border-b border-[#2c3136] shadow-md">
             <div class="container mx-auto px-4">
               <div class="flex items-center justify-between lg:justify-center h-16">
+                {# Mobile: sidebar toggle button #}
                 <button @click="isMobileMenuOpen = !isMobileMenuOpen"
                         class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
                   <svg xmlns="http://www.w3.org/2000/svg"
@@ -221,6 +229,8 @@
                     <line x1="4" x2="20" y1="18" y2="18"></line>
                   </svg>
                 </button>
+
+                {# Search bar #}
                 <div class="relative w-full max-w-2xl">
                   <form method="get" action="{% url 'search' %}" x-data="{ isOpen: false, selectedType: { display: '{{ user.last_search_type|media_type_readable_plural }}', value: '{{ user.last_search_type }}' }, mediaTypes: [
                     {% if not user.hide_from_search or user.tv_enabled %}
@@ -304,6 +314,7 @@
               </div>
             </div>
           </div>
+
           <main class="flex-1 overflow-y-auto bg-[#212529]">
             <div class="container mx-auto px-4 py-8">
               {% block content %}
@@ -312,8 +323,10 @@
           </main>
         </div>
       </div>
+
       <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
       <script src="https://unpkg.com/lazysizes@5.3.2/lazysizes.min.js" async></script>
+
       {% block js %}
       {% endblock js %}
     {% endblock body %}
