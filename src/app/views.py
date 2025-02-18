@@ -212,15 +212,11 @@ def track_modal(
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
 
-    form_id = f"form-{item.id}"
-    form.helper.form_id = form_id
-
     return render(
         request,
         "app/components/fill_track.html",
         {
             "title": item,
-            "form_id": form_id,
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],

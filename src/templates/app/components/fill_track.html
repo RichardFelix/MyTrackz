@@ -1,27 +1,112 @@
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
-<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-  <div class="modal-content text-start">
-    <div class="modal-header">
-      <div class="modal-title fs-5">{{ title }}</div>
-      <button type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"></button>
+<div x-data="{ open: true }"
+     x-show="open"
+     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-[#2a2f35] p-6 rounded-lg w-[32rem] max-h-[90vh] overflow-y-auto relative z-60"
+       @click.outside="open = false">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-white">{{ title }}</h2>
+      <button class="text-gray-400 hover:text-white cursor-pointer"
+              @click="open = false">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
     </div>
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        {% if field.name == "item" %}
+          {{ field }}
+        {% elif field.name == "status" %}
+          <div class="mb-5 relative">
+            <label class="block text-sm font-medium mb-1 text-gray-300"
+                   for="{{ field.id_for_label }}">{{ field.label }}</label>
+            <div class="relative">
+              {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
+              <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     width="16"
+                     height="16"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div {% if not forloop.last %}class="mb-5"{% endif %}>
+            <label class="block text-sm font-medium mb-1 text-gray-300"
+                   for="{{ field.id_for_label }}">{{ field.label }}</label>
 
-    <div class="modal-body">{% crispy form %}</div>
+            {% if field.field.widget.input_type == 'number' %}
+              <div class="relative">
+                {{ field|add_class:"w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                <div class="absolute inset-y-0 right-0 flex flex-col border-l border-gray-600">
+                  <button type="button"
+                          class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-tr-md border-t border-r border-gray-600"
+                          onclick="this.parentElement.previousElementSibling.stepUp()">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="14"
+                         height="14"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                      <path d="m18 15-6-6-6 6"></path>
+                    </svg>
+                  </button>
+                  <button type="button"
+                          class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-br-md border-b border-r border-gray-600"
+                          onclick="this.parentElement.previousElementSibling.stepDown()">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="14"
+                         height="14"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round">
+                      <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            {% else %}
+              {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff]" }}
+            {% endif %}
+            {% if field.errors %}<p class="text-red-500 text-sm mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
 
-    <div class="modal-footer d-flex flex-row-reverse justify-content-between">
-      <button type="submit"
-              form="{{ form_id }}"
-              formaction="{% url 'media_save' %}?next={{ return_url }}"
-              class="btn btn-primary">Save</button>
-      <button type="submit"
-              form="{{ form_id }}"
-              formaction="{% url 'media_delete' %}?next={{ return_url }}"
-              class="btn btn-danger"
-              {% if not media %}disabled{% endif %}>Delete</button>
-    </div>
+      <div class="flex justify-between mt-6">
+        <button type="submit"
+                formaction="{% url 'media_delete' %}?next={{ return_url }}"
+                class="px-4 py-2 rounded-md transition duration-300 cursor-pointer {% if not media %}bg-gray-600 text-gray-300 cursor-not-allowed{% else %}bg-red-700 text-white hover:bg-red-800{% endif %}"
+                {% if not media %}disabled{% endif %}>Delete</button>
+        <button type="submit"
+                formaction="{% url 'media_save' %}?next={{ return_url }}"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">Save</button>
+      </div>
+    </form>
   </div>
 </div>

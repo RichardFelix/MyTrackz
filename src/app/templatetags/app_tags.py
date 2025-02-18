@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django import template
+from django.urls import reverse
 from django.utils.html import format_html
 from unidecode import unidecode
 
@@ -73,6 +74,30 @@ def media_color(media_type):
     return models.Item.Colors[media_type.upper()].value
 
 
+@register.filter()
+def media_url(media):
+    """Return the media URL."""
+    if media["media_type"] in ["season", "episode"]:
+        return reverse(
+            "season_details",
+            kwargs={
+                "source": media["source"],
+                "media_id": media["media_id"],
+                "title": slug(media["title"]),
+                "season_number": media["season_number"],
+            },
+        )
+    return reverse(
+        "media_details",
+        kwargs={
+            "source": media["source"],
+            "media_type": media["media_type"],
+            "media_id": media["media_id"],
+            "title": slug(media["title"]),
+        },
+    )
+
+
 @register.filter
 def percentage_ratio(value, total):
     """Calculate percentage, showing one decimal place for values between 0 and 1."""
@@ -90,6 +115,30 @@ def percentage_ratio(value, total):
         return str(int(round(result)))
     except (TypeError, ValueError):
         return "0"
+
+
+@register.simple_tag
+def modal_id(modal_type, media):
+    """Return the modal ID."""
+    return f"{modal_type}-{media['media_type']}-{media['media_id']}"
+
+
+@register.simple_tag
+def modal_url(modal_type, media):
+    """Return the modal URL."""
+    kwargs = {
+        "source": media["source"],
+        "media_type": media["media_type"],
+        "media_id": media["media_id"],
+    }
+
+    if "season_number" in media:
+        kwargs["season_number"] = media["season_number"]
+
+    if "episode_number" in media:
+        kwargs["episode_number"] = media["episode_number"]
+
+    return reverse(f"{modal_type}_modal", kwargs=kwargs)
 
 
 @register.simple_tag

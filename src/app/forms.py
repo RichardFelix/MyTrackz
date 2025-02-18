@@ -1,5 +1,3 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Layout, Row
 from django import forms
 from django.conf import settings
 from django.urls import reverse
@@ -128,20 +126,6 @@ class ManualItemForm(forms.ModelForm):
         self.fields["image"].required = False
         self.fields["title"].required = False
 
-        self.helper = FormHelper()
-
-        self.helper.layout = Layout(
-            "media_type",
-            "parent_tv",
-            "parent_season",
-            "title",
-            "image",
-            "season_number",
-            "episode_number",
-        )
-
-        self.helper.form_tag = False
-
     def clean(self):
         """Validate the form."""
         cleaned_data = super().clean()
@@ -187,34 +171,6 @@ class ManualItemForm(forms.ModelForm):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-
-        left_col = "form-group col-md-6 pe-md-1"
-        right_col = "form-group col-md-6 ps-md-1"
-
-        self.helper.layout = Layout(
-            "item",
-            Row(
-                Column("score", css_class=left_col),
-                Column("progress", css_class=right_col),
-                css_class="form-row",
-            ),
-            Row(
-                Column("status", css_class=left_col),
-                Column("repeats", css_class=right_col),
-                css_class="form-row",
-            ),
-            Row(
-                Column("start_date", css_class=left_col),
-                Column("end_date", css_class=right_col),
-                css_class="form-row",
-            ),
-            "notes",
-        )
-
     class Meta:
         """Define fields and input types."""
 
@@ -236,20 +192,22 @@ class MediaForm(forms.ModelForm):
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
+        labels = {
+            "repeats": "Number of Repeats",
+        }
 
 
 class MangaForm(MediaForm):
     """Form for manga."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-        self.fields["progress"].label = "Progress (chapters)"
-
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = models.Manga
+        labels = {
+            "progress": "Progress (chapters)",
+            "repeats": "Number of Rereads",
+        }
 
 
 class AnimeForm(MediaForm):
@@ -273,24 +231,18 @@ class MovieForm(MediaForm):
 class BookForm(MediaForm):
     """Form for books."""
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-        self.fields["progress"].label = "Progress (pages)"
-
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = models.Book
+        labels = {
+            "progress": "Progress (pages)",
+            "repeats": "Number of Rereads",
+        }
 
 
 class TvForm(MediaForm):
     """Form for TV shows."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
@@ -301,11 +253,6 @@ class TvForm(MediaForm):
 
 class SeasonForm(MediaForm):
     """Form for seasons."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
@@ -327,23 +274,17 @@ class EpisodeForm(forms.ModelForm):
 
         model = models.Episode
         fields = ("item", "end_date", "repeats")
-
         widgets = {
             "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        super().__init__(*args, **kwargs)
-
 
 class GameForm(MediaForm):
-    """Form for manga."""
+    """Form for games."""
 
     progress = CustomDurationField(
         required=False,
-        label="Progress (hh:mm)",
         widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
     )
 
@@ -351,6 +292,10 @@ class GameForm(MediaForm):
         """Bind form to model."""
 
         model = models.Game
+        labels = {
+            "progress": "Time Played (hh:mm)",
+            "repeats": "Number of Replays",
+        }
 
 
 class FilterForm(forms.Form):

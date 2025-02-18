@@ -77,6 +77,7 @@ def movie(media_id):
             "related": {
                 "recommendations": get_related(
                     response["recommendations"]["results"][:15],
+                    "movie",
                 ),
             },
         }
@@ -123,6 +124,7 @@ def tv_with_seasons(media_id, season_numbers):
             season_data = process_season(
                 response[f"season/{season_number}"],
             )
+            season_data["media_id"] = media_id
             season_data["title"] = data["title"]
             season_data["genres"] = data["genres"]
             season_data["backdrop"] = data["backdrop"]
@@ -174,9 +176,10 @@ def process_tv(response):
             "languages": get_languages(response["spoken_languages"]),
         },
         "related": {
-            "seasons": get_related(response["seasons"], response["id"]),
+            "seasons": get_related(response["seasons"], "season", response),
             "recommendations": get_related(
                 response["recommendations"]["results"][:15],
+                "tv",
             ),
         },
     }
@@ -187,6 +190,7 @@ def process_season(response):
     num_episodes = len(response["episodes"])
     return {
         "source": "tmdb",
+        "media_type": "season",
         "season_title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
@@ -349,15 +353,21 @@ def get_companies(companies):
     return None
 
 
-def get_related(related_medias, media_id=None):
+def get_related(related_medias, media_type, parent_response=None):
     """Return list of related media for the selected media."""
     return [
-        {  # seasons from tv passes media_id
-            "media_id": media_id if media_id else media["id"],
+        {
+            "media_id": parent_response["id"]
+            if media_type == "season"
+            else media["id"],
             "source": "tmdb",
-            "title": get_title(media),
+            "media_type": media_type,
+            "title": parent_response["name"]
+            if media_type == "season"
+            else get_title(media),
             "image": get_image_url(media["poster_path"]),
             "season_number": (media.get("season_number", None)),
+            **({"season_title": get_title(media)} if media_type == "season" else {}),
         }
         for media in related_medias
     ]

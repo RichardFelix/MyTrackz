@@ -20,7 +20,6 @@ from django.db.models import (
     UniqueConstraint,
 )
 from django.db.models.functions import Cast
-from django.urls import reverse
 from django.utils import timezone
 from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
@@ -29,7 +28,7 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 import events
 from app.mixins import CalendarTriggerMixin
 from app.providers import services, tmdb
-from app.templatetags.app_tags import media_type_readable, slug
+from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
 
@@ -176,25 +175,7 @@ class Item(models.Model):
     @property
     def url(self):
         """Return the URL of the item."""
-        if self.media_type in ["season", "episode"]:
-            return reverse(
-                "season_details",
-                kwargs={
-                    "source": self.source,
-                    "media_id": self.media_id,
-                    "title": slug(self.title),
-                    "season_number": self.season_number,
-                },
-            )
-        return reverse(
-            "media_details",
-            kwargs={
-                "source": self.source,
-                "media_type": self.media_type,
-                "media_id": self.media_id,
-                "title": slug(self.title),
-            },
-        )
+        app_tags.media_url(self)
 
     @property
     def event_color(self):
@@ -346,7 +327,7 @@ class MediaManager(models.Manager):
             "labels": [str(score) for score in score_range],  # 0-10 as labels
             "datasets": [
                 {
-                    "label": media_type_readable(model_name),
+                    "label": app_tags.media_type_readable(model_name),
                     "data": [distribution[model_name][score] for score in score_range],
                     "background_color": self.get_media_color(model_name),
                 }
@@ -375,7 +356,7 @@ class MediaManager(models.Manager):
 
         # Format the response for charting
         return {
-            "labels": [media_type_readable(x) for x in distribution],
+            "labels": [app_tags.media_type_readable(x) for x in distribution],
             "datasets": [
                 {
                     "label": status,

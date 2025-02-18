@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "django_celery_results",
     "django_select2",
     "simple_history",
+    "widget_tweaks",
 ]
 
 MIDDLEWARE = [
