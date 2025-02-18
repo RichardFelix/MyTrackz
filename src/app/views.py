@@ -72,7 +72,7 @@ def media_list(request, media_type):
                 layout_user = layout_request
             else:
                 logger.error(filter_form.errors.as_json())
-    else: # first time access
+    else:  # first time access
         filter_form = FilterForm(layout=layout_user)
 
     status_filter = request.GET.get("status", "all")
@@ -406,47 +406,71 @@ def history_modal(
         },
     )
 
+    timeline_entries = []
     media = database.get_media(media_type, item, request.user)
-    changes = []
-    if media:
-        history = media.history.all()
-        if history is not None:
-            last = history.first()
-            for _ in range(history.count()):
-                new_record, old_record = last, last.prev_record
-                if old_record is not None:
-                    delta = new_record.diff_against(old_record)
-                    changes.append(delta)
-                    last = old_record
-                else:
-                    # If there is no previous record, it's a creation entry
-                    history_model = apps.get_model(
-                        app_label="app",
-                        model_name=f"historical{media_type}",
-                    )
-                    creation_changes = [
+
+    if media and (history := media.history.all()):
+        last = history.first()
+
+        for _ in range(history.count()):
+            new_record, old_record = last, last.prev_record
+            entry = {
+                "date": new_record.history_date,
+                "changes": [],
+            }
+
+            if old_record is not None:
+                delta = new_record.diff_against(old_record)
+
+                for change in delta.changes:
+                    entry["changes"].append(
                         {
-                            "field": field.verbose_name,
-                            "new": getattr(new_record, field.attname),
-                        }
-                        for field in history_model._meta.get_fields()  # noqa: SLF001
-                        if getattr(new_record, field.attname)  # not None/0/empty
-                        and not field.name.startswith("history")
-                        and field.name != "id"
-                    ]
-                    changes.append(
-                        {
-                            "new_record": new_record,
-                            "changes": creation_changes,
+                            "description": helpers.format_description(
+                                change.field,
+                                change.old,
+                                change.new,
+                                media_type,
+                            ),
                         },
                     )
+            else:
+                # Creation entry
+                history_model = apps.get_model(
+                    app_label="app",
+                    model_name=f"historical{media_type}",
+                )
+
+                for field in history_model._meta.get_fields():  # noqa: SLF001
+                    if (
+                        field.name.startswith("history_")
+                        or field.name in ["id", "modified"]
+                        or not getattr(new_record, field.attname)
+                    ):
+                        continue
+
+                    value = getattr(new_record, field.attname)
+                    if value:  # Skip empty/None/0 values
+                        entry["changes"].append(
+                            {
+                                "description": helpers.format_description(
+                                    field.name,
+                                    None,
+                                    value,
+                                    media_type,
+                                ),
+                            },
+                        )
+
+            if entry["changes"]:  # Only add entries with changes
+                timeline_entries.append(entry)
+            last = old_record
 
     return render(
         request,
         "app/components/fill_history.html",
         {
             "media_type": media_type,
-            "changes": changes,
+            "timeline": timeline_entries,
             "return_url": request.GET["return_url"],
         },
     )

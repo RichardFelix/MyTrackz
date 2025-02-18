@@ -87,15 +87,20 @@
           <div x-show="open"
                @keydown.escape.window="open = false"
                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="w-[32rem] max-h-[90vh] px-4 md:px-0 relative z-60"
+            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
                  @click.outside="open = false">
               <div id="{% modal_id 'lists' media %}"></div>
             </div>
           </div>
         </div>
 
-        <div>
-          <button class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer">
+        <div x-data="{ open: false }">
+          <button class="inline-flex items-center justify-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
+                  hx-get="{% modal_url 'history' media %}"
+                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                  hx-target="#{% modal_id 'history' media %}"
+                  hx-trigger="click once"
+                  @click="open = true">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -115,6 +120,15 @@
             </svg>
             <span>Logs</span>
           </button>
+
+          <div x-show="open"
+               @keydown.escape.window="open = false"
+               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                 @click.outside="open = false">
+              <div id="{% modal_id 'history' media %}"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

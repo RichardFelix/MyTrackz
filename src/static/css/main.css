@@ -776,6 +776,9 @@
   .w-64 {
     width: calc(var(--spacing) * 64);
   }
+  .w-96 {
+    width: calc(var(--spacing) * 96);
+  }
   .w-100 {
     width: calc(var(--spacing) * 100);
   }
@@ -861,6 +864,9 @@
   .items-center {
     align-items: center;
   }
+  .items-start {
+    align-items: flex-start;
+  }
   .justify-between {
     justify-content: space-between;
   }
@@ -894,6 +900,13 @@
       --tw-space-y-reverse: 0;
       margin-block-start: calc(calc(var(--spacing) * 3) * var(--tw-space-y-reverse));
       margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - var(--tw-space-y-reverse)));
+    }
+  }
+  .space-y-4 {
+    :where(& > :not(:last-child)) {
+      --tw-space-y-reverse: 0;
+      margin-block-start: calc(calc(var(--spacing) * 4) * var(--tw-space-y-reverse));
+      margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - var(--tw-space-y-reverse)));
     }
   }
   .space-x-3 {
@@ -1226,6 +1239,11 @@
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
     transition-duration: var(--tw-duration, var(--default-transition-duration));
   }
+  .transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
   .transition-transform {
     transition-property: transform, translate, scale, rotate;
     transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
@@ -1262,6 +1280,13 @@
   .ease-out {
     --tw-ease: var(--ease-out);
     transition-timing-function: var(--ease-out);
+  }
+  .group-hover\:opacity-100 {
+    &:is(:where(.group):hover *) {
+      @media (hover: hover) {
+        opacity: 100%;
+      }
+    }
   }
   .last\:mb-0 {
     &:last-child {
@@ -1345,6 +1370,13 @@
       }
     }
   }
+  .hover\:text-red-500 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-red-500);
+      }
+    }
+  }
   .hover\:text-white {
     &:hover {
       @media (hover: hover) {
@@ -1371,6 +1403,11 @@
   .focus\:ring-gray-500 {
     &:focus {
       --tw-ring-color: var(--color-gray-500);
+    }
+  }
+  .focus\:ring-red-500 {
+    &:focus {
+      --tw-ring-color: var(--color-red-500);
     }
   }
   .focus\:outline-none {
