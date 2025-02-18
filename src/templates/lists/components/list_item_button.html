@@ -1,0 +1,19 @@
+{% if has_item %}
+<button 
+    hx-post="{% url 'list_item_toggle' %}" 
+    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+    hx-vals='{"custom_list_id": "{{ custom_list.id }}", "item_id": "{{ item.id }}"}'
+    hx-swap="outerHTML"
+    class="px-3 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500">
+    Remove
+</button>
+{% else %}
+<button 
+    hx-post="{% url 'list_item_toggle' %}" 
+    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+    hx-vals='{"custom_list_id": "{{ custom_list.id }}", "item_id": "{{ item.id }}"}'
+    hx-swap="outerHTML"
+    class="px-3 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 bg-gray-500 hover:bg-gray-600 focus:ring-gray-500">
+    Add
+</button>
+{% endif %}

@@ -150,7 +150,7 @@ def lists_modal(
         },
     )
 
-    custom_lists = CustomList.objects.get_user_lists(request.user)
+    custom_lists = CustomList.objects.get_user_lists_with_item(request.user, item)
 
     return render(
         request,
@@ -173,17 +173,17 @@ def list_item_toggle(request):
         id=custom_list_id,
     )
 
-    if item in custom_list.items.all():
+    if custom_list.items.filter(id=item.id).exists():
         custom_list.items.remove(item)
         logger.info("%s removed from %s.", item, custom_list)
-        icon_class = "bi bi-plus-square me-1"
+        has_item = False
     else:
         custom_list.items.add(item)
         logger.info("%s added to %s.", item, custom_list)
-        icon_class = "bi bi-check-square-fill me-1"
+        has_item = True
 
     return render(
         request,
-        "lists/components/list_icon.html",
-        {"icon_class": icon_class},
+        "lists/components/list_item_button.html",
+        {"custom_list": custom_list, "item": item, "has_item": has_item},
     )
