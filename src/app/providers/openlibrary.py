@@ -93,9 +93,12 @@ async def async_book(media_id):
         else:
             response_work = {}
 
-        # Run authors and recommendations concurrently
+        # Run authors and editions concurrently
         authors_task = asyncio.create_task(
             get_authors(response_work),
+        )
+        editions_task = asyncio.create_task(
+            get_editions(response_book, response_work),
         )
 
         data = {
@@ -116,7 +119,7 @@ async def async_book(media_id):
                 "isbn": get_isbns(response_book),
             },
             "related": {
-                "other_editions": get_editions(response_book, response_work),
+                "other_editions": await editions_task,
             },
         }
 
@@ -241,23 +244,28 @@ def get_isbns(response):
     return None
 
 
-def get_editions(resposnse_book, response_work):
-    """Get list of editions."""
-    book_id = resposnse_book.get("key", "").split("/")[-1]
+async def get_editions(response_book, response_work):
+    """Get list of editions asynchronously."""
+    book_id = response_book.get("key", "").split("/")[-1]
     work_id = response_work.get("key", "").split("/")[-1]
 
+    if not work_id:
+        work_id = book_id
+
     url = f"https://openlibrary.org/works/{work_id}/editions.json"
-    response = services.api_request(
-        "OpenLibrary",
-        "GET",
-        url,
-    )
-    return [
-        {
-            "media_id": edition["key"].split("/")[-1],
-            "title": edition.get("title"),
-            "image": get_cover_image_url(edition),
-        }
-        for edition in response["entries"][:10]
-        if edition["key"].split("/")[-1] != book_id
-    ]
+
+    async with aiohttp.ClientSession() as session, session.get(url) as response:
+        if response.status == requests.codes.ok:
+            data = await response.json()
+            return [
+                {
+                    "source": "openlibrary",
+                    "media_id": edition["key"].split("/")[-1],
+                    "media_type": "book",
+                    "title": edition.get("title"),
+                    "image": get_cover_image_url(edition),
+                }
+                for edition in data["entries"][:10]
+                if edition["key"].split("/")[-1] != book_id and edition.get("title")
+            ]
+    return []

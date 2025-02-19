@@ -73,8 +73,9 @@ def process_seasons(season_items, response):
 def build_season_response(season, episodes_response, season_episodes):
     """Build the season response dictionary."""
     return {
-        "media_id": season.media_id,
         "source": "manual",
+        "media_id": season.media_id,
+        "media_type": "season",
         "title": season.title,
         "season_title": f"Season {season.season_number}",
         "image": season.image,
@@ -103,6 +104,9 @@ def episode(media_id, season_number, episode_number):
     for episode in season_metadata["episodes"]:
         if episode["episode_number"] == int(episode_number):
             return {
+                "source": "manual",
+                "media_id": media_id,
+                "media_type": "episode",
                 "title": season_metadata["title"],
                 "season_title": season_metadata["season_title"],
                 "episode_title": episode["title"],

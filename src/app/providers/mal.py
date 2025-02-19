@@ -97,8 +97,11 @@ def anime(media_id):
                 "source": get_source(response),
             },
             "related": {
-                "related_anime": get_related(response.get("related_anime")),
-                "recommendations": get_related(response.get("recommendations")),
+                "related_anime": get_related(response.get("related_anime"), "anime"),
+                "recommendations": get_related(
+                    response.get("recommendations"),
+                    "anime",
+                ),
             },
         }
 
@@ -144,8 +147,11 @@ def manga(media_id):
                 "number_of_chapters": num_chapters,
             },
             "related": {
-                "related_manga": get_related(response.get("related_manga")),
-                "recommendations": get_related(response.get("recommendations")),
+                "related_manga": get_related(response.get("related_manga"), "manga"),
+                "recommendations": get_related(
+                    response.get("recommendations"),
+                    "manga",
+                ),
             },
         }
 
@@ -200,7 +206,6 @@ def get_synopsis(response):
     # e.g manga: 160219
     if response["synopsis"] == "":
         return "No synopsis available."
-
     return response["synopsis"]
 
 
@@ -291,13 +296,15 @@ def get_source(response):
         return None
 
 
-def get_related(related_medias):
+def get_related(related_medias, media_type):
     """Return list of related media for the selected media."""
     if related_medias:
         return [
             {
                 "media_id": media["node"]["id"],
+                "source": "mal",
                 "title": media["node"]["title"],
+                "media_type": media_type,
                 "image": get_image_url(media["node"]),
             }
             for media in related_medias

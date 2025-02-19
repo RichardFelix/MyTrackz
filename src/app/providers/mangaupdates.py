@@ -177,7 +177,9 @@ async def fetch_series_data(session, url, item):
             data = await response.json()
             image = get_image_url(data)
             return {
+                "source": "mangaupdates",
                 "media_id": item.get("related_series_id") or item.get("series_id"),
+                "media_type": "manga",
                 "title": item.get("related_series_name") or item.get("series_name"),
                 "image": image,
             }

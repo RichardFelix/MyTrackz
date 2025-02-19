@@ -218,7 +218,9 @@ def get_related(related_medias):
     if related_medias:
         return [
             {
+                "source": "igdb",
                 "media_id": game["id"],
+                "media_type": "game",
                 "title": game["name"],
                 "image": get_image_url(game),
             }
