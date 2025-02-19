@@ -415,6 +415,7 @@ def history_modal(
         for _ in range(history.count()):
             new_record, old_record = last, last.prev_record
             entry = {
+                "id": new_record.history_id,
                 "date": new_record.history_date,
                 "changes": [],
             }
@@ -476,25 +477,35 @@ def history_modal(
     )
 
 
-@require_POST
-def history_delete(request):
-    """Delete a history record for a media item."""
-    history_id = request.POST["history_id"]
-    media_type = request.POST["media_type"]
+@require_http_methods(["DELETE"])
+def delete_history_record(request, media_type, history_id):
+    """Delete a specific history record."""
+    try:
+        historical_model = apps.get_model(
+            app_label="app",
+            model_name=f"historical{media_type.lower()}",
+        )
 
-    model_name = f"historical{media_type}"
+        historical_model.objects.get(
+            history_id=history_id,
+            history_user=request.user,
+        ).delete()
 
-    history = apps.get_model(app_label="app", model_name=model_name).objects.get(
-        history_id=history_id,
-    )
+        logger.info(
+            "Deleted history record %s",
+            str(history_id),
+        )
 
-    if history.history_user_id == request.user.id:
-        history.delete()
-        logger.info("History record deleted successfully.")
-    else:
-        logger.warning("User does not have permission to delete this history record.")
+        # Return empty 200 response - the element will be removed by HTMX
+        return HttpResponse()
 
-    return helpers.redirect_back(request)
+    except historical_model.DoesNotExist:
+        logger.exception(
+            "History record %s not found for user %s",
+            str(history_id),
+            str(request.user),
+        )
+        return HttpResponse("Record not found", status=404)
 
 
 @require_GET
