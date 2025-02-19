@@ -62,9 +62,12 @@ def importer(token, user, mode):
     warnings = []
 
     # Process all media types
-    process_tv_list(data["shows"], user, bulk_media, warnings)
-    process_movie_list(data["movies"], user, bulk_media, warnings)
-    process_anime_list(data["anime"], user, bulk_media, warnings)
+    if "shows" in data:
+        process_tv_list(data["shows"], user, bulk_media, warnings)
+    if "movies" in data:
+        process_movie_list(data["movies"], user, bulk_media, warnings)
+    if "anime" in data:
+        process_anime_list(data["anime"], user, bulk_media, warnings)
 
     # Import using bulk operations
     imported_counts = {}
@@ -120,8 +123,7 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
         try:
             season_numbers = [season["number"] for season in tv["seasons"]]
         except KeyError:
-            warnings.append(f"{title}: It doesn't have data on episodes viewed.")
-            continue
+            season_numbers = []
 
         try:
             metadata = app.providers.tmdb.tv_with_seasons(tmdb_id, season_numbers)
@@ -151,15 +153,16 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
         )
         bulk_media["tv"].append(tv_instance)
 
-        # Process seasons and episodes
-        process_seasons_and_episodes(
-            tv,
-            tv_instance,
-            metadata,
-            season_numbers,
-            user,
-            bulk_media,
-        )
+        if season_numbers:
+            # Process seasons and episodes
+            process_seasons_and_episodes(
+                tv,
+                tv_instance,
+                metadata,
+                season_numbers,
+                user,
+                bulk_media,
+            )
     logger.info("Processed %d tv shows", len(tv_list))
 
     helpers.update_season_references(bulk_media["season"], user)
