@@ -641,9 +641,6 @@
   .me-2 {
     margin-inline-end: calc(var(--spacing) * 2);
   }
-  .mt-1 {
-    margin-top: calc(var(--spacing) * 1);
-  }
   .mt-2 {
     margin-top: calc(var(--spacing) * 2);
   }
@@ -839,6 +836,9 @@
   .appearance-none {
     appearance: none;
   }
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .flex-col {
     flex-direction: column;
   }
@@ -874,6 +874,9 @@
   }
   .gap-10 {
     gap: calc(var(--spacing) * 10);
+  }
+  .gap-x-4 {
+    column-gap: calc(var(--spacing) * 4);
   }
   .space-y-1 {
     :where(& > :not(:last-child)) {
@@ -1147,9 +1150,6 @@
   .text-indigo-400 {
     color: var(--color-indigo-400);
   }
-  .text-red-500 {
-    color: var(--color-red-500);
-  }
   .text-white {
     color: var(--color-white);
   }
@@ -1347,16 +1347,6 @@
   .focus\:ring-\[\#4a9eff\] {
     &:focus {
       --tw-ring-color: #4a9eff;
-    }
-  }
-  .focus\:ring-emerald-500 {
-    &:focus {
-      --tw-ring-color: var(--color-emerald-500);
-    }
-  }
-  .focus\:ring-gray-500 {
-    &:focus {
-      --tw-ring-color: var(--color-gray-500);
     }
   }
   .focus\:ring-red-500 {
