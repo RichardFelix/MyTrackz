@@ -21,8 +21,10 @@
     {% block extra_head %}
     {% endblock extra_head %}
 
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script defer
             src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lazysizes@5.3.2/lazysizes.min.js" async></script>
 
     <link rel="apple-touch-icon"
           sizes="180x180"
@@ -293,7 +295,9 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                       </button>
-                      <ul x-cloak x-show="isOpen" @keydown.escape.window="isOpen = false"
+                      <ul x-cloak
+                          x-show="isOpen"
+                          @keydown.escape.window="isOpen = false"
                           x-transition:enter="transition ease-out duration-100"
                           x-transition:enter-start="transform opacity-0 scale-95"
                           x-transition:enter-end="transform opacity-100 scale-100"
@@ -322,9 +326,6 @@
           </main>
         </div>
       </div>
-
-      <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
-      <script src="https://unpkg.com/lazysizes@5.3.2/lazysizes.min.js" async></script>
 
       {% block js %}
       {% endblock js %}
