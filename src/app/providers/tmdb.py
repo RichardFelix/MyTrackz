@@ -366,7 +366,11 @@ def get_related(related_medias, media_type, parent_response=None):
             if media_type == "season"
             else get_title(media),
             "image": get_image_url(media["poster_path"]),
-            "season_number": (media.get("season_number", None)),
+            **(
+                {"season_number": media["season_number"]}
+                if "season_number" in media
+                else {}
+            ),
             **({"season_title": get_title(media)} if media_type == "season" else {}),
         }
         for media in related_medias

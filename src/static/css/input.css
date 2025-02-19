@@ -3,3 +3,6 @@
 [x-cloak] {
   display: none !important;
 }
+
+/* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
+@custom-variant hover-tap (&:hover);

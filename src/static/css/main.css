@@ -692,8 +692,17 @@
   .mb-8 {
     margin-bottom: calc(var(--spacing) * 8);
   }
+  .mb-12 {
+    margin-bottom: calc(var(--spacing) * 12);
+  }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
+  }
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
   .line-clamp-6 {
     overflow: hidden;
@@ -728,14 +737,14 @@
   .h-6 {
     height: calc(var(--spacing) * 6);
   }
-  .h-48 {
-    height: calc(var(--spacing) * 48);
-  }
   .h-100 {
     height: calc(var(--spacing) * 100);
   }
   .h-16 {
     height: calc(var(--spacing) * 16);
+  }
+  .h-48 {
+    height: calc(var(--spacing) * 48);
   }
   .h-full {
     height: 100%;
@@ -875,6 +884,9 @@
   .gap-10 {
     gap: calc(var(--spacing) * 10);
   }
+  .gap-12 {
+    gap: calc(var(--spacing) * 12);
+  }
   .gap-x-4 {
     column-gap: calc(var(--spacing) * 4);
   }
@@ -897,6 +909,13 @@
       --tw-space-y-reverse: 0;
       margin-block-start: calc(calc(var(--spacing) * 4) * var(--tw-space-y-reverse));
       margin-block-end: calc(calc(var(--spacing) * 4) * calc(1 - var(--tw-space-y-reverse)));
+    }
+  }
+  .space-x-2 {
+    :where(& > :not(:last-child)) {
+      --tw-space-x-reverse: 0;
+      margin-inline-start: calc(calc(var(--spacing) * 2) * var(--tw-space-x-reverse));
+      margin-inline-end: calc(calc(var(--spacing) * 2) * calc(1 - var(--tw-space-x-reverse)));
     }
   }
   .space-x-3 {
@@ -1005,6 +1024,9 @@
   .bg-\[\#39404b\] {
     background-color: #39404b;
   }
+  .bg-\[\#3e454d\] {
+    background-color: #3e454d;
+  }
   .bg-amber-600 {
     background-color: var(--color-amber-600);
   }
@@ -1100,6 +1122,9 @@
   }
   .text-center {
     text-align: center;
+  }
+  .text-justify {
+    text-align: justify;
   }
   .text-start {
     text-align: start;
@@ -1254,6 +1279,13 @@
       margin-bottom: calc(var(--spacing) * 0);
     }
   }
+  .hover\:bg-\[\#343a40\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: #343a40;
+      }
+    }
+  }
   .hover\:bg-\[\#23272b\] {
     &:hover {
       @media (hover: hover) {
@@ -1265,13 +1297,6 @@
     &:hover {
       @media (hover: hover) {
         background-color: #2a2e33;
-      }
-    }
-  }
-  .hover\:bg-\[\#343a40\] {
-    &:hover {
-      @media (hover: hover) {
-        background-color: #343a40;
       }
     }
   }
@@ -1370,6 +1395,11 @@
       margin-inline: calc(var(--spacing) * 0);
     }
   }
+  .md\:mb-8 {
+    @media (width >= 48rem) {
+      margin-bottom: calc(var(--spacing) * 8);
+    }
+  }
   .md\:w-1\/4 {
     @media (width >= 48rem) {
       width: calc(1/4 * 100%);
@@ -1380,14 +1410,29 @@
       width: calc(3/4 * 100%);
     }
   }
+  .md\:max-w-\[250px\] {
+    @media (width >= 48rem) {
+      max-width: 250px;
+    }
+  }
   .md\:flex-row {
     @media (width >= 48rem) {
       flex-direction: row;
     }
   }
+  .md\:gap-10 {
+    @media (width >= 48rem) {
+      gap: calc(var(--spacing) * 10);
+    }
+  }
   .md\:px-0 {
     @media (width >= 48rem) {
       padding-inline: calc(var(--spacing) * 0);
+    }
+  }
+  .md\:text-start {
+    @media (width >= 48rem) {
+      text-align: start;
     }
   }
   .lg\:static {
@@ -1409,6 +1454,11 @@
   .lg\:justify-center {
     @media (width >= 64rem) {
       justify-content: center;
+    }
+  }
+  .hover-tap\:opacity-100 {
+    &:hover {
+      opacity: 100%;
     }
   }
   .\[\&\:\:-webkit-inner-spin-button\]\:appearance-none {

@@ -120,7 +120,14 @@ def percentage_ratio(value, total):
 @register.simple_tag
 def modal_id(modal_type, media):
     """Return the modal ID."""
-    return f"{modal_type}-{media['media_type']}-{media['media_id']}"
+    modal_id = f"{modal_type}-{media['media_type']}-{media['media_id']}"
+
+    if "season_number" in media:
+        modal_id += f"-{media['season_number']}"
+    if "episode_number" in media:
+        modal_id += f"-{media['episode_number']}"
+
+    return modal_id
 
 
 @register.simple_tag
