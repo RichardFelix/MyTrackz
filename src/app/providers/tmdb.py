@@ -128,6 +128,8 @@ def tv_with_seasons(media_id, season_numbers):
             season_data["title"] = data["title"]
             season_data["genres"] = data["genres"]
             season_data["backdrop"] = data["backdrop"]
+            if season_data["synopsis"] == "No synopsis available.":
+                season_data["synopsis"] = data["synopsis"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
             data[f"season/{season_number}"] = season_data
     return data
@@ -355,26 +357,25 @@ def get_companies(companies):
 
 def get_related(related_medias, media_type, parent_response=None):
     """Return list of related media for the selected media."""
-    return [
-        {
-            "media_id": parent_response["id"]
-            if media_type == "season"
-            else media["id"],
+    related = []
+    for media in related_medias:
+        data = {
             "source": "tmdb",
             "media_type": media_type,
-            "title": parent_response["name"]
-            if media_type == "season"
-            else get_title(media),
             "image": get_image_url(media["poster_path"]),
-            **(
-                {"season_number": media["season_number"]}
-                if "season_number" in media
-                else {}
-            ),
-            **({"season_title": get_title(media)} if media_type == "season" else {}),
         }
-        for media in related_medias
-    ]
+        if media_type == "season":
+            data["media_id"] = parent_response["id"]
+            data["title"] = parent_response["name"]
+            data["season_number"] = media["season_number"]
+            data["season_title"] = media["name"]
+            data["first_air_date"] = get_start_date(media["air_date"])
+            data["max_progress"] = media["episode_count"]
+        else:
+            data["media_id"] = media["id"]
+            data["title"] = get_title(media)
+        related.append(data)
+    return related
 
 
 def process_episodes(season_metadata, episodes_in_db):
@@ -390,6 +391,9 @@ def process_episodes(season_metadata, episodes_in_db):
 
         episodes_metadata.append(
             {
+                "media_id": season_metadata["media_id"],
+                "season_number": season_metadata["season_number"],
+                "media_type": "episode",
                 "source": "tmdb",
                 "episode_number": episode_number,
                 "air_date": episode["air_date"],  # when unknown, response returns null
@@ -401,7 +405,7 @@ def process_episodes(season_metadata, episodes_in_db):
                     tracked_episodes[episode_number]["end_date"] if watched else None
                 ),
                 "repeats": (
-                    tracked_episodes[episode_number]["repeats"] if watched else 0
+                    tracked_episodes[episode_number]["repeats"] if watched else None
                 ),
             },
         )

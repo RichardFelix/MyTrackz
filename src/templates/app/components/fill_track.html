@@ -104,7 +104,7 @@
     <div class="flex justify-between mt-6">
       <button type="submit"
               formaction="{% url 'media_delete' %}?next={{ return_url }}"
-              class="px-4 py-2 rounded-md transition duration-300 cursor-pointer {% if not media %}bg-gray-600 text-gray-300 cursor-not-allowed{% else %}bg-red-700 text-white hover:bg-red-800{% endif %}"
+              class="px-4 py-2 rounded-md transition duration-300 {% if media %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
               {% if not media %}disabled{% endif %}>Delete</button>
       <button type="submit"
               formaction="{% url 'media_save' %}?next={{ return_url }}"

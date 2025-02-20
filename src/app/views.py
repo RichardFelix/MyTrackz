@@ -167,11 +167,11 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         )
 
     context = {
-        "season": season_metadata,
+        "media": season_metadata,
         "tv": tv_with_seasons_metadata,
         "media_type": "season",
     }
-    return render(request, "app/season_details.html", context)
+    return render(request, "app/media_details.html", context)
 
 
 @require_GET
@@ -317,13 +317,8 @@ def episode_handler(request):
 
     if "unwatch" in request.POST:
         related_season.unwatch(episode_number)
-
-    else:
-        if "release" in request.POST:
-            end_date = request.POST["release"]
-        else:
-            # set watch date from form
-            end_date = request.POST["date"]
+    elif "watch" in request.POST:
+        end_date = request.POST["date"]
         related_season.watch(episode_number, end_date)
 
     return helpers.redirect_back(request)

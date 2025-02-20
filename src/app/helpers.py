@@ -126,7 +126,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     if field_name == "repeats":
         verb = get_media_verb(media_type, past_tense=True)
         if new_value > old_value:
-            return f"{verb.title()} again (#{new_value})"
+            return f"{verb.title()} again (#{new_value + 1})"
         return f"Adjusted repeat count from {old_value} to {new_value}"
 
     if field_name in ["start_date", "end_date"]:
