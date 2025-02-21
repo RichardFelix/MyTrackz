@@ -242,20 +242,20 @@
                       { display: '{{ "movie"|media_type_readable_plural }}', value: 'movie' },
                     {% endif %}
 
-                    {% if not user.hide_from_search or user.game_enabled %}
-                      { display: '{{ "game"|media_type_readable_plural }}', value: 'game' },
-                    {% endif %}
-
-                    {% if not user.hide_from_search or user.book_enabled %}
-                      { display: '{{ "book"|media_type_readable_plural }}', value: 'book' },
-                    {% endif %}
-
                     {% if not user.hide_from_search or user.anime_enabled %}
                       { display: '{{ "anime"|media_type_readable_plural }}', value: 'anime' },
                     {% endif %}
 
                     {% if not user.hide_from_search or user.manga_enabled %}
                       { display: '{{ "manga"|media_type_readable_plural }}', value: 'manga' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.game_enabled %}
+                      { display: '{{ "game"|media_type_readable_plural }}', value: 'game' },
+                    {% endif %}
+
+                    {% if not user.hide_from_search or user.book_enabled %}
+                      { display: '{{ "book"|media_type_readable_plural }}', value: 'book' },
                     {% endif %}
                     ], getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
