@@ -15,6 +15,8 @@
     {{ media.progress|format_time }}
   {% elif media_type == "season" %}
     Ep. {{ media.current_episode_number }}
+  {% elif media_type == "book" %}
+    P. {{ media.progress }}
   {% elif media_type == "manga" %}
     Ch. {{ media.progress }}
   {% else %}
