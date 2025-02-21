@@ -124,7 +124,7 @@ def media_search(request):
 
     query_list = services.search(media_type, query, source)
 
-    context = {"query_list": query_list, "source": source}
+    context = {"query_list": query_list, "source": source, "media_type": media_type}
 
     return render(request, "app/search.html", context)
 

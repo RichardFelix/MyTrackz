@@ -68,6 +68,23 @@ def media_type_readable_plural(media_type):
     return f"{singular}s"
 
 
+@register.filter()
+def default_source(media_type):
+    """Return the default source for the media type."""
+    media_type_source = {
+        "tv": "The Movie Database",
+        "season": "The Movie Database",
+        "episode": "The Movie Database",
+        "movie": "The Movie Database",
+        "anime": "MyAnimeList",
+        "manga": "MyAnimeList",
+        "game": "The Internet Game Database",
+        "book": "Open Library",
+    }
+
+    return media_type_source[media_type]
+
+
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
