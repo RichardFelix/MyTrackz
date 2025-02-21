@@ -1,3 +1,4 @@
+import requests
 from django.conf import settings
 from django.core.cache import cache
 
@@ -88,17 +89,12 @@ def movie(media_id):
 
 def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with a season appended to the response."""
-    url = f"{base_url}/tv/{media_id}"
-    params = {
-        **base_params,
-        "append_to_response": "recommendations",
-    }
+    if season_numbers == []:
+        return tv(media_id)
 
-    data = cache.get(f"tv_{media_id}")
-    if data is None:
-        response = services.api_request("TMDB", "GET", url, params=params)
-        data = process_tv(response)
-        cache.set(f"tv_{media_id}", data)
+    url = f"{base_url}/tv/{media_id}"
+    base_append = "recommendations"
+    data = cache.get(f"tv_{media_id}", {})
 
     uncached_seasons = []
     for season_number in season_numbers:
@@ -109,25 +105,46 @@ def tv_with_seasons(media_id, season_numbers):
         else:
             uncached_seasons.append(season_number)
 
-    # tmdb max remote request is 20
-    max_seasons_per_request = 20
+    # tmdb max remote request is 20 but we have recommendations in the response
+    max_seasons_per_request = 19
     for i in range(0, len(uncached_seasons), max_seasons_per_request):
         season_subset = uncached_seasons[i : i + max_seasons_per_request]
         append_text = ",".join([f"season/{season}" for season in season_subset])
-        params["append_to_response"] = f"{append_text}"
+
+        params = {
+            **base_params,
+            "append_to_response": f"{base_append},{append_text}"
+            if append_text
+            else base_append,
+        }
 
         response = services.api_request("TMDB", "GET", url, params=params)
+        # tv show metadata is not in the response
+        if "media_id" not in data:
+            tv_data = process_tv(response)
+            cache.set(f"tv_{media_id}", tv_data)
+            data = tv_data | data
 
         # add seasons metadata to the response
         for season_number in season_subset:
-            season_data = process_season(
-                response[f"season/{season_number}"],
-            )
+            season_key = f"season/{season_number}"
+            if season_key not in response:
+                msg = f"Season {season_number} not found for TMDB TV show {media_id}"
+                # Create a new response object with 404 status
+                not_found_response = requests.Response()
+                not_found_response.status_code = 404
+                raise requests.exceptions.HTTPError(msg, response=not_found_response)
+
+            season_data = process_season(response[season_key])
+            season_data["media_id"] = media_id
             season_data["title"] = data["title"]
             season_data["genres"] = data["genres"]
             season_data["backdrop"] = data["backdrop"]
+            if season_data["synopsis"] == "No synopsis available.":
+                season_data["synopsis"] = data["synopsis"]
             cache.set(f"season_{media_id}_{season_number}", season_data)
-            data[f"season/{season_number}"] = season_data
+            data[season_key] = season_data
+
     return data
 
 
