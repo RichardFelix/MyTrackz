@@ -12,6 +12,10 @@ import app
 logger = logging.getLogger(__name__)
 
 
+class MediaImportError(Exception):
+    """Custom exception for import errors."""
+
+
 def update_season_references(seasons, user):
     """Update season references with actual TV instances.
 
