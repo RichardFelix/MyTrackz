@@ -4,5 +4,26 @@
   display: none !important;
 }
 
+.lazyload,
+.lazyloading {
+  object-fit: none;
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
+
+.toast-error {
+  @apply bg-red-500/20 text-red-500 border-red-500/30;
+}
+
+.toast-warning {
+  @apply bg-amber-500/20 text-amber-500 border-amber-500/30;
+}
+
+.toast-success {
+  @apply bg-green-500/20 text-green-500 border-green-500/30;
+}
+
+.toast-info {
+  @apply bg-blue-500/20 text-blue-500 border-blue-500/30;
+}

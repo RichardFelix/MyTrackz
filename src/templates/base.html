@@ -323,6 +323,40 @@
             <div class="container mx-auto px-4 py-8">
               {% block content %}
               {% endblock content %}
+
+              {% if messages %}
+                <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-full max-w-sm">
+                  {% for message in messages %}
+                    {# djlint:off #}
+                    <div class="flex items-center justify-between gap-4 rounded-lg border px-4 py-3 shadow-lg animate-in slide-in-from-bottom-2 toast-{{ message.tags }}"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0"
+                        {% if message.tags not in 'warning,error' %}
+                        x-data="{ init() { setTimeout(() => this.$el.remove(), 8000) } }"
+                        {% endif %}>
+                      <p class="text-sm font-medium">{{ message }}</p>
+                      <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                              @click="$el.parentElement.remove()">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="lucide lucide-x">
+                          <path d="M18 6 6 18"></path>
+                          <path d="m6 6 12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    {# djlint:on #}
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
           </main>
         </div>
