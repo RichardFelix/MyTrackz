@@ -262,6 +262,7 @@
                       <div class="relative flex-grow">
                         <input type="search"
                                name="q"
+                               value="{{ request.GET.q }}"
                                :placeholder="getPlaceholder()"
                                class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#23272b] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] placeholder-gray-500">
                         <button type="submit"
