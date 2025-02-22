@@ -222,7 +222,7 @@
             <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 {% if not forloop.last %}mb-8{% endif %}">
 
               {% for media in related_items %}
-               {% include "app/components/media_card.html" with media=media %}
+                {% include "app/components/media_card.html" with media=media %}
               {% endfor %}
             </div>
           {% endif %}
@@ -354,6 +354,7 @@
                                         <input class="w-full p-3 bg-[#343a40] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                                type="date"
                                                name="date"
+                                               onfocus="this.showPicker?.()"
                                                x-model="inputDate">
                                         {% if episode.air_date %}
                                           <button type="button" @click="inputDate = '{{ episode.air_date }}'"
@@ -382,6 +383,7 @@
                                     <div class="flex justify-between gap-3 pt-2">
                                       <button type="submit"
                                               name="unwatch"
+                                              {% if not episode.watched %}disabled{% endif %}
                                               class="px-4 py-2 rounded-md transition-colors {% if episode.watched %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}">
                                         Remove watch
                                       </button>
