@@ -220,8 +220,7 @@
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <h2 class="text-2xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
-            <div class="grid gap-4 {% if not forloop.last %}mb-8{% endif %}"
-                 style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr))">
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 {% if not forloop.last %}mb-8{% endif %}">
 
               {% for media in related_items %}
                {% include "app/components/media_card.html" with media=media %}
@@ -248,7 +247,7 @@
                   <div class="flex-1">
                     <div class="flex justify-between items-start mb-2 space-x-2">
                       <div>
-                        <h2 class="text-xl font-semibold mb-1">{{ episode.title }}</h2>
+                        <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                         <p class="text-sm text-gray-400">
                           Episode {{ episode.episode_number }} • {{ episode.air_date|default_if_none:"Unknown air date" }}
                         </p>

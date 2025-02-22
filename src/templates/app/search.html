@@ -54,8 +54,7 @@
       </div>
     </div>
 
-    <div class="grid gap-4"
-         style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr))">
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
       {% for media in query_list %}
         {% include "app/components/media_card.html" with media=media %}
       {% endfor %}
