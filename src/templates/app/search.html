@@ -7,8 +7,38 @@
 {% endblock title %}
 
 {% block content %}
-  {% if not query_list %}
-    <div class="flex flex-col items-center justify-center py-16 px-4">
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-2xl font-bold">Search Results</h2>
+    <div class="flex items-center space-x-4">
+      <span class="text-sm text-gray-400">Source:</span>
+      <div class="flex space-x-2">
+        {% if media_type == "manga" %}
+          <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type=manga"
+             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != "mangaupdates" %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            MyAnimeList
+          </a>
+          <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type=manga&source=mangaupdates"
+             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == "mangaupdates" %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            MangaUpdates
+          </a>
+        {% else %}
+          <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}"
+             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer bg-indigo-600 text-white">
+            {{ media_type|default_source }}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if query_list %}
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+      {% for media in query_list %}
+        {% include "app/components/media_card.html" with media=media %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="flex flex-col items-center justify-center py-32 px-4">
       <div class="bg-[#2a2f35] rounded-full p-6 mb-6">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -19,7 +49,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="lucide lucide-search w-12 h-12 text-gray-400">
+             class="w-12 h-12 text-gray-400">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.3-4.3"></path>
         </svg>
@@ -28,36 +58,6 @@
       <p class="text-gray-400 text-center max-w-md mb-8">
         We couldn't find any matches for "{{ request.GET.q }}". Try checking your spelling or using different keywords.
       </p>
-    </div>
-  {% else %}
-    <div class="flex items-center justify-between mb-8">
-      <h2 class="text-2xl font-bold">Search Results</h2>
-      <div class="flex items-center space-x-4">
-        <span class="text-sm text-gray-400">Source:</span>
-        <div class="flex space-x-2">
-          {% if media_type == "manga" %}
-            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type=manga"
-               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != "mangaupdates" %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
-              MyAnimeList
-            </a>
-            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type=manga&source=mangaupdates"
-               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == "mangaupdates" %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
-              MangaUpdates
-            </a>
-          {% else %}
-            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}"
-               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer bg-indigo-600 text-white">
-              {{ media_type|default_source }}
-            </a>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-      {% for media in query_list %}
-        {% include "app/components/media_card.html" with media=media %}
-      {% endfor %}
     </div>
   {% endif %}
 {% endblock content %}
