@@ -37,13 +37,19 @@ def progress_edit(request):
     media = database.get_media(media_type, item, request.user)
 
     if media:
+        if media_type == "season":
+            prefetch_related_objects([media], "episodes")
+
         if operation == "increase":
             media.increase_progress()
         elif operation == "decrease":
             media.decrease_progress()
 
         if media_type == "season":
+            # clear prefetch cache to get the updated episodes
+            media.refresh_from_db()
             prefetch_related_objects([media], "episodes")
+
             season_numbers = [item.season_number]
         else:
             season_numbers = None
