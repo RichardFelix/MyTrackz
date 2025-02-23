@@ -86,7 +86,7 @@
           <button class="inline-flex items-center justify-center px-4 py-2 space-x-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300 cursor-pointer"
                   hx-get="{% modal_url 'track' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% modal_id 'track' media %}"
+                  hx-target="#{% component_id 'track' media %}"
                   hx-trigger="click once"
                   @click="trackOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -110,7 +110,7 @@
                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="w-[32rem] max-h-[90vh] px-4 md:px-0 relative z-60"
                  @click.outside="trackOpen = false">
-              <div id="{% modal_id 'track' media %}"></div>
+              <div id="{% component_id 'track' media %}"></div>
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@
           <button class="inline-flex items-center justify-center px-4 py-2 space-x-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
                   hx-get="{% modal_url 'lists' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% modal_id 'lists' media %}"
+                  hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -147,7 +147,7 @@
                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
                  @click.outside="listsOpen = false">
-              <div id="{% modal_id 'lists' media %}"></div>
+              <div id="{% component_id 'lists' media %}"></div>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@
           <button class="inline-flex items-center justify-center px-4 py-2 space-x-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
                   hx-get="{% modal_url 'history' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                  hx-target="#{% modal_id 'history' media %}"
+                  hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">
             <svg xmlns="http://www.w3.org/2000/svg"
@@ -185,7 +185,7 @@
                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
                  @click.outside="historyOpen = false">
-              <div id="{% modal_id 'history' media %}"></div>
+              <div id="{% component_id 'history' media %}"></div>
             </div>
           </div>
         </div>
@@ -405,7 +405,7 @@
                           <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
                                   hx-get="{% modal_url 'lists' episode %}"
                                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                                  hx-target="#{% modal_id 'lists' episode %}"
+                                  hx-target="#{% component_id 'lists' episode %}"
                                   hx-trigger="click once"
                                   @click="listsOpen = true">
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -430,7 +430,7 @@
                                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                             <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
                                  @click.outside="listsOpen = false">
-                              <div id="{% modal_id 'lists' episode %}"></div>
+                              <div id="{% component_id 'lists' episode %}"></div>
                             </div>
                           </div>
                         </div>
@@ -440,7 +440,7 @@
                           <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
                                   hx-get="{% modal_url 'history' episode %}"
                                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                                  hx-target="#{% modal_id 'history' episode %}"
+                                  hx-target="#{% component_id 'history' episode %}"
                                   hx-trigger="click once"
                                   @click="historyOpen = true">
                             <svg xmlns="http://www.w3.org/2000/svg"
@@ -462,7 +462,7 @@
                                class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                             <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
                                  @click.outside="historyOpen = false">
-                              <div id="{% modal_id 'history' episode %}"></div>
+                              <div id="{% component_id 'history' episode %}"></div>
                             </div>
                           </div>
                         </div>

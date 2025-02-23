@@ -4,6 +4,7 @@ from django.apps import apps
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import IntegrityError
+from django.db.models import prefetch_related_objects
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -41,11 +42,27 @@ def progress_edit(request):
         elif operation == "decrease":
             media.decrease_progress()
 
-        response = media.progress_response()
+        if media_type == "season":
+            prefetch_related_objects([media], "episodes")
+            season_numbers = [item.season_number]
+        else:
+            season_numbers = None
+
+        media_metadata = services.get_media_metadata(
+            item.media_type,
+            item.media_id,
+            item.source,
+            season_numbers=season_numbers,
+        )
+        max_progress = media_metadata["max_progress"]
+        media.max_progress = max_progress
+        context = {
+            "media": media,
+        }
         return render(
             request,
             "app/components/progress_changer.html",
-            {"media": response, "media_type": media_type},
+            context,
         )
 
     messages.error(

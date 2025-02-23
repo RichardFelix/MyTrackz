@@ -569,6 +569,7 @@ class Media(CalendarTriggerMixin, models.Model):
         if not self._disable_calendar_triggers and self.status in (
             self.Status.IN_PROGRESS.value,
             self.Status.PLANNING.value,
+            self.Status.REPEATING.value,
         ):
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
@@ -583,22 +584,6 @@ class Media(CalendarTriggerMixin, models.Model):
         self.progress -= 1
         self.save()
         logger.info("Unwatched %s E%s", self, self.progress + 1)
-
-    def progress_response(self):
-        """Return the data needed to update the progress of the media."""
-        media_metadata = services.get_media_metadata(
-            self.item.media_type,
-            self.item.media_id,
-            self.item.source,
-        )
-        response = {"item": self.item}
-        max_progress = media_metadata["max_progress"]
-
-        response["progress"] = self.progress
-        response["max"] = self.progress == max_progress
-        response["min"] = self.progress == 0
-
-        return response
 
 
 class BasicMedia(Media):
@@ -625,6 +610,7 @@ class TV(Media):
                 in (
                     self.Status.IN_PROGRESS.value,
                     self.Status.PLANNING.value,
+                    self.Status.REPEATING.value,
                 )
                 and not self._disable_calendar_triggers
             ):
@@ -776,6 +762,7 @@ class Season(Media):
                 in (
                     self.Status.IN_PROGRESS.value,
                     self.Status.PLANNING.value,
+                    self.Status.REPEATING.value,
                 )
                 and not self._disable_calendar_triggers
             ):
@@ -783,11 +770,6 @@ class Season(Media):
 
     @property
     def progress(self):
-        """Return the total episodes watched for the season."""
-        return self.episodes.count()
-
-    @property
-    def current_episode_number(self):
         """Return the current episode number of the season."""
         # continue initial watch
         if self.status == self.Status.IN_PROGRESS.value:
@@ -847,12 +829,12 @@ class Season(Media):
         )
         episodes = season_metadata["episodes"]
 
-        if self.current_episode_number == 0:
+        if self.progress == 0:
             # start watching from the first episode
             next_episode_number = episodes[0]["episode_number"]
         else:
             next_episode_number = tmdb.find_next_episode(
-                self.current_episode_number,
+                self.progress,
                 episodes,
             )
 
@@ -896,7 +878,7 @@ class Season(Media):
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
-        self.unwatch(self.current_episode_number)
+        self.unwatch(self.progress)
 
     def unwatch(self, episode_number):
         """Unwatch the episode instance."""
@@ -928,29 +910,6 @@ class Season(Media):
                 self,
                 episode_number,
             )
-
-    def progress_response(self):
-        """Return the data needed to update the progress of the season."""
-        media_metadata = services.get_media_metadata(
-            self.item.media_type,
-            self.item.media_id,
-            self.item.source,
-            [self.item.season_number],
-        )
-        response = {
-            "item": self.item,
-            "current_episode_number": self.current_episode_number,
-        }
-
-        if self.current_episode_number == 0:
-            response["max"] = False
-            response["min"] = True
-        else:
-            max_progress = media_metadata["max_progress"]
-            response["max"] = self.current_episode_number == max_progress
-            response["min"] = False
-
-        return response
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""

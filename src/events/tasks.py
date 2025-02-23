@@ -35,6 +35,7 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     # process anime items in bulk
     process_anime_bulk(anime_to_process, events_bulk)
+
     for event in events_bulk:
         Event.objects.update_or_create(
             item=event.item,
@@ -200,9 +201,30 @@ def process_other(item, metadata, events_bulk):
         if date_key in metadata["details"] and metadata["details"][date_key]:
             try:
                 air_date = date_parser(metadata["details"][date_key])
-                events_bulk.append(Event(item=item, date=air_date))
+                if item.media_type == "book" and metadata["details"]["number_of_pages"]:
+                    episode_number = metadata["details"]["number_of_pages"]
+                elif item.media_type == "movie":
+                    episode_number = 1
+                else:
+                    episode_number = None
+
+                events_bulk.append(
+                    Event(item=item, episode_number=episode_number, date=air_date),
+                )
             except ValueError:
                 pass
+    if item.media_type == "manga" and metadata["max_progress"]:
+        if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
+            air_date = date_parser(metadata["details"]["end_date"])
+        else:
+            air_date = date_parser("9999-12-31")
+        events_bulk.append(
+            Event(
+                item=item,
+                episode_number=metadata["max_progress"],
+                date=air_date,
+            ),
+        )
 
 
 def date_parser(date_str):
@@ -242,6 +264,10 @@ def get_user_reloaded(reloaded_events, user):
         id__in=event_item_ids,
     ).values_list("id", "media_type"):
         media_type_groups.setdefault(media_type, set()).add(item_id)
+
+    # Return an empty queryset if media_type_groups is empty
+    if not media_type_groups:
+        return Item.objects.none()
 
     q_filters = Q()
     for media_type, item_ids in media_type_groups.items():

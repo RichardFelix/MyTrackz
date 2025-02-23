@@ -1,41 +1,100 @@
 {% extends "base.html" %}
 {% load static %}
+{% load app_tags %}
 
 {% block title %}
   Home - Yamtrack
 {% endblock title %}
 
-{% block container %}
-  {% for media_type, media_list in list_by_type.items %}
-    <div class="mb-5">
-      <h1 class="fs-4 fw-semibold">{{ media_type|capfirst }} in Progress</h1>
-      <div class="grid">
-        {% for media in media_list %}
-          <div class="card media-card mx-auto">
-            <a href="{{ media.item.url }}">
-              <img class="card-img lazyload {% if media.item.image == IMG_NONE %}image-not-found{% else %}poster{% endif %}"
-                   data-src="{{ media.item.image }}"
-                   src="{{ IMG_NONE }}"
-                   alt="{{ media }}"
-                   data-expand="1000" />
-            </a>
-            <div class="card-img-overlay">
-              <div class="title">{{ media }}</div>
-              <div class="card-text d-flex justify-content-center align-items-center"
-                   id="{{ media_type }}_{{ media.item.media_id }}{% if media.item.season_number != None %}_{{ media.item.season_number }}{% endif %}">
-                {% include "app/components/progress_changer.html" with media_type=media_type media=media csrf_token=csrf_token only %}
+{% block content %}
+  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+    <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
+    <div class="relative">
+      <button class="flex items-center gap-2 px-4 py-2 bg-[#2a2f35] rounded-md hover:bg-[#343a40] transition-colors">
+        <span class="text-sm text-gray-300">Sort:</span><span class="text-sm font-medium">Last Updated</span>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4 text-gray-400">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="space-y-8">
+    {% for media_type, media_list in list_by_type.items %}
+      <div>
+        <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+          {% for media in media_list %}
+            <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+              <div class="relative">
+                <img alt="{{ media }}"
+                     class="lazyload w-full aspect-[2/3] object-cover {% if media.item.image == IMG_NONE %}object-none{% endif %}"
+                     data-src="{{ media.item.image }}"
+                     src="{{ IMG_NONE }}">
+                {% if media.score %}
+                  <div class="absolute top-2 right-2 flex items-center bg-black/80 px-2 py-1 rounded-md">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="24"
+                         height="24"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-4 h-4 text-yellow-400 fill-current">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span class="text-sm ml-1">{{ media.score }}</span>
+                  </div>
+                {% endif %}
+              </div>
+              <div class="p-3 space-y-3">
+                <a href="{{ media.item|media_url }}"
+                   class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center">{{ media }}</a>
+                <div id="progress-changer-{{ media.item.id }}">
+                  {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token only %}
+                </div>
               </div>
             </div>
-          </div>
-        {% endfor %}
+          {% endfor %}
+        </div>
       </div>
-    </div>
-  {% empty %}
-    <div class="no-content">
-      <div>
-        <h1 class="text-center fs-3">You don't have any media in progress.</h1>
-        <p class="text-center">Time to explore new media to enjoy!</p>
+    {% empty %}
+      <div class="flex flex-col items-center justify-center py-32 px-4">
+        <div class="bg-[#2a2f35] rounded-full p-6 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-12 h-12 text-gray-400">
+            <path d="M11 12H3"></path>
+            <path d="M16 6H3"></path>
+            <path d="M16 18H3"></path>
+            <path d="M18 9v6"></path>
+            <path d="M21 12h-6"></path>
+          </svg>
+        </div>
+        <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
+        <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
+        <div class="pt-4">
+          <a href="{% url 'search' %}?q=Breaking+Bad&media_type=tv"
+             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
+        </div>
       </div>
-    </div>
-  {% endfor %}
-{% endblock container %}
+    {% endfor %}
+  </div>
+{% endblock content %}

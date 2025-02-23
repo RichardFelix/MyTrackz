@@ -1,34 +1,63 @@
 {% load app_tags %}
 
-{% comment %} needs media.progress == 0 to not show on first load {% endcomment %}
-<button class="bg-transparent border-0 progress-btn {% if media.min or media.progress == 0 %}invisible{% endif %}"
-        hx-post="{% url 'progress_edit' %}"
-        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-        hx-trigger="click"
-        hx-target="closest .card-text"
-        hx-vals='{"item": {{ media.item.id }}, "operation": "decrease"}'>
-  <i class="bi bi-dash"></i> {% comment %} decrease progress button {% endcomment %}
-</button>
+<div class="flex items-center justify-center space-x-4">
+  <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+          {% if media.progress == 0 %}disabled{% endif %}
+          hx-post="{% url 'progress_edit' %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-vals='{"item": "{{ media.item_id }}", "operation": "decrease"}'
+          hx-swap="innerHTML"
+          hx-target="#progress-changer-{{ media.item_id }}">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="24"
+         height="24"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         class="w-3 h-3">
+      <path d="M5 12h14"></path>
+    </svg>
+  </button>
 
-<div class="text-center">
-  {% if media_type == "game" %}
-    {{ media.progress|format_time }}
-  {% elif media_type == "season" %}
-    Ep. {{ media.current_episode_number }}
-  {% elif media_type == "book" %}
-    P. {{ media.progress }}
-  {% elif media_type == "manga" %}
-    Ch. {{ media.progress }}
-  {% else %}
-    Ep. {{ media.progress }}
-  {% endif %}
+  <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
+    {% if media.item.media_type == "game" %}
+      {{ media.progress|format_time }}
+    {% else %}
+      {{ media.progress }}
+      {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
+      {% if media.item.media_type == "book" %}
+        Pages
+      {% elif media.item.media_type == "manga" %}
+        Chapters
+      {% elif media.item.media_type == "movie" %}
+      {% else %}
+        Episodes
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <button class="p-1 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:hover:bg-gray-700 disabled:cursor-not-allowed"
+          {% if media.progress == media.max_progress %}disabled{% endif %}
+          hx-post="{% url 'progress_edit' %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          hx-vals='{"item": "{{ media.item_id }}", "operation": "increase"}'
+          hx-swap="innerHTML"
+          hx-target="#progress-changer-{{ media.item_id }}">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="24"
+         height="24"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         class="w-3 h-3">
+      <path d="M5 12h14"></path>
+      <path d="M12 5v14"></path>
+    </svg>
+  </button>
 </div>
-
-<button class="bg-transparent border-0 progress-btn {% if media.max %}invisible{% endif %}"
-        hx-post="{% url 'progress_edit' %}"
-        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-        hx-trigger="click"
-        hx-target="closest .card-text"
-        hx-vals='{"item": {{ media.item.id }}, "operation": "increase"}'>
-  <i class="bi bi-plus"></i> {% comment %} increase progress button {% endcomment %}
-</button>

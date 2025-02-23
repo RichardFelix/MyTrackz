@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Count, F
+from django.db.models import Count, F, Max
 from django.db.models.functions import TruncDate
 
 from app.models import Item, Media
@@ -85,6 +85,9 @@ def get_in_progress(user):
                 sort_filter="score",
             )
             if media_list:
+                media_list = media_list.annotate(
+                    max_progress=Max("item__event__episode_number"),
+                )
                 list_by_type[media_type] = media_list
 
     return list_by_type

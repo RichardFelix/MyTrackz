@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Count, Exists, OuterRef, Q, UniqueConstraint
 from django.utils import timezone
 
 from app.models import Item, Media
@@ -26,14 +26,10 @@ class EventManager(models.Manager):
     def get_items_to_process(self):
         """Get items to process for the calendar."""
         statuses_to_track = [
-            choice.value
-            for choice in Media.Status
-            if choice
-            in [
-                Media.Status.IN_PROGRESS,
-                Media.Status.PLANNING,
-                Media.Status.PAUSED,
-            ]
+            Media.Status.IN_PROGRESS.value,
+            Media.Status.PLANNING.value,
+            Media.Status.PAUSED.value,
+            Media.Status.REPEATING.value,
         ]
         media_types_with_status = [
             choice.value
@@ -46,15 +42,21 @@ class EventManager(models.Manager):
 
         items_with_status = Item.objects.filter(query).distinct()
 
-        future_events = Event.objects.filter(date__gte=timezone.now())
-        future_event_item_ids = set(future_events.values_list("item_id", flat=True))
-        items_without_events = items_with_status.exclude(
-            id__in=Event.objects.values_list("item_id", flat=True),
+        # Subquery to check if an item has any future events
+        future_events = Event.objects.filter(
+            item=OuterRef("pk"),
+            date__gte=timezone.now(),
         )
 
-        # Combine items with future events and items without any events
-        return items_with_status.filter(
-            Q(id__in=future_event_item_ids) | Q(id__in=items_without_events),
+        # manga with less than two events means we don't have total chapters count
+        return (
+            items_with_status.annotate(event_count=Count("event"))
+            .filter(
+                Q(Exists(future_events))  # has future events
+                | Q(event__isnull=True)  # no events
+                | (Q(media_type=Item.MediaTypes.MANGA) & Q(event_count__lt=2)),
+            )
+            .distinct()
         )
 
 
@@ -86,6 +88,8 @@ class Event(models.Model):
         """Return event title."""
         if self.item.media_type == "season":
             return f"{self.item.__str__()}E{self.episode_number}"
-        if self.episode_number:
+        if self.item.media_type == "manga":
+            return f"{self.item.__str__()} - Ch. {self.episode}"
+        if self.item.media_type == "anime":
             return f"{self.item.__str__()} - Ep. {self.episode_number}"
         return self.item.__str__()

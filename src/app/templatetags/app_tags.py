@@ -91,26 +91,37 @@ def media_color(media_type):
     return models.Item.Colors[media_type.upper()].value
 
 
-@register.filter()
+@register.filter
 def media_url(media):
-    """Return the media URL."""
-    if media["media_type"] in ["season", "episode"]:
+    """Return the media URL for both metadata and model object cases."""
+    # Check if media is metadata or model instance
+    is_dict = isinstance(media, dict)
+
+    # Get attributes using either dict access or object attribute
+    media_type = media["media_type"] if is_dict else media.media_type
+    source = media["source"] if is_dict else media.source
+    media_id = media["media_id"] if is_dict else media.media_id
+    title = media["title"] if is_dict else media.title
+
+    if media_type in ["season", "episode"]:
+        season_number = media["season_number"] if is_dict else media.season_number
         return reverse(
             "season_details",
             kwargs={
-                "source": media["source"],
-                "media_id": media["media_id"],
-                "title": slug(media["title"]),
-                "season_number": media["season_number"],
+                "source": source,
+                "media_id": media_id,
+                "title": slug(title),
+                "season_number": season_number,
             },
         )
+
     return reverse(
         "media_details",
         kwargs={
-            "source": media["source"],
-            "media_type": media["media_type"],
-            "media_id": media["media_id"],
-            "title": slug(media["title"]),
+            "source": source,
+            "media_type": media_type,
+            "media_id": media_id,
+            "title": slug(title),
         },
     )
 
@@ -135,16 +146,16 @@ def percentage_ratio(value, total):
 
 
 @register.simple_tag
-def modal_id(modal_type, media):
-    """Return the modal ID."""
-    modal_id = f"{modal_type}-{media['media_type']}-{media['media_id']}"
+def component_id(component_type, media):
+    """Return the component ID."""
+    component_id = f"{component_type}-{media['media_type']}-{media['media_id']}"
 
     if "season_number" in media:
-        modal_id += f"-{media['season_number']}"
+        component_id += f"-{media['season_number']}"
     if "episode_number" in media:
-        modal_id += f"-{media['episode_number']}"
+        component_id += f"-{media['episode_number']}"
 
-    return modal_id
+    return component_id
 
 
 @register.simple_tag
