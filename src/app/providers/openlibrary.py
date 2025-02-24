@@ -180,13 +180,21 @@ def get_publish_date(response):
     """Get the first publication date."""
     if "publish_date" in response:
         publish_date = response["publish_date"].removeprefix("cop. ")
-        try:
-            parsed_date = datetime.strptime(publish_date, "%b %d, %Y").replace(
-                tzinfo=ZoneInfo("UTC"),
-            )
-            return parsed_date.strftime("%Y-%m-%d")
-        except ValueError:
-            return publish_date
+
+        date_formats = [
+            "%B %d, %Y",  # January 19, 2001
+            "%d %B %Y",  # 18 March 2025
+        ]
+        for date_format in date_formats:
+            try:
+                parsed_date = datetime.strptime(publish_date, date_format).replace(
+                    tzinfo=ZoneInfo("UTC"),
+                )
+                return parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        # If no format matches, return the original string
+        return publish_date
     return None
 
 
