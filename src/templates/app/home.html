@@ -78,8 +78,11 @@
                      class="lazyload w-full aspect-[2/3] object-cover {% if media.item.image == IMG_NONE %}object-none{% endif %}"
                      data-src="{{ media.item.image }}"
                      src="{{ IMG_NONE }}">
+
+                <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
+
                 {% if media.next_episode_date %}
-                  <div class="z-10 absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2.5 py-1.5 rounded-md shadow-md whitespace-nowrap">
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2.5 py-1.5 rounded-md shadow-md whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          width="24"
                          height="24"
@@ -97,8 +100,6 @@
                     {{ media.next_episode_date|naturalday }}</span>
                   </div>
                 {% endif %}
-
-                <a href="{{ media.item|media_url }}" class="absolute inset-0 z-0"></a>
               </div>
               <div class="p-3 space-y-3">
                 <a href="{{ media.item|media_url }}"
