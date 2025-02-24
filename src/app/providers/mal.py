@@ -265,25 +265,37 @@ def get_season(response):
 
 def get_broadcast(response):
     """Return the broadcast day and time for the media."""
+    start_date = response.get("start_date")
+    if not start_date:
+        return None
+
     # when unknown broadcast, value is not present in the response
     # e.g anime: 38869
     broadcast = response.get("broadcast")
-    start_date = response.get("start_date")
+    if not broadcast:
+        return None
 
     # when unknown start time, value is not present in the broadcast dict
     start_time = broadcast.get("start_time") if broadcast else None
+    if not start_time:
+        return None
 
-    if broadcast and start_date and start_time:
-        # convert japan timezone to timezone from settings
-        japan_timezone = ZoneInfo("Asia/Tokyo")
-        broadcast_time_japan = datetime.strptime(
-            f"{start_date} {start_time}",
-            "%Y-%m-%d %H:%M",
-        ).replace(tzinfo=japan_timezone)
+    japan_timezone = ZoneInfo("Asia/Tokyo")
+    # Try parsing with different date formats
+    try:
+        date_obj = datetime.strptime(start_date, "%Y-%m-%d").replace(
+            tzinfo=japan_timezone,
+        )
+    except ValueError:
+        date_obj = datetime.strptime(start_date, "%Y-%m").replace(tzinfo=japan_timezone)
 
-        broadcast_time_local = broadcast_time_japan.astimezone(settings.TZ)
-        return broadcast_time_local.strftime("%A %H:%M")
-    return None
+    broadcast_time_japan = datetime.strptime(
+        f"{date_obj.strftime('%Y-%m-%d')} {start_time}",
+        "%Y-%m-%d %H:%M",
+    ).replace(tzinfo=japan_timezone)
+
+    broadcast_time_local = broadcast_time_japan.astimezone(settings.TZ)
+    return broadcast_time_local.strftime("%A %H:%M")
 
 
 def get_source(response):
