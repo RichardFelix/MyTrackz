@@ -28,8 +28,10 @@
     {% endif %}
 
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center space-x-2 opacity-0 hover-tap:opacity-100">
+      <a href="{{ media|media_url }}" class="absolute inset-0 z-0"></a>
+
       {# Track Button #}
-      <button class="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-300 cursor-pointer"
+      <button class="relative z-10 p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-300 cursor-pointer"
               hx-get="{% modal_url 'track' media %}"
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
               hx-target="#{% component_id 'track' media %}"
@@ -50,7 +52,7 @@
       </button>
 
       {# Lists Button #}
-      <button class="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition duration-300 cursor-pointer"
+      <button class="relative z-10 p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition duration-300 cursor-pointer"
               hx-get="{% modal_url 'lists' media %}"
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
               hx-target="#{% component_id 'lists' media %}"
@@ -74,7 +76,7 @@
       </button>
 
       {# History Button #}
-      <button class="p-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition duration-300 cursor-pointer"
+      <button class="relative z-10 p-2 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition duration-300 cursor-pointer"
               hx-get="{% modal_url 'history' media %}"
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
               hx-target="#{% component_id 'history' media %}"
