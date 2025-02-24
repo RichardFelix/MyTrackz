@@ -3,8 +3,9 @@ from datetime import timedelta
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Count, F, Max
+from django.db.models import Count, F, Max, Min, Q
 from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 from app.models import Item, Media
 
@@ -70,6 +71,7 @@ def get_historical_models():
 
 def get_in_progress(user):
     """Get a media list of in progress media by type."""
+    today = timezone.now().date()
     list_by_type = {}
 
     for media_type in Item.MediaTypes.values:
@@ -84,9 +86,17 @@ def get_in_progress(user):
                 ],
                 sort_filter="score",
             )
-            if media_list:
+            if media_list.exists():
                 media_list = media_list.annotate(
                     max_progress=Max("item__event__episode_number"),
+                    next_episode_number=Min(
+                        "item__event__episode_number",
+                        filter=Q(item__event__date__gt=today),
+                    ),
+                    next_episode_date=Min(
+                        "item__event__date",
+                        filter=Q(item__event__date__gt=today),
+                    ),
                 )
                 list_by_type[media_type] = media_list
 

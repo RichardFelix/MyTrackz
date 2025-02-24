@@ -39,8 +39,8 @@
                      class="lazyload w-full aspect-[2/3] object-cover {% if media.item.image == IMG_NONE %}object-none{% endif %}"
                      data-src="{{ media.item.image }}"
                      src="{{ IMG_NONE }}">
-                {% if media.score %}
-                  <div class="absolute top-2 right-2 flex items-center bg-black/80 px-2 py-1 rounded-md">
+                {% if media.next_episode_date %}
+                  <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2.5 py-1.5 rounded-md shadow-md whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          width="24"
                          height="24"
@@ -50,10 +50,12 @@
                          stroke-width="2"
                          stroke-linecap="round"
                          stroke-linejoin="round"
-                         class="w-4 h-4 text-yellow-400 fill-current">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                         class="lucide lucide-clock w-3.5 h-3.5 text-indigo-400">
+                      <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span class="text-sm ml-1">{{ media.score }}</span>
+                    <span class="text-xs font-medium text-white drop-shadow-sm">
+                      {% if media.next_episode_number %}Ep. {{ media.next_episode_number }} •{% endif %}
+                    {{ media.next_episode_date|naturalday }}</span>
                   </div>
                 {% endif %}
               </div>

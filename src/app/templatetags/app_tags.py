@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django import template
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
@@ -92,9 +93,44 @@ def media_color(media_type):
 
 
 @register.filter
+def percentage_ratio(value, total):
+    """Calculate percentage, showing one decimal place for values between 0 and 1."""
+    try:
+        if total == 0:
+            return "0"
+
+        result = (Decimal(value) / Decimal(total)) * 100
+
+        # If result is between 0 and 1, show one decimal
+        if 0 < result < 1:
+            return f"{result:.1f}"
+
+        # For all other values, show as integer
+        return str(int(round(result)))
+    except (TypeError, ValueError):
+        return "0"
+
+
+@register.filter
+def naturalday(value):
+    """Return the natural day for the date."""
+    today = timezone.now().date()
+    diff = value - today
+    days = diff.days
+    days_threshold = 5
+
+    if days == 0:
+        return "Today"
+    if days == 1:
+        return "Tomorrow"
+    if days > 1 and days <= days_threshold:
+        return f"In {days} days"
+    return value.strftime("%b %d, %Y")
+
+
+@register.filter
 def media_url(media):
     """Return the media URL for both metadata and model object cases."""
-    # Check if media is metadata or model instance
     is_dict = isinstance(media, dict)
 
     # Get attributes using either dict access or object attribute
@@ -126,52 +162,55 @@ def media_url(media):
     )
 
 
-@register.filter
-def percentage_ratio(value, total):
-    """Calculate percentage, showing one decimal place for values between 0 and 1."""
-    try:
-        if total == 0:
-            return "0"
-
-        result = (Decimal(value) / Decimal(total)) * 100
-
-        # If result is between 0 and 1, show one decimal
-        if 0 < result < 1:
-            return f"{result:.1f}"
-
-        # For all other values, show as integer
-        return str(int(round(result)))
-    except (TypeError, ValueError):
-        return "0"
-
-
 @register.simple_tag
 def component_id(component_type, media):
-    """Return the component ID."""
-    component_id = f"{component_type}-{media['media_type']}-{media['media_id']}"
+    """Return the component ID for both metadata and model object cases."""
+    is_dict = isinstance(media, dict)
 
-    if "season_number" in media:
-        component_id += f"-{media['season_number']}"
-    if "episode_number" in media:
-        component_id += f"-{media['episode_number']}"
+    # Get base attributes using either dict access or object attribute
+    media_type = media["media_type"] if is_dict else media.media_type
+    media_id = media["media_id"] if is_dict else media.media_id
+
+    component_id = f"{component_type}-{media_type}-{media_id}"
+
+    # Handle season/episode numbers if they exist
+    if is_dict:
+        if "season_number" in media:
+            component_id += f"-{media['season_number']}"
+        if "episode_number" in media:
+            component_id += f"-{media['episode_number']}"
+    else:
+        if media.season_number is not None:
+            component_id += f"-{media.season_number}"
+        if media.episode_number is not None:
+            component_id += f"-{media.episode_number}"
 
     return component_id
 
 
 @register.simple_tag
 def modal_url(modal_type, media):
-    """Return the modal URL."""
+    """Return the modal URL for both metadata and model object cases."""
+    is_dict = isinstance(media, dict)
+
+    # Build kwargs using either dict access or object attribute
     kwargs = {
-        "source": media["source"],
-        "media_type": media["media_type"],
-        "media_id": media["media_id"],
+        "source": media["source"] if is_dict else media.source,
+        "media_type": media["media_type"] if is_dict else media.media_type,
+        "media_id": media["media_id"] if is_dict else media.media_id,
     }
 
-    if "season_number" in media:
-        kwargs["season_number"] = media["season_number"]
-
-    if "episode_number" in media:
-        kwargs["episode_number"] = media["episode_number"]
+    # Handle season/episode numbers if they exist
+    if is_dict:
+        if "season_number" in media:
+            kwargs["season_number"] = media["season_number"]
+        if "episode_number" in media:
+            kwargs["episode_number"] = media["episode_number"]
+    else:
+        if media.season_number is not None:
+            kwargs["season_number"] = media.season_number
+        if media.episode_number is not None:
+            kwargs["episode_number"] = media.episode_number
 
     return reverse(f"{modal_type}_modal", kwargs=kwargs)
 

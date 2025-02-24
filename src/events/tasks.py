@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import requests
@@ -79,9 +79,7 @@ def process_item(item, events_bulk):
     except requests.exceptions.HTTPError as err:
         # happens for niche media in which the mappings during import are incorrect
         if err.response.status_code == requests.codes.not_found:
-            msg = f"{item} ({item.media_id}) not found on {item.source}. Deleting it."
-            logger.warning(msg)
-            item.delete()
+            pass
         else:
             raise
 
@@ -207,17 +205,18 @@ def process_other(item, metadata, events_bulk):
                     episode_number = 1
                 else:
                     episode_number = None
-
                 events_bulk.append(
                     Event(item=item, episode_number=episode_number, date=air_date),
                 )
             except ValueError:
                 pass
     if item.media_type == "manga" and metadata["max_progress"]:
+        # MyAnimeList manga has an end date when it's completed
         if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
             air_date = date_parser(metadata["details"]["end_date"])
+        # MangaUpdates doesn't have an end date, so use a placeholder
         else:
-            air_date = date_parser("9999-12-31")
+            air_date = date.min
         events_bulk.append(
             Event(
                 item=item,
