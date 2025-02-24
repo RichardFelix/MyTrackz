@@ -9,9 +9,22 @@
 {% block content %}
   <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
     <h1 class="text-3xl font-bold text-center w-full sm:w-auto">In Progress</h1>
-    <div class="relative">
-      <button class="flex items-center gap-2 px-4 py-2 bg-[#2a2f35] rounded-md hover:bg-[#343a40] transition-colors">
-        <span class="text-sm text-gray-300">Sort:</span><span class="text-sm font-medium">Last Updated</span>
+    <div class="relative" x-data="{ open: false }">
+      <button @click="open = !open"
+              @click.outside="open = false"
+              class="flex items-center gap-2 px-4 py-2 bg-[#2a2f35] rounded-md hover:bg-[#343a40] transition-colors cursor-pointer">
+        <span class="text-sm text-gray-300">Sort:</span>
+        <span class="text-sm font-medium">
+          {% if current_sort == 'upcoming' %}
+            Upcoming
+          {% elif current_sort == 'completion' %}
+            Completion %
+          {% elif current_sort == 'episodes_left' %}
+            Episodes Left
+          {% else %}
+            Title
+          {% endif %}
+        </span>
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -21,10 +34,36 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-4 h-4 text-gray-400">
+             class="w-4 h-4 text-gray-400"
+             :class="{ 'transform rotate-180': open }">
           <path d="m6 9 6 6 6-6"></path>
         </svg>
       </button>
+      <div x-show="open"
+           x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="transform opacity-0 scale-95"
+           x-transition:enter-end="transform opacity-100 scale-100"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="transform opacity-100 scale-100"
+           x-transition:leave-end="transform opacity-0 scale-95"
+           class="absolute right-0 mt-2 py-1 w-48 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
+        <a href="{% url 'home' %}?sort=upcoming"
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'upcoming' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+          Upcoming
+        </a>
+        <a href="{% url 'home' %}?sort=completion"
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'completion' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+          Completion %
+        </a>
+        <a href="{% url 'home' %}?sort=episodes_left"
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'episodes_left' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+          Episodes Left
+        </a>
+        <a href="{% url 'home' %}?sort=title"
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'title' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+          Title
+        </a>
+      </div>
     </div>
   </div>
   <div class="space-y-8">
@@ -50,7 +89,7 @@
                          stroke-width="2"
                          stroke-linecap="round"
                          stroke-linejoin="round"
-                         class="lucide lucide-clock w-3.5 h-3.5 text-indigo-400">
+                         class="w-3.5 h-3.5 text-indigo-400">
                       <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     <span class="text-xs font-medium text-white drop-shadow-sm">

@@ -3,8 +3,8 @@ from datetime import timedelta
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Count, F, Max, Min, Q
-from django.db.models.functions import TruncDate
+from django.db.models import Case, Count, F, FloatField, IntegerField, Max, Min, Q, When
+from django.db.models.functions import Cast, TruncDate
 from django.utils import timezone
 
 from app.models import Item, Media
@@ -69,7 +69,7 @@ def get_historical_models():
     return [f"historical{media_type}" for media_type in media_types]
 
 
-def get_in_progress(user):
+def get_in_progress(user, sort_by):
     """Get a media list of in progress media by type."""
     today = timezone.now().date()
     list_by_type = {}
@@ -86,7 +86,9 @@ def get_in_progress(user):
                 ],
                 sort_filter="score",
             )
+
             if media_list.exists():
+                # Add common annotations
                 media_list = media_list.annotate(
                     max_progress=Max("item__event__episode_number"),
                     next_episode_number=Min(
@@ -98,6 +100,88 @@ def get_in_progress(user):
                         filter=Q(item__event__date__gt=today),
                     ),
                 )
+
+                # Handle sorting based on model type
+                if sort_by == "upcoming":
+                    media_list = media_list.order_by(
+                        Case(
+                            When(next_episode_date__isnull=True, then=1),
+                            default=0,
+                        ),
+                        "next_episode_date",
+                        "item__title",
+                    )
+                elif sort_by == "title":
+                    media_list = media_list.order_by("item__title")
+                elif sort_by in ["completion", "episodes_left"]:
+                    # For Season, we need to evaluate the queryset and sort in Python
+                    if media_type == "season":
+                        media_list = list(media_list)
+                        if sort_by == "completion":
+                            media_list.sort(
+                                key=lambda x: (
+                                    x.max_progress is not None,
+                                    (
+                                        x.progress / x.max_progress * 100
+                                        if x.max_progress
+                                        else 0
+                                    ),
+                                    x.item.title,
+                                ),
+                                reverse=True,
+                            )
+                        else:  # episodes_left
+                            media_list.sort(
+                                key=lambda x: (
+                                    x.max_progress is not None,
+                                    (
+                                        x.max_progress - x.progress
+                                        if x.max_progress
+                                        else 0
+                                    ),
+                                    x.item.title,
+                                ),
+                            )
+                    else:
+                        # For other media types, use database annotations
+                        media_list = media_list.annotate(
+                            completion_rate=Case(
+                                When(
+                                    max_progress__isnull=False,
+                                    then=(Cast("progress", FloatField()) * 100.0)
+                                    / Cast("max_progress", FloatField()),
+                                ),
+                                default=0.0,
+                                output_field=FloatField(),
+                            ),
+                            episodes_remaining=Case(
+                                When(
+                                    max_progress__isnull=False,
+                                    then=F("max_progress") - F("progress"),
+                                ),
+                                default=0,
+                                output_field=IntegerField(),
+                            ),
+                        )
+                        if sort_by == "completion":
+                            media_list = media_list.order_by(
+                                Case(
+                                    When(max_progress__isnull=True, then=0),
+                                    default=1,
+                                ),
+                                "-completion_rate",
+                                "item__title",
+                            )
+                        else:  # episodes_left
+                            media_list = media_list.order_by(
+                                Case(
+                                    When(max_progress__isnull=True, then=1),
+                                    default=0,
+                                ),
+                                "episodes_remaining",
+                                "item__title",
+                            )
+
                 list_by_type[media_type] = media_list
 
     return list_by_type
