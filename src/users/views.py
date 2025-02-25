@@ -11,7 +11,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
-import app
 from users import helpers
 from users.forms import (
     PasswordChangeForm,
@@ -70,13 +69,8 @@ class CustomLoginView(LoginView):
 
 
 @require_http_methods(["GET", "POST"])
-def profile(request):
-    """Update the user's profile and import/export data."""
-    user_form = UserUpdateForm(instance=request.user)
-    password_form = PasswordChangeForm(request.user)
-    media_types = app.models.Item.MediaTypes.values
-    media_types.remove("episode")
-
+def account(request):
+    """Update the user's account and import/export data."""
     if request.method == "POST":
         if "username" in request.POST:
             user_form = UserUpdateForm(request.POST, instance=request.user)
@@ -91,8 +85,11 @@ def profile(request):
                     request.user.username,
                     user_form.errors.as_json(),
                 )
+                for errors in user_form.errors.values():
+                    for error in errors:
+                        messages.error(request, error)
 
-        elif "new_password1" in request.POST:
+        elif "old_password" in request.POST:
             password_form = PasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
                 password = password_form.save()
@@ -108,29 +105,13 @@ def profile(request):
                     request.user.username,
                     password_form.errors.as_json(),
                 )
-        elif "media_types_checkboxes" in request.POST:
-            request.user.hide_from_search = "hide_disabled" in request.POST
+                for errors in password_form.errors.values():
+                    for error in errors:
+                        messages.error(request, error)
 
-            media_types_checked = request.POST.getlist("media_types_checkboxes")
-            for media_type in media_types:
-                if media_type in media_types_checked:
-                    setattr(request.user, f"{media_type}_enabled", True)
-                else:
-                    setattr(request.user, f"{media_type}_enabled", False)
-            request.user.save()
+        return redirect("account")
 
-        else:
-            messages.error(request, "There was an error with your request")
-
-    import_tasks = request.user.get_import_tasks()
-    context = {
-        "user_form": user_form,
-        "password_form": password_form,
-        "media_types": media_types,
-        "import_tasks": import_tasks,
-    }
-
-    return render(request, "users/profile.html", context)
+    return render(request, "users/account.html")
 
 
 @require_POST

@@ -1,5 +1,3 @@
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
 from django import forms
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -27,18 +25,6 @@ class UserLoginForm(AuthenticationForm):
         widget=forms.PasswordInput(),
     )
 
-    def __init__(self, *args, **kwargs):
-        """Add crispy form helper to add submit button."""
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.add_input(
-            Submit(
-                "submit",
-                "Log In",
-                css_class="btn btn-primary w-100 mt-3",
-            ),
-        )
-
 
 class UserRegisterForm(UserCreationForm):
     """Override the default registration form."""
@@ -65,17 +51,6 @@ class UserRegisterForm(UserCreationForm):
         model = User
         fields = ["username", "password1", "password2"]
 
-    def __init__(self, *args, **kwargs):
-        """Add crispy form helper to add submit button."""
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.add_input(
-            Submit(
-                "submit",
-                "Sign Up",
-                css_class="btn btn-primary w-100 mt-3",
-            ),
-        )
 
 
 class UserUpdateForm(forms.ModelForm):
@@ -92,14 +67,6 @@ class UserUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.add_input(
-            Submit(
-                "submit",
-                "Update",
-                css_class="btn btn-secondary",
-            ),
-        )
         self.fields["username"].help_text = None
 
     class Meta:
@@ -124,12 +91,4 @@ class PasswordChangeForm(PasswordChangeForm):
         """Remove autofocus from password change form."""
         super().__init__(*args, **kwargs)
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
-        self.helper = FormHelper()
-        self.helper.add_input(
-            Submit(
-                "submit",
-                "Update",
-                css_class="btn btn-secondary",
-            ),
-        )
         self.fields["new_password1"].help_text = None

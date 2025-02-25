@@ -75,7 +75,7 @@
                 </a>
               </li>
 
-              {% if request.user.tv_enabled %}
+              {% if user.tv_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='tv' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'tv' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -85,7 +85,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.season_enabled %}
+              {% if user.season_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='season' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'season' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -95,7 +95,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.movie_enabled %}
+              {% if user.movie_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='movie' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'movie' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -105,7 +105,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.anime_enabled %}
+              {% if user.anime_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='anime' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'anime' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -115,7 +115,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.manga_enabled %}
+              {% if user.manga_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='manga' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'manga' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -125,7 +125,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.game_enabled %}
+              {% if user.game_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='game' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'game' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -135,7 +135,7 @@
                 </li>
               {% endif %}
 
-              {% if request.user.book_enabled %}
+              {% if user.book_enabled %}
                 <li>
                   <a href="{% url 'medialist' media_type='book' %}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'book' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
@@ -186,12 +186,11 @@
               </ul>
             </div>
           </nav>
-
           <div class="absolute bottom-4 left-4 right-4">
-            {% url 'profile' as profile_url %}
-            <a href="{{ profile_url }}"
-               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == profile_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-              {% icon 'profile' is_active=request.path|str_equals:profile_url %}
+            {% url 'account' as account_url %}
+            <a href="{{ account_url }}"
+               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+              {% icon 'profile' is_active=request.path|str_equals:account_url %}
               <span>Profile</span>
             </a>
 
@@ -260,11 +259,12 @@
                     ], getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
                       <div class="relative flex-grow">
+                        {# Search input #}
                         <input type="search"
                                name="q"
                                value="{{ request.GET.q }}"
                                :placeholder="getPlaceholder()"
-                               class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#23272b] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] placeholder-gray-500">
+                               class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
                         <button type="submit"
                                 class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg"
@@ -282,11 +282,14 @@
                           </svg>
                         </button>
                       </div>
+
                       <input type="hidden" name="media_type" :value="selectedType.value">
+
+                      {# Media type dropdown #}
                       <button type="button"
                               @click="isOpen = !isOpen"
                               @click.away="isOpen = false"
-                              class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#23272b] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
+                              class="flex items-center justify-between w-32 px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
                         <span x-text="selectedType.display"></span>
                         <svg class="w-4 h-4 ml-2"
                              fill="none"
