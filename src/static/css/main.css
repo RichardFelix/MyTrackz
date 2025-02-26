@@ -1016,6 +1016,9 @@
   .appearance-none {
     appearance: none;
   }
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1207,6 +1210,10 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 1px;
   }
+  .border-l-2 {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 2px;
+  }
   .border-\[\#2c3136\] {
     border-color: #2c3136;
   }
@@ -1218,6 +1225,15 @@
   }
   .border-gray-700 {
     border-color: var(--color-gray-700);
+  }
+  .border-indigo-500 {
+    border-color: var(--color-indigo-500);
+  }
+  .border-indigo-600 {
+    border-color: var(--color-indigo-600);
+  }
+  .border-transparent {
+    border-color: transparent;
   }
   .bg-\[\#1a1d20\] {
     background-color: #1a1d20;
@@ -1261,6 +1277,12 @@
   .bg-black\/80 {
     background-color: color-mix(in oklab, var(--color-black) 80%, transparent);
   }
+  .bg-blue-400\/10 {
+    background-color: color-mix(in oklab, var(--color-blue-400) 10%, transparent);
+  }
+  .bg-emerald-400\/10 {
+    background-color: color-mix(in oklab, var(--color-emerald-400) 10%, transparent);
+  }
   .bg-emerald-600 {
     background-color: var(--color-emerald-600);
   }
@@ -1285,11 +1307,17 @@
   .bg-indigo-600 {
     background-color: var(--color-indigo-600);
   }
+  .bg-red-400\/10 {
+    background-color: color-mix(in oklab, var(--color-red-400) 10%, transparent);
+  }
   .bg-red-700 {
     background-color: var(--color-red-700);
   }
   .bg-violet-600 {
     background-color: var(--color-violet-600);
+  }
+  .bg-yellow-400\/10 {
+    background-color: color-mix(in oklab, var(--color-yellow-400) 10%, transparent);
   }
   .fill-current {
     fill: currentColor;
@@ -1463,11 +1491,17 @@
   .text-amber-400 {
     color: var(--color-amber-400);
   }
+  .text-blue-400 {
+    color: var(--color-blue-400);
+  }
   .text-current {
     color: currentColor;
   }
   .text-emerald-300 {
     color: var(--color-emerald-300);
+  }
+  .text-emerald-400 {
+    color: var(--color-emerald-400);
   }
   .text-gray-100 {
     color: var(--color-gray-100);
@@ -1489,6 +1523,9 @@
   }
   .text-red-300 {
     color: var(--color-red-300);
+  }
+  .text-red-400 {
+    color: var(--color-red-400);
   }
   .text-white {
     color: var(--color-white);
@@ -1714,6 +1751,21 @@
       margin-bottom: calc(var(--spacing) * 0);
     }
   }
+  .hover\:border-l-2 {
+    &:hover {
+      @media (hover: hover) {
+        border-left-style: var(--tw-border-style);
+        border-left-width: 2px;
+      }
+    }
+  }
+  .hover\:border-indigo-400\/50 {
+    &:hover {
+      @media (hover: hover) {
+        border-color: color-mix(in oklab, var(--color-indigo-400) 50%, transparent);
+      }
+    }
+  }
   .hover\:bg-\[\#23272b\] {
     &:hover {
       @media (hover: hover) {
@@ -1732,6 +1784,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: #343a40;
+      }
+    }
+  }
+  .hover\:bg-\[\#313842\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: #313842;
       }
     }
   }
@@ -1979,6 +2038,11 @@
       translate: var(--tw-translate-x) var(--tw-translate-y);
     }
   }
+  .md\:grid-cols-2 {
+    @media (width >= 48rem) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
   .md\:grid-cols-3 {
     @media (width >= 48rem) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2048,6 +2112,16 @@
   .\[\&\:\:-webkit-outer-spin-button\]\:appearance-none {
     &::-webkit-outer-spin-button {
       appearance: none;
+    }
+  }
+  .\[\&amp\;\>option\]\:bg-\[\#39404b\] {
+    &amp;>option {
+      background-color: #39404b;
+    }
+  }
+  .\[\&amp\;\>option\:hover\]\:bg-\[\#313842\] {
+    &amp;>option:hover {
+      background-color: #313842;
     }
   }
 }
