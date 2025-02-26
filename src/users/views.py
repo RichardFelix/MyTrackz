@@ -8,7 +8,7 @@ from django.contrib.auth.views import LoginView
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
 from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
 import app
@@ -138,6 +138,12 @@ def sidebar(request):
     return render(request, "users/sidebar.html", {"media_types": media_types})
 
 
+@require_GET
+def integrations(request):
+    """Render the integrations settings page."""
+    return render(request, "users/integrations.html")
+
+
 @require_POST
 def delete_import_schedule(request):
     """Delete an import schedule."""
@@ -161,7 +167,8 @@ def regenerate_token(request):
         try:
             request.user.token = secrets.token_urlsafe(24)
             request.user.save(update_fields=["token"])
+            messages.success(request, "Token regenerated successfully.")
             break
         except IntegrityError:
             continue
-    return redirect("profile")
+    return redirect("integrations")

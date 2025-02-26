@@ -49,7 +49,9 @@
               </svg>
               <span>Sidebar</span>
             </a>
-            <a class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left cursor-pointer text-sm text-gray-400 hover:bg-[#343a40] hover:text-white">
+
+            {% url 'integrations' as integrations_url %}
+            <a href="{{ integrations_url }}" class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left cursor-pointer text-sm {% if request.path == integrations_url %}bg-[#39404b] text-white{% else %}text-gray-400 hover:bg-[#343a40] hover:text-white{% endif %}">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -66,6 +68,8 @@
               </svg>
               <span>Integrations</span>
             </a>
+
+            
             <a class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left cursor-pointer text-sm text-gray-400 hover:bg-[#343a40] hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
