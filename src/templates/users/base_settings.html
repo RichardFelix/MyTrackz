@@ -12,7 +12,7 @@
         <div class="bg-[#2a2f35] rounded-lg overflow-hidden sticky top-20">
           <nav class="p-2">
             {% url 'account' as account_url %}
-            <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer {% if request.path == account_url %}bg-[#39404b] text-white{% else %}text-gray-400 hover:bg-[#343a40] hover:text-white{% endif %}">
+            <a href="{{ account_url }}" class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer {% if request.path == account_url %}bg-[#39404b] text-white{% else %}text-gray-400 hover:bg-[#343a40] hover:text-white{% endif %}">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -27,8 +27,10 @@
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
               <span>Account</span>
-            </button>
-            <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer text-gray-400 hover:bg-[#343a40] hover:text-white">
+            </a>
+
+            {% url 'sidebar' as sidebar_url %}
+            <a href="{{ sidebar_url }}" class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer {% if request.path == sidebar_url %}bg-[#39404b] text-white{% else %}text-gray-400 hover:bg-[#343a40] hover:text-white{% endif %}">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -46,8 +48,8 @@
                 <path d="M9 9v1" />
               </svg>
               <span>Sidebar</span>
-            </button>
-            <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer text-gray-400 hover:bg-[#343a40] hover:text-white">
+            </a>
+            <a class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer text-gray-400 hover:bg-[#343a40] hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -63,8 +65,8 @@
                 <path d="M3 12A9 3 0 0 0 21 12"></path>
               </svg>
               <span>Integrations</span>
-            </button>
-            <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer text-gray-400 hover:bg-[#343a40] hover:text-white">
+            </a>
+            <a class="w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors text-left cursor-pointer text-gray-400 hover:bg-[#343a40] hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -81,7 +83,7 @@
                 <path d="m9 15 3 3 3-3"></path>
               </svg>
               <span>Import/Export</span>
-            </button>
+            </a>
           </nav>
         </div>
       </div>

@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
+import app
 from users import helpers
 from users.forms import (
     PasswordChangeForm,
@@ -112,6 +113,29 @@ def account(request):
         return redirect("account")
 
     return render(request, "users/account.html")
+
+
+@require_http_methods(["GET", "POST"])
+def sidebar(request):
+    """Render the sidebar settings page."""
+    media_types = app.models.Item.MediaTypes.values
+    media_types.remove("episode")
+
+    if request.method == "POST":
+        request.user.hide_from_search = "hide_disabled" in request.POST
+        media_types_checked = request.POST.getlist("media_types_checkboxes")
+
+        for media_type in media_types:
+            setattr(
+                request.user,
+                f"{media_type}_enabled",
+                media_type in media_types_checked,
+            )
+        request.user.save()
+
+        messages.success(request, "Settings updated.")
+        return redirect("sidebar")
+    return render(request, "users/sidebar.html", {"media_types": media_types})
 
 
 @require_POST

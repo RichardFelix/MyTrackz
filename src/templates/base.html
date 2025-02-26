@@ -157,11 +157,11 @@
                   </a>
                 </li>
 
-                {% url 'statistics' as statistics %}
+                {% url 'statistics' as statistics_url %}
                 <li>
-                  <a href="{{ statistics }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'statistics' is_active=request.path|str_equals:statistics %}
+                  <a href="{{ statistics_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'statistics' is_active=request.path|str_equals:statistics_url %}
                     <span>Statistics</span>
                   </a>
                 </li>
@@ -188,10 +188,15 @@
           </nav>
           <div class="absolute bottom-4 left-4 right-4">
             {% url 'account' as account_url %}
+            {% url 'sidebar' as sidebar_url %}
             <a href="{{ account_url }}"
-               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-              {% icon 'profile' is_active=request.path|str_equals:account_url %}
-              <span>Profile</span>
+               class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == sidebar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+              {% if request.path == account_url or request.path == sidebar_url %}
+                {% icon 'settings' is_active=True %}
+              {% else %}
+                {% icon 'settings' is_active=False %}
+              {% endif %}
+              <span>Settings</span>
             </a>
 
             <form method="post" action="{% url 'logout' %}" class="w-full">
