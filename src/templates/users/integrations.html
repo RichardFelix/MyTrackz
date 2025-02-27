@@ -149,9 +149,9 @@
           <li>
             In the Webhooks plugin settings:
             <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-gray-400">
-              <li>
-                URL: {{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}
-              </li>
+              {# djlint:off #}
+              <li>URL: {{ request.scheme }}://{{ request.get_host }}/webhook/jellyfin/{{ request.user.token|default_if_none:"&lttoken&gt" }}</li>
+              {# djlint:on #}
               <li>Payload format: Default</li>
               <li>Listen to events only for: Your Jellyfin User</li>
               <li>Events: Stop, MarkPlayed and MarkUnplayed</li>
