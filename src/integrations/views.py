@@ -25,17 +25,17 @@ logger = logging.getLogger(__name__)
 @require_POST
 def import_trakt(request):
     """View for importing anime and manga data from Trakt."""
-    username = request.POST.get("trakt")
+    username = request.POST.get("user")
     if not username:
         messages.error(request, "Trakt username is required.")
-        return redirect("profile")
+        return redirect("import_data")
 
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_trakt.delay(username=username, user_id=request.user.id, mode=mode)
-        messages.success(request, "Trakt import task queued.")
+        messages.info(request, "The task to import media from Trakt has been queued.")
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(
@@ -46,7 +46,7 @@ def import_trakt(request):
             import_time,
             "Trakt",
         )
-    return redirect("profile")
+    return redirect("import_data")
 
 
 @require_POST
@@ -72,24 +72,27 @@ def import_simkl(request):
 
     token = simkl.get_token(request)
     tasks.import_simkl.delay(username=token, user_id=request.user.id, mode=mode)
-    messages.success(request, "SIMKL import task queued.")
-    return redirect("profile")
+    messages.info(request, "The task to import media from Simkl has been queued.")
+    return redirect("import_data")
 
 
 @require_POST
 def import_mal(request):
     """View for importing anime and manga data from MyAnimeList."""
-    username = request.POST.get("mal")
+    username = request.POST.get("user")
     if not username:
         messages.error(request, "MyAnimeList username is required.")
-        return redirect("profile")
+        return redirect("import_data")
 
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_mal.delay(username=username, user_id=request.user.id, mode=mode)
-        messages.success(request, "MyAnimeList import task queued.")
+        messages.info(
+            request,
+            "The task to import media from MyAnimeList has been queued.",
+        )
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(
@@ -100,16 +103,16 @@ def import_mal(request):
             import_time,
             "MyAnimeList",
         )
-    return redirect("profile")
+    return redirect("import_data")
 
 
 @require_POST
 def import_anilist(request):
     """View for importing anime and manga data from AniList."""
-    username = request.POST.get("anilist")
+    username = request.POST.get("user")
     if not username:
         messages.error(request, "AniList username is required.")
-        return redirect("profile")
+        return redirect("import_data")
 
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
@@ -120,7 +123,7 @@ def import_anilist(request):
             user_id=request.user.id,
             mode=mode,
         )
-        messages.success(request, "AniList import task queued.")
+        messages.info(request, "The task to import media from AniList has been queued.")
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(
@@ -131,23 +134,23 @@ def import_anilist(request):
             import_time,
             "AniList",
         )
-    return redirect("profile")
+    return redirect("import_data")
 
 
 @require_POST
 def import_kitsu(request):
     """View for importing anime and manga data from Kitsu by user ID."""
-    kitsu_id = request.POST.get("kitsu")
+    kitsu_id = request.POST.get("user")
     if not kitsu_id:
         messages.error(request, "Kitsu user ID is required.")
-        return redirect("profile")
+        return redirect("import_data")
 
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
 
     if frequency == "once":
         tasks.import_kitsu.delay(username=kitsu_id, user_id=request.user.id, mode=mode)
-        messages.success(request, "Kitsu import task queued.")
+        messages.info(request, "The task to import media from Kitsu has been queued.")
     else:
         import_time = request.POST["time"]
         helpers.create_import_schedule(
@@ -158,7 +161,7 @@ def import_kitsu(request):
             import_time,
             "Kitsu",
         )
-    return redirect("profile")
+    return redirect("import_data")
 
 
 @require_POST
@@ -168,7 +171,7 @@ def import_yamtrack(request):
 
     if not file:
         messages.error(request, "Yamtrack CSV file is required.")
-        return redirect("profile")
+        return redirect("import_data")
 
     mode = request.POST["mode"]
     tasks.import_yamtrack.delay(
@@ -176,8 +179,11 @@ def import_yamtrack(request):
         user_id=request.user.id,
         mode=mode,
     )
-    messages.success(request, "Yamtrack import task queued.")
-    return redirect("profile")
+    messages.info(
+        request,
+        "The task to import media from Yamtrack CSV file has been queued.",
+    )
+    return redirect("import_data")
 
 
 @require_GET

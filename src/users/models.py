@@ -1,7 +1,6 @@
 from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import Max
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
@@ -112,7 +111,7 @@ class User(AbstractUser):
         ]
 
     def get_import_tasks(self):
-        """Return a list of import tasks and their schedules for the user."""
+        """Return import tasks history and schedules for the user."""
         import_tasks = {
             "trakt": "Import from Trakt",
             "simkl": "Import from SIMKL",
@@ -122,24 +121,33 @@ class User(AbstractUser):
             "yamtrack": "Import from Yamtrack",
         }
 
+        # Reverse mapping to get source from task name
+        task_to_source = {v: k for k, v in import_tasks.items()}
+
         task_result_filter_text = f"'user_id': {self.id},"
-        # Get latest task results
-        latest_tasks = (
-            TaskResult.objects.filter(
-                task_kwargs__contains=task_result_filter_text,
-                task_name__in=import_tasks.values(),
+
+        # Get all task results for this user
+        task_results = TaskResult.objects.filter(
+            task_kwargs__contains=task_result_filter_text,
+            task_name__in=import_tasks.values(),
+        ).order_by("-date_done")  # Most recent first
+
+        # Build results list
+        results = []
+        for task in task_results:
+            source = task_to_source.get(task.task_name, "unknown")
+            processed_task = helpers.process_task_result(task)
+            results.append(
+                {
+                    "task": processed_task,
+                    "source": source,
+                    "date": task.date_done,
+                    "status": task.status,
+                    "summary": processed_task.summary,
+                    "errors": processed_task.errors,
+                    "mode": processed_task.mode,
+                },
             )
-            .values("task_name")
-            .annotate(latest_task=Max("id"))
-        )
-
-        task_objects = TaskResult.objects.filter(
-            id__in=[task["latest_task"] for task in latest_tasks],
-        )
-
-        task_map = {
-            task.task_name: helpers.process_task_result(task) for task in task_objects
-        }
 
         # Get periodic tasks with their crontab schedules
         periodic_tasks_filter_text = f'"user_id": {self.id},'
@@ -149,36 +157,31 @@ class User(AbstractUser):
             enabled=True,
         ).select_related("crontab")
 
-        # Build result dictionary
-        result = {}
-        for key, task_name in import_tasks.items():
-            # Get all periodic tasks for this import type
-            tasks_for_import = [pt for pt in periodic_tasks if pt.task == task_name]
+        # Build schedules list
+        schedules = []
+        for periodic_task in periodic_tasks:
+            source = task_to_source.get(periodic_task.task, "unknown")
 
-            # Get schedule info for all tasks
-            schedule_info_list = []
-            for periodic_task in tasks_for_import:
-                schedule_info = helpers.get_next_run_info(periodic_task)
-                if schedule_info:
-                    next_run_formatted = schedule_info["next_run"].strftime(
-                        "%Y-%m-%d, %I:%M:%S %p",
-                    )
-                    schedule_text = (
-                        f"({schedule_info['frequency']} - {schedule_info['mode']})"
-                    )
-                    schedule_info_list.append(
-                        {
-                            "task": periodic_task,
-                            "next_run_text": (
-                                f"Import scheduled for {next_run_formatted} "
-                                f"{schedule_text}"
-                            ),
-                        },
-                    )
+            # Extract username from task name if available
+            username = ""
+            if " for " in periodic_task.name:
+                username = periodic_task.name.split(" for ")[1].split(" at ")[0]
 
-            result[key] = {
-                "last_run": task_map.get(task_name),
-                "schedules": schedule_info_list,
-            }
+            schedule_info = helpers.get_next_run_info(periodic_task)
+            if schedule_info:
+                schedules.append(
+                    {
+                        "task": periodic_task,
+                        "source": source,
+                        "username": username,
+                        "last_run": periodic_task.last_run_at,
+                        "next_run": schedule_info["next_run"],
+                        "schedule": schedule_info["frequency"],
+                        "mode": schedule_info["mode"],
+                    },
+                )
 
-        return result
+        return {
+            "results": results,
+            "schedules": schedules,
+        }

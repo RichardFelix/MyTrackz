@@ -7,6 +7,9 @@ from users import views
 urlpatterns = [
     path("settings/account", views.account, name="account"),
     path("settings/sidebar", views.sidebar, name="sidebar"),
+    path("settings/integrations", views.integrations, name="integrations"),
+    path("settings/import", views.import_data, name="import_data"),
+    path("settings/export", views.export_data, name="export_data"),
     path("login", views.CustomLoginView.as_view(), name="login"),
     path("logout", auth_views.LogoutView.as_view(), name="logout"),
     path(

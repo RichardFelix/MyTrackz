@@ -37,17 +37,36 @@ def process_task_result(task):
     except (TypeError, json.JSONDecodeError, AttributeError):
         mode = "new"
 
-    if mode == "new":
-        mode = "Sync new items"
-    else:
-        mode = "Sync new items and overwrite existing"
+    mode = "Only New Items" if mode == "new" else "Overwrite Existing"
 
     if task.status == "FAILURE":
         task.result = result_json["exc_message"][0]
+        task.summary = task.result
+        task.errors = ""
     elif task.status == "STARTED":
         task.result = "Task in progress"
+        task.summary = task.result
+        task.errors = ""
+    # Process the result to separate summary and errors
+    elif isinstance(result_json, str):
+        # Split by the error indicator
+        parts = result_json.split("Couldn't import the following media:")
+
+        if len(parts) > 1:
+            # We have both summary and errors
+            task.summary = parts[0].strip()
+
+            # Keep errors as a single string with newlines
+            task.errors = parts[1].strip()
+        else:
+            # Only summary, no errors
+            task.summary = result_json.strip()
+            task.errors = ""
     else:
+        # If result is not a string (e.g., a dict or other structure)
         task.result = result_json
+        task.summary = str(result_json)
+        task.errors = ""
 
     task.mode = mode  # Add mode to task object
     return task
@@ -64,10 +83,7 @@ def get_next_run_info(periodic_task):
     except json.JSONDecodeError:
         mode = "new"
 
-    if mode == "new":
-        mode = "Sync new items"
-    else:
-        mode = "Sync new items and overwrite existing"
+    mode = "Only New Items" if mode == "new" else "Overwrite Existing"
 
     cron = periodic_task.crontab
     tz = zoneinfo.ZoneInfo(str(cron.timezone))
@@ -83,7 +99,7 @@ def get_next_run_info(periodic_task):
 
     # Determine frequency
     if cron.day_of_week == "*":
-        frequency = "Daily"
+        frequency = "Every Day"
     elif cron.day_of_week == "*/2":
         frequency = "Every 2 days"
     else:

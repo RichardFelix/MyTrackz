@@ -5,7 +5,7 @@
   <div class="mx-auto max-w-6xl">
     <div class="mb-8">
       <h1 class="text-3xl font-bold">Settings</h1>
-      <p class="text-gray-400 mt-2 text-sm">Manage your account settings and preferences</p>
+      <p class="text-gray-400 mt-2 text-sm">Configure your account and preferences</p>
     </div>
     <div class="flex flex-col md:flex-row gap-8">
       <div class="md:w-64 shrink-0">
@@ -72,7 +72,30 @@
               <span>Integrations</span>
             </a>
 
-            <a class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left cursor-pointer text-sm text-gray-400 hover:bg-[#313842] hover:text-white">
+            {% url 'import_data' as import_url %}
+            <a href="{{ import_url }}"
+               class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == import_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-5 h-5">
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                <path d="M12 12v6" />
+                <path d="m15 15-3-3-3 3" />
+              </svg>
+              <span>Import Data</span>
+            </a>
+            
+            {% url 'export_data' as export_url %}
+            <a href="{{ export_url }}"
+            class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == export_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"
@@ -88,7 +111,7 @@
                 <path d="M12 18v-6"></path>
                 <path d="m9 15 3 3 3-3"></path>
               </svg>
-              <span>Import/Export</span>
+              <span>Export Data</span>
             </a>
           </nav>
         </div>

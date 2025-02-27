@@ -144,6 +144,19 @@ def integrations(request):
     return render(request, "users/integrations.html")
 
 
+@require_GET
+def import_data(request):
+    """Render the import data settings page."""
+    import_tasks = request.user.get_import_tasks()
+    return render(request, "users/import_data.html", {"import_tasks": import_tasks})
+
+
+@require_GET
+def export_data(request):
+    """Render the export data settings page."""
+    return render(request, "users/export_data.html")
+
+
 @require_POST
 def delete_import_schedule(request):
     """Delete an import schedule."""
@@ -157,7 +170,7 @@ def delete_import_schedule(request):
         messages.success(request, "Import schedule deleted.")
     except PeriodicTask.DoesNotExist:
         messages.error(request, "Import schedule not found.")
-    return redirect("profile")
+    return redirect("import_data")
 
 
 @require_POST
