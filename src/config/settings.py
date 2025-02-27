@@ -294,6 +294,7 @@ CELERY_TASK_TIME_LIMIT = 60 * 60 * 6  # 6 hours
 CELERY_RESULT_EXTENDED = True
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "default"
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
 
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-serializer
 CELERY_TASK_SERIALIZER = "pickle"
