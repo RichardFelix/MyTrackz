@@ -249,6 +249,7 @@ def icon(name, is_active):
                <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path>
                <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>"""
         ),
+        "episode": ("""<polygon points="6 3 20 12 6 21 6 3"></polygon>"""),
         "movie": (
             """<rect width="18" height="18" x="3" y="3" rx="2"></rect>
                <path d="M7 3v18"></path>

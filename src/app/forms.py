@@ -1,6 +1,5 @@
 from django import forms
 from django.conf import settings
-from django.urls import reverse
 
 from app import models
 from app.models import Item, Media
@@ -115,14 +114,6 @@ class ManualItemForm(forms.ModelForm):
                 item__source="manual",
                 item__media_type="season",
             )
-
-        self.fields["media_type"].widget.attrs = {
-            "hx-get": reverse("create_media"),
-            "hx-target": "#media-form",
-            "hx-swap": "outerHTML",
-            "initial": "movie",
-        }
-        self.fields["image"].label = "Image URL"
         self.fields["image"].required = False
         self.fields["title"].required = False
 
@@ -131,20 +122,23 @@ class ManualItemForm(forms.ModelForm):
         cleaned_data = super().clean()
         image = cleaned_data.get("image")
         media_type = cleaned_data.get("media_type")
-        title = cleaned_data.get("title")
 
         if not image:
             cleaned_data["image"] = settings.IMG_NONE
 
         # Title not required for season/episode
-        if media_type in ["season", "episode"] and not title:
+        if media_type in ["season", "episode"]:
             if media_type == "season":
                 parent = cleaned_data.get("parent_tv")
                 cleaned_data["title"] = parent.item.title
+                cleaned_data["episode_number"] = None
             else:  # episode
                 parent = cleaned_data.get("parent_season")
                 cleaned_data["title"] = parent.item.title
                 cleaned_data["season_number"] = parent.item.season_number
+        else:
+            cleaned_data["season_number"] = None
+            cleaned_data["episode_number"] = None
 
         return cleaned_data
 

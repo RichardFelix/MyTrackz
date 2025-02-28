@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.shortcuts import redirect
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -147,3 +148,13 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     field_label = field_name.replace("_", " ").lower()
     return f"Updated {field_label} from {old_value} to {new_value}"
+
+
+def form_error_messages(form, request):
+    """Display form errors as messages."""
+    for field, errors in form.errors.items():
+        for error in errors:
+            messages.error(
+                request,
+                f"{field.replace('_', ' ').title()}: {error}",
+            )

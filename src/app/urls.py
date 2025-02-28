@@ -34,8 +34,6 @@ urlpatterns = [
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
     path("episode_handler", views.episode_handler, name="episode_handler"),
-    path("create/item", views.create_item, name="create_item"),
-    path("create/media", views.create_media, name="create_media"),
     path(
         "history_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.history_modal,
@@ -55,6 +53,13 @@ urlpatterns = [
         "media/history/<str:media_type>/<int:history_id>/delete/",
         views.delete_history_record,
         name="delete_history_record",
+    ),
+    path("create", views.create_entry, name="create_entry"),
+    path("search/parent_tv", views.search_parent_tv, name="search_parent_tv"),
+    path(
+        "search/parent_season",
+        views.search_parent_season,
+        name="search_parent_season",
     ),
     path("statistics", views.statistics, name="statistics"),
 ]

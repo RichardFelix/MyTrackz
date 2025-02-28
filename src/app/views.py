@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
-from app.models import BasicMedia, Episode, Item, Media, Season
+from app.models import TV, BasicMedia, Episode, Item, Media, Season
 from app.providers import manual, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -271,11 +271,12 @@ def media_save(request):
         logger.info("%s saved successfully.", form.instance)
     else:
         logger.error(form.errors.as_json())
-        messages.error(
-            request,
-            # Get the first error message from the form
-            next(iter(form.errors.get_json_data().values()))[0]["message"],
-        )
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(
+                    request,
+                    f"{field.replace('_', ' ').title()}: {error}",
+                )
 
     return helpers.redirect_back(request)
 
@@ -352,50 +353,122 @@ def episode_handler(request):
 
 
 @require_http_methods(["GET", "POST"])
-def create_item(request):
+def create_entry(request):
     """Return the form for manually adding media items."""
-    if request.method == "POST":
-        form = ManualItemForm(request.POST, user=request.user)
-        if form.is_valid():
-            try:
-                item = form.save()
-            except IntegrityError:
-                msg = "This item already exists in the database."
-                messages.error(request, msg)
-                logger.warning(msg)
-                return redirect("create_item")
+    if request.method != "POST":
+        return render(request, "app/create_entry.html")
 
-            updated_request = request.POST.copy()
-            updated_request.update({"item": item.id})
-            media_form = get_form_class(item.media_type)(updated_request)
+    # Process the form submission
+    form = ManualItemForm(request.POST, user=request.user)
+    if not form.is_valid():
+        # Handle form validation errors
+        logger.error(form.errors.as_json())
+        helpers.form_error_messages(form, request)
+        return redirect("create_entry")
 
-            if media_form.is_valid():
-                media_form.instance.user = request.user
-                if item.media_type == "season":
-                    media_form.instance.related_tv = form.cleaned_data["parent_tv"]
-                elif item.media_type == "episode":
-                    media_form.instance.related_season = form.cleaned_data[
-                        "parent_season"
-                    ]
-                media_form.save()
-                msg = f"{item} added successfully."
-                messages.success(request, msg)
-                logger.info(msg)
+    # Try to save the item
+    try:
+        item = form.save()
+    except IntegrityError:
+        # Handle duplicate item
+        media_name = form.cleaned_data["title"]
+        if form.cleaned_data.get("season_number"):
+            media_name += f" - Season {form.cleaned_data['season_number']}"
+        if form.cleaned_data.get("episode_number"):
+            media_name += f" - Episode {form.cleaned_data['episode_number']}"
 
-            return redirect("create_item")
+        logger.exception("%s already exists in the database.", media_name)
+        messages.error(request, f"{media_name} already exists in the database.")
+        return redirect("create_entry")
 
-    form = ManualItemForm(user=request.user)
-    context = {"form": form, "media_form": get_form_class(form["media_type"].value())}
+    # Prepare and validate the media form
+    updated_request = request.POST.copy()
+    updated_request.update({"item": item.id})
+    media_form = get_form_class(item.media_type)(updated_request)
 
-    return render(request, "app/create_item.html", context)
+    if not media_form.is_valid():
+        # Handle media form validation errors
+        logger.error(media_form.errors.as_json())
+        helpers.form_error_messages(form, request)
+
+        # Delete the item since the media creation failed
+        item.delete()
+        logger.info("%s was deleted due to media form validation failure", item)
+        return redirect("create_entry")
+
+    # Save the media instance
+    media_form.instance.user = request.user
+
+    # Handle relationships based on media type
+    if item.media_type == "season":
+        media_form.instance.related_tv = form.cleaned_data["parent_tv"]
+    elif item.media_type == "episode":
+        media_form.instance.related_season = form.cleaned_data["parent_season"]
+
+    media_form.save()
+
+    # Success message
+    msg = f"{item} added successfully."
+    messages.success(request, msg)
+    logger.info(msg)
+
+    return redirect("create_entry")
 
 
 @require_GET
-def create_media(request):
-    """Return the form for manually adding media items."""
-    media_type = request.GET.get("media_type")
-    context = {"form": get_form_class(media_type)}
-    return render(request, "app/components/create_media.html", context)
+def search_parent_tv(request):
+    """Return the search results for parent TV shows."""
+    query = request.GET.get("q", "").strip()
+
+    if len(query) <= 1:
+        return render(request, "app/components/search_parent_tv.html")
+
+    logging.debug(
+        "%s - Searching for TV shows with query: %s",
+        request.user.username,
+        query,
+    )
+
+    parent_tvs = TV.objects.filter(
+        user=request.user,
+        item__source="manual",
+        item__media_type="tv",
+        item__title__icontains=query,
+    )[:5]
+
+    return render(
+        request,
+        "app/components/search_parent_tv.html",
+        {"results": parent_tvs, "query": query},
+    )
+
+
+@require_GET
+def search_parent_season(request):
+    """Return the search results for parent seasons."""
+    query = request.GET.get("q", "").strip()
+
+    if len(query) <= 1:
+        return render(request, "app/components/search_parent_tv.html")
+
+    logging.debug(
+        "%s - Searching for seasons with query: %s",
+        request.user.username,
+        query,
+    )
+
+    parent_seasons = Season.objects.filter(
+        user=request.user,
+        item__source="manual",
+        item__media_type="season",
+        item__title__icontains=query,
+    )[:5]
+
+    return render(
+        request,
+        "app/components/search_parent_season.html",
+        {"results": parent_seasons, "query": query},
+    )
 
 
 @require_GET

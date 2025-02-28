@@ -63,7 +63,7 @@ def process_seasons(season_items, response):
 
         response[f"season/{season.season_number}"] = season_response
 
-        season_response["title"] = season_response["season_title"]
+        season_response["title"] = response["title"]
         response["related"]["seasons"].append(season_response)
         num_episodes += season_episodes.count()
 
@@ -114,6 +114,7 @@ def episode(media_id, season_number, episode_number):
             }
 
     return None
+
 
 def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""

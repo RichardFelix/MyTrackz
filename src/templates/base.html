@@ -148,11 +148,11 @@
 
             <div class="border-t border-[#2c3136] pt-4">
               <ul class="space-y-1">
-                {% url 'create_item' as create_item_url %}
+                {% url 'create_entry' as create_entry_url %}
                 <li>
-                  <a href="{{ create_item_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_item_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'create' is_active=request.path|str_equals:create_item_url %}
+                  <a href="{{ create_entry_url }}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon 'create' is_active=request.path|str_equals:create_entry_url %}
                     <span>Create Custom</span>
                   </a>
                 </li>
