@@ -72,47 +72,50 @@ class CustomLoginView(LoginView):
 @require_http_methods(["GET", "POST"])
 def account(request):
     """Update the user's account and import/export data."""
-    if request.method == "POST":
-        if "username" in request.POST:
-            user_form = UserUpdateForm(request.POST, instance=request.user)
+    if request.method != "POST":
+        return render(request, "users/account.html")
 
-            if user_form.is_valid():
-                user_form.save()
-                messages.success(request, "Your username has been updated!")
-                logger.info("Successful username change to %s", request.user.username)
-            else:
-                logger.error(
-                    "Failed username change for %s: %s",
-                    request.user.username,
-                    user_form.errors.as_json(),
-                )
-                for errors in user_form.errors.values():
-                    for error in errors:
-                        messages.error(request, error)
+    # Handle username update
+    if "username" in request.POST:
+        user_form = UserUpdateForm(request.POST, instance=request.user)
 
-        elif "old_password" in request.POST:
-            password_form = PasswordChangeForm(request.user, request.POST)
-            if password_form.is_valid():
-                password = password_form.save()
-                update_session_auth_hash(request, password)
-                messages.success(request, "Your password has been updated!")
-                logger.info(
-                    "Successful password change for: %s",
-                    request.user.username,
-                )
-            else:
-                logger.error(
-                    "Failed password change for %s: %s",
-                    request.user.username,
-                    password_form.errors.as_json(),
-                )
-                for errors in password_form.errors.values():
-                    for error in errors:
-                        messages.error(request, error)
+        if user_form.is_valid():
+            user_form.save()
+            messages.success(request, "Your username has been updated!")
+            logger.info("Successful username change to %s", request.user.username)
+        else:
+            logger.error(
+                "Failed username change for %s: %s",
+                request.user.username,
+                user_form.errors.as_json(),
+            )
+            for errors in user_form.errors.values():
+                for error in errors:
+                    messages.error(request, error)
 
-        return redirect("account")
+    # Handle password update
+    elif "old_password" in request.POST:
+        password_form = PasswordChangeForm(request.user, request.POST)
 
-    return render(request, "users/account.html")
+        if password_form.is_valid():
+            user = password_form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Your password has been updated!")
+            logger.info(
+                "Successful password change for: %s",
+                request.user.username,
+            )
+        else:
+            logger.error(
+                "Failed password change for %s: %s",
+                request.user.username,
+                password_form.errors.as_json(),
+            )
+            for errors in password_form.errors.values():
+                for error in errors:
+                    messages.error(request, error)
+
+    return redirect("account")
 
 
 @require_http_methods(["GET", "POST"])
@@ -121,21 +124,26 @@ def sidebar(request):
     media_types = app.models.Item.MediaTypes.values
     media_types.remove("episode")
 
-    if request.method == "POST":
-        request.user.hide_from_search = "hide_disabled" in request.POST
-        media_types_checked = request.POST.getlist("media_types_checkboxes")
+    if request.method != "POST":
+        return render(request, "users/sidebar.html", {"media_types": media_types})
 
-        for media_type in media_types:
-            setattr(
-                request.user,
-                f"{media_type}_enabled",
-                media_type in media_types_checked,
-            )
-        request.user.save()
+    # Process form submission
+    request.user.hide_from_search = "hide_disabled" in request.POST
+    media_types_checked = request.POST.getlist("media_types_checkboxes")
 
-        messages.success(request, "Settings updated.")
-        return redirect("sidebar")
-    return render(request, "users/sidebar.html", {"media_types": media_types})
+    # Update user preferences for each media type
+    for media_type in media_types:
+        setattr(
+            request.user,
+            f"{media_type}_enabled",
+            media_type in media_types_checked,
+        )
+
+    # Save changes and redirect
+    request.user.save()
+    messages.success(request, "Settings updated.")
+
+    return redirect("sidebar")
 
 
 @require_GET
