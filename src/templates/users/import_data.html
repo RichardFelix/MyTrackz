@@ -54,7 +54,7 @@
                 <path d="m6 9 6 6 6-6"></path>
               </svg>
             </div>
-            <div class="mt-4" x-show="importFrequency !== 'once'">
+            <div x-cloak class="mt-4" x-show="importFrequency !== 'once'">
               <label class="block text-sm text-gray-400 mb-2">Import Time</label>
               <input x-model="importTime"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [color-scheme:dark]"
@@ -111,9 +111,7 @@
 
         {# Trakt #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "trakt" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "trakt" %}</div>
           <p class="text-sm text-gray-400 mb-3">Import TV shows, movies and anime</p>
           <form class="flex items-center"
                 method="post"
@@ -156,9 +154,7 @@
 
         {# Simkl #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "simkl" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "simkl" %}</div>
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? 'Import TV shows, movies and anime' : 'OAuth-based imports are not available for periodic imports'">
           </p>
@@ -168,17 +164,15 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <button type="submit"
-                    class="w-full px-4 py-2 text-sm rounded-md transition-colors cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700"
-                    :class="importFrequency !== 'once' ? 'bg-gray-600! text-gray-400! cursor-not-allowed!' : ''"
+                    class="w-full px-4 py-2 text-sm rounded-md transition-colors"
+                    :class="importFrequency === 'once' ? 'cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                     :disabled="importFrequency !== 'once'">Connect with Simkl</button>
           </form>
         </div>
 
         {# MyAnimeList #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "myanimelist" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "myanimelist" %}</div>
           <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
           <form class="flex items-center"
                 method="post"
@@ -202,9 +196,7 @@
 
         {# AniList #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "anilist" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "anilist" %}</div>
           <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
           <form class="flex items-center"
                 method="post"
@@ -228,9 +220,7 @@
 
         {# Kitsu #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "kitsu" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "kitsu" %}</div>
           <p class="text-sm text-gray-400 mb-3">Import anime and manga</p>
           <form class="flex items-center"
                 method="post"
@@ -273,9 +263,7 @@
 
         {# Yamtrack #}
         <div class="bg-[#39404b] p-4 rounded-lg">
-          <div class="flex items-center mb-3">
-            {% source_display "yamtrack" %}
-          </div>
+          <div class="flex items-center mb-3">{% source_display "yamtrack" %}</div>
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? 'Import from YamTrack backup' : 'File uploads are not available for periodic imports'">
           </p>
@@ -286,8 +274,8 @@
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
-            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
-                   :class="importFrequency !== 'once' ? 'bg-gray-600! text-gray-400! cursor-not-allowed!' : ''"
+            <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
+                   :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
               <input name="yamtrack_csv"
                      accept=".csv"
