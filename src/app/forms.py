@@ -186,11 +186,16 @@ class MediaForm(forms.ModelForm):
         ]
         widgets = {
             "item": forms.HiddenInput(),
-            "score": forms.NumberInput(attrs={"min": 0, "max": 10, "step": 0.1}),
+            "score": forms.NumberInput(
+                attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
+            ),
             "progress": forms.NumberInput(attrs={"min": 0}),
             "repeats": forms.NumberInput(attrs={"min": 0}),
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(
+                attrs={"placeholder": "Add any notes or comments..."},
+            ),
         }
         labels = {
             "repeats": "Number of Repeats",
@@ -205,7 +210,7 @@ class MangaForm(MediaForm):
 
         model = models.Manga
         labels = {
-            "progress": "Progress (chapters)",
+            "progress": "Progress (Chapters)",
             "repeats": "Number of Rereads",
         }
 
@@ -228,6 +233,24 @@ class MovieForm(MediaForm):
         model = models.Movie
 
 
+class GameForm(MediaForm):
+    """Form for games."""
+
+    progress = CustomDurationField(
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
+        label="Progress (Time Played)",
+    )
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = models.Game
+        labels = {
+            "repeats": "Number of Replays",
+        }
+
+
 class BookForm(MediaForm):
     """Form for books."""
 
@@ -236,7 +259,7 @@ class BookForm(MediaForm):
 
         model = models.Book
         labels = {
-            "progress": "Progress (pages)",
+            "progress": "Progress (Pages)",
             "repeats": "Number of Rereads",
         }
 
@@ -277,24 +300,6 @@ class EpisodeForm(forms.ModelForm):
         widgets = {
             "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),
-        }
-
-
-class GameForm(MediaForm):
-    """Form for games."""
-
-    progress = CustomDurationField(
-        required=False,
-        widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
-    )
-
-    class Meta(MediaForm.Meta):
-        """Bind form to model."""
-
-        model = models.Game
-        labels = {
-            "progress": "Time Played (hh:mm)",
-            "repeats": "Number of Replays",
         }
 
 
