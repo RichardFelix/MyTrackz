@@ -343,24 +343,18 @@
                     {% for message in messages %}
                       {# djlint:off #}
                       <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
-                          x-data="{ 
-                              init() { 
-                                // Start entrance animation after a tiny delay
-                                setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
-                                this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
-
-                                {% if message.tags not in 'warning,error' %}
-                                  // Auto-dismiss non-critical messages
-                                  setTimeout(() => this.dismiss(), 3000);
-                                {% endif %}
-                              },
-                              dismiss() {
-                                this.$el.classList.remove('opacity-100', 'transform-none');
-                                this.$el.classList.add('opacity-0', 'translate-y-[-1rem]');
-                                // Remove from DOM after animation completes
-                                setTimeout(() => this.$el.remove(), 300);
-                              }
-                          }">
+                      x-data="{ 
+                          init() { 
+                            // Start entrance animation after a tiny delay
+                            setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
+                            this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
+                  
+                            {% if message.tags not in 'warning,error' %}
+                              // Auto-dismiss non-critical messages
+                              setTimeout(() => this.$el.remove(), 3000);
+                            {% endif %}
+                          }
+                      }">
 
                         {% if message.tags == 'success' %}
                           <svg xmlns="http://www.w3.org/2000/svg"
@@ -425,8 +419,8 @@
                         {% endif %}
 
                         <p class="text-sm font-medium flex-1">{{ message }}</p>
-                        <button class="text-current opacity-70 hover:opacity-100 transition-opacity p-0.5 rounded-full hover:bg-white/10 cursor-pointer"
-                                @click="dismiss()">
+                        <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                                @click="$el.parentElement.remove()">
                           <svg xmlns="http://www.w3.org/2000/svg"
                               width="16"
                               height="16"
