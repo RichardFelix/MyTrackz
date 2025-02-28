@@ -4,18 +4,22 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Item
+from app.models import MediaTypes
 from users import helpers
 
-layouts = [
-    ("grid", "Grid"),
-    ("table", "Table"),
-]
 
-calendar_layouts = [
-    ("grid", "Grid"),
-    ("list", "List"),
-]
+class LayoutChoices(models.TextChoices):
+    """Choices for media list layout options."""
+
+    GRID = "grid", "Grid"
+    TABLE = "table", "Table"
+
+
+class CalendarLayoutChoices(models.TextChoices):
+    """Choices for calendar layout options."""
+
+    GRID = "grid", "Grid"
+    LIST = "list", "List"
 
 
 class User(AbstractUser):
@@ -25,65 +29,65 @@ class User(AbstractUser):
 
     last_search_type = models.CharField(
         max_length=10,
-        default=Item.MediaTypes.TV.value,
-        choices=Item.MediaTypes.choices,
+        default=MediaTypes.TV.value,
+        choices=MediaTypes.choices,
     )
 
     tv_enabled = models.BooleanField(default=True)
     tv_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=layouts,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
     )
 
     season_enabled = models.BooleanField(default=True)
     season_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=layouts,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
     )
 
     movie_enabled = models.BooleanField(default=True)
     movie_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=layouts,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
     )
 
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
-        default="table",
-        choices=layouts,
+        default=LayoutChoices.TABLE,
+        choices=LayoutChoices.choices,
     )
 
     manga_enabled = models.BooleanField(default=True)
     manga_layout = models.CharField(
         max_length=20,
-        default="table",
-        choices=layouts,
+        default=LayoutChoices.TABLE,
+        choices=LayoutChoices.choices,
     )
 
     game_enabled = models.BooleanField(default=True)
     game_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=layouts,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
     )
 
     book_enabled = models.BooleanField(default=True)
     book_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=layouts,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
     )
 
     hide_from_search = models.BooleanField(default=True)
 
     calendar_layout = models.CharField(
         max_length=20,
-        default="grid",
-        choices=calendar_layouts,
+        default=CalendarLayoutChoices.GRID,
+        choices=CalendarLayoutChoices.choices,
     )
 
     token = models.CharField(
@@ -98,6 +102,44 @@ class User(AbstractUser):
         """Meta options for the model."""
 
         ordering = ["username"]
+        constraints = [
+            models.CheckConstraint(
+                name="last_search_type_valid",
+                check=models.Q(last_search_type__in=MediaTypes.values),
+            ),
+            models.CheckConstraint(
+                name="tv_layout_valid",
+                check=models.Q(tv_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="season_layout_valid",
+                check=models.Q(season_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="movie_layout_valid",
+                check=models.Q(movie_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="anime_layout_valid",
+                check=models.Q(anime_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="manga_layout_valid",
+                check=models.Q(manga_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="game_layout_valid",
+                check=models.Q(game_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_layout_valid",
+                check=models.Q(book_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="calendar_layout_valid",
+                check=models.Q(calendar_layout__in=CalendarLayoutChoices.values),
+            ),
+        ]
 
     def get_layout(self, media_type):
         """Return the layout for the media type."""
@@ -117,7 +159,7 @@ class User(AbstractUser):
         """Return a list of active media types."""
         return [
             apps.get_model(app_label="app", model_name=media_type)
-            for media_type in Item.MediaTypes.values
+            for media_type in MediaTypes.values
             if media_type != "episode" and getattr(self, f"{media_type}_enabled")
         ]
 

@@ -33,51 +33,54 @@ from app.templatetags import app_tags
 logger = logging.getLogger(__name__)
 
 
+class Sources(models.TextChoices):
+    """Choices for the source of the item."""
+
+    TMDB = "tmdb", "The Movie Database"
+    MAL = "mal", "MyAnimeList"
+    MANGAUPDATES = "mangaupdates", "MangaUpdates"
+    IGDB = "igdb", "Internet Game Database"
+    OPENLIBRARY = "openlibrary", "Open Library"
+    MANUAL = "manual", "Manual"
+
+
+class MediaTypes(models.TextChoices):
+    """Choices for the media type of the item."""
+
+    TV = "tv", "TV Show"
+    SEASON = "season", "Season"
+    EPISODE = "episode", "Episode"
+    MOVIE = "movie", "Movie"
+    ANIME = "anime", "Anime"
+    MANGA = "manga", "Manga"
+    GAME = "game", "Game"
+    BOOK = "book", "Book"
+
+
+class Colors(models.TextChoices):
+    """Colors for different media types."""
+
+    TV = "text-emerald-400", "Emerald"
+    SEASON = "text-purple-400", "Purple"
+    EPISODE = "text-indigo-400", "Indigo"
+    MOVIE = "text-orange-400", "Orange"
+    ANIME = "text-blue-400", "Blue"
+    MANGA = "text-red-400", "Red"
+    GAME = "text-yellow-400", "Yellow"
+    BOOK = "text-fuchsia-400", "Fuchsia"
+
+
 class Item(models.Model):
     """Model for items in custom lists."""
-
-    class Sources(models.TextChoices):
-        """Choices for the source of the item."""
-
-        TMDB = "tmdb", "The Movie Database"
-        MAL = "mal", "MyAnimeList"
-        MANGAUPDATES = "mangaupdates", "MangaUpdates"
-        IGDB = "igdb", "Internet Game Database"
-        OPENLIBRARY = "openlibrary", "Open Library"
-        MANUAL = "manual", "Manual"
-
-    class MediaTypes(models.TextChoices):
-        """Choices for the media type of the item."""
-
-        TV = "tv", "TV Show"
-        SEASON = "season", "Season"
-        EPISODE = "episode", "Episode"
-        MOVIE = "movie", "Movie"
-        ANIME = "anime", "Anime"
-        MANGA = "manga", "Manga"
-        GAME = "game", "Game"
-        BOOK = "book", "Book"
-
-    class Colors(models.TextChoices):
-        """Colors for different media types."""
-
-        TV = "text-emerald-400", "Emerald"
-        SEASON = "text-purple-400", "Purple"
-        EPISODE = "text-indigo-400", "Indigo"
-        MOVIE = "text-orange-400", "Orange"
-        ANIME = "text-blue-400", "Blue"
-        MANGA = "text-red-400", "Red"
-        GAME = "text-yellow-400", "Yellow"
-        BOOK = "text-fuchsia-400", "Fuchsia"
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
         max_length=20,
-        choices=Sources,
+        choices=Sources.choices,
     )
     media_type = models.CharField(
         max_length=10,
-        choices=MediaTypes,
+        choices=MediaTypes.choices,
         default=MediaTypes.MOVIE.value,
     )
     title = models.CharField(max_length=255)
@@ -143,6 +146,16 @@ class Item(models.Model):
                 | Q(media_type__in=["season", "episode"]),
                 name="no_season_episode_for_other_types",
             ),
+            # Validate source choices
+            CheckConstraint(
+                check=Q(source__in=Sources.values),
+                name="%(app_label)s_%(class)s_source_valid",
+            ),
+            # Validate media_type choices
+            CheckConstraint(
+                check=Q(media_type__in=MediaTypes.values),
+                name="%(app_label)s_%(class)s_media_type_valid",
+            ),
         ]
         ordering = ["media_id"]
 
@@ -180,7 +193,7 @@ class Item(models.Model):
     @property
     def media_type_readable(self):
         """Return the readable media type."""
-        return self.MediaTypes(self.media_type).label
+        return MediaTypes(self.media_type).label
 
 
 class MediaManager(models.Manager):

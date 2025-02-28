@@ -121,7 +121,7 @@ def account(request):
 @require_http_methods(["GET", "POST"])
 def sidebar(request):
     """Render the sidebar settings page."""
-    media_types = app.models.Item.MediaTypes.values
+    media_types = app.models.MediaTypes.values
     media_types.remove("episode")
 
     if request.method != "POST":

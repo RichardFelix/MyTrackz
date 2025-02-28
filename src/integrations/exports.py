@@ -5,7 +5,7 @@ from django.apps import apps
 from django.db.models import Field
 
 from app import helpers
-from app.models import Item
+from app.models import Item, MediaTypes
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def generate_rows(user):
     yield writer.writerow(fields["item"] + fields["track"])
 
     # Yield data rows
-    media_types = Item.MediaTypes.values
+    media_types = MediaTypes.values
     for media_type in media_types:
         model = apps.get_model("app", media_type)
         if media_type == "episode":
@@ -75,7 +75,7 @@ def get_track_fields():
     """Get a list of all track fields from all media models."""
     all_fields = []
 
-    for media_type in Item.MediaTypes.values:
+    for media_type in MediaTypes.values:
         model = apps.get_model("app", media_type)
         for field in get_model_fields(model):
             if field not in all_fields:

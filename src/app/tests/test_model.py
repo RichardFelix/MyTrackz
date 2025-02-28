@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import TV, Anime, Episode, Item, Season
+from app.models import TV, Anime, Episode, Item, MediaTypes, Season
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -58,7 +58,7 @@ class ItemModel(TestCase):
         season_types = {"season", "episode"}
         episode_types = {"episode"}
 
-        for media_type, _ in Item.MediaTypes.choices:
+        for media_type, _ in MediaTypes.choices:
             create_kwargs = {
                 **defaults,
                 "media_type": media_type,

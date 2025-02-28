@@ -6,7 +6,7 @@ from django.conf import settings
 
 import app
 import app.providers
-from app.models import TV, Episode, Item, Season
+from app.models import TV, Episode, MediaTypes, Season
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -19,13 +19,13 @@ def importer(file, user, mode):
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
-    bulk_media = {media_type: [] for media_type in Item.MediaTypes.values}
+    bulk_media = {media_type: [] for media_type in MediaTypes.values}
     imported_counts = {}
 
     for row in reader:
         add_bulk_media(row, user, bulk_media)
 
-    for media_type in Item.MediaTypes.values:
+    for media_type in MediaTypes.values:
         imported_counts[media_type] = import_media(
             media_type,
             bulk_media[media_type],

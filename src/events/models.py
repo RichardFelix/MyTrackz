@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Count, Exists, OuterRef, Q, UniqueConstraint
 from django.utils import timezone
 
-from app.models import Item, Media
+from app.models import Item, Media, MediaTypes
 
 
 class EventManager(models.Manager):
@@ -12,8 +12,8 @@ class EventManager(models.Manager):
         """Get all upcoming media events of the specified user."""
         media_types_with_user = [
             choice.value
-            for choice in Item.MediaTypes
-            if choice != Item.MediaTypes.EPISODE
+            for choice in MediaTypes
+            if choice != MediaTypes.EPISODE
         ]
         query = Q()
         for media_type in media_types_with_user:
@@ -35,8 +35,8 @@ class EventManager(models.Manager):
         ]
         media_types_with_status = [
             choice.value
-            for choice in Item.MediaTypes
-            if choice != Item.MediaTypes.EPISODE
+            for choice in MediaTypes
+            if choice != MediaTypes.EPISODE
         ]
         query = Q()
         for media_type in media_types_with_status:
@@ -56,7 +56,7 @@ class EventManager(models.Manager):
             .filter(
                 Q(Exists(future_events))  # has future events
                 | Q(event__isnull=True)  # no events
-                | (Q(media_type=Item.MediaTypes.MANGA) & Q(event_count__lt=2)),
+                | (Q(media_type=MediaTypes.MANGA) & Q(event_count__lt=2)),
             )
             .distinct()
         )

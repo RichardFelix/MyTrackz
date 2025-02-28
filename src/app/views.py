@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import database, helpers
 from app.forms import FilterForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Episode, Item, Media, Season
+from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
 
 logger = logging.getLogger(__name__)
@@ -356,7 +356,7 @@ def episode_handler(request):
 def create_entry(request):
     """Return the form for manually adding media items."""
     if request.method != "POST":
-        media_types = Item.MediaTypes.values
+        media_types = MediaTypes.values
         return render(request, "app/create_entry.html", {"media_types": media_types})
 
     # Process the form submission

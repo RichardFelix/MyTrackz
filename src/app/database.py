@@ -7,7 +7,7 @@ from django.db.models import Case, Count, F, FloatField, IntegerField, Max, Min,
 from django.db.models.functions import Cast, TruncDate
 from django.utils import timezone
 
-from app.models import Item, Media
+from app.models import Item, Media, MediaTypes
 
 
 def get_media_list(user, media_type, status_filter, sort_filter, search=None):
@@ -65,7 +65,7 @@ def get_properties(model):
 
 def get_historical_models():
     """Return list of historical model names."""
-    media_types = Item.MediaTypes.values
+    media_types = MediaTypes.values
     return [f"historical{media_type}" for media_type in media_types]
 
 
@@ -74,7 +74,7 @@ def get_in_progress(user, sort_by):
     today = timezone.now().date()
     list_by_type = {}
 
-    for media_type in Item.MediaTypes.values:
+    for media_type in MediaTypes.values:
         # dont show tv and episodes in home page
         if media_type not in ("tv", "episode"):
             media_list = get_media_list(

@@ -54,13 +54,13 @@ def is_list(arg1):
 @register.filter
 def media_type_readable(media_type):
     """Return the readable media type."""
-    return models.Item.MediaTypes(media_type).label
+    return models.MediaTypes(media_type).label
 
 
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = models.Item.MediaTypes(media_type).label
+    singular = models.MediaTypes(media_type).label
 
     # Special cases that don't change in plural form
     if singular.lower() in ["anime", "manga"]:
@@ -92,7 +92,7 @@ def default_source(media_type):
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
-    return models.Item.Colors[media_type.upper()].value
+    return models.Colors[media_type.upper()].value
 
 
 @register.filter
