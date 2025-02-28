@@ -2,32 +2,110 @@
 {% load static %}
 
 {% block title %}
-  Calendar - Yamtrack
+  Release Calendar - YamTrack
 {% endblock title %}
 
-{% block container %}
-  <div id="calendar"></div>
-{% endblock container %}
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Release Calendar</h1>
+    <p class="text-gray-400">Track upcoming releases from your list.</p>
+  </div>
 
-{% block js %}
-  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
-  <script src=" https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.15/index.global.min.js "></script>
-  {{ events|json_script:"events" }}
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const calendarEl = document.getElementById("calendar");
-      const events = JSON.parse(document.getElementById('events').textContent);
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        themeSystem: 'bootstrap5',
-        events: events,
-        locale: "en",
-        headerToolbar: {
-            left: "prev",
-            center: "title",
-            right: "next"
-        },
-      });
-      calendar.render();
-    });
-  </script>
-{% endblock js %}
+  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center bg-[#39404b] rounded-md p-1">
+          <a class="p-2 hover:bg-[#454d5a] rounded-md transition-colors"
+             href="{% url 'release_calendar' %}?month={{ prev_month }}&year={{ prev_year }}&view={{ view_type }}">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="lucide lucide-chevron-left w-5 h-5">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </a>
+          <h2 class="px-4 text-lg font-semibold min-w-[160px] text-center">{{ month_name }} {{ year }}</h2>
+          <a class="p-2 hover:bg-[#454d5a] rounded-md transition-colors"
+             href="{% url 'release_calendar' %}?month={{ next_month }}&year={{ next_year }}&view={{ view_type }}">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="lucide lucide-chevron-right w-5 h-5">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a class="px-4 py-2 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+                href="{% url 'release_calendar' %}?month={{ today_month }}&year={{ today_year }}&view={{ view_type }}">Today</a>
+
+        <div class="bg-[#39404b] rounded-md p-1 flex">
+          <button class="p-2 rounded-md transition-colors {% if view_type == 'grid' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
+                  title="Grid View"
+                  hx-get="{% url 'release_calendar' %}?month={{ current_date.month }}&year={{ current_date.year }}&view=grid"
+                  hx-target="#calendar-container"
+                  hx-swap="innerHTML"
+                  hx-push-url="true">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="lucide lucide-grid3x3 w-4 h-4">
+              <rect width="18" height="18" x="3" y="3" rx="2"></rect>
+              <path d="M3 9h18"></path>
+              <path d="M3 15h18"></path>
+              <path d="M9 3v18"></path>
+              <path d="M15 3v18"></path>
+            </svg>
+          </button>
+          <button class="p-2 rounded-md transition-colors {% if view_type == 'list' %}bg-indigo-600 text-white{% else %}hover:bg-[#454d5a]{% endif %}"
+                  title="List View"
+                  hx-get="{% url 'release_calendar' %}?month={{ current_date.month }}&year={{ current_date.year }}&view=list"
+                  hx-target="#calendar-container"
+                  hx-swap="innerHTML"
+                  hx-push-url="true">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="lucide lucide-list w-4 h-4">
+              <line x1="8" x2="21" y1="6" y2="6"></line><line x1="8" x2="21" y1="12" y2="12"></line><line x1="8" x2="21" y1="18" y2="18"></line><line x1="3" x2="3.01" y1="6" y2="6"></line><line x1="3" x2="3.01" y1="12" y2="12"></line><line x1="3" x2="3.01" y1="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="calendar-container">
+      {% if view_type == 'grid' %}
+        {% include "events/components/calendar_grid.html" %}
+      {% else %}
+        {% include "events/components/calendar_list.html" %}
+      {% endif %}
+    </div>
+  </div>
+{% endblock content %}

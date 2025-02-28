@@ -17,13 +17,13 @@ def addslashes_double(arg1):
     return arg1.replace('"', '\\"')
 
 
-@register.filter()
+@register.filter
 def no_underscore(arg1):
     """Return the title case of the string."""
     return arg1.replace("_", " ")
 
 
-@register.filter()
+@register.filter
 def slug(arg1):
     """Return the slug of the string.
 
@@ -39,25 +39,25 @@ def slug(arg1):
     return cleaned
 
 
-@register.filter()
+@register.filter
 def format_time(total_minutes):
     """Convert total minutes to HH:MM format."""
     return helpers.minutes_to_hhmm(total_minutes)
 
 
-@register.filter()
+@register.filter
 def is_list(arg1):
     """Return True if the object is a list."""
     return isinstance(arg1, list)
 
 
-@register.filter()
+@register.filter
 def media_type_readable(media_type):
     """Return the readable media type."""
     return models.Item.MediaTypes(media_type).label
 
 
-@register.filter()
+@register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
     singular = models.Item.MediaTypes(media_type).label
@@ -72,7 +72,7 @@ def media_type_readable_plural(media_type):
     return f"{singular}s"
 
 
-@register.filter()
+@register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
     media_type_source = {
@@ -219,7 +219,7 @@ def modal_url(modal_type, media):
 
 
 @register.simple_tag
-def icon(name, is_active):
+def icon(name, is_active, extra_classes=None):
     """Return the SVG icon for the media type."""
     base_svg = """<svg xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -230,7 +230,7 @@ def icon(name, is_active):
                       stroke-width="2"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="w-5 h-5 {active_class}">
+                      class="{active_class} {extra_classes}">
                       {content}
                  </svg>"""
 
@@ -329,9 +329,12 @@ def icon(name, is_active):
         return ""
 
     active_class = "text-indigo-400" if is_active else ""
+    extra_classes = extra_classes or "w-5 h-5"
+
     svg = base_svg.format(
         content=content,
         active_class=active_class,
+        extra_classes=extra_classes,
     )
 
     return format_html(svg)

@@ -12,6 +12,11 @@ layouts = [
     ("table", "Table"),
 ]
 
+calendar_layouts = [
+    ("grid", "Grid"),
+    ("list", "List"),
+]
+
 
 class User(AbstractUser):
     """Custom user model that saves the last media search type."""
@@ -74,6 +79,12 @@ class User(AbstractUser):
     )
 
     hide_from_search = models.BooleanField(default=True)
+
+    calendar_layout = models.CharField(
+        max_length=20,
+        default="grid",
+        choices=calendar_layouts,
+    )
 
     token = models.CharField(
         max_length=32,

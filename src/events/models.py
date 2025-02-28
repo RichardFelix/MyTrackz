@@ -8,7 +8,7 @@ from app.models import Item, Media
 class EventManager(models.Manager):
     """Custom manager for the Event model."""
 
-    def get_user_events(self, user):
+    def get_user_events(self, user, first_day, last_day):
         """Get all upcoming media events of the specified user."""
         media_types_with_user = [
             choice.value
@@ -21,7 +21,9 @@ class EventManager(models.Manager):
 
         return self.filter(
             query,
-        )
+            date__gte=first_day,
+            date__lte=last_day,
+        ).select_related("item")
 
     def get_items_to_process(self):
         """Get items to process for the calendar."""

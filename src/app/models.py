@@ -61,14 +61,14 @@ class Item(models.Model):
     class Colors(models.TextChoices):
         """Colors for different media types."""
 
-        TV = "#198754", "Green"
-        SEASON = "#6f42c1", "Purple"
-        EPISODE = "#6610f2", "Indigo"
-        MOVIE = "#fd7e14", "Orange"
-        ANIME = "#0d6efd", "Blue"
-        MANGA = "#b02a37", "Red"
-        GAME = "#ffc107", "Yellow"
-        BOOK = "#d63384", "Pink"
+        TV = "text-emerald-400", "Emerald"
+        SEASON = "text-purple-400", "Purple"
+        EPISODE = "text-indigo-400", "Indigo"
+        MOVIE = "text-orange-400", "Orange"
+        ANIME = "text-blue-400", "Blue"
+        MANGA = "text-red-400", "Red"
+        GAME = "text-yellow-400", "Yellow"
+        BOOK = "text-fuchsia-400", "Fuchsia"
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
@@ -171,11 +171,6 @@ class Item(models.Model):
             return "1"
 
         return str(int(latest_item.media_id) + 1)
-
-    @property
-    def url(self):
-        """Return the URL of the item."""
-        app_tags.media_url(self)
 
     @property
     def event_color(self):
