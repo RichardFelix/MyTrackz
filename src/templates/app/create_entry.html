@@ -132,62 +132,15 @@
         <div x-cloak>
           <label class="block text-sm font-medium mb-2 text-gray-300">Media Type</label>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button type="button"
-                    @click="mediaType = 'tv'"
-                    :class="mediaType === 'tv' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'tv' is_active=False %}
-              <span class="text-sm font-medium">{{ "tv"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'season'"
-                    :class="mediaType === 'season' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'season' is_active=False %}
-              <span class="text-sm font-medium">{{ "season"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'episode'"
-                    :class="mediaType === 'episode' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'episode' is_active=False %}
-              <span class="text-sm font-medium">{{ "episode"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'movie'"
-                    :class="mediaType === 'movie' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'movie' is_active=False %}
-              <span class="text-sm font-medium">{{ "movie"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'anime'"
-                    :class="mediaType === 'anime' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'anime' is_active=False %}
-              <span class="text-sm font-medium">{{ "anime"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'manga'"
-                    :class="mediaType === 'manga' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'manga' is_active=False %}
-              <span class="text-sm font-medium">{{ "manga"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'game'"
-                    :class="mediaType === 'game' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'game' is_active=False %}
-              <span class="text-sm font-medium">{{ "game"|media_type_readable }}</span>
-            </button>
-            <button type="button"
-                    @click="mediaType = 'book'"
-                    :class="mediaType === 'book' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
-                    class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
-              {% icon 'book' is_active=False %}
-              <span class="text-sm font-medium">{{ "book"|media_type_readable }}</span>
-            </button>
+            {% for media_type in media_types %}
+              <button type="button"
+                      @click="mediaType = '{{ media_type }}'"
+                      :class="mediaType === '{{ media_type }}' ? 'bg-indigo-600 border-indigo-500 text-white' : 'border-gray-600 text-gray-300 hover:bg-[#39404b]'"
+                      class="flex items-center gap-2 p-3 rounded-md border transition-colors cursor-pointer">
+                {% icon media_type is_active=False %}
+                <span class="text-sm font-medium">{{ media_type|media_type_readable }}</span>
+              </button>
+            {% endfor %}
           </div>
         </div>
 
