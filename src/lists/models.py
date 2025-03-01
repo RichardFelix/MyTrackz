@@ -1,12 +1,30 @@
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
 from app.models import Item
 
 
 class CustomListManager(models.Manager):
     """Manager for custom lists."""
+
+    def get_user_lists(self, user):
+        """Return the custom lists that the user owns or collaborates on."""
+        return (
+            self.filter(Q(owner=user) | Q(collaborators=user))
+            .prefetch_related(
+                "collaborators",
+                Prefetch(
+                    "items",
+                    queryset=Item.objects.order_by("-customlistitem__date_added"),
+                ),
+                Prefetch(
+                    "customlistitem_set",
+                    queryset=CustomListItem.objects.order_by("-date_added"),
+                ),
+            )
+            .distinct()
+        )
 
     def get_user_lists_with_item(self, user, item):
         """Return user lists with item membership status."""
