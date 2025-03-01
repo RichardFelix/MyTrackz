@@ -230,7 +230,7 @@ def icon(name, is_active, extra_classes=None):
                       stroke-width="2"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      class="{active_class} {extra_classes}">
+                      class="{active_class}{extra_classes}">
                       {content}
                  </svg>"""
 
@@ -328,7 +328,7 @@ def icon(name, is_active, extra_classes=None):
     if not content:
         return ""
 
-    active_class = "text-indigo-400" if is_active else ""
+    active_class = "text-indigo-400 " if is_active else ""
     extra_classes = extra_classes or "w-5 h-5"
 
     svg = base_svg.format(
