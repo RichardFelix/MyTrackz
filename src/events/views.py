@@ -80,9 +80,7 @@ def release_calendar(request):
         "next_month": next_month,
         "next_year": next_year,
         "release_dict": release_dict,
-        "today_day": today.day,
-        "today_month": today.month,
-        "today_year": today.year,
+        "today": today,
         "view_type": view_type,
     }
     return render(request, "events/calendar.html", context)

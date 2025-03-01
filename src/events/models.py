@@ -11,9 +11,7 @@ class EventManager(models.Manager):
     def get_user_events(self, user, first_day, last_day):
         """Get all upcoming media events of the specified user."""
         media_types_with_user = [
-            choice.value
-            for choice in MediaTypes
-            if choice != MediaTypes.EPISODE
+            choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
         query = Q()
         for media_type in media_types_with_user:
@@ -34,9 +32,7 @@ class EventManager(models.Manager):
             Media.Status.REPEATING.value,
         ]
         media_types_with_status = [
-            choice.value
-            for choice in MediaTypes
-            if choice != MediaTypes.EPISODE
+            choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
         query = Q()
         for media_type in media_types_with_status:
@@ -89,9 +85,18 @@ class Event(models.Model):
     def __str__(self):
         """Return event title."""
         if self.item.media_type == "season":
-            return f"{self.item.__str__()}E{self.episode_number}"
+            return f"{self.item.title} S{self.item.season_number} - Ep. {self.episode_number}"  # noqa: E501
         if self.item.media_type == "manga":
             return f"{self.item.__str__()} - Ch. {self.episode}"
         if self.item.media_type == "anime":
             return f"{self.item.__str__()} - Ep. {self.episode_number}"
         return self.item.__str__()
+
+    @property
+    def readable_episode_number(self):
+        """Return the episode number in a readable format."""
+        if self.episode_number is None:
+            return ""
+        if self.item.media_type == "manga":
+            return f"Ch. {self.episode_number}"
+        return f"Ep. {self.episode_number}"
