@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
@@ -50,6 +51,9 @@ def list_detail(request, list_id):
     # Get parameters from request
     sort_by = request.GET.get("sort", "date_added")
     media_type = request.GET.get("type", "all")
+    page = request.GET.get("page", 1)
+
+    items_per_page = 20
 
     items = custom_list.items.all()
     if media_type != "all":
@@ -66,6 +70,23 @@ def list_detail(request, list_id):
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
     items = items.order_by(sort_field)
 
+    # Create paginator
+    paginator = Paginator(items, items_per_page)
+    items_page = paginator.get_page(page)
+
+    # Check if this is an HTMX request for more items
+    if request.headers.get("HX-Request") and "page" in request.GET:
+        return render(
+            request,
+            "lists/components/item_grid.html",  # We'll create this partial template
+            {
+                "custom_list": custom_list,
+                "items": items_page,
+                "sort": sort_by,
+                "type": media_type,
+            },
+        )
+
     form = CustomListForm(instance=custom_list)
 
     return render(
@@ -73,7 +94,7 @@ def list_detail(request, list_id):
         "lists/list_detail.html",
         {
             "custom_list": custom_list,
-            "items": items,
+            "items": items_page,
             "form": form,
             "sort": sort_by,
             "type": media_type,
