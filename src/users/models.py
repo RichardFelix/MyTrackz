@@ -22,6 +22,15 @@ class CalendarLayoutChoices(models.TextChoices):
     LIST = "list", "List"
 
 
+class ListSortChoices(models.TextChoices):
+    """Choices for list sort options."""
+
+    LAST_ITEM_ADDED = "last_item_added", "Last Item Added"
+    NAME = "name", "Name"
+    ITEMS_COUNT = "items_count", "Items Count"
+    CREATION_ORDER = "creation_order", "Newest First"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -90,6 +99,12 @@ class User(AbstractUser):
         choices=CalendarLayoutChoices.choices,
     )
 
+    lists_sort = models.CharField(
+        max_length=20,
+        default=ListSortChoices.LAST_ITEM_ADDED,
+        choices=ListSortChoices.choices,
+    )
+
     token = models.CharField(
         max_length=32,
         null=True,
@@ -138,6 +153,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="calendar_layout_valid",
                 check=models.Q(calendar_layout__in=CalendarLayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="lists_sort_valid",
+                check=models.Q(lists_sort__in=ListSortChoices.values),
             ),
         ]
 

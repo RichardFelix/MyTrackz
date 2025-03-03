@@ -20,9 +20,13 @@ logger = logging.getLogger(__name__)
 def lists(request):
     """Return the custom list page."""
     # Get parameters from request
-    sort_by = request.GET.get("sort", "last_item_added")
+    sort_by = request.GET.get("sort") or request.user.lists_sort
     search_query = request.GET.get("q", "")
     page = request.GET.get("page", 1)
+
+    if sort_by != request.user.lists_sort:
+        request.user.lists_sort = sort_by
+        request.user.save(update_fields=["lists_sort"])
 
     custom_lists = CustomList.objects.get_user_lists(request.user)
 
