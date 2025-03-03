@@ -147,7 +147,7 @@
         <!-- Title field (TV, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('title')">
           <label class="block text-sm font-medium mb-2 text-gray-300">Title</label>
-          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  placeholder="Enter title"
                  name="title"
                  type="text"
@@ -160,7 +160,7 @@
           <div class="relative">
             <div class="relative">
               <input id="parent-tv-input"
-                     class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                      placeholder="Search for a TV show..."
                      name="q"
                      type="text"
@@ -195,7 +195,7 @@
           <div class="relative">
             <input min="1"
                    max="999"
-                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
+                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
                    name="season_number"
                    type="number"
                    value="1">
@@ -242,7 +242,7 @@
           <div class="relative">
             <div class="relative">
               <input id="parent-season-input"
-                     class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     class="w-full p-2 pl-9 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                      placeholder="Search for a season..."
                      name="q"
                      type="text"
@@ -277,7 +277,7 @@
           <div class="relative">
             <input min="1"
                    max="999"
-                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
+                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
                    name="episode_number"
                    type="number"
                    value="1">
@@ -323,7 +323,7 @@
           <label class="block text-sm font-medium mb-2 text-gray-300">Image URL</label>
           <div class="flex gap-4">
             <div class="flex-1">
-              <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                      name="image"
                      placeholder="Enter image URL"
                      type="url"
@@ -355,7 +355,7 @@
           <div class="relative">
             <input min="0"
                    max="10"
-                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
+                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
                    name="score"
                    type="number"
                    placeholder="0-10">
@@ -402,7 +402,7 @@
                  x-text="getProgressLabel()">Progress</label>
 
           <div class="relative">
-            <input class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            <input class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                    name="progress"
                    x-bind:type="mediaType === 'game' ? 'text' : 'number'"
                    x-bind:placeholder="mediaType === 'game' ? 'hh:mm' : ''"
@@ -453,7 +453,7 @@
         <div x-show="showField('status')">
           <label class="block text-sm font-medium mb-2 text-gray-300">Status</label>
           <div class="relative">
-            <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 appearance-none"
+            <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     name="status">
               <option value="Completed">Completed</option>
               <option value="In progress">In Progress</option>
@@ -484,7 +484,7 @@
           <div class="relative">
             <input min="0"
                    max="999"
-                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
+                   class="w-full p-2 pr-12 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] [appearance:textfield] [&amp;::-webkit-outer-spin-button]:appearance-none [&amp;::-webkit-inner-spin-button]:appearance-none"
                    name="repeats"
                    type="number"
                    value="0">
@@ -528,7 +528,7 @@
         <!-- Start Date field (Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('startDate')">
           <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
-          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  name="start_date"
                  type="date"
                  value="">
@@ -537,7 +537,7 @@
         <!-- End Date field (Episode, Movie, Anime, Manga, Game, Book) -->
         <div x-show="showField('endDate')">
           <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
-          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          <input class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                  name="end_date"
                  type="date"
                  value="">
@@ -546,7 +546,7 @@
         <!-- Notes field (TV, Movie, Anime, Manga, Game, Book, Season) -->
         <div x-show="showField('notes')">
           <label class="block text-sm font-medium mb-2 text-gray-300">Notes</label>
-          <textarea class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          <textarea class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                     rows="4"
                     name="notes"
                     placeholder="Add any notes or comments..."></textarea>
