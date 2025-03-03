@@ -1009,7 +1009,7 @@ class Season(Media):
         for episode in season_metadata["episodes"]:
             if episode["episode_number"] == episode_number:
                 if episode.get("still_path"):
-                    image = f"http://image.tmdb.org/t/p/original{episode['still_path']}"
+                    image = f"https://image.tmdb.org/t/p/original{episode['still_path']}"
                 elif "image" in episode:
                     # for manual seasons
                     image = episode["image"]
