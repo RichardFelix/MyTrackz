@@ -2,7 +2,7 @@ import logging
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import F, Q
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
@@ -11,7 +11,7 @@ from app import helpers
 from app.models import Item, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
-from lists.models import CustomList
+from lists.models import CustomList, CustomListItem
 
 logger = logging.getLogger(__name__)
 
@@ -19,14 +19,57 @@ logger = logging.getLogger(__name__)
 @require_GET
 def lists(request):
     """Return the custom list page."""
+    # Get parameters from request
+    sort_by = request.GET.get("sort", "last_item_added")
+    search_query = request.GET.get("q", "")
+    page = request.GET.get("page", 1)
+
     custom_lists = CustomList.objects.get_user_lists(request.user)
+
+    if search_query:
+        custom_lists = custom_lists.filter(
+            Q(name__icontains=search_query) | Q(description__icontains=search_query),
+        )
+
+    if sort_by == "name":
+        custom_lists = custom_lists.order_by("name")
+    elif sort_by == "items_count":
+        custom_lists = custom_lists.annotate(
+            items_count=Count("items", distinct=True),
+        ).order_by("-items_count")
+    elif sort_by == "creation_order":
+        custom_lists = custom_lists.order_by("-id")
+    else:  # last_item_added is the default
+        # Get the latest update date for each list
+        custom_lists = custom_lists.annotate(
+            latest_update=Subquery(
+                CustomListItem.objects.filter(
+                    custom_list=OuterRef("pk"),
+                )
+                .order_by("-date_added")
+                .values("date_added")[:1],
+            ),
+        ).order_by("-latest_update", "name")
+
+    items_per_page = 20
+    paginator = Paginator(custom_lists, items_per_page)
+    lists_page = paginator.get_page(page)
 
     # Create a form for each list
     # needs unique id for django-select2
-    for i, custom_list in enumerate(custom_lists, start=1):
+    for i, custom_list in enumerate(lists_page, start=1):
         custom_list.form = CustomListForm(
             instance=custom_list,
             auto_id=f"id_{i}_%s",
+        )
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "lists/components/list_grid.html",
+            {
+                "custom_lists": lists_page,
+            },
         )
 
     create_list_form = CustomListForm()
@@ -34,7 +77,10 @@ def lists(request):
     return render(
         request,
         "lists/custom_lists.html",
-        {"custom_lists": custom_lists, "form": create_list_form},
+        {
+            "custom_lists": lists_page,
+            "form": create_list_form,
+        },
     )
 
 
@@ -54,26 +100,19 @@ def list_detail(request, list_id):
     page = request.GET.get("page", 1)
     search_query = request.GET.get("q", "")
 
-    items_per_page = 20
-
     items = custom_list.items.all()
 
-    # Apply search filter if query exists
     if search_query:
         items = items.filter(title__icontains=search_query)
-
-    # Apply media type filter
     if media_type != "all":
         items = items.filter(media_type=media_type)
 
-    # Define sort mappings
     sort_options = {
         "date_added": "-customlistitem__date_added",
         "title": ("title", "season_number", "episode_number"),
         "media_type": "media_type",
     }
 
-    # Apply sorting to items
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
     if isinstance(sort_field, tuple):
         # Create a list of OrderBy expressions to handle nulls properly
@@ -91,11 +130,10 @@ def list_detail(request, list_id):
     else:
         items = items.order_by(sort_field)
 
-    # Create paginator
+    items_per_page = 20
     paginator = Paginator(items, items_per_page)
     items_page = paginator.get_page(page)
 
-    # Check if this is an HTMX request
     if request.headers.get("HX-Request"):
         return render(
             request,
