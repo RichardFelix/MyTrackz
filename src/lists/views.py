@@ -81,14 +81,16 @@ def list_detail(request, list_id):
 @require_POST
 def create(request):
     """Create a new custom list."""
-    form = CustomListForm(request.POST, owner=request.user)
+    form = CustomListForm(request.POST)
     if form.is_valid():
         custom_list = form.save(commit=False)
         custom_list.owner = request.user
         custom_list.save()
+        form.save_m2m()
         logger.info("%s list created successfully.", custom_list)
     else:
-        messages.error(request, "There was an error creating the list.")
+        logger.error(form.errors.as_json())
+        helpers.form_error_messages(form, request)
     return helpers.redirect_back(request)
 
 

@@ -23,16 +23,11 @@ class CustomListForm(forms.ModelForm):
             "collaborators": CollaboratorsWidget(
                 attrs={
                     "data-minimum-input-length": 1,
-                    "data-placeholder": "Add users",
+                    "data-placeholder": "Search users to add...",
                     "data-allow-clear": "false",
                 },
             ),
         }
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the form with the owner."""
-        self.owner = kwargs.pop("owner", None)
-        super().__init__(*args, **kwargs)
 
 
 class FilterListItemsForm(forms.Form):

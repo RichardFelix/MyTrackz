@@ -1,0 +1,72 @@
+{% load widget_tweaks %}
+
+<div x-show="showModal"
+     x-cloak
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div @click.outside="showModal = false"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 transform scale-95"
+       x-transition:enter-end="opacity-100 transform scale-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 transform scale-100"
+       x-transition:leave-end="opacity-0 transform scale-95"
+       class="bg-[#2a2f35] p-6 rounded-lg w-[32rem] max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold">
+        {% if form.instance.pk %}
+          Edit List
+        {% else %}
+          Create New List
+        {% endif %}
+      </h2>
+      <button @click="showModal = false"
+              class="text-gray-400 hover:text-white transition-colors cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <form class="space-y-6"
+          action="{% if form.instance.pk %}{% url 'list_edit' %}{% else %}{% url 'list_create' %}{% endif %}?next={{ request.path }}"
+          method="post">
+      {% csrf_token %}
+      <input type="hidden" name="list_id" value="{{ custom_list.id }}">
+      {% for field in form %}
+        <div>
+          <label class="block text text-sm font-medium mb-2 text-gray-300">{{ field.label }}</label>
+          {% if field.name != 'collaborators' %}
+            {{ field|add_class:"w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none" }}
+          {% else %}
+            {{ field }}
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <div class="flex justify-end pt-4">
+        <button type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+          {% if form.instance.pk %}
+            Save
+          {% else %}
+            Create List
+          {% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

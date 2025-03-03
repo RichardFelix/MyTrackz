@@ -35,3 +35,67 @@
 .toast-info {
   @apply bg-indigo-700/95 border-indigo-600;
 }
+
+.select2-container--tailwindcss-4 {
+  @apply min-w-full;
+}
+
+/* Dropdown */
+.select2-container--tailwindcss-4.select2-container--open .select2-dropdown {
+  @apply w-full mt-1 overflow-auto rounded-md text-base bg-[#39404b] border-gray-600 border focus-within:border-indigo-500 focus-within:ring focus-within:ring-indigo-200/50;
+}
+
+.select2-container--tailwindcss-4 .select2-results__message {
+  @apply text-sm text-gray-400;
+}
+
+/* Hover state */
+.select2-container--tailwindcss-4 .select2-results__option--highlighted {
+  @apply text-white bg-[#454d5a];
+}
+
+/* Multiple selection */
+.select2-container--tailwindcss-4 .select2-selection--multiple {
+  @apply rounded-md text-base sm:text-sm/6 bg-[#39404b] p-1.5 cursor-default text-white border border-white/10;
+}
+
+/* Multiple selection list */
+.select2-container--tailwindcss-4
+  .select2-selection--multiple
+  .select2-selection__rendered {
+  @apply flex flex-row flex-wrap gap-1.5 m-0 p-0 list-none;
+}
+
+/* Multiple selection choices */
+.select2-container--tailwindcss-4
+  .select2-selection--multiple
+  .select2-selection__choice {
+  @apply flex flex-row-reverse items-center gap-1 bg-[#454d5a] text-gray-200 pl-2 pr-1 py-1 rounded-md text-sm border border-indigo-500/20;
+}
+
+/* Remove button */
+.select2-container--tailwindcss-4
+  .select2-selection--multiple
+  .select2-selection__choice__remove {
+  @apply mr-1 h-4 w-4 pb-[0.10rem] items-center flex justify-center rounded-full hover:bg-red-400/10 hover:text-red-400 cursor-pointer;
+}
+
+/* Search field in multiple selection */
+.select2-container--tailwindcss-4
+  .select2-selection--multiple
+  .select2-search--inline {
+  @apply block my-0.5;
+}
+
+.select2-container--tailwindcss-4
+  .select2-selection--multiple
+  .select2-search--inline
+  .select2-search__field {
+  @apply h-[1.5rem] p-0 m-0 text-sm/6 bg-transparent border-0 focus:outline-hidden focus:ring-0 placeholder:text-gray-500 placeholder:text-sm/6 placeholder:font-sans;
+}
+
+/* Focus styles for keyboard navigation */
+.select2-container--tailwindcss-4.select2-container--focus
+  .select2-selection--multiple {
+  @apply outline-none ring-2 ring-[#4a9eff] appearance-none;
+}

@@ -1,128 +1,135 @@
 {% extends "base.html" %}
 {% load static %}
-{% load crispy_forms_tags %}
 
-{% block css %}
+{% block extra_head %}
   {{ form.media.css }}
-{% endblock css %}
+{% endblock extra_head %}
 
 {% block title %}
   Lists - Yamtrack
 {% endblock title %}
-{% block container %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="text-light mb-0">My Lists</h3>
-    <button type="button"
-            class="btn btn-secondary"
-            data-bs-toggle="modal"
-            data-bs-target="#create-list">Create List</button>
-  </div>
 
-  <div class="modal fade" id="create-list" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h1 class="modal-title fs-5">Create a new list</h1>
-          <button type="button"
-                  class="btn-close"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form method="post"
-                id="new-list-form"
-                action="{% url 'create' %}?next={{ request.path }}">
-            {% csrf_token %}
-            {{ form|crispy }}
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary" form="new-list-form">Save</button>
-        </div>
+{% block content %}
+  <div x-data="{ showModal: false }">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div>
+        <h1 class="text-3xl font-bold mb-2">Lists</h1>
+        <p class="text-gray-400">Organize and share your media lists</p>
       </div>
+      <button @click="showModal = true"
+              class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5 mr-2">
+          <path d="M5 12h14"></path>
+          <path d="M12 5v14"></path>
+        </svg>
+        New List
+      </button>
     </div>
+    {% include "lists/components/list_form.html" %}
   </div>
- 
-  {% for custom_list in custom_lists %}
-    <div class="card mb-3">
-      <div class="row">
-        <div class="col-xxl-1 col-md-2 col-sm-3">
-          <a href="{% url 'list_detail' custom_list.id %}">
-            {% with first=custom_list.items.first %}
-              {% if first and first.image != IMG_NONE %}
-                <img src="{{ first.image }}"
-                     class="w-100 h-100 object-fit-cover rounded-start bg-body-secondary"
-                     alt="{{ custom_list.name }}">
-              {% else %}
-                <img src="{{ IMG_NONE }}"
-                     class="w-100 h-100 rounded-start bg-body-secondary"
-                     alt="{{ custom_list.name }}">
-              {% endif %}
-            {% endwith %}
-          </a>
-        </div>
-        <div class="col-md-9 col-sm-8 card-body pb-2 d-flex flex-column align-items-start">
-          <div class="d-flex align-items-center">
-            <a href="{% url 'list_detail' custom_list.id %}"
-               class="list-title">
-              <span class="fs-5 fw-bold">{{ custom_list.name }}</span>
-            </a>
+  <div class="relative mb-6">
+    <input placeholder="Search lists..."
+           class="w-full py-2 pl-10 pr-4 bg-[#2a2f35] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200/50"
+           type="text"
+           value="">
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="24"
+         height="24"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="2"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.3-4.3"></path>
+    </svg>
+  </div>
 
-            {% with item_count=custom_list.items.count %}
-              <span class="ms-2 fw-light text-body-secondary">({{ item_count }} item{{ item_count|pluralize }})</span>
-            {% endwith %}
-          </div>
-          <p class="description mb-2">{{ custom_list.description }}</p>
+  <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    {% for custom_list in custom_lists %}
+      <div class="bg-[#2a2f35] rounded-lg overflow-hidden hover:shadow-lg group"
+           x-data="{ showModal: false }">
+        <div class="relative h-48 flex items-center justify-center">
+          <img alt="{{ custom_list.name }}"
+               class="{% if custom_list.image != IMG_NONE %}w-full h-full object-cover{% else %}w-3/5 h-3/5{% endif %}"
+               src="{{ custom_list.image }}">
 
-          <button type="button"
-                  class="btn btn-secondary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#edit-list-{{ custom_list.id }}">
-            <i class="bi bi-pencil-square"></i>
+          <div class="absolute inset-0 bg-black/40 transition-opacity group-hover:bg-black/50"></div>
+          <a href="{% url 'list_detail' custom_list.id %}"
+             class="absolute inset-0"></a>
+
+          <button class="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/75 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 text-white hover:text-indigo-400 cursor-pointer"
+                  @click="showModal = true"
+                  title="Edit list">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
+              <path d="M20 7h-9"></path>
+              <path d="M14 17H5"></path>
+              <circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle>
+            </svg>
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Modal for each custom list -->
-    <div class="modal fade"
-         id="edit-list-{{ custom_list.id }}"
-         tabindex="-1"
-         aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h1 class="modal-title fs-5">Edit List</h1>
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-          </div>
-
-          <div class="modal-body">
-            <form method="post" id="form-{{ custom_list.id }}">
-              {% csrf_token %}
-              <input type="hidden" name="list_id" value="{{ custom_list.id }}">
-              {{ custom_list.form|crispy }}
-            </form>
-          </div>
-          <div class="modal-footer d-flex flex-row-reverse justify-content-between">
-            <button type="submit"
-                    class="btn btn-primary"
-                    form="form-{{ custom_list.id }}"
-                    formaction="{% url 'edit' %}?next={{ request.path }}">Save</button>
-            <button type="submit"
-                    class="btn btn-danger"
-                    form="form-{{ custom_list.id }}"
-                    formaction="{% url 'delete' %}?next={{ request.path }}">Delete</button>
+          <div class="absolute bottom-4 left-4 flex flex-col items-start max-w-[calc(100%-2rem)]">
+            <h3 class="text-xl font-semibold text-white mb-1 line-clamp-1 w-full">{{ custom_list.name }}</h3>
+            <p class="text-sm text-gray-200 line-clamp-2 w-full">{{ custom_list.description }}</p>
           </div>
         </div>
+        <div class="p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-4 h-4 text-gray-400 mr-2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <div class="flex -space-x-2">
+                <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+                     title="{{ custom_list.owner.username }}">{{ custom_list.owner.username.0|upper }}</div>
+                {% for collaborator in custom_list.collaborators.all %}
+                  <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+                       title="{{ collaborator.username }}">{{ collaborator.username.0|upper }}</div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="flex items-center text-gray-400 text-sm">
+              {% with item_count=custom_list.items.count %}<span>{{ item_count }} item{{ item_count|pluralize }}</span>{% endwith %}
+            </div>
+          </div>
+        </div>
+
+        {% include "lists/components/list_form.html" with form=custom_list.form %}
       </div>
-    </div>
-  {% empty %}
-    No custom lists created yet.
-  {% endfor %}
-{% endblock container %}
+    {% endfor %}
+  </div>
+{% endblock content %}
 
 {% block js %}
   {{ form.media.js }}

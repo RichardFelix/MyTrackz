@@ -12,6 +12,7 @@ class CustomListManager(models.Manager):
         """Return the custom lists that the user owns or collaborates on."""
         return (
             self.filter(Q(owner=user) | Q(collaborators=user))
+            .select_related("owner")
             .prefetch_related(
                 "collaborators",
                 Prefetch(
@@ -84,6 +85,11 @@ class CustomList(models.Model):
     def user_can_delete(self, user):
         """Check if the user can delete the list."""
         return self.owner == user
+
+    @property
+    def image(self):
+        """Return the image of the first item in the list."""
+        return self.items.first().image if self.items.first() else settings.IMG_NONE
 
 
 class CustomListItemManager(models.Manager):

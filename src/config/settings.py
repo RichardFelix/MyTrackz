@@ -253,16 +253,13 @@ TESTING = False
 
 # Third party settings
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
-CRISPY_TEMPLATE_PACK = "bootstrap5"
-
 DEBUG_TOOLBAR_CONFIG = {
     "SKIP_TEMPLATE_PREFIXES": (
         "django/forms/widgets/",
         "admin/widgets/",
         "app/components/",
-        "bootstrap5/",
     ),
+    "ROOT_TAG_EXTRA_ATTRS": "hx-preserve",
 }
 
 SELECT2_CACHE_BACKEND = "default"
@@ -273,9 +270,8 @@ SELECT2_JS = [
 SELECT2_I18N_PATH = "js/i18n"
 SELECT2_CSS = [
     "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css",
-    "https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css",
 ]
-SELECT2_THEME = "bootstrap-5"
+SELECT2_THEME = "tailwindcss-4"
 
 # Celery settings
 
