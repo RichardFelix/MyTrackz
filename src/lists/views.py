@@ -2,7 +2,7 @@ import logging
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
@@ -69,13 +69,27 @@ def list_detail(request, list_id):
     # Define sort mappings
     sort_options = {
         "date_added": "-customlistitem__date_added",
-        "title": "title",
+        "title": ("title", "season_number", "episode_number"),
         "media_type": "media_type",
     }
 
     # Apply sorting to items
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
-    items = items.order_by(sort_field)
+    if isinstance(sort_field, tuple):
+        # Create a list of OrderBy expressions to handle nulls properly
+        order_expressions = []
+        for field in sort_field:
+            # For season_number and episode_number, null values should come last
+            if field in ["season_number", "episode_number"]:
+                order_expressions.append(
+                    F(field).asc(nulls_last=True),
+                )
+            else:
+                order_expressions.append(field)
+
+        items = items.order_by(*order_expressions)
+    else:
+        items = items.order_by(sort_field)
 
     # Create paginator
     paginator = Paginator(items, items_per_page)
