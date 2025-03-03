@@ -11,7 +11,7 @@
     <div class="relative" x-data="{ open: false }">
       <button @click="open = !open"
               @click.outside="open = false"
-              class="flex items-center gap-2 px-4 py-2 bg-[#2a2f35] rounded-md hover:bg-[#343a40] transition-colors cursor-pointer">
+              class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
         <span class="text-sm text-gray-300">Sort:</span>
         <span class="text-sm font-medium">
           {% if current_sort == 'upcoming' %}
@@ -45,21 +45,21 @@
            x-transition:leave="transition ease-in duration-75"
            x-transition:leave-start="transform opacity-100 scale-100"
            x-transition:leave-end="transform opacity-0 scale-95"
-           class="absolute right-0 mt-2 py-1 w-48 bg-[#2a2f35] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
+           class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
         <a href="{% url 'home' %}?sort=upcoming"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'upcoming' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'upcoming' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
           Upcoming
         </a>
         <a href="{% url 'home' %}?sort=completion"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'completion' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'completion' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
           Completion %
         </a>
         <a href="{% url 'home' %}?sort=episodes_left"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'episodes_left' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'episodes_left' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
           Episodes Left
         </a>
         <a href="{% url 'home' %}?sort=title"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'title' %}bg-[#343a40] text-white font-medium{% else %}text-gray-300 hover:bg-[#343a40] hover:text-white{% endif %}">
+           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'title' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
           Title
         </a>
       </div>
