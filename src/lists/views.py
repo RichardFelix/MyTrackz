@@ -52,10 +52,17 @@ def list_detail(request, list_id):
     sort_by = request.GET.get("sort", "date_added")
     media_type = request.GET.get("type", "all")
     page = request.GET.get("page", 1)
+    search_query = request.GET.get("q", "")
 
     items_per_page = 20
 
     items = custom_list.items.all()
+
+    # Apply search filter if query exists
+    if search_query:
+        items = items.filter(title__icontains=search_query)
+
+    # Apply media type filter
     if media_type != "all":
         items = items.filter(media_type=media_type)
 
@@ -74,16 +81,14 @@ def list_detail(request, list_id):
     paginator = Paginator(items, items_per_page)
     items_page = paginator.get_page(page)
 
-    # Check if this is an HTMX request for more items
-    if request.headers.get("HX-Request") and "page" in request.GET:
+    # Check if this is an HTMX request
+    if request.headers.get("HX-Request"):
         return render(
             request,
-            "lists/components/item_grid.html",  # We'll create this partial template
+            "lists/components/item_grid.html",
             {
                 "custom_list": custom_list,
                 "items": items_page,
-                "sort": sort_by,
-                "type": media_type,
             },
         )
 
@@ -96,8 +101,6 @@ def list_detail(request, list_id):
             "custom_list": custom_list,
             "items": items_page,
             "form": form,
-            "sort": sort_by,
-            "type": media_type,
             "media_types": media_types,
         },
     )

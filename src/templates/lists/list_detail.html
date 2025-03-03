@@ -44,13 +44,31 @@
       <span>Edit List</span>
     </button>
   </div>
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6">
+
+  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6"
+       x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}',  getMediaTypeLabel(type) { return mediaTypeLabels[type] || type; } }">
+
+    <!-- Form to manage state -->
+    <form id="filter-form" class="hidden">
+      <input type="hidden" name="sort" x-model="sort">
+      <input type="hidden" name="type" x-model="type">
+      <input type="hidden" name="q" x-model="query">
+    </form>
+
     <div class="flex flex-col sm:flex-row gap-4 mb-8">
+      {# Search #}
       <div class="relative flex-1">
-        <input placeholder="Search in collection..."
+        <input id="search-input"
+               placeholder="Search in collection..."
                class="w-full h-10 pl-10 pr-4 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                type="text"
-               value="">
+               x-model="query"
+               autocomplete="off"
+               hx-get="{% url 'list_detail' custom_list.id %}"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#items-grid"
+               hx-include="#filter-form"
+               hx-indicator="#search-indicator">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -64,18 +82,71 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.3-4.3"></path>
         </svg>
+        <div id="search-indicator"
+             class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+        </div>
       </div>
+
       <div class="flex items-center gap-2 flex-shrink-0">
         {# Filter by Type #}
         <div class="relative" x-data="{ open: false }">
           <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
-                  @click="open = !open">
-            <span class="text-sm">Type:
-              {% if type == 'all' %}
-                All Types
-              {% else %}
-                {{ type|media_type_readable_plural }}
-              {% endif %}
+                  @click="open = !open"
+                  type="button">
+            <span class="text-sm">Type: <span x-text="getMediaTypeLabel(type)"></span></span>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4"
+                 :class="{ 'transform rotate-180': open }">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
+
+          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+               x-show="open"
+               @click.outside="open = false"
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="transform opacity-0 scale-95"
+               x-transition:enter-end="transform opacity-100 scale-100"
+               x-transition:leave="transition ease-in duration-75"
+               x-transition:leave-start="transform opacity-100 scale-100"
+               x-transition:leave-end="transform opacity-0 scale-95">
+            <button hx-get="{% url 'list_detail' custom_list.id %}"
+                    hx-target="#items-grid"
+                    hx-include="#filter-form"
+                    hx-indicator="#loading-indicator"
+                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                    :class="type === 'all' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    @click="type = 'all'; open = false"
+                    type="button">All</button>
+            {% for media_type in media_types %}
+              <button hx-get="{% url 'list_detail' custom_list.id %}"
+                      hx-target="#items-grid"
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="type === '{{ media_type }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      @click="type = '{{ media_type }}'; open = false"
+                      type="button">{{ media_type|media_type_readable_plural }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Sort by #}
+        <div class="relative" x-data="{ open: false }">
+          <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                  @click="open = !open"
+                  type="button">
+            <span class="text-sm">Sort:
+              <span x-text="sort === 'date_added' ? 'Date Added' : (sort === 'title' ? 'Title' : 'Media Type')"></span>
             </span>
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
@@ -101,58 +172,30 @@
                x-transition:leave="transition ease-in duration-75"
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
-            <a href="{% set_param request.get_full_path 'type' 'all' %}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if type == 'all' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">All</a>
-            {% for media_type in media_types %}
-              <a href="{% set_param request.get_full_path 'type' media_type %}"
-                 class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if type == media_type %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-                {{ media_type|media_type_readable_plural }}
-              </a>
-            {% endfor %}
-          </div>
-        </div>
-
-        {# Sort by #}
-        <div class="relative" x-data="{ open: false }">
-          <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
-                  @click="open = !open">
-            <span class="text-sm">Sort: {{ sort|no_underscore|title }}</span>
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 width="24"
-                 height="24"
-                 viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="2"
-                 stroke-linecap="round"
-                 stroke-linejoin="round"
-                 class="w-4 h-4"
-                 :class="{ 'transform rotate-180': open }">
-              <path d="m6 9 6 6 6-6"></path>
-            </svg>
-          </button>
-
-          <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
-               x-show="open"
-               @click.outside="open = false"
-               x-transition:enter="transition ease-out duration-100"
-               x-transition:enter-start="transform opacity-0 scale-95"
-               x-transition:enter-end="transform opacity-100 scale-100"
-               x-transition:leave="transition ease-in duration-75"
-               x-transition:leave-start="transform opacity-100 scale-100"
-               x-transition:leave-end="transform opacity-0 scale-95">
-            <a href="{% set_param request.get_full_path 'sort' 'date_added' %}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if sort == 'date_added' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-              Date Added
-            </a>
-            <a href="{% set_param request.get_full_path 'sort' 'title' %}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if sort == 'title' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-              Title
-            </a>
-            <a href="{% set_param request.get_full_path 'sort' 'media_type' %}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer {% if sort == 'media_type' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-              Media Type
-            </a>
+            <button hx-get="{% url 'list_detail' custom_list.id %}"
+                    hx-target="#items-grid"
+                    hx-include="#filter-form"
+                    hx-indicator="#loading-indicator"
+                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                    :class="sort === 'date_added' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    @click="sort = 'date_added'; open = false"
+                    type="button">Date Added</button>
+            <button hx-get="{% url 'list_detail' custom_list.id %}"
+                    hx-target="#items-grid"
+                    hx-include="#filter-form"
+                    hx-indicator="#loading-indicator"
+                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                    :class="sort === 'title' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    @click="sort = 'title'; open = false"
+                    type="button">Title</button>
+            <button hx-get="{% url 'list_detail' custom_list.id %}"
+                    hx-target="#items-grid"
+                    hx-include="#filter-form"
+                    hx-indicator="#loading-indicator"
+                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                    :class="sort === 'media_type' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    @click="sort = 'media_type'; open = false"
+                    type="button">Media Type</button>
           </div>
         </div>
       </div>
@@ -184,4 +227,11 @@
 
 {% block js %}
   {{ form.media.js }}
+
+  <script>
+    const mediaTypeLabels = {
+      {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
+      'all': 'All Types'
+    };
+  </script>
 {% endblock js %}
