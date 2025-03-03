@@ -13,17 +13,7 @@
               @click.outside="open = false"
               class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
         <span class="text-sm text-gray-300">Sort:</span>
-        <span class="text-sm font-medium">
-          {% if current_sort == 'upcoming' %}
-            Upcoming
-          {% elif current_sort == 'completion' %}
-            Completion %
-          {% elif current_sort == 'episodes_left' %}
-            Episodes Left
-          {% else %}
-            Title
-          {% endif %}
-        </span>
+        <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -52,7 +42,7 @@
         </a>
         <a href="{% url 'home' %}?sort=completion"
            class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'completion' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          Completion %
+          Completion
         </a>
         <a href="{% url 'home' %}?sort=episodes_left"
            class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'episodes_left' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">

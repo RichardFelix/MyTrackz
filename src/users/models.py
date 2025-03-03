@@ -23,7 +23,7 @@ class CalendarLayoutChoices(models.TextChoices):
 
 
 class User(AbstractUser):
-    """Custom user model that saves the last media search type."""
+    """Custom user model."""
 
     is_demo = models.BooleanField(default=False)
 

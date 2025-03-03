@@ -219,7 +219,7 @@
             <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 {% if not forloop.last %}mb-8{% endif %}">
 
               {% for media in related_items %}
-                {% include "app/components/media_card.html" with media=media %}
+                {% include "app/components/media_card.html" with media=media only %}
               {% endfor %}
             </div>
           {% endif %}
