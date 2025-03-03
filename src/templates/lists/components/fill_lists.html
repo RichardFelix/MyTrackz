@@ -20,7 +20,7 @@
   </div>
   <ul class="space-y-3">
     {% for custom_list in custom_lists %}
-      <li class="flex items-center justify-between bg-[#39404b] p-3 rounded-md">
+      <li class="flex items-center justify-between bg-[#39404b] p-3 rounded-md gap-1">
         <span class="text-white">{{ custom_list.name }}</span>
         {% include "lists/components/list_item_button.html" with has_item=custom_list.has_item %}
       </li>
