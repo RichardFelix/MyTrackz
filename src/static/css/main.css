@@ -745,6 +745,9 @@
   .mb-12 {
     margin-bottom: calc(var(--spacing) * 12);
   }
+  .ml-1 {
+    margin-left: calc(var(--spacing) * 1);
+  }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
   }
@@ -1008,6 +1011,9 @@
   }
   .max-w-md {
     max-width: var(--container-md);
+  }
+  .max-w-sm {
+    max-width: var(--container-sm);
   }
   .max-w-xl {
     max-width: var(--container-xl);
@@ -1432,6 +1438,9 @@
   }
   .bg-black\/50 {
     background-color: color-mix(in oklab, var(--color-black) 50%, transparent);
+  }
+  .bg-black\/75 {
+    background-color: color-mix(in oklab, var(--color-black) 75%, transparent);
   }
   .bg-black\/80 {
     background-color: color-mix(in oklab, var(--color-black) 80%, transparent);
@@ -1983,6 +1992,14 @@
       margin-bottom: calc(var(--spacing) * 0);
     }
   }
+  .hover\:-translate-y-1 {
+    &:hover {
+      @media (hover: hover) {
+        --tw-translate-y: calc(var(--spacing) * -1);
+        translate: var(--tw-translate-x) var(--tw-translate-y);
+      }
+    }
+  }
   .hover\:scale-110 {
     &:hover {
       @media (hover: hover) {
@@ -2305,6 +2322,11 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
+  .sm\:grid-cols-3 {
+    @media (width >= 40rem) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
   .sm\:grid-cols-4 {
     @media (width >= 40rem) {
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2381,6 +2403,11 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
+  .md\:grid-cols-4 {
+    @media (width >= 48rem) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
   .md\:flex-row {
     @media (width >= 48rem) {
       flex-direction: row;
@@ -2432,9 +2459,29 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
+  .lg\:grid-cols-5 {
+    @media (width >= 64rem) {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
   .lg\:justify-center {
     @media (width >= 64rem) {
       justify-content: center;
+    }
+  }
+  .xl\:grid-cols-6 {
+    @media (width >= 80rem) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+  .xl\:grid-cols-7 {
+    @media (width >= 80rem) {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+  }
+  .xl\:grid-cols-8 {
+    @media (width >= 80rem) {
+      grid-template-columns: repeat(8, minmax(0, 1fr));
     }
   }
   .hover-tap\:opacity-100 {

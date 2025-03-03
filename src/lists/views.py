@@ -2,14 +2,15 @@ import logging
 
 from django.contrib import messages
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
-from app.models import Item
+from app.models import Item, MediaTypes
 from app.providers import services
-from lists.forms import CustomListForm, FilterListItemsForm
-from lists.models import CustomList, CustomListItem
+from lists.forms import CustomListForm
+from lists.models import CustomList
 
 logger = logging.getLogger(__name__)
 
@@ -40,40 +41,43 @@ def lists(request):
 def list_detail(request, list_id):
     """Return the detail page of a custom list."""
     custom_list = get_object_or_404(CustomList, id=list_id)
+    media_types = MediaTypes.values
+
     if not custom_list.user_can_view(request.user):
-        messages.error(request, "You do not have permission to view this list.")
-        return helpers.redirect_back(request)
+        msg = "List not found"
+        raise Http404(msg)
+
+    # Get parameters from request
+    sort_by = request.GET.get("sort", "date_added")
+    media_type = request.GET.get("type", "all")
+
+    items = custom_list.items.all()
+    if media_type != "all":
+        items = items.filter(media_type=media_type)
+
+    # Define sort mappings
+    sort_options = {
+        "date_added": "-customlistitem__date_added",
+        "title": "title",
+        "media_type": "media_type",
+    }
+
+    # Apply sorting to items
+    sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
+    items = items.order_by(sort_field)
 
     form = CustomListForm(instance=custom_list)
-    items = custom_list.items.all()
-
-    if request.GET:
-        filter_form = FilterListItemsForm(request.GET)
-        if filter_form.is_valid():
-            media_type = filter_form.cleaned_data["media_type"]
-            sort = filter_form.cleaned_data["sort"]
-
-            # Apply media type filter
-            if media_type != "all":
-                items = items.filter(media_type=media_type)
-
-            # Apply sorting
-            if sort == "title":
-                items = items.order_by("title")
-    else:
-        filter_form = FilterListItemsForm()
-
-    last_added_date = CustomListItem.objects.get_last_added_date(custom_list)
 
     return render(
         request,
         "lists/list_detail.html",
         {
             "custom_list": custom_list,
-            "form": form,
-            "filter_form": filter_form,
             "items": items,
-            "last_added_date": last_added_date,
+            "form": form,
+            "sort": sort_by,
+            "type": media_type,
+            "media_types": media_types,
         },
     )
 

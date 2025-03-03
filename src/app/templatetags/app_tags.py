@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 from django import template
 from django.urls import reverse
@@ -37,6 +38,33 @@ def slug(arg1):
             template.defaultfilters.urlencode(unidecode(arg1)),
         )
     return cleaned
+
+
+@register.simple_tag
+def set_param(url, param, value):
+    """
+    Set or replace a query parameter in the given URL.
+
+    Usage: {% set_param request.get_full_path 'sort' 'title' %}
+    """
+    # Parse the URL
+    parsed_url = urlparse(url)
+
+    # Parse the query string into a dictionary
+    query_dict = dict(parse_qsl(parsed_url.query))
+
+    # Update or add the parameter
+    if value is not None:
+        query_dict[param] = value
+    elif param in query_dict:
+        del query_dict[param]
+
+    # Reconstruct the URL with the updated query string
+    new_query = urlencode(query_dict)
+
+    # Return the path with the updated query string
+    path = parsed_url.path or "/"
+    return f"{path}?{new_query}" if new_query else path
 
 
 @register.filter
