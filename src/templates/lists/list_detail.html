@@ -217,10 +217,11 @@
       <div class="text-center py-12">
         <div class="max-w-sm mx-auto">
           <h3 class="text-lg font-medium text-gray-200 mb-2">No items in this list yet</h3>
-          <p class="text-gray-400 text-sm mb-6">Start adding your favorite media to build your collection</p>
-          <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+          <p class="text-gray-400 text-sm mb-7">Start adding your favorite media to build your collection</p>
+          <a href="{% url 'search' %}?q=Breaking+Bad&media_type=tv"
+             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
             Browse Media
-          </button>
+          </a>
         </div>
       </div>
     {% endif %}
