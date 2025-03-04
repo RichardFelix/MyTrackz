@@ -2,31 +2,39 @@
 {% load static %}
 {% load app_tags %}
 
-{% block css %}
+{% block extra_head %}
   {{ form.media.css }}
-{% endblock css %}
+{% endblock extra_head %}
 
 {% block title %}
   {{ custom_list }} - Yamtrack
 {% endblock title %}
 
 {% block content %}
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex items-center justify-between mb-6"
+       x-data="{ showModal: false }">
     <div>
-      <h1 class="text-3xl font-bold mb-2">Best of 2023</h1>
+      <h1 class="text-3xl font-bold mb-2">{{ custom_list.name }}</h1>
       <div class="flex items-center gap-4">
         <div class="flex items-center">
           <div class="flex -space-x-2 mr-2">
             <div class="w-6 h-6 rounded-full bg-[#4f46e5] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
-                 title="John Doe">J</div>
-            <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
-                 title="Jane Smith">J</div>
+                 title="{{ custom_list.owner.username }}">{{ custom_list.owner.username.0|upper }}</div>
+            {% for collaborator in custom_list.collaborators.all %}
+              <div class="w-6 h-6 rounded-full bg-[#4b5563] flex items-center justify-center border-2 border-[#2a2f35] text-xs font-medium"
+                   title="{{ collaborator.username }}">{{ collaborator.username.0|upper }}</div>
+            {% endfor %}
           </div>
-          <span class="text-sm text-gray-400">2 collaborators<span class="mx-2">•</span>12 items</span>
+          <span class="text-sm text-gray-400">
+            {{ collaborators_count }} collaborator{{ collaborators_count|pluralize }}
+            <span class="mx-2">•</span>
+            {{ items_count }} item{{ items_count|pluralize }}
+          </span>
         </div>
       </div>
     </div>
-    <button class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group">
+    <button @click="showModal = true"
+            class="px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors flex items-center gap-2 text-sm group cursor-pointer">
       <svg xmlns="http://www.w3.org/2000/svg"
            width="24"
            height="24"
@@ -43,10 +51,12 @@
       </svg>
       <span>Edit List</span>
     </button>
+    {% include "lists/components/list_form.html" %}
   </div>
 
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6"
-       x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}',  getMediaTypeLabel(type) { return mediaTypeLabels[type] || type; } }">
+  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6" x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
+    {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
+    'all': 'All Types' }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -60,7 +70,7 @@
       <div class="relative flex-1">
         <input id="search-input"
                placeholder="Search in collection..."
-               class="w-full h-10 pl-10 pr-4 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="w-full h-10 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
                autocomplete="off"

@@ -91,7 +91,10 @@ def lists(request):
 @require_GET
 def list_detail(request, list_id):
     """Return the detail page of a custom list."""
-    custom_list = get_object_or_404(CustomList, id=list_id)
+    custom_list = get_object_or_404(
+        CustomList.objects.select_related("owner").prefetch_related("collaborators"),
+        id=list_id,
+    )
     media_types = MediaTypes.values
 
     if not custom_list.user_can_view(request.user):
@@ -105,6 +108,7 @@ def list_detail(request, list_id):
     search_query = request.GET.get("q", "")
 
     items = custom_list.items.all()
+    items_count = items.count()
 
     if search_query:
         items = items.filter(title__icontains=search_query)
@@ -158,6 +162,8 @@ def list_detail(request, list_id):
             "items": items_page,
             "form": form,
             "media_types": media_types,
+            "items_count": items_count,
+            "collaborators_count": custom_list.collaborators.count() + 1,
         },
     )
 
