@@ -3,11 +3,22 @@ from datetime import timedelta
 
 from django.apps import apps
 from django.db import models
-from django.db.models import Case, Count, F, FloatField, IntegerField, Max, Min, Q, When
+from django.db.models import (
+    Case,
+    Count,
+    F,
+    FloatField,
+    IntegerField,
+    Max,
+    Min,
+    Prefetch,
+    Q,
+    When,
+)
 from django.db.models.functions import Cast, TruncDate
 from django.utils import timezone
 
-from app.models import Item, Media, MediaTypes
+from app.models import Episode, Item, Media, MediaTypes, Season
 
 
 def get_media_list(user, media_type, status_filter, sort_filter, search=None):
@@ -21,19 +32,33 @@ def get_media_list(user, media_type, status_filter, sort_filter, search=None):
     if search:
         queryset = queryset.filter(item__title__icontains=search)
 
+    queryset = queryset.select_related("item")
+
     # Apply prefetch related based on media type
-    prefetch_map = {
-        "tv": ["seasons", "seasons__episodes"],
-        "season": ["episodes", "episodes__item"],
-        "default": [None],
-    }
-    prefetch_related_fields = prefetch_map.get(media_type, prefetch_map["default"])
-    queryset = queryset.prefetch_related(*prefetch_related_fields).select_related(
-        "item",
-    )
+    if media_type == "tv":
+        # For TV, prefetch seasons and their episodes with their items
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "seasons",
+                queryset=Season.objects.select_related("item"),
+            ),
+            Prefetch(
+                "seasons__episodes",
+                queryset=Episode.objects.select_related("item"),
+            ),
+        )
+    elif media_type == "season":
+        # For Season, prefetch episodes with their items
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "episodes",
+                queryset=Episode.objects.select_related("item"),
+            ),
+        )
 
     sort_is_property = sort_filter in get_properties(model)
     sort_is_item_field = sort_filter in get_fields(Item)
+
     if media_type in ("tv", "season") and sort_is_property:
         return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
 
@@ -42,6 +67,7 @@ def get_media_list(user, media_type, status_filter, sort_filter, search=None):
         return queryset.order_by(
             F(sort_field).asc() if sort_filter == "title" else F(sort_field).desc(),
         )
+
     return queryset.order_by(F(sort_filter).desc(nulls_last=True))
 
 

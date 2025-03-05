@@ -12,9 +12,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import database, helpers
-from app.forms import FilterForm, ManualItemForm, get_form_class
+from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
+from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
 
@@ -90,51 +91,51 @@ def media_list(request, media_type):
     """Return the media list page."""
     layout_user = request.user.get_layout(media_type)
 
-    if request.GET:
-        layout_request = request.GET.get("layout", layout_user)
-        filter_form = FilterForm(request.GET, layout=layout_request)
-        if layout_request != layout_user:
-            if filter_form.is_valid():
-                request.user.set_layout(media_type, layout_request)
-                layout_user = layout_request
-            else:
-                logger.error(filter_form.errors.as_json())
-    else:  # first time access
-        filter_form = FilterForm(layout=layout_user)
-
+    # Get filter parameters from request
+    layout_request = request.GET.get("layout", layout_user)
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
+    # Update user layout preference if changed
+    if layout_request != layout_user:
+        request.user.set_layout(media_type, layout_request)
+        layout_user = layout_request
+
+    # Prepare status filter for database query
+    status_filters = ["All"] if status_filter.lower() == "all" else [status_filter]
+
+    # Get media list with filters applied
     media_queryset = database.get_media_list(
         user=request.user,
         media_type=media_type,
-        status_filter=[status_filter.capitalize()],
+        status_filter=status_filters,
         sort_filter=sort_filter,
         search=search_query,
     )
 
+    # Paginate results
     items_per_page = 32
     paginator = Paginator(media_queryset, items_per_page)
     media_page = paginator.get_page(page)
 
     context = {
         "media_type": media_type,
+        "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
         "current_page": page,
         "user_layout": layout_user,
-        "first_request": not request.GET,
     }
 
+    # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
-        if request.GET.get("layout") == "grid":
+        if layout_user == "grid" or layout_request == "grid":
             template_name = "app/components/media_grid_items.html"
         else:
             template_name = "app/components/media_table_items.html"
     else:
         template_name = "app/media_list.html"
-        context["layout"] = layout_user
 
     return render(request, template_name, context)
 

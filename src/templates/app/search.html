@@ -32,8 +32,8 @@
 
   {% if query_list %}
     <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-      {% for media in query_list %}
-        {% include "app/components/media_card.html" with media=media only %}
+      {% for item in query_list %}
+        {% include "app/components/media_card.html" with item=item %}
       {% endfor %}
     </div>
   {% else %}

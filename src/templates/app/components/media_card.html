@@ -3,12 +3,12 @@
 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
-    <img alt="{{ media.title }}"
-         class="w-full h-48 object-cover bg-[#3e454d] {% if media.image == IMG_NONE %}p-3{% endif %}"
-         src="{{ media.image }}">
+    <img alt="{{ item.title }}"
+         class="w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} object-cover bg-[#3e454d] {% if item.image == IMG_NONE %}object-none{% endif %}"
+         src="{{ item.image }}">
 
-    {% if media.rating %}
-      <div class="absolute top-2 right-2 bg-black bg-opacity-75 px-2 py-1 rounded-md">
+    {% if media.score %}
+      <div class="absolute top-2 right-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         <div class="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -22,20 +22,20 @@
                class="w-4 h-4 text-yellow-400 mr-1 fill-current">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
           </svg>
-          <span class="text-xs text-white">{{ media.rating }}</span>
+          <span class="text-sm text-white">{{ media.score }}</span>
         </div>
       </div>
     {% endif %}
 
     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
-      <a href="{{ media|media_url }}" class="absolute inset-0"></a>
+      <a href="{{ item|media_url }}" class="absolute inset-0"></a>
 
       <div class="relative flex items-center justify-center space-x-2.5">
         {# Track Button #}
         <button class="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all duration-200 cursor-pointer"
-                hx-get="{% modal_url 'track' media %}"
+                hx-get="{% modal_url 'track' item %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                hx-target="#{% component_id 'track' media %}"
+                hx-target="#{% component_id 'track' item %}"
                 hx-trigger="click once"
                 @click="trackOpen = true">
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -54,9 +54,9 @@
 
         {# Lists Button #}
         <button class="p-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-200 cursor-pointer"
-                hx-get="{% modal_url 'lists' media %}"
+                hx-get="{% modal_url 'lists' item %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                hx-target="#{% component_id 'lists' media %}"
+                hx-target="#{% component_id 'lists' item %}"
                 hx-trigger="click once"
                 @click="listsOpen = true">
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -78,9 +78,9 @@
 
         {# History Button #}
         <button class="p-2.5 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
-                hx-get="{% modal_url 'history' media %}"
+                hx-get="{% modal_url 'history' item %}"
                 hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-                hx-target="#{% component_id 'history' media %}"
+                hx-target="#{% component_id 'history' item %}"
                 hx-trigger="click once"
                 @click="historyOpen = true">
           <svg xmlns="http://www.w3.org/2000/svg"
@@ -105,12 +105,14 @@
   </div>
 
   <div class="p-3">
-    <a href="{{ media|media_url }}"
+    <a href="{{ item|media_url }}"
        class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-2">
-      {% if media.media_type == "season" and media.season_title %}
-        {{ media.season_title }}
+      {% if from_grid %}
+        {{ media.item }}
+      {% elif item.media_type == "season" and item.season_title %}
+        {{ item.season_title }}
       {% else %}
-        {{ media.title }}
+        {{ item.title }}
       {% endif %}
     </a>
   </div>
@@ -121,7 +123,7 @@
        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="w-[32rem] max-h-[90vh] px-4 md:px-0 relative z-60"
          @click.outside="trackOpen = false">
-      <div id="{% component_id 'track' media %}"></div>
+      <div id="{% component_id 'track' item %}"></div>
     </div>
   </div>
 
@@ -131,7 +133,7 @@
        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
          @click.outside="listsOpen = false">
-      <div id="{% component_id 'lists' media %}"></div>
+      <div id="{% component_id 'lists' item %}"></div>
     </div>
   </div>
 
@@ -141,7 +143,7 @@
        class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
          @click.outside="historyOpen = false">
-      <div id="{% component_id 'history' media %}"></div>
+      <div id="{% component_id 'history' item %}"></div>
     </div>
   </div>
 </div>
