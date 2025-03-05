@@ -40,7 +40,7 @@ class UserRegisterForm(UserCreationForm):
 
     password2 = forms.CharField(
         widget=forms.PasswordInput(),
-        label="Password confirmation",
+        label="Confirm Password",
     )
 
     usable_password = None

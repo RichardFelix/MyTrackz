@@ -1,12 +1,10 @@
 aiohttp==3.11.12
 beautifulsoup4==4.13.3
 celery==5.4.0
-crispy-bootstrap5==2024.10
 croniter==6.0.0
 Django==5.1.6
 django-celery-beat==2.7.0
 django-celery-results==2.5.1
-django-crispy-forms==2.3
 django_debug_toolbar==5.0.1
 django-model-utils==5.0.0
 django-select2==8.3.0

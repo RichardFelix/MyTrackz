@@ -336,117 +336,117 @@
             <div class="container mx-auto px-8 py-12">
               {% block content %}
               {% endblock content %}
-
-              {% if messages %}
-                <div class="fixed top-24 right-0 left-0 lg:left-64 z-50 flex justify-center pointer-events-none">
-                  <div class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
-                    {% for message in messages %}
-                      {# djlint:off #}
-                      <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
-                      x-data="{ 
-                          init() { 
-                            // Start entrance animation after a tiny delay
-                            setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
-                            this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
-                  
-                            {% if message.tags not in 'warning,error' %}
-                              // Auto-dismiss non-critical messages
-                              setTimeout(() => this.$el.remove(), 3000);
-                            {% endif %}
-                          }
-                      }">
-
-                        {% if message.tags == 'success' %}
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="w-4 h-4 text-emerald-300 flex-shrink-0">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <path d="m9 11 3 3L22 4"></path>
-                          </svg>
-                        {% elif message.tags == 'warning' %}
-                          <!-- Warning SVG -->
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="w-4 h-4 text-amber-300 flex-shrink-0">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path>
-                            <path d="M12 9v4"></path>
-                            <path d="M12 17h.01"></path>
-                          </svg>
-                        {% elif message.tags == 'error' %}
-                          <!-- Error SVG -->
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="w-4 h-4 text-red-300 flex-shrink-0">
-                            <circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line>
-                          </svg>
-                        {% elif message.tags == "info" %}
-                          <!-- Info SVG -->
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="w-4 h-4 text-indigo-300 flex-shrink-0">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4"></path>
-                            <path d="M12 8h.01"></path>
-                          </svg>
-                        {% endif %}
-
-                        <p class="text-sm font-medium flex-1">{{ message }}</p>
-                        <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
-                                @click="$el.parentElement.remove()">
-                          <svg xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round">
-                            <path d="M18 6 6 18"></path>
-                            <path d="m6 6 12 12"></path>
-                          </svg>
-                        </button>
-                      </div>
-                      {# djlint:on #}
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endif %}
             </div>
           </main>
         </div>
       </div>
-
-      {% block js %}
-      {% endblock js %}
     {% endblock body %}
+
+    {% if messages %}
+      <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
+        <div class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
+          {% for message in messages %}
+            {# djlint:off #}
+            <div class="flex items-center gap-2 rounded-md border px-3 py-2 shadow-lg text-white toast-{{ message.tags }} opacity-0"
+              x-data="{ 
+                  init() { 
+                    // Start entrance animation after a tiny delay
+                    setTimeout(() => this.$el.classList.add('opacity-100', 'transform-none'), 10);
+                    this.$el.classList.add('transition-all', 'duration-300', 'ease-out', 'transform', 'translate-y-[-1rem]');
+          
+                    {% if message.tags not in 'warning,error' %}
+                      // Auto-dismiss non-critical messages
+                      setTimeout(() => this.$el.remove(), 3000);
+                    {% endif %}
+                  }
+              }">
+
+              {% if message.tags == 'success' %}
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-4 h-4 text-emerald-300 flex-shrink-0">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <path d="m9 11 3 3L22 4"></path>
+                </svg>
+              {% elif message.tags == 'warning' %}
+                <!-- Warning SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-4 h-4 text-amber-300 flex-shrink-0">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path>
+                  <path d="M12 9v4"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+              {% elif message.tags == 'error' %}
+                <!-- Error SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-4 h-4 text-red-300 flex-shrink-0">
+                  <circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line>
+                </svg>
+              {% elif message.tags == "info" %}
+                <!-- Info SVG -->
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="w-4 h-4 text-indigo-300 flex-shrink-0">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+              {% endif %}
+
+              <p class="text-sm font-medium flex-1">{{ message }}</p>
+              <button class="text-current opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                      @click="$el.parentElement.remove()">
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
+              </button>
+            </div>
+            {# djlint:on #}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    {% block js %}
+    {% endblock js %}
   </body>
 </html>

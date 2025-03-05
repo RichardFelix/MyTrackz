@@ -52,8 +52,6 @@ INSTALLED_APPS = [
     "integrations",
     "lists",
     "users",
-    "crispy_forms",
-    "crispy_bootstrap5",
     "debug_toolbar",
     "django_celery_beat",
     "django_celery_results",
@@ -131,7 +129,7 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": 18000,  # 5 hours,
-        "VERSION": 3,
+        "VERSION": 4,
     },
 }
 

@@ -1,15 +1,167 @@
 {% extends "users/base.html" %}
 
-{% load crispy_forms_tags %}
-
 {% block title %}
   Register - Yamtrack
 {% endblock title %}
 
-{% block extras %}
-  <div class="mt-4 text-center">
-    <small class="text-muted">
-      Already Have An Account? <a class="ml-2" href="{% url 'login' %}">Sign In</a>
-    </small>
+{% block body %}
+  <div class="flex min-h-screen bg-[#212529] text-gray-100">
+    <div class="flex-1 flex flex-col justify-center lg:pb-40 items-center p-4">
+      <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+          <h1 class="text-3xl font-bold mb-2">Yamtrack</h1>
+          <p class="text-gray-400">Create your account</p>
+        </div>
+        <div class="bg-[#2a2f35] rounded-lg p-8 shadow-lg">
+          {% if non_field_errors %}
+            <div class="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-red-200">
+              {% for error in non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+          {% endif %}
+
+          <form method="post"
+                class="space-y-6"
+                x-data="{ showPassword: false, showConfirmPassword: false }">
+            {% csrf_token %}
+            <div>
+              <label for="username" class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+              <input id="username"
+                     name="username"
+                     class="w-full p-3 bg-[#39404b] rounded-md text-white border {% if field_errors.username %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                     placeholder="Choose a username"
+                     required=""
+                     type="text"
+                     value="{{ form.username.value|default:'' }}">
+              {% if field_errors.username %}<p class="mt-1 text-sm text-red-400">{{ field_errors.username }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="password" class="block text-sm font-medium mb-2 text-gray-300">Password</label>
+              <div class="relative">
+                <input id="password"
+                       name="password1"
+                       class="w-full p-3 pr-10 bg-[#39404b] rounded-md text-white border {% if field_errors.password1 %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                       placeholder="Create a password"
+                       required=""
+                       :type="showPassword ? 'text' : 'password'">
+                <button type="button"
+                        @click="showPassword = !showPassword"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
+                  <!-- Show when password is hidden -->
+                  <svg x-show="!showPassword"
+                       xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-5 h-5">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <!-- Show when password is visible -->
+                  <svg x-show="showPassword"
+                       xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-5 h-5">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                    <line x1="2" x2="22" y1="2" y2="22"></line>
+                  </svg>
+                </button>
+              </div>
+              {% if field_errors.password1 %}<p class="mt-1 text-sm text-red-400">{{ field_errors.password1 }}</p>{% endif %}
+            </div>
+            <div>
+              <label for="confirm-password"
+                     class="block text-sm font-medium mb-2 text-gray-300">Confirm Password</label>
+              <div class="relative">
+                <input id="confirm-password"
+                       name="password2"
+                       class="w-full p-3 pr-10 bg-[#39404b] rounded-md text-white border {% if field_errors.password2 %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                       placeholder="Confirm your password"
+                       required=""
+                       :type="showConfirmPassword ? 'text' : 'password'">
+                <button type="button"
+                        @click="showConfirmPassword = !showConfirmPassword"
+                        class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
+                  <!-- Show when password is hidden -->
+                  <svg x-show="!showConfirmPassword"
+                       xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-5 h-5">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <!-- Show when password is visible -->
+                  <svg x-show="showConfirmPassword"
+                       xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-5 h-5">
+                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                    <line x1="2" x2="22" y1="2" y2="22"></line>
+                  </svg>
+                </button>
+              </div>
+              {% if field_errors.password2 %}<p class="mt-1 text-sm text-red-400">{{ field_errors.password2 }}</p>{% endif %}
+            </div>
+            <button type="submit"
+                    class="w-full flex justify-center items-center py-3 px-4 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="lucide lucide-user-plus w-5 h-5 mr-2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle><line x1="19" x2="19" y1="8" y2="14"></line><line x1="22" x2="16" y1="11" y2="11"></line>
+              </svg>
+              Create account
+            </button>
+          </form>
+          <div class="mt-6 text-center">
+            <p class="text-gray-400">
+              Already have an account?
+              <a class="text-indigo-400 hover:text-indigo-300"
+                 href="{% url 'login' %}">Sign in</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-{% endblock extras %}
+{% endblock body %}
+
+{% block messages_sidebar_offset %}
+  top-20! lg:top-40!
+{% endblock messages_sidebar_offset %}
