@@ -29,9 +29,7 @@
         </svg>
       </button>
     </div>
-    <form class="space-y-6"
-          action="{% if form.instance.pk %}{% url 'list_edit' %}{% else %}{% url 'list_create' %}{% endif %}?next={{ request.path }}"
-          method="post">
+    <form class="space-y-6" method="post">
       {% csrf_token %}
       <input type="hidden" name="list_id" value="{{ custom_list.id }}">
       {% for field in form %}
@@ -45,16 +43,27 @@
         </div>
       {% endfor %}
 
-      <div class="flex justify-end pt-4">
-        <button type="submit"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
-          {% if form.instance.pk %}
+      {% if form.instance.pk %}
+        <div class="flex flex-row-reverse justify-between mt-6">
+          <button type="submit"
+                  formaction="{% url 'list_edit' %}?next={{ request.path }}"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer">
             Save
-          {% else %}
+          </button>
+          <button type="submit"
+                  formaction="{% url 'list_delete' %}?next={{ request.path }}"
+                  class="px-4 py-2 rounded-md transition duration-300 {% if request.user == custom_list.owner %}bg-red-700 text-white hover:bg-red-800 cursor-pointer{% else %}bg-gray-600 text-gray-300 cursor-not-allowed{% endif %}"
+                  {% if not request.user == custom_list.owner %}disabled{% endif %}>Delete</button>
+        </div>
+      {% else %}
+        <div class="flex justify-end pt-4">
+          <button type="submit"
+                  formaction="{% url 'list_create' %}?next={{ request.path }}"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
             Create List
-          {% endif %}
-        </button>
-      </div>
+          </button>
+        </div>
+      {% endif %}
     </form>
   </div>
 </div>
