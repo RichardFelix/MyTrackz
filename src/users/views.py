@@ -101,47 +101,59 @@ class CustomLoginView(LoginView):
 @require_http_methods(["GET", "POST"])
 def account(request):
     """Update the user's account and import/export data."""
-    if request.method != "POST":
-        return render(request, "users/account.html")
+    user_form = UserUpdateForm(instance=request.user)
+    password_form = PasswordChangeForm(user=request.user)
 
-    # Handle username update
-    if "username" in request.POST:
-        user_form = UserUpdateForm(request.POST, instance=request.user)
+    if request.method == "POST":
+        # Handle username update
+        if "username" in request.POST:
+            user_form = UserUpdateForm(request.POST, instance=request.user)
 
-        if user_form.is_valid():
-            user_form.save()
-            messages.success(request, "Your username has been updated!")
-            logger.info("Successful username change")
-        else:
-            logger.error(
-                "Failed username change: %s",
-                user_form.errors.as_json(),
+            if user_form.is_valid():
+                user_form.save()
+                messages.success(request, "Your username has been updated!")
+                logger.info(
+                    "Successful username change for user: %s",
+                    request.user.username,
+                )
+                return redirect("account")
+            logger.warning(
+                "Failed username change for user: %s - %s",
+                request.user.username,
+                list(user_form.errors.keys()),
             )
-            for errors in user_form.errors.values():
-                for error in errors:
-                    messages.error(request, error)
 
-    # Handle password update
-    elif "old_password" in request.POST:
-        password_form = PasswordChangeForm(request.user, request.POST)
+        # Handle password update
+        elif any(
+            key in request.POST
+            for key in ["old_password", "new_password1", "new_password2"]
+        ):
+            password_form = PasswordChangeForm(user=request.user, data=request.POST)
 
-        if password_form.is_valid():
-            user = password_form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, "Your password has been updated!")
-            logger.info(
-                "Successful password change",
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(
+                    request,
+                    user,
+                )
+                messages.success(request, "Your password has been updated!")
+                logger.info(
+                    "Successful password change for user: %s",
+                    request.user.username,
+                )
+                return redirect("account")
+            logger.warning(
+                "Failed password change for user: %s - %s",
+                request.user.username,
+                list(password_form.errors.keys()),
             )
-        else:
-            logger.error(
-                "Failed password change: %s",
-                password_form.errors.as_json(),
-            )
-            for errors in password_form.errors.values():
-                for error in errors:
-                    messages.error(request, error)
 
-    return redirect("account")
+    context = {
+        "user_form": user_form,
+        "password_form": password_form,
+    }
+
+    return render(request, "users/account.html", context)
 
 
 @require_http_methods(["GET", "POST"])

@@ -23,15 +23,26 @@
         </svg>
         <h2 class="text-xl font-semibold">Profile Information</h2>
       </div>
+
+      {% if user_form.non_field_errors %}
+        <div class="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-red-200">
+          {% for error in user_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
       <form method="post" class="space-y-4">
         {% csrf_token %}
         <div>
-          <label for="username" class="block text-sm font-medium mb-2 text-gray-300">Username</label>
-          <input id="username"
-                 name="username"
-                 class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+          <label for="{{ user_form.username.id_for_label }}"
+                 class="block text-sm font-medium mb-2 text-gray-300">Username</label>
+          <input id="{{ user_form.username.id_for_label }}"
+                 name="{{ user_form.username.html_name }}"
+                 class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.username.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                  type="text"
-                 value="{{ user.username }}">
+                 value="{{ user_form.username.value|default:user.username }}">
+          {% if user_form.username.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ user_form.username.errors.0 }}</p>
+          {% endif %}
         </div>
         <div class="pt-2">
           <button type="submit"
@@ -74,17 +85,23 @@
         <h2 class="text-xl font-semibold">Change Password</h2>
       </div>
 
+      {% if password_form.non_field_errors %}
+        <div class="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-red-200">
+          {% for error in password_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
       <form method="post"
             class="space-y-4"
             x-data="{ showCurrentPassword: false, showNewPassword: false, showConfirmPassword: false }">
         {% csrf_token %}
         <div class="relative">
-          <label for="old-password"
+          <label for="{{ password_form.old_password.id_for_label }}"
                  class="block text-sm font-medium mb-2 text-gray-300">Current Password</label>
           <div class="relative">
-            <input id="old-password"
-                   name="old_password"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            <input id="{{ password_form.old_password.id_for_label }}"
+                   name="{{ password_form.old_password.html_name }}"
+                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.old_password.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showCurrentPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -124,15 +141,18 @@
               </svg>
             </button>
           </div>
+          {% if password_form.old_password.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ password_form.old_password.errors.0 }}</p>
+          {% endif %}
         </div>
 
         <div class="relative">
-          <label for="new-password1"
+          <label for="{{ password_form.new_password1.id_for_label }}"
                  class="block text-sm font-medium mb-2 text-gray-300">New Password</label>
           <div class="relative">
-            <input id="new-password1"
-                    name="new_password1"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            <input id="{{ password_form.new_password1.id_for_label }}"
+                   name="{{ password_form.new_password1.html_name }}"
+                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.new_password1.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showNewPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -172,15 +192,18 @@
               </svg>
             </button>
           </div>
+          {% if password_form.new_password1.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ password_form.new_password1.errors.0 }}</p>
+          {% endif %}
         </div>
 
         <div class="relative">
-          <label for="new-password2"
+          <label for="{{ password_form.new_password2.id_for_label }}"
                  class="block text-sm font-medium mb-2 text-gray-300">Confirm New Password</label>
           <div class="relative">
-            <input id="new-password2"
-                    name="new_password2"
-                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            <input id="{{ password_form.new_password2.id_for_label }}"
+                   name="{{ password_form.new_password2.html_name }}"
+                   class="w-full py-2 px-3 pr-10 bg-[#39404b] rounded-md text-white text-sm border {% if password_form.new_password2.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                    :type="showConfirmPassword ? 'text' : 'password'"
                    value="">
             <button type="button"
@@ -220,6 +243,9 @@
               </svg>
             </button>
           </div>
+          {% if password_form.new_password2.errors %}
+            <p class="mt-1 text-sm text-red-400">{{ password_form.new_password2.errors.0 }}</p>
+          {% endif %}
         </div>
 
         <div class="pt-2">
