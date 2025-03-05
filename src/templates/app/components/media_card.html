@@ -4,7 +4,7 @@
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
     <img alt="{{ item.title }}"
-         class="w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} object-cover bg-[#3e454d] {% if item.image == IMG_NONE %}object-none{% endif %}"
+         class="w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
          src="{{ item.image }}">
 
     {% if media.score %}

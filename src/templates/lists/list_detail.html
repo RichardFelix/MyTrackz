@@ -54,7 +54,7 @@
     {% include "lists/components/list_form.html" %}
   </div>
 
-  <div class="bg-[#2a2f35] rounded-lg p-6 mb-6" x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
+  <div x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
     {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
     'all': 'All Types' }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
@@ -70,7 +70,7 @@
       <div class="relative flex-1">
         <input id="search-input"
                placeholder="Search in collection..."
-               class="w-full h-10 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
                type="text"
                x-model="query"
                autocomplete="off"
@@ -104,7 +104,6 @@
           <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
-            <span class="text-sm">Type: <span x-text="getMediaTypeLabel(type)"></span></span>
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -114,8 +113,20 @@
                  stroke-width="2"
                  stroke-linecap="round"
                  stroke-linejoin="round"
-                 class="w-4 h-4"
-                 :class="{ 'transform rotate-180': open }">
+                 class="w-4 h-4">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span class="text-sm" x-text="getMediaTypeLabel(type)"></span>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
               <path d="m6 9 6 6 6-6"></path>
             </svg>
           </button>
@@ -156,9 +167,6 @@
           <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
                   @click="open = !open"
                   type="button">
-            <span class="text-sm">Sort:
-              <span x-text="sort === 'date_added' ? 'Date Added' : (sort === 'title' ? 'Title' : 'Media Type')"></span>
-            </span>
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -168,8 +176,24 @@
                  stroke-width="2"
                  stroke-linecap="round"
                  stroke-linejoin="round"
-                 class="w-4 h-4"
-                 :class="{ 'transform rotate-180': open }">
+                 class="w-4 h-4">
+              <path d="m21 16-4 4-4-4"></path>
+              <path d="M17 20V4"></path>
+              <path d="m3 8 4-4 4 4"></path>
+              <path d="M7 4v16"></path>
+            </svg>
+            <span class="text-sm"
+                  x-text="sort === 'date_added' ? 'Date Added' : (sort === 'title' ? 'Title' : 'Media Type')"></span>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4">
               <path d="m6 9 6 6 6-6"></path>
             </svg>
           </button>
@@ -214,7 +238,7 @@
     </div>
     {% if items %}
       <div id="items-grid"
-           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
         {% include "lists/components/item_grid.html" %}
       </div>
 

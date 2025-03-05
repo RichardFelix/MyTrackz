@@ -12,7 +12,21 @@
       <button @click="open = !open"
               @click.outside="open = false"
               class="flex items-center gap-2 px-4 py-2 bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors cursor-pointer">
-        <span class="text-sm text-gray-300">Sort:</span>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4">
+          <path d="m21 16-4 4-4-4"></path>
+          <path d="M17 20V4"></path>
+          <path d="m3 8 4-4 4 4"></path>
+          <path d="M7 4v16"></path>
+        </svg>
         <span class="text-sm font-medium">{{ current_sort|no_underscore|title }}</span>
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
@@ -23,8 +37,7 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-4 h-4 text-gray-400"
-             :class="{ 'transform rotate-180': open }">
+             class="w-4 h-4 text-gray-400">
           <path d="m6 9 6 6 6-6"></path>
         </svg>
       </button>
@@ -59,12 +72,12 @@
     {% for media_type, media_list in list_by_type.items %}
       <div>
         <h2 class="text-xl font-semibold mb-4">{{ media_type|media_type_readable_plural }}</h2>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
           {% for media in media_list %}
             <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
               <div class="relative">
                 <img alt="{{ media }}"
-                     class="lazyload w-full aspect-[2/3] object-cover {% if media.item.image == IMG_NONE %}object-none{% endif %}"
+                     class="lazyload w-full aspect-[2/3] {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
                      data-src="{{ media.item.image }}"
                      src="{{ IMG_NONE }}">
 

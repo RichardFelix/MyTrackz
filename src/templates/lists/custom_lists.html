@@ -48,7 +48,7 @@
 
     <div class="relative flex-1">
       <input placeholder="Search lists..."
-             class="w-full py-2 pl-10 pr-4 bg-[#2a2f35] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+             class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
              type="text"
              x-model="query"
              autocomplete="off"
@@ -80,9 +80,6 @@
       <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
               @click="open = !open"
               type="button">
-        <span class="text-sm">Sort:
-          <span x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'creation_order' ? 'Creation Order' : 'Items Count'))"></span>
-        </span>
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -92,8 +89,24 @@
              stroke-width="2"
              stroke-linecap="round"
              stroke-linejoin="round"
-             class="w-4 h-4"
-             :class="{ 'transform rotate-180': open }">
+             class="w-4 h-4">
+          <path d="m21 16-4 4-4-4"></path>
+          <path d="M17 20V4"></path>
+          <path d="m3 8 4-4 4 4"></path>
+          <path d="M7 4v16"></path>
+        </svg>
+        <span class="text-sm"
+              x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'creation_order' ? 'Creation Order' : 'Items Count'))"></span>
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-4 h-4">
           <path d="m6 9 6 6 6-6"></path>
         </svg>
       </button>

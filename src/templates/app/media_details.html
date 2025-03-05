@@ -238,7 +238,7 @@
                 <img src="{{ IMG_NONE }}"
                      alt="E{{ episode.episode_number }}"
                      data-src="{{ episode.image }}"
-                     class="lazyload md:w-64 md:max-h-40 object-cover flex-shrink-0 {% if episode.image == IMG_NONE %}object-none{% endif %}">
+                     class="lazyload md:w-64 md:max-h-40 flex-shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
                 <div class="p-4 flex-1 flex flex-col">
                   <div class="flex-1">
                     <div class="flex justify-between items-start mb-2 space-x-2">
