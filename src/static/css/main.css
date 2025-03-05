@@ -1637,6 +1637,10 @@
     font-size: var(--text-3xl);
     line-height: var(--tw-leading, var(--text-3xl--line-height));
   }
+  .text-9xl {
+    font-size: var(--text-9xl);
+    line-height: var(--tw-leading, var(--text-9xl--line-height));
+  }
   .text-base {
     font-size: var(--text-base);
     line-height: var(--tw-leading, var(--text-base--line-height));
@@ -1720,11 +1724,17 @@
   .text-indigo-400 {
     color: var(--color-indigo-400);
   }
+  .text-indigo-500 {
+    color: var(--color-indigo-500);
+  }
   .text-indigo-600 {
     color: var(--color-indigo-600);
   }
   .text-orange-400 {
     color: var(--color-orange-400);
+  }
+  .text-orange-500 {
+    color: var(--color-orange-500);
   }
   .text-purple-400 {
     color: var(--color-purple-400);
