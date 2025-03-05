@@ -34,138 +34,170 @@
         New List
       </button>
     </div>
+
+    <div class="relative mb-6 flex gap-2"
+         x-data="{ sort: '{{ request.GET.sort|default:'last_item_added' }}', query: '{{ request.GET.q|default:'' }}' }">
+
+      <!-- Form to manage state -->
+      <form id="filter-form" class="hidden">
+        <input type="hidden" name="sort" x-model="sort">
+        <input type="hidden" name="q" x-model="query">
+      </form>
+
+      <div class="relative flex-1">
+        <input placeholder="Search lists..."
+               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               type="text"
+               x-model="query"
+               autocomplete="off"
+               hx-get="{% url 'lists' %}"
+               hx-trigger="keyup changed delay:300ms, search"
+               hx-target="#lists-grid"
+               hx-include="#filter-form"
+               hx-indicator="#search-indicator">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <div id="search-indicator"
+             class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+        </div>
+      </div>
+
+      <div class="relative" x-data="{ open: false }">
+        <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+                @click="open = !open"
+                type="button">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4">
+            <path d="m21 16-4 4-4-4"></path>
+            <path d="M17 20V4"></path>
+            <path d="m3 8 4-4 4 4"></path>
+            <path d="M7 4v16"></path>
+          </svg>
+          <span class="text-sm"
+                x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'creation_order' ? 'Creation Order' : 'Items Count'))"></span>
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+        </button>
+
+        <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
+             x-cloak
+             x-show="open"
+             @click.outside="open = false"
+             x-transition:enter="transition ease-out duration-100"
+             x-transition:enter-start="transform opacity-0 scale-95"
+             x-transition:enter-end="transform opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-75"
+             x-transition:leave-start="transform opacity-100 scale-100"
+             x-transition:leave-end="transform opacity-0 scale-95">
+          <button hx-get="{% url 'lists' %}"
+                  hx-target="#lists-grid"
+                  hx-include="#filter-form"
+                  hx-indicator="#loading-indicator"
+                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                  :class="sort === 'last_item_added' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                  @click="sort = 'last_item_added'; open = false"
+                  type="button">Last Item Added</button>
+          <button hx-get="{% url 'lists' %}"
+                  hx-target="#lists-grid"
+                  hx-include="#filter-form"
+                  hx-indicator="#loading-indicator"
+                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                  :class="sort === 'creation_order' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                  @click="sort = 'creation_order'; open = false"
+                  type="button">Creation Order</button>
+          <button hx-get="{% url 'lists' %}"
+                  hx-target="#lists-grid"
+                  hx-include="#filter-form"
+                  hx-indicator="#loading-indicator"
+                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                  :class="sort === 'name' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                  @click="sort = 'name'; open = false"
+                  type="button">Name</button>
+          <button hx-get="{% url 'lists' %}"
+                  hx-target="#lists-grid"
+                  hx-include="#filter-form"
+                  hx-indicator="#loading-indicator"
+                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                  :class="sort === 'items_count' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                  @click="sort = 'items_count'; open = false"
+                  type="button">Items Count</button>
+        </div>
+      </div>
+    </div>
+
+    {% if custom_lists %}
+      <div id="lists-grid"
+           class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {% include "lists/components/list_grid.html" %}
+      </div>
+    {% else %}
+      <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+        <div class="text-center max-w-md mx-auto p-6">
+          <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="lucide lucide-list-plus w-8 h-8 text-gray-400">
+              <path d="M11 12H3"></path>
+              <path d="M16 6H3"></path>
+              <path d="M16 18H3"></path>
+              <path d="M18 9v6"></path>
+              <path d="M21 12h-6"></path>
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">No Lists Created Yet</h3>
+          <p class="text-gray-400 mb-6">Create custom lists to organize your media collection and share with friends.</p>
+          <button @click="showModal = true"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors cursor-pointer">
+            Create Your First List
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    <div id="loading-indicator" class="htmx-indicator text-center pt-8">
+      <div class="inline-flex justify-center items-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    </div>
+
     {% include "lists/components/list_form.html" %}
-  </div>
-
-  <div class="relative mb-6 flex gap-2"
-       x-data="{ sort: '{{ request.GET.sort|default:'last_item_added' }}', query: '{{ request.GET.q|default:'' }}' }">
-
-    <!-- Form to manage state -->
-    <form id="filter-form" class="hidden">
-      <input type="hidden" name="sort" x-model="sort">
-      <input type="hidden" name="q" x-model="query">
-    </form>
-
-    <div class="relative flex-1">
-      <input placeholder="Search lists..."
-             class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
-             type="text"
-             x-model="query"
-             autocomplete="off"
-             hx-get="{% url 'lists' %}"
-             hx-trigger="keyup changed delay:300ms, search"
-             hx-target="#lists-grid"
-             hx-include="#filter-form"
-             hx-indicator="#search-indicator">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.3-4.3"></path>
-      </svg>
-      <div id="search-indicator"
-           class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
-        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
-      </div>
-    </div>
-
-    <div class="relative" x-data="{ open: false }">
-      <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
-              @click="open = !open"
-              type="button">
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4">
-          <path d="m21 16-4 4-4-4"></path>
-          <path d="M17 20V4"></path>
-          <path d="m3 8 4-4 4 4"></path>
-          <path d="M7 4v16"></path>
-        </svg>
-        <span class="text-sm"
-              x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'creation_order' ? 'Creation Order' : 'Items Count'))"></span>
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-4 h-4">
-          <path d="m6 9 6 6 6-6"></path>
-        </svg>
-      </button>
-
-      <div class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700"
-           x-cloak
-           x-show="open"
-           @click.outside="open = false"
-           x-transition:enter="transition ease-out duration-100"
-           x-transition:enter-start="transform opacity-0 scale-95"
-           x-transition:enter-end="transform opacity-100 scale-100"
-           x-transition:leave="transition ease-in duration-75"
-           x-transition:leave-start="transform opacity-100 scale-100"
-           x-transition:leave-end="transform opacity-0 scale-95">
-        <button hx-get="{% url 'lists' %}"
-                hx-target="#lists-grid"
-                hx-include="#filter-form"
-                hx-indicator="#loading-indicator"
-                class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                :class="sort === 'last_item_added' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                @click="sort = 'last_item_added'; open = false"
-                type="button">Last Item Added</button>
-        <button hx-get="{% url 'lists' %}"
-                hx-target="#lists-grid"
-                hx-include="#filter-form"
-                hx-indicator="#loading-indicator"
-                class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                :class="sort === 'creation_order' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                @click="sort = 'creation_order'; open = false"
-                type="button">Creation Order</button>
-        <button hx-get="{% url 'lists' %}"
-                hx-target="#lists-grid"
-                hx-include="#filter-form"
-                hx-indicator="#loading-indicator"
-                class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                :class="sort === 'name' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                @click="sort = 'name'; open = false"
-                type="button">Name</button>
-        <button hx-get="{% url 'lists' %}"
-                hx-target="#lists-grid"
-                hx-include="#filter-form"
-                hx-indicator="#loading-indicator"
-                class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                :class="sort === 'items_count' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                @click="sort = 'items_count'; open = false"
-                type="button">Items Count</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="lists-grid"
-       class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-    {% include "lists/components/list_grid.html" %}
-  </div>
-
-  <div id="loading-indicator" class="htmx-indicator text-center pt-8">
-    <div class="inline-flex justify-center items-center">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-    </div>
   </div>
 {% endblock content %}
 

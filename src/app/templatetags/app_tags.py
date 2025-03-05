@@ -1,10 +1,11 @@
 from decimal import Decimal
-from urllib.parse import parse_qsl, urlencode, urlparse
+from urllib.parse import parse_qsl, urlparse
 
 from django import template
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.http import urlencode
 from unidecode import unidecode
 
 from app import helpers, models
@@ -115,6 +116,37 @@ def default_source(media_type):
     }
 
     return media_type_source[media_type]
+
+
+@register.filter
+def media_past_verb(media_type):
+    """Return the past tense verb for the given media type."""
+    return helpers.get_media_verb(media_type, past_tense=True)
+
+
+@register.filter
+def sample_search(media_type):
+    """Return a sample search URL for the given media type using GET parameters."""
+    base_url = reverse("search")
+
+    sample_queries = {
+        "tv": "Breaking Bad",
+        "movie": "The Shawshank Redemption",
+        "anime": "Perfect Blue",
+        "manga": "Berserk",
+        "game": "Half-Life",
+        "book": "The Great Gatsby",
+    }
+
+    if media_type in sample_queries:
+        query_params = {
+            "media_type": media_type,
+            "q": sample_queries[media_type],
+        }
+        return f"{base_url}?{urlencode(query_params)}"
+
+    # Return base search URL if media type not recognized
+    return base_url
 
 
 @register.filter

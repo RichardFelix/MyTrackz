@@ -115,8 +115,8 @@
         </div>
       </div>
     {% empty %}
-      <div class="flex flex-col items-center justify-center py-32 px-4">
-        <div class="bg-[#2a2f35] rounded-full p-6 mb-6">
+      <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
+        <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"
@@ -126,18 +126,21 @@
                stroke-width="2"
                stroke-linecap="round"
                stroke-linejoin="round"
-               class="w-12 h-12 text-gray-400">
-            <path d="M11 12H3"></path>
-            <path d="M16 6H3"></path>
-            <path d="M16 18H3"></path>
-            <path d="M18 9v6"></path>
-            <path d="M21 12h-6"></path>
+               class="w-8 h-8 text-gray-400">
+            <path d="M12 2v4" />
+            <path d="m16.2 7.8 2.9-2.9" />
+            <path d="M18 12h4" />
+            <path d="m16.2 16.2 2.9 2.9" />
+            <path d="M12 18v4" />
+            <path d="m4.9 19.1 2.9-2.9" />
+            <path d="M2 12h4" />
+            <path d="m4.9 4.9 2.9 2.9" />
           </svg>
         </div>
         <h3 class="text-xl font-semibold mb-2">No media in progress</h3>
         <p class="text-gray-400 text-center max-w-md mb-4">Start tracking your progress by marking items as "In Progress".</p>
         <div class="pt-4">
-          <a href="{% url 'search' %}?q=Breaking+Bad&media_type=tv"
+          <a href="{{ 'tv'|sample_search }}"
              class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">Browse Media</a>
         </div>
       </div>

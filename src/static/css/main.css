@@ -907,6 +907,9 @@
   .w-10 {
     width: calc(var(--spacing) * 10);
   }
+  .w-16 {
+    width: calc(var(--spacing) * 16);
+  }
   .w-32 {
     width: calc(var(--spacing) * 32);
   }
@@ -1440,6 +1443,12 @@
   .bg-indigo-600 {
     background-color: var(--color-indigo-600);
   }
+  .bg-indigo-600\/50 {
+    background-color: color-mix(in oklab, var(--color-indigo-600) 50%, transparent);
+  }
+  .bg-indigo-600\/80 {
+    background-color: color-mix(in oklab, var(--color-indigo-600) 80%, transparent);
+  }
   .bg-red-400 {
     background-color: var(--color-red-400);
   }
@@ -1532,6 +1541,9 @@
   }
   .py-12 {
     padding-block: calc(var(--spacing) * 12);
+  }
+  .py-16 {
+    padding-block: calc(var(--spacing) * 16);
   }
   .py-32 {
     padding-block: calc(var(--spacing) * 32);
