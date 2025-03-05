@@ -1,4 +1,3 @@
-import datetime
 import heapq
 import itertools
 import logging
@@ -637,18 +636,16 @@ class TV(Media):
     @property
     def start_date(self):
         """Return the date of the first episode watched."""
-        return min(
-            (season.start_date for season in self.seasons.all()),
-            default=datetime.date(datetime.MINYEAR, 1, 1),
-        )
+        dates = [
+            season.start_date for season in self.seasons.all() if season.start_date
+        ]
+        return min(dates) if dates else None
 
     @property
     def end_date(self):
         """Return the date of the last episode watched."""
-        return max(
-            (season.end_date for season in self.seasons.all()),
-            default=datetime.date(datetime.MINYEAR, 1, 1),
-        )
+        dates = [season.end_date for season in self.seasons.all() if season.end_date]
+        return max(dates) if dates else None
 
     def completed(self):
         """Create remaining seasons and episodes for a TV show."""
@@ -806,26 +803,22 @@ class Season(Media):
     @property
     def start_date(self):
         """Return the date of the first episode watched."""
-        return min(
-            (
-                episode.end_date
-                for episode in self.episodes.all()
-                if episode.end_date is not None
-            ),
-            default=datetime.date(datetime.MINYEAR, 1, 1),
-        )
+        dates = [
+            episode.end_date
+            for episode in self.episodes.all()
+            if episode.end_date is not None
+        ]
+        return min(dates) if dates else None
 
     @property
     def end_date(self):
         """Return the date of the last episode watched."""
-        return max(
-            (
-                episode.end_date
-                for episode in self.episodes.all()
-                if episode.end_date is not None
-            ),
-            default=datetime.date(datetime.MINYEAR, 1, 1),
-        )
+        dates = [
+            episode.end_date
+            for episode in self.episodes.all()
+            if episode.end_date is not None
+        ]
+        return max(dates) if dates else None
 
     def increase_progress(self):
         """Watch the next episode of the season."""
@@ -1009,7 +1002,9 @@ class Season(Media):
         for episode in season_metadata["episodes"]:
             if episode["episode_number"] == episode_number:
                 if episode.get("still_path"):
-                    image = f"https://image.tmdb.org/t/p/original{episode['still_path']}"
+                    image = (
+                        f"https://image.tmdb.org/t/p/original{episode['still_path']}"
+                    )
                 elif "image" in episode:
                     # for manual seasons
                     image = episode["image"]

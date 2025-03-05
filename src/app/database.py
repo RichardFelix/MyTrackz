@@ -1,5 +1,5 @@
+import datetime
 from collections import defaultdict
-from datetime import timedelta
 
 from django.apps import apps
 from django.db import models
@@ -60,6 +60,37 @@ def get_media_list(user, media_type, status_filter, sort_filter, search=None):
     sort_is_item_field = sort_filter in get_fields(Item)
 
     if media_type in ("tv", "season") and sort_is_property:
+        # For date fields, handle None values specially
+        if sort_filter in ("start_date", "end_date"):
+            # Convert queryset to list for manual sorting
+            result_list = list(queryset)
+
+            # Split into items with dates and without dates
+            with_dates = [
+                item for item in result_list if getattr(item, sort_filter) is not None
+            ]
+            without_dates = [
+                item for item in result_list if getattr(item, sort_filter) is None
+            ]
+
+            # Sort items with dates
+            if sort_filter == "start_date":
+                # For start_date, sort ascending (earliest first)
+                sorted_with_dates = sorted(
+                    with_dates,
+                    key=lambda x: getattr(x, sort_filter),
+                )
+            else:
+                # For other date fields, sort descending (latest first)
+                sorted_with_dates = sorted(
+                    with_dates,
+                    key=lambda x: getattr(x, sort_filter),
+                    reverse=True,
+                )
+
+            # Combine lists - items with dates first, then items without dates
+            return sorted_with_dates + without_dates
+        # For non-date fields, use the original logic
         return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
 
     if sort_is_item_field:
@@ -319,7 +350,7 @@ def calculate_streaks(date_counts, start_date, end_date):
 
         while current_date in date_counts and current_date >= start_date:
             current_streak += 1
-            current_date -= timedelta(days=1)
+            current_date -= datetime.timedelta(days=1)
 
     return current_streak, longest_streak
 
@@ -327,7 +358,7 @@ def calculate_streaks(date_counts, start_date, end_date):
 def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
     # Get the Monday of the week containing start_date (for grid alignment)
-    start_date_aligned = start_date - timedelta(days=start_date.weekday())
+    start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())
 
     combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
 
@@ -338,7 +369,7 @@ def get_activity_data(user, start_date, end_date):
         date_counts[date] = date_counts.get(date, 0) + item["count"]
 
     date_range = [
-        start_date_aligned + timedelta(days=x)
+        start_date_aligned + datetime.timedelta(days=x)
         for x in range((end_date - start_date_aligned).days + 1)
     ]
 
