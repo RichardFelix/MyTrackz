@@ -613,29 +613,25 @@ def statistics(request):
     today = timezone.now().date()
     one_year_ago = today.replace(year=today.year - 1)
 
-    start_date_str = request.GET.get("start-date", one_year_ago.strftime(timeformat))
-    if start_date_str == "":
-        start_date_str = one_year_ago.strftime(timeformat)
-    end_date_str = request.GET.get("end-date", today.strftime(timeformat))
-    if end_date_str == "":
-        end_date_str = today.strftime(timeformat)
+    # Get date parameters with defaults
+    start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
+    end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
 
     # Convert strings directly to datetime.date objects
     start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
     end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
-    activity_data = database.get_activity_data(
-        request.user,
-        start_date,
-        end_date,
-    )
+    # Get user's first interaction date first - might be used for validation
+    user_first_interaction = database.get_first_interaction_date(request.user)
 
+    # Get all user media data in a single operation
     user_media, media_count = BasicMedia.objects.get_user_media(
         request.user,
         start_date,
         end_date,
     )
 
+    # Calculate all statistics from the retrieved data
     media_type_distribution = BasicMedia.objects.get_media_type_distribution(
         media_count,
     )
@@ -644,8 +640,9 @@ def statistics(request):
     status_pie_chart_data = BasicMedia.objects.get_status_pie_chart_data(
         status_distribution,
     )
-
     timeline = BasicMedia.objects.get_timeline(user_media)
+
+    activity_data = database.get_activity_data(request.user, start_date, end_date)
 
     context = {
         "start_date": start_date,
@@ -657,9 +654,7 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
-        "user_first_interaction_date": database.get_first_interaction_date(
-            request.user,
-        ),
+        "user_first_interaction_date": user_first_interaction,
     }
 
     return render(request, "app/statistics.html", context)

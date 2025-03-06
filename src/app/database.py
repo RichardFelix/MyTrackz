@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 
 from django.apps import apps
+from django.core.cache import cache
 from django.db import models
 from django.db.models import (
     Case,
@@ -317,18 +318,19 @@ def calculate_day_of_week_stats(date_counts, start_date):
 
 
 def calculate_streaks(date_counts, start_date, end_date):
-    """Calculate current activity streak."""
+    """Calculate current activity streak with optimized algorithm."""
     if not date_counts:
         return 0
 
     # Calculate current streak
     current_streak = 0
-    if date_counts:
-        current_date = end_date
+    current_date = end_date
 
-        while current_date in date_counts and current_date >= start_date:
-            current_streak += 1
-            current_date -= datetime.timedelta(days=1)
+    active_dates = {date for date, count in date_counts.items() if count > 0}
+
+    while current_date in active_dates and current_date >= start_date:
+        current_streak += 1
+        current_date -= datetime.timedelta(days=1)
 
     return current_streak
 
@@ -426,12 +428,10 @@ def get_earliest_media_start_date(user):
     """Get the earliest start date across all media types for a user."""
     earliest_date = None
 
-    # Get all media models dynamically
     media_types = MediaTypes.values
     media_types.remove("season")
-    media_types.remove("episode")  # Exclude Episode model
+    media_types.remove("episode")
 
-    # Check regular media models with database start_date fields
     for media_type in media_types:
         try:
             model = apps.get_model("app", media_type)
@@ -454,24 +454,28 @@ def get_earliest_media_start_date(user):
                         earliest_date,
                         model.__name__,
                     )
-            # For TV model, check all seasons' start_dates via property
             else:
-                tv_instances = model.objects.filter(user=user)
-                for tv in tv_instances:
-                    tv_start_date = tv.start_date  # This calls the property
-                    if tv_start_date and (
-                        earliest_date is None or tv_start_date < earliest_date
-                    ):
-                        earliest_date = tv_start_date
-                        logging.info(
-                            "Found earlier TV start_date (via property): %s",
-                            earliest_date,
-                        )
+                # Use a subquery to find the earliest TV start date more efficiently
+                earliest_tv_date = Season.objects.filter(
+                    related_tv__user=user,
+                    start_date__isnull=False,
+                ).aggregate(
+                    earliest=Min("start_date"),
+                )["earliest"]
+
+                if earliest_tv_date and (
+                    earliest_date is None or earliest_tv_date < earliest_date
+                ):
+                    earliest_date = earliest_tv_date
+                    logging.info(
+                        "Found earlier TV start_date via seasons: %s",
+                        earliest_date,
+                    )
 
         except Exception:
             logging.exception(
                 "Error checking start_date for model %s",
-                model.__name__,
+                media_type,
             )
 
     return earliest_date
@@ -549,6 +553,12 @@ def get_first_interaction_date(user):
     Returns:
         datetime.date: The earliest interaction date or None if no interactions found
     """
+    cache_key = f"first_interaction_date_{user.id}"
+
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
+
     logging.info("Getting first interaction date for user: %s", user)
 
     # Get earliest dates from both sources
@@ -569,4 +579,5 @@ def get_first_interaction_date(user):
         earliest_date = user.date_joined.date()
         logging.info("No interaction found for user %s", user)
 
+    cache.set(cache_key, earliest_date, 60 * 60 * 24)
     return earliest_date
