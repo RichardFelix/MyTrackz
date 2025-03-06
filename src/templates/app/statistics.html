@@ -488,10 +488,8 @@
                 </a>
               </div>
               <div class="p-3">
-                <h3 class="font-medium text-sm truncate">
-                  <a href="{{ media.url }}"
-                     class="text-white hover:text-indigo-400 transition duration-300">{{ media.title }}</a>
-                </h3>
+                <a href="{{ media.url }}"
+                   class="font-medium text-sm text-white hover:text-indigo-400 transition duration-300 line-clamp-1">{{ media.title }}</a>
               </div>
             </div>
           {% endfor %}
@@ -554,12 +552,17 @@
                     <div class="flex flex-col {% if forloop.parentloop.counter|divisibleby:2 %}items-start pl-8{% else %}items-end pr-8{% endif %}">
                       <div class="flex items-start gap-4 bg-[#39404b] p-4 rounded-lg w-[calc(50%-2rem)] hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
                         <div class="flex-shrink-0 order-0">
-                          <img alt="{{ media.item }}"
-                               class="w-16 h-24 rounded-md bg-[#3e454d] {% if media.image != IMG_NONE %}object-cover{% endif %}"
-                               src="{{ media.item.image }}">
+                          <a href="{{ media.item.url }}">
+                            <img alt="{{ media.item }}"
+                                 class="w-16 h-24 rounded-md bg-[#3e454d] {% if media.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                                 src="{{ media.item.image }}">
+                          </a>
                         </div>
                         <div class="flex-1 min-w-0">
-                          <h4 class="font-medium">{{ media.item }}</h4>
+                          <h4 class="font-medium">
+                            <a href="{{ media.item.url }}"
+                               class="hover:text-indigo-400 transition-colors">{{ media.item }}</a>
+                          </h4>
                           <div class="text-sm text-gray-400 mt-1">
                             <p>
                               {{ media.start_date|date:"Y-m-d" }}

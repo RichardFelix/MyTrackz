@@ -27,6 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         labels: {
           color: "#D1D5DB",
           padding: 20,
+          usePointStyle: true,
+          pointStyle: "rectRounded",
           generateLabels: function (chart) {
             const original =
               Chart.overrides.pie.plugins.legend.labels.generateLabels;
@@ -81,6 +83,13 @@ document.addEventListener("DOMContentLoaded", function () {
           padding: 20,
           boxWidth: 12,
           boxHeight: 12,
+          usePointStyle: true,
+          pointStyle: "rectRounded",
+          textAlign: "center",
+          font: {
+            size: 12,
+            lineHeight: 0.1,
+          },
         },
       },
       tooltip: {
@@ -98,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
         align: "center",
         formatter: (value) => (value > 0 ? value : ""),
         font: { weight: "bold", size: 11 },
-        display: (context) => context.dataset.data[context.dataIndex] > 1,
+        display: 'auto',
       },
     },
   };
@@ -113,6 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
           data: dataset.data,
           backgroundColor: dataset.background_color,
           borderColor: "rgba(255, 255, 255, 0.1)",
+          borderRadius: 6,
           borderWidth: 1,
         }))
         .filter((dataset) => dataset.data.some((value) => value > 0)),
@@ -220,9 +230,19 @@ document.addEventListener("DOMContentLoaded", function () {
         return value > 0 ? value : "";
       },
       font: { weight: "bold", size: 11 },
-      // Only display if value is greater than 0
       display: function (context) {
-        return context.dataset.data[context.dataIndex] > 0;
+        // Get the current value
+        const value = context.dataset.data[context.dataIndex];
+
+        // Get the maximum value in the dataset for comparison
+        const maxValue = Math.max(...context.dataset.data);
+
+        // Calculate the relative size (as a percentage of the max)
+        const relativeSize = value / maxValue;
+
+        // Only show label if value is significant enough (e.g., at least 20% of max)
+        // and greater than zero
+        return value > 0 && relativeSize >= 0.2;
       },
     };
 

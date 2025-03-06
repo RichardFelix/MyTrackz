@@ -460,8 +460,8 @@ class MediaManager(models.Manager):
             Media.Status.IN_PROGRESS.value: "rgb(99, 102, 241)",
             Media.Status.COMPLETED.value: "rgb(16, 185, 129)",
             Media.Status.REPEATING.value: "rgb(139, 92, 246)",
-            Media.Status.PLANNING.value: "rgb(245, 158, 11)",
-            Media.Status.PAUSED.value: "rgb(249, 115, 22)",
+            Media.Status.PLANNING.value: "rgb(6, 182, 212)",
+            Media.Status.PAUSED.value: "rgb(245, 158, 11)",
             Media.Status.DROPPED.value: "rgb(239, 68, 68)",
         }
         return colors.get(status, "rgba(201, 203, 207)")
