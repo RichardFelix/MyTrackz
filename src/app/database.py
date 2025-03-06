@@ -1,4 +1,5 @@
 import datetime
+import logging
 from collections import defaultdict
 
 from django.apps import apps
@@ -19,6 +20,8 @@ from django.db.models.functions import Cast, TruncDate
 from django.utils import timezone
 
 from app.models import Episode, Item, Media, MediaTypes, Season
+
+logger = logging.getLogger(__name__)
 
 
 def get_media_list(user, media_type, status_filter, sort_filter, search=None):
@@ -314,45 +317,20 @@ def calculate_day_of_week_stats(date_counts, start_date):
 
 
 def calculate_streaks(date_counts, start_date, end_date):
-    """Calculate current and longest activity streaks.
-
-    Returns tuple of (current_streak, longest_streak).
-    """
+    """Calculate current activity streak."""
     if not date_counts:
-        return 0, 0
-
-    current_streak = 0
-    longest_streak = 0
-    temp_streak = 0
-
-    # Convert date_counts to sorted list of dates
-    active_dates = sorted(date for date in date_counts if date >= start_date)
-
-    # Calculate streaks
-    for i in range(len(active_dates)):
-        if i == 0:
-            temp_streak = 1
-            continue
-
-        if (active_dates[i] - active_dates[i - 1]).days == 1:
-            temp_streak += 1
-        else:
-            longest_streak = max(longest_streak, temp_streak)
-            temp_streak = 1
-
-    # Update longest streak one last time
-    longest_streak = max(longest_streak, temp_streak)
+        return 0
 
     # Calculate current streak
-    if active_dates:
+    current_streak = 0
+    if date_counts:
         current_date = end_date
-        current_streak = 0
 
         while current_date in date_counts and current_date >= start_date:
             current_streak += 1
             current_date -= datetime.timedelta(days=1)
 
-    return current_streak, longest_streak
+    return current_streak
 
 
 def get_activity_data(user, start_date, end_date):
@@ -378,7 +356,7 @@ def get_activity_data(user, start_date, end_date):
         date_counts,
         start_date,
     )
-    current_streak, longest_streak = calculate_streaks(
+    current_streak = calculate_streaks(
         date_counts,
         start_date,
         end_date,
@@ -390,7 +368,6 @@ def get_activity_data(user, start_date, end_date):
             "date": current_date.strftime("%Y-%m-%d"),
             "count": date_counts.get(current_date, 0),
             "level": get_level(date_counts.get(current_date, 0)),
-            "disabled": current_date < start_date,
         }
         for current_date in date_range
     ]
@@ -426,14 +403,12 @@ def get_activity_data(user, start_date, end_date):
         mondays_per_month.append(monday_count)
 
     return {
-        "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "calendar_weeks": calendar_weeks,
         "months": list(zip(months, mondays_per_month, strict=False)),
         "stats": {
             "most_active_day": most_active_day,
             "most_active_day_percentage": day_percentage,
             "current_streak": current_streak,
-            "compared_to_longest_streak": longest_streak - current_streak,
         },
     }
 
@@ -445,3 +420,153 @@ def get_level(count):
         if count <= threshold:
             return i
     return 4
+
+
+def get_earliest_media_start_date(user):
+    """Get the earliest start date across all media types for a user."""
+    earliest_date = None
+
+    # Get all media models dynamically
+    media_types = MediaTypes.values
+    media_types.remove("season")
+    media_types.remove("episode")  # Exclude Episode model
+
+    # Check regular media models with database start_date fields
+    for media_type in media_types:
+        try:
+            model = apps.get_model("app", media_type)
+
+            # For models with start_date as a database field
+            if model.__name__ != "TV":
+                earliest_start = model.objects.filter(
+                    user=user,
+                    start_date__isnull=False,
+                ).aggregate(
+                    earliest=Min("start_date"),
+                )["earliest"]
+
+                if earliest_start and (
+                    earliest_date is None or earliest_start < earliest_date
+                ):
+                    earliest_date = earliest_start
+                    logging.info(
+                        "Found earlier start_date: %s from model %s",
+                        earliest_date,
+                        model.__name__,
+                    )
+            # For TV model, check all seasons' start_dates via property
+            else:
+                tv_instances = model.objects.filter(user=user)
+                for tv in tv_instances:
+                    tv_start_date = tv.start_date  # This calls the property
+                    if tv_start_date and (
+                        earliest_date is None or tv_start_date < earliest_date
+                    ):
+                        earliest_date = tv_start_date
+                        logging.info(
+                            "Found earlier TV start_date (via property): %s",
+                            earliest_date,
+                        )
+
+        except Exception:
+            logging.exception(
+                "Error checking start_date for model %s",
+                model.__name__,
+            )
+
+    return earliest_date
+
+
+def get_earliest_historical_date(user):
+    """Get the earliest historical record date for a user across all models."""
+    earliest_date = None
+
+    # Check historical records for earliest history date
+    historical_models = get_historical_models()
+
+    for model_name in historical_models:
+        try:
+            historical_model = apps.get_model("app", model_name)
+            earliest_history = historical_model.objects.filter(
+                history_user_id=user.id,
+                history_date__isnull=False,
+            ).aggregate(earliest=Min("history_date"))["earliest"]
+
+            if earliest_history:
+                # Convert datetime to date for comparison if needed
+                history_date = (
+                    earliest_history.date()
+                    if hasattr(earliest_history, "date")
+                    else earliest_history
+                )
+
+                if earliest_date is None or history_date < earliest_date:
+                    earliest_date = history_date
+                    logging.info(
+                        "Found earlier history_date: %s from model %s",
+                        earliest_date,
+                        model_name,
+                    )
+        except LookupError:
+            logging.warning("Historical model %s not found", model_name)
+        except Exception:
+            logging.exception("Error checking historical model %s", model_name)
+
+    # Also check Episode historical records
+    try:
+        earliest_episode_history = Episode.history.filter(
+            history_user_id=user.id,
+            history_date__isnull=False,
+        ).aggregate(earliest=Min("history_date"))["earliest"]
+
+        if earliest_episode_history:
+            episode_history_date = (
+                earliest_episode_history.date()
+                if hasattr(earliest_episode_history, "date")
+                else earliest_episode_history
+            )
+
+            if earliest_date is None or episode_history_date < earliest_date:
+                earliest_date = episode_history_date
+                logging.info("Found earlier episode history_date: %s", earliest_date)
+    except Exception:
+        logging.exception("Error checking Episode history")
+
+    return earliest_date
+
+
+def get_first_interaction_date(user):
+    """
+    Get the first interaction date with the app for a specific user.
+
+    This function checks both the earliest historical record date and the earliest
+    start_date across all media types to determine when the user first interacted
+    with the application.
+
+    Args:
+        user: The user to check first interaction for
+
+    Returns:
+        datetime.date: The earliest interaction date or None if no interactions found
+    """
+    logging.info("Getting first interaction date for user: %s", user)
+
+    # Get earliest dates from both sources
+    earliest_media_date = get_earliest_media_start_date(user)
+    earliest_history_date = get_earliest_historical_date(user)
+
+    # Determine the overall earliest date
+    if earliest_media_date and earliest_history_date:
+        earliest_date = min(earliest_media_date, earliest_history_date)
+    elif earliest_media_date:
+        earliest_date = earliest_media_date
+    else:
+        earliest_date = earliest_history_date
+
+    if earliest_date:
+        logging.info("First interaction date for user %s: %s", user, earliest_date)
+    else:
+        earliest_date = user.date_joined.date()
+        logging.info("No interaction found for user %s", user)
+
+    return earliest_date

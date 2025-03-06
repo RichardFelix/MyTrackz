@@ -1,7 +1,10 @@
+import calendar
 import heapq
 import itertools
 import logging
+from collections import defaultdict
 
+from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.core.validators import (
     DecimalValidator,
@@ -253,7 +256,8 @@ class MediaManager(models.Manager):
                 queryset = model.objects.filter(
                     user=user,
                     start_date__gte=start_date,
-                    end_date__lte=end_date,
+                ).filter(
+                    Q(end_date__lte=end_date) | Q(end_date__isnull=True),
                 )
 
             queryset = queryset.select_related("item")
@@ -265,85 +269,33 @@ class MediaManager(models.Manager):
         logging.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
         return user_media, media_count
 
-    def get_score_distribution(self, user_media):
-        """Get score distribution for each media type within date range."""
-        distribution = {}
-        total_scored = 0
-        total_score_sum = 0
-
-        # Use heapq to maintain top items efficiently
-        top_rated = []
-        top_rated_count = 12
-        counter = itertools.count()  # For unique identifiers
-
-        # Define score range (0-10)
-        score_range = range(11)
-
-        for model_name, media_list in user_media.items():
-            # Initialize score counts for this media type
-            score_counts = {score: 0 for score in score_range}
-
-            # Get all scored media with their scores
-            scored_media = media_list.exclude(score__isnull=True).select_related("item")
-
-            # Process each media item
-            for media in scored_media:
-                # Update top rated using heap
-                item_data = {
-                    "title": media.item.title,
-                    "image": media.item.image,
-                    "score": media.score,
-                    "url": media.item.url,
-                }
-
-                # Use negative score for max heap (heapq implements min heap)
-                # Add counter as tiebreaker
-                if len(top_rated) < top_rated_count:
-                    heapq.heappush(
-                        top_rated,
-                        (float(media.score), next(counter), item_data),
-                    )
-                else:
-                    heapq.heappushpop(
-                        top_rated,
-                        (float(media.score), next(counter), item_data),
-                    )
-
-                # Bin the score
-                binned_score = int(media.score)
-                score_counts[binned_score] += 1
-
-                # Update totals with exact score
-                total_scored += 1
-                total_score_sum += media.score
-
-            distribution[model_name] = score_counts
-
-        # Calculate average score
-        average_score = (
-            round(total_score_sum / total_scored, 2) if total_scored > 0 else 0
-        )
-
-        # Convert heap to sorted list of top rated items
-        top_rated = [
-            item_data
-            for _, _, item_data in sorted(top_rated, key=lambda x: (-x[0], x[1]))
-        ]
-
-        return {
-            "labels": [str(score) for score in score_range],  # 0-10 as labels
+    def get_media_type_distribution(self, media_count):
+        """Get data formatted for Chart.js pie chart."""
+        # Define colors for each media type
+        # Format for Chart.js
+        chart_data = {
+            "labels": [],
             "datasets": [
                 {
-                    "label": app_tags.media_type_readable(model_name),
-                    "data": [distribution[model_name][score] for score in score_range],
-                    "background_color": self.get_media_color(model_name),
-                }
-                for model_name in distribution
+                    "data": [],
+                    "backgroundColor": [],
+                    "borderWidth": 1,
+                },
             ],
-            "average_score": average_score,
-            "total_scored": total_scored,
-            "top_rated": top_rated,
         }
+
+        # Only include media types with counts > 0
+        for media_type, count in media_count.items():
+            if media_type != "total" and count > 0:
+                # Format label with first letter capitalized
+                label = media_type.capitalize()
+                chart_data["labels"].append(label)
+                chart_data["datasets"][0]["data"].append(count)
+                chart_data["datasets"][0]["backgroundColor"].append(
+                    self.get_media_color(media_type),
+                )
+
+        return chart_data
 
     def get_status_distribution(self, user_media):
         """Get status distribution for each media type within date range."""
@@ -380,83 +332,188 @@ class MediaManager(models.Manager):
             "total_completed": total_completed,
         }
 
+    def get_status_pie_chart_data(self, status_distribution):
+        """Get status distribution as a pie chart."""
+        # Format for Chart.js pie chart
+        chart_data = {
+            "labels": [],
+            "datasets": [
+                {
+                    "data": [],
+                    "backgroundColor": [],
+                    "borderWidth": 1,
+                },
+            ],
+        }
+
+        # Process each status dataset
+        for dataset in status_distribution["datasets"]:
+            status_label = dataset["label"]
+            status_count = dataset["total"]
+            status_color = dataset["background_color"]
+
+            # Only include statuses with counts > 0
+            if status_count > 0:
+                chart_data["labels"].append(status_label)
+                chart_data["datasets"][0]["data"].append(status_count)
+                chart_data["datasets"][0]["backgroundColor"].append(status_color)
+
+        return chart_data
+
+    def get_score_distribution(self, user_media):
+        """Get score distribution for each media type within date range."""
+        distribution = {}
+        total_scored = 0
+        total_score_sum = 0
+
+        # Use heapq to maintain top items efficiently
+        top_rated = []
+        top_rated_count = 12
+        counter = itertools.count()  # For unique identifiers
+
+        # Define score range (0-10)
+        score_range = range(11)
+
+        for model_name, media_list in user_media.items():
+            # Initialize score counts for this media type
+            score_counts = {score: 0 for score in score_range}
+
+            # Get all scored media with their scores
+            scored_media = media_list.exclude(score__isnull=True).select_related("item")
+
+            # Process each media item
+            for media in scored_media:
+                # Update top rated using heap
+                item_data = {
+                    "title": media.item.title,
+                    "image": media.item.image,
+                    "score": media.score,
+                    "url": app_tags.media_url(media.item),
+                }
+
+                # Use negative score for max heap (heapq implements min heap)
+                # Add counter as tiebreaker
+                if len(top_rated) < top_rated_count:
+                    heapq.heappush(
+                        top_rated,
+                        (float(media.score), next(counter), item_data),
+                    )
+                else:
+                    heapq.heappushpop(
+                        top_rated,
+                        (float(media.score), next(counter), item_data),
+                    )
+
+                # Bin the score
+                binned_score = int(media.score)
+                score_counts[binned_score] += 1
+
+                # Update totals with exact score
+                total_scored += 1
+                total_score_sum += media.score
+
+            distribution[model_name] = score_counts
+
+        # Calculate average score
+        average_score = (
+            round(total_score_sum / total_scored, 2) if total_scored > 0 else None
+        )
+
+        # Convert heap to sorted list of top rated items
+        top_rated = [
+            item_data
+            for _, _, item_data in sorted(top_rated, key=lambda x: (-x[0], x[1]))
+        ]
+
+        return {
+            "labels": [str(score) for score in score_range],  # 0-10 as labels
+            "datasets": [
+                {
+                    "label": app_tags.media_type_readable(model_name),
+                    "data": [distribution[model_name][score] for score in score_range],
+                    "background_color": self.get_media_color(model_name),
+                }
+                for model_name in distribution
+            ],
+            "average_score": average_score,
+            "total_scored": total_scored,
+            "top_rated": top_rated,
+        }
+
     def get_media_color(self, media_type):
         """Get the color for the media type."""
         colors = {
-            "tv": "rgba(75, 192, 192)",
-            "season": "rgba(153, 102, 255)",
-            "movie": "rgba(255, 159, 64)",
-            "anime": "rgba(54, 162, 235)",
-            "manga": "rgba(255, 99, 132)",
-            "game": "rgba(255, 206, 86)",
-            "book": "rgba(255, 182, 193)",
+            "tv": "rgb(16, 185, 129)",  # emerald-400
+            "season": "rgb(139, 92, 246)",  # purple-400
+            "episode": "rgb(99, 102, 241)",  # indigo-400
+            "movie": "rgb(245, 158, 11)",  # orange-400
+            "anime": "rgb(6, 182, 212)",  # blue-400
+            "manga": "rgb(244, 63, 94)",  # red-400
+            "game": "rgb(234, 179, 8)",  # yellow-400
+            "book": "rgb(236, 72, 153)",  # fuchsia-400
         }
         return colors.get(media_type, "rgba(201, 203, 207)")
 
     def get_status_color(self, status):
         """Get the color for the status of the media."""
         colors = {
-            Media.Status.IN_PROGRESS.value: "rgba(54, 162, 235)",
-            Media.Status.COMPLETED.value: "rgba(75, 192, 192)",
-            Media.Status.REPEATING.value: "rgba(153, 102, 255)",
-            Media.Status.PLANNING.value: "rgba(255, 206, 86)",
-            Media.Status.PAUSED.value: "rgba(255, 159, 64)",
-            Media.Status.DROPPED.value: "rgba(255, 99, 132)",
+            Media.Status.IN_PROGRESS.value: "rgb(99, 102, 241)",
+            Media.Status.COMPLETED.value: "rgb(16, 185, 129)",
+            Media.Status.REPEATING.value: "rgb(139, 92, 246)",
+            Media.Status.PLANNING.value: "rgb(245, 158, 11)",
+            Media.Status.PAUSED.value: "rgb(249, 115, 22)",
+            Media.Status.DROPPED.value: "rgb(239, 68, 68)",
         }
         return colors.get(status, "rgba(201, 203, 207)")
 
     def get_timeline(self, user_media):
-        """Get calendar data formatted for Gantt chart with optimized row layout."""
-        tasks = []
-        rows = [
-            {
-                "id": "row",
-                "label": "Media",
-                "enableDragging": False,
-                "enableResize": False,
-            },
-        ]
-        counter = itertools.count()
-        for model_name, media_list in user_media.items():
-            if model_name == "tv":
-                continue
-            for media in media_list:
-                # use datetime to align columns in Gantt chart
-                start_datetime = timezone.datetime.combine(
-                    media.start_date,
-                    timezone.datetime.min.time(),
-                )
-                end_datetime = timezone.datetime.combine(
-                    media.end_date,
-                    timezone.datetime.min.time(),
-                ) + timezone.timedelta(days=1)
+        """Build a timeline of media consumption organized by month-year."""
+        timeline = defaultdict(list)
 
-                tasks.extend(
-                    [
-                        {
-                            "id": next(counter),
-                            "resourceId": "row",
-                            "label": media.item.__str__(),
-                            "from": start_datetime.isoformat(),
-                            "to": end_datetime.isoformat(),
-                            "draggable": False,
-                            "resizable": False,
-                            "classes": model_name,
-                            "html": (
-                                f"<div class='text-truncate'>"
-                                f"{media.item.__str__()}"
-                                f"</div>"
-                            ),
-                            "style": {
-                                "background": self.get_media_color(model_name),
-                            },
-                        },
-                    ],
-                )
-        return {
-            "rows": rows,
-            "tasks": tasks,
-        }
+        # Process each media type
+        for queryset in user_media.values():
+            for media in queryset:
+                # If there's an end date, add media to all months between start and end
+                if media.end_date:
+                    current_date = media.start_date
+                    while current_date <= media.end_date:
+                        year = current_date.year
+                        month = current_date.month
+                        month_name = calendar.month_name[month]
+                        key = f"{month_name} {year}"
+
+                        timeline[key].append(media)
+
+                        # Move to next month
+                        current_date += relativedelta(months=1)
+                        current_date = current_date.replace(day=1)
+                else:
+                    # If no end date, only add to the start month
+                    year = media.start_date.year
+                    month = media.start_date.month
+                    month_name = calendar.month_name[month]
+                    key = f"{month_name} {year}"
+
+                    timeline[key].append(media)
+
+        # Convert to sorted dictionary with media sorted by start date
+        # Create a list of (key, media_list) sorted by year and month in reverse order
+        sorted_items = []
+        for key, media_list in timeline.items():
+            month_name, year_str = key.split()
+            year = int(year_str)
+            month = list(calendar.month_name).index(month_name)
+            sorted_items.append((key, media_list, year, month))
+
+        # Sort by year and month in reverse chronological order
+        sorted_items.sort(key=lambda x: (x[2], x[3]), reverse=True)
+
+        # Create the final result dictionary
+        result = {}
+        for key, media_list, _, _ in sorted_items:
+            result[key] = sorted(media_list, key=lambda x: x.start_date)
+
+        return result
 
 
 class Media(CalendarTriggerMixin, models.Model):

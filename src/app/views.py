@@ -636,18 +636,30 @@ def statistics(request):
         end_date,
     )
 
+    media_type_distribution = BasicMedia.objects.get_media_type_distribution(
+        media_count,
+    )
     score_distribution = BasicMedia.objects.get_score_distribution(user_media)
     status_distribution = BasicMedia.objects.get_status_distribution(user_media)
+    status_pie_chart_data = BasicMedia.objects.get_status_pie_chart_data(
+        status_distribution,
+    )
+
     timeline = BasicMedia.objects.get_timeline(user_media)
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
-        "range": request.GET.get("range", "last12Months"),
         "media_count": media_count,
         "activity_data": activity_data,
+        "media_type_distribution": media_type_distribution,
         "score_distribution": score_distribution,
         "status_distribution": status_distribution,
+        "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
+        "user_first_interaction_date": database.get_first_interaction_date(
+            request.user,
+        ),
     }
 
     return render(request, "app/statistics.html", context)
