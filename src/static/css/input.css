@@ -19,6 +19,7 @@
 
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
+@custom-variant parent-hover-tap (.hover-tap:hover &);
 
 .toast-error {
   @apply bg-red-700/95 border-red-600;
