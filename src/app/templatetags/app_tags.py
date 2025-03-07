@@ -95,9 +95,6 @@ def media_type_readable_plural(media_type):
     if singular.lower() in ["anime", "manga"]:
         return singular
 
-    if singular.lower() == "season":
-        return "TV Seasons"
-
     return f"{singular}s"
 
 

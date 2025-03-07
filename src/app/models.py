@@ -50,7 +50,7 @@ class MediaTypes(models.TextChoices):
     """Choices for the media type of the item."""
 
     TV = "tv", "TV Show"
-    SEASON = "season", "Season"
+    SEASON = "season", "TV Season"
     EPISODE = "episode", "Episode"
     MOVIE = "movie", "Movie"
     ANIME = "anime", "Anime"
@@ -278,7 +278,7 @@ class MediaManager(models.Manager):
         for media_type, count in media_count.items():
             if media_type != "total" and count > 0:
                 # Format label with first letter capitalized
-                label = media_type.capitalize()
+                label = app_tags.media_type_readable(media_type)
                 chart_data["labels"].append(label)
                 chart_data["datasets"][0]["data"].append(count)
                 chart_data["datasets"][0]["backgroundColor"].append(
