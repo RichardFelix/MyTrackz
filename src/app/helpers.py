@@ -25,6 +25,8 @@ def get_media_verb(media_type, past_tense):
     """Get the appropriate verb for the media type."""
     verbs = {
         "tv": ("watch", "watched"),
+        "season": ("watch", "watched"),
+        "episode": ("watch", "watched"),
         "movie": ("watch", "watched"),
         "anime": ("watch", "watched"),
         "manga": ("read", "read"),
@@ -94,7 +96,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             ("In progress", "Completed"): f"Finished {verb}ing",
             ("In progress", "Paused"): f"Paused {verb}ing",
             ("Paused", "In progress"): f"Resumed {verb}ing",
-            ("In progress", "Dropped"): f"Dropped {verb}ing",
+            ("In progress", "Dropped"): f"Stopped {verb}ing",
             ("Completed", "Repeating"): f"Started re{verb}ing",
             ("Repeating", "Completed"): f"Finished re{verb}ing",
         }
