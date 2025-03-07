@@ -179,18 +179,31 @@ def get_anime_schedule_bulk(media_ids):
 def process_season(item, metadata, events_bulk):
     """Process season item and add events to the event list."""
     for episode in reversed(metadata["episodes"]):
+        episode_number = episode["episode_number"]
+        air_date = None
+
         if episode["air_date"]:
             try:
                 air_date = date_parser(episode["air_date"])
-                events_bulk.append(
-                    Event(
-                        item=item,
-                        episode_number=episode["episode_number"],
-                        date=air_date,
-                    ),
-                )
             except ValueError:
-                pass
+                logging.warning(
+                    "%s - Invalid air date for episode %s",
+                    item,
+                    episode_number,
+                )
+                air_date = date.min
+
+        else:
+            # use max, so it gets updated when a new air date is available
+            air_date = date.max
+
+        events_bulk.append(
+            Event(
+                item=item,
+                episode_number=episode_number,
+                date=air_date,
+            ),
+        )
 
 
 def process_other(item, metadata, events_bulk):
