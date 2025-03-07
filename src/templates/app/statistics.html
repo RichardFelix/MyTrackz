@@ -307,7 +307,7 @@
               {% for week in activity_data.calendar_weeks %}
                 <div class="flex flex-col gap-1">
                   {% for day in week %}
-                    <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-900/70{% elif day.level == 2 %}bg-indigo-700{% elif day.level == 3 %}bg-indigo-600{% elif day.level == 4 %}bg-indigo-500{% endif %}"
+                    <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-700{% elif day.level == 2 %}bg-indigo-600{% elif day.level == 3 %}bg-indigo-500{% elif day.level == 4 %}bg-indigo-400{% endif %}"
                          title="{{ day.date }}: {{ day.count }} activitie{{ day.count|pluralize }}"></div>
                   {% endfor %}
                 </div>
@@ -321,10 +321,10 @@
              :class="graphTooWide ? 'mb-5 mt-2' : 'mt-4'">
           <span>Less</span>
           <div class="w-4 h-4 rounded-sm bg-[#2f353e]"></div>
-          <div class="w-4 h-4 rounded-sm bg-indigo-900/70"></div>
           <div class="w-4 h-4 rounded-sm bg-indigo-700"></div>
           <div class="w-4 h-4 rounded-sm bg-indigo-600"></div>
           <div class="w-4 h-4 rounded-sm bg-indigo-500"></div>
+          <div class="w-4 h-4 rounded-sm bg-indigo-400"></div>
           <span>More</span>
         </div>
       </div>

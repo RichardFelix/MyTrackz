@@ -1530,6 +1530,9 @@
   .bg-green-400\/10 {
     background-color: color-mix(in oklab, var(--color-green-400) 10%, transparent);
   }
+  .bg-indigo-400 {
+    background-color: var(--color-indigo-400);
+  }
   .bg-indigo-500 {
     background-color: var(--color-indigo-500);
   }
@@ -1542,14 +1545,32 @@
   .bg-indigo-600\/20 {
     background-color: color-mix(in oklab, var(--color-indigo-600) 20%, transparent);
   }
+  .bg-indigo-600\/90 {
+    background-color: color-mix(in oklab, var(--color-indigo-600) 90%, transparent);
+  }
   .bg-indigo-700 {
     background-color: var(--color-indigo-700);
+  }
+  .bg-indigo-700\/80 {
+    background-color: color-mix(in oklab, var(--color-indigo-700) 80%, transparent);
+  }
+  .bg-indigo-700\/90 {
+    background-color: color-mix(in oklab, var(--color-indigo-700) 90%, transparent);
+  }
+  .bg-indigo-700\/900 {
+    background-color: color-mix(in oklab, var(--color-indigo-700) 900%, transparent);
+  }
+  .bg-indigo-800 {
+    background-color: var(--color-indigo-800);
   }
   .bg-indigo-900 {
     background-color: var(--color-indigo-900);
   }
   .bg-indigo-900\/70 {
     background-color: color-mix(in oklab, var(--color-indigo-900) 70%, transparent);
+  }
+  .bg-indigo-900\/80 {
+    background-color: color-mix(in oklab, var(--color-indigo-900) 80%, transparent);
   }
   .bg-red-400 {
     background-color: var(--color-red-400);
