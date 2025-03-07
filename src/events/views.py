@@ -90,5 +90,5 @@ def release_calendar(request):
 def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
-    messages.success(request, "Calendar refresh task successfully scheduled.")
-    return redirect("profile")
+    messages.info(request, "The task to refresh upcoming releases has been queued.")
+    return redirect("release_calendar")
