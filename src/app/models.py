@@ -995,13 +995,16 @@ class Season(Media):
                 },
             )
 
-            tv = TV.objects.create(
+            tv = TV(
                 item=item,
                 score=None,
                 status=status,
                 notes="",
                 user=self.user,
             )
+
+            # save_base to avoid custom save method
+            TV.save_base(tv)
 
             logger.info("%s did not exist, it was created successfully.", tv)
 

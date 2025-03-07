@@ -11,6 +11,7 @@ from django.core.cache import cache
 import app
 from app.models import Media
 from integrations import helpers
+from integrations.helpers import MediaImportError
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def importer(username, user, mode):
                 f"User slug {username} not found. "
                 "User slug can be found in the URL when viewing your Trakt profile."
             )
-            raise ValueError(msg) from error
+            raise MediaImportError(msg) from error
         raise
 
     # Process watched media first
@@ -228,9 +229,13 @@ def process_watched_shows(
                         media_instances,
                     )
 
-        except ValueError as e:
+        except MediaImportError as e:
             warnings.append(str(e))
-            continue
+        except Exception as e:
+            logger.exception("Error processing %s", trakt_title)
+            warnings.append(
+                f"{trakt_title}: Unexpected error: {{{e}}}, check logs for more data",
+            )
 
     logger.info("Processed %d shows", len(watched))
 
@@ -302,8 +307,14 @@ def process_watched_movies(
                 bulk_media,
                 media_instances,
             )
-        except ValueError as e:
+        except MediaImportError as e:
             warnings.append(str(e))
+        except Exception as e:
+            trakt_title = entry["movie"]["title"]
+            logger.exception("Error processing %s", trakt_title)
+            warnings.append(
+                f"{trakt_title}: Unexpected error: {{{e}}}, check logs for more data",
+            )
 
     logger.info("Processed %d movies", len(watched))
 
@@ -358,8 +369,15 @@ def process_list(
                     bulk_media,
                     media_instances,
                 )
-        except ValueError as e:
+        except MediaImportError as e:
             warnings.append(str(e))
+        except Exception as e:
+            entry_details = entry.get("show") or entry.get("movie")
+            trakt_title = entry_details["title"]
+            logger.exception("Error processing %s", trakt_title)
+            warnings.append(
+                f"{trakt_title}: Unexpected error: {{{e}}}, check logs for more data",
+            )
 
     logger.info("Processed %d entries from %s", len(entries), list_type)
 
@@ -506,7 +524,7 @@ def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instan
 
     if not tmdb_id:
         msg = f"No TMDB ID found for {trakt_title} in {list_type}"
-        raise ValueError(msg)
+        raise MediaImportError(msg)
 
     metadata = get_metadata(app.providers.tmdb.tv, "TMDB", trakt_title, tmdb_id)
 
@@ -608,7 +626,7 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
 
     if not tmdb_id:
         msg = f"No TMDB ID found for {trakt_title} S{season_number} in {list_type}"
-        raise ValueError(msg)
+        raise MediaImportError(msg)
 
     metadata = get_metadata(
         app.providers.tmdb.tv_with_seasons,
@@ -669,7 +687,7 @@ def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_insta
 
     if not tmdb_id:
         msg = f"No TMDB ID found for {trakt_title} in {list_type}"
-        raise ValueError(msg)
+        raise MediaImportError(msg)
 
     metadata = get_metadata(app.providers.tmdb.movie, "TMDB", trakt_title, tmdb_id)
 
@@ -738,12 +756,12 @@ def get_metadata(fetch_func, source, title, *args, **kwargs):
         if e.response.status_code == requests.codes.not_found:
             msg = f"{title}: Couldn't fetch metadata from {source} ({args[0]})"
             logger.warning(msg)
-            raise ValueError(msg) from e
+            raise MediaImportError(msg) from e
         raise
     except KeyError as e:
         msg = f"{title}: Couldn't parse incomplete metadata from {source} ({args[0]})"
         logger.warning(msg)
-        raise ValueError(msg) from e
+        raise MediaImportError(msg) from e
 
 
 def download_and_parse_anitrakt_db(url):

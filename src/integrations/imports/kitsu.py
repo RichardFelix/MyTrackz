@@ -9,6 +9,7 @@ from django.conf import settings
 import app
 from app.models import Item, Media
 from integrations import helpers
+from integrations.helpers import MediaImportError
 
 logger = logging.getLogger(__name__)
 KITSU_API_BASE_URL = "https://kitsu.io/api/edge"
@@ -27,13 +28,13 @@ def get_kitsu_id(username):
 
     if not response["data"]:
         msg = f"User {username} not found."
-        raise ValueError(msg)
+        raise MediaImportError(msg)
     if len(response["data"]) > 1:
         msg = (
             f"Multiple users found for {username}, please use your user ID. "
             "User IDs can be found in the URL when viewing your Kitsu profile."
         )
-        raise ValueError(msg)
+        raise MediaImportError(msg)
 
     return response["data"][0]["id"]
 
@@ -119,8 +120,16 @@ def import_media(response, media_type, user, mode):
                     kitsu_mu_mapping,
                     user,
                 )
-            except ValueError as e:
-                warnings.append(str(e))
+            except MediaImportError as error:
+                warnings.append(str(error))
+            except Exception as error:
+                kitsu_id = entry["relationships"][media_type]["data"]["id"]
+                kitsu_metadata = media_lookup[kitsu_id]
+                title = kitsu_metadata["attributes"]["canonicalTitle"]
+                logger.exception("Error processing %s", title)
+                warnings.append(
+                    f"{title}: Unexpected error: {{{error}}}, check logs for more data",
+                )
             else:
                 bulk_data.append(instance)
 
@@ -217,7 +226,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
     if not media_id:
         media_title = kitsu_metadata["attributes"]["canonicalTitle"]
         msg = f"{media_title}: No valid external ID found."
-        raise ValueError(msg)
+        raise MediaImportError(msg)
 
     image_url = get_image_url(kitsu_metadata)
 
