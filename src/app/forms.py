@@ -165,11 +165,14 @@ class ManualItemForm(forms.ModelForm):
 class MediaForm(forms.ModelForm):
     """Base form for all media types."""
 
+    media_type = forms.CharField(widget=forms.HiddenInput(), required=True)
+    source = forms.CharField(widget=forms.HiddenInput(), required=True)
+    media_id = forms.CharField(widget=forms.HiddenInput(), required=True)
+
     class Meta:
         """Define fields and input types."""
 
         fields = [
-            "item",
             "score",
             "progress",
             "status",
@@ -179,7 +182,6 @@ class MediaForm(forms.ModelForm):
             "notes",
         ]
         widgets = {
-            "item": forms.HiddenInput(),
             "score": forms.NumberInput(
                 attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
             ),
@@ -265,18 +267,19 @@ class TvForm(MediaForm):
         """Bind form to model."""
 
         model = models.TV
-        fields = ["item", "score", "status", "notes"]
+        fields = ["score", "status", "notes"]
 
 
 class SeasonForm(MediaForm):
     """Form for seasons."""
+
+    season_number = forms.IntegerField(widget=forms.HiddenInput(), required=False)
 
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
         model = models.Season
         fields = [
-            "item",
             "score",
             "status",
             "notes",
@@ -290,7 +293,7 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = models.Episode
-        fields = ("item", "end_date", "repeats")
+        fields = ("end_date", "repeats")
         widgets = {
             "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),

@@ -19,7 +19,7 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_anime(self):
         """Test the creation of a TV object."""
-        item = Item.objects.create(
+        Item.objects.create(
             media_id="1",
             source="mal",
             media_type="anime",
@@ -29,7 +29,9 @@ class CreateMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
-                "item": item.id,
+                "media_id": "1",
+                "source": "mal",
+                "media_type": "anime",
                 "status": "Planning",
                 "progress": 0,
                 "repeats": 0,
@@ -43,7 +45,7 @@ class CreateMedia(TestCase):
     @override_settings(MEDIA_ROOT=("create_media"))
     def test_create_tv(self):
         """Test the creation of a TV object through views."""
-        item = Item.objects.create(
+        Item.objects.create(
             media_id="5895",
             source="tmdb",
             media_type="tv",
@@ -53,7 +55,9 @@ class CreateMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
-                "item": item.id,
+                "media_id": "5895",
+                "source": "tmdb",
+                "media_type": "tv",
                 "status": "Planning",
             },
         )
@@ -64,7 +68,7 @@ class CreateMedia(TestCase):
 
     def test_create_season(self):
         """Test the creation of a Season through views."""
-        item = Item.objects.create(
+        Item.objects.create(
             media_id="1668",
             source="tmdb",
             media_type="season",
@@ -75,7 +79,10 @@ class CreateMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
-                "item": item.id,
+                "media_id": "1668",
+                "source": "tmdb",
+                "media_type": "season",
+                "season_number": 1,
                 "status": "Planning",
             },
         )
@@ -139,7 +146,9 @@ class EditMedia(TestCase):
         self.client.post(
             reverse("media_save"),
             {
-                "item": item.id,
+                "media_id": "10494",
+                "source": "tmdb",
+                "media_type": "movie",
                 "score": 10,
                 "progress": 1,
                 "status": "Completed",
@@ -202,17 +211,28 @@ class DeleteMedia(TestCase):
             end_date=datetime.date(2023, 6, 1),
         )
 
-    def test_delete_movie(self):
-        """Test the deletion of a movie through views."""
+    def test_delete_tv(self):
+        """Test the deletion of a tv through views."""
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
 
-        self.client.post(reverse("media_delete"), {"item": self.item_tv.id})
+        self.client.post(
+            reverse("media_delete"),
+            {"media_id": "1668", "source": "tmdb", "media_type": "tv"},
+        )
 
         self.assertEqual(Movie.objects.filter(user=self.user).count(), 0)
 
     def test_delete_season(self):
         """Test the deletion of a season through views."""
-        self.client.post(reverse("media_delete"), {"item": self.item_season.id})
+        self.client.post(
+            reverse("media_delete"),
+            {
+                "media_id": "1668",
+                "source": "tmdb",
+                "media_type": "tv",
+                "season_number": 1,
+            },
+        )
 
         self.assertEqual(Season.objects.filter(user=self.user).count(), 0)
         self.assertEqual(

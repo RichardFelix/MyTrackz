@@ -128,7 +128,7 @@ def import_episodes(bulk_data, user, mode):
     }
 
     for episode in bulk_data:
-        season_key = (episode.item.media_id, episode.item.season_number)
+        season_key = (episode.item.media_id, int(episode.item.season_number))
         episode.related_season = season_mapping[season_key]
 
     return helpers.bulk_chunk_import(bulk_data, Episode, user, mode)

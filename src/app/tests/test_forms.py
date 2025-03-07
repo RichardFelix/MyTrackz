@@ -13,7 +13,7 @@ class BasicMediaForm(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
-        self.item = Item.objects.create(
+        Item.objects.create(
             media_id="1",
             source="mal",
             media_type="anime",
@@ -21,10 +21,20 @@ class BasicMediaForm(TestCase):
             image="http://example.com/image.jpg",
         )
 
+        Item.objects.create(
+            media_id="1",
+            source="tmdb",
+            media_type="tv",
+            title="Test tv",
+            image="http://example.com/image.jpg",
+        )
+
     def test_valid_media_form(self):
         """Test the standard media form with valid data."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "mal",
+            "media_type": "anime",
             "user": self.user.id,
             "score": 7.5,
             "progress": 25,
@@ -40,7 +50,9 @@ class BasicMediaForm(TestCase):
     def test_valid_tv_form(self):
         """Test the TV form with valid data."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "tmdb",
+            "media_type": "tv",
             "user": self.user.id,
             "score": 7.5,
             "status": "Completed",
@@ -53,7 +65,9 @@ class BasicMediaForm(TestCase):
     def test_valid_season_form(self):
         """Test the season form with valid data."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "tmdb",
+            "media_type": "season",
             "user": self.user.id,
             "score": 7.5,
             "status": "Completed",
@@ -67,7 +81,10 @@ class BasicMediaForm(TestCase):
     def test_valid_episode_form(self):
         """Test the episode form with valid data."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "tmdb",
+            "season_number": 1,
+            "episode_number": 1,
             "end_date": "2023-06-01",
             "repeats": 0,
         }
@@ -93,7 +110,9 @@ class BasicGameForm(TestCase):
     def test_default_progress(self):
         """Test the game form using the default progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "25:00",
@@ -105,7 +124,9 @@ class BasicGameForm(TestCase):
     def test_alternate_progress(self):
         """Test the game form using an alternate progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "25h 00min",
@@ -117,7 +138,9 @@ class BasicGameForm(TestCase):
     def test_second_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "30min",
@@ -129,7 +152,9 @@ class BasicGameForm(TestCase):
     def test_third_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "9h",
@@ -141,7 +166,9 @@ class BasicGameForm(TestCase):
     def test_fourth_alternate_progress(self):
         """Test the game form using a second alternate progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "9h30min",
@@ -153,7 +180,9 @@ class BasicGameForm(TestCase):
     def test_invalid_progress(self):
         """Test the game form using an invalid default progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "25:00m",
@@ -165,7 +194,9 @@ class BasicGameForm(TestCase):
     def test_invalid_minutes(self):
         """Test the game form using an invalid default progress format."""
         form_data = {
-            "item": self.item.id,
+            "media_id": "1",
+            "source": "igdb",
+            "media_type": "game",
             "user": self.user.id,
             "status": "Completed",
             "progress": "25h61m",

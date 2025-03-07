@@ -248,12 +248,28 @@ def get_in_progress(user, sort_by):
     return list_by_type
 
 
-def get_media(media_type, item, user):
+def get_media(
+    user,
+    media_id,
+    media_type,
+    source,
+    season_number=None,
+    episode_number=None,
+):
     """Get user media object given the media type and item."""
     model = apps.get_model(app_label="app", model_name=media_type)
-    params = {"item": item}
+    params = {
+        "item__media_type": media_type,
+        "item__source": source,
+        "item__media_id": media_id,
+    }
 
-    if media_type == "episode":
+    if media_type == "season":
+        params["item__season_number"] = season_number
+        params["user"] = user
+    elif media_type == "episode":
+        params["item__season_number"] = season_number
+        params["item__episode_number"] = episode_number
         params["related_season__user"] = user
     else:
         params["user"] = user

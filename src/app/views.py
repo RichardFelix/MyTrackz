@@ -39,7 +39,13 @@ def progress_edit(request):
     media_type = item.media_type
     operation = request.POST["operation"]
 
-    media = database.get_media(media_type, item, request.user)
+    media = database.get_media(
+        request.user,
+        item.media_id,
+        item.media_type,
+        item.source,
+        season_number=item.season_number,
+    )
 
     if media:
         if media_type == "season":
@@ -211,28 +217,19 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
-    metadata = services.get_media_metadata(
-        media_type,
+    media = database.get_media(
+        request.user,
         media_id,
+        media_type,
         source,
-        [season_number],
-    )
-
-    item, _ = Item.objects.get_or_create(
-        media_id=media_id,
-        source=source,
-        media_type=media_type,
         season_number=season_number,
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
     )
-
-    media = database.get_media(media_type, item, request.user)
 
     initial_data = {
-        "item": item,
+        "media_id": media_id,
+        "source": source,
+        "media_type": media_type,
+        "season_number": season_number,
     }
 
     if media_type == "game" and media:
@@ -244,7 +241,6 @@ def track_modal(
         request,
         "app/components/fill_track.html",
         {
-            "title": item,
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],
@@ -255,12 +251,36 @@ def track_modal(
 @require_POST
 def media_save(request):
     """Save or update media data to the database."""
-    item = Item.objects.get(id=request.POST["item"])
-    media_type = item.media_type
+    media_id = request.POST["media_id"]
+    source = request.POST["source"]
+    media_type = request.POST["media_type"]
+    season_number = request.POST.get("season_number")
 
-    instance = database.get_media(media_type, item, request.user)
+    instance = database.get_media(
+        request.user,
+        media_id,
+        media_type,
+        source,
+        season_number=season_number,
+    )
 
     if not instance:
+        metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+        )
+        item, _ = Item.objects.get_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)
 
@@ -285,10 +305,18 @@ def media_save(request):
 @require_POST
 def media_delete(request):
     """Delete media data from the database."""
-    item = Item.objects.get(id=request.POST["item"])
-    media_type = item.media_type
+    media_id = request.POST["media_id"]
+    source = request.POST["source"]
+    media_type = request.POST["media_type"]
+    season_number = request.POST.get("season_number")
 
-    media = database.get_media(media_type, item, request.user)
+    media = database.get_media(
+        request.user,
+        media_id,
+        media_type,
+        source,
+        season_number=season_number,
+    )
     if media:
         media.delete()
         logger.info("%s deleted successfully.", media)
@@ -385,13 +413,13 @@ def create_entry(request):
 
     # Prepare and validate the media form
     updated_request = request.POST.copy()
-    updated_request.update({"item": item.id})
+    updated_request.update({"source": item.source, "media_id": item.media_id})
     media_form = get_form_class(item.media_type)(updated_request)
 
     if not media_form.is_valid():
         # Handle media form validation errors
         logger.error(media_form.errors.as_json())
-        helpers.form_error_messages(form, request)
+        helpers.form_error_messages(media_form, request)
 
         # Delete the item since the media creation failed
         item.delete()
@@ -400,6 +428,7 @@ def create_entry(request):
 
     # Save the media instance
     media_form.instance.user = request.user
+    media_form.instance.item = item
 
     # Handle relationships based on media type
     if item.media_type == "season":
@@ -483,29 +512,16 @@ def history_modal(
     episode_number=None,
 ):
     """Return the history page for a media item."""
-    metadata = services.get_media_metadata(
-        media_type,
+    media = database.get_media(
+        request.user,
         media_id,
+        media_type,
         source,
-        [season_number],
-        episode_number,
-    )
-
-    item, _ = Item.objects.get_or_create(
-        media_id=media_id,
-        source=source,
-        media_type=media_type,
         season_number=season_number,
         episode_number=episode_number,
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
     )
 
     timeline_entries = []
-    media = database.get_media(media_type, item, request.user)
-
     if media and (history := media.history.all()):
         last = history.first()
 
