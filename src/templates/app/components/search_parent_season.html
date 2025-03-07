@@ -3,7 +3,7 @@
     {% for season in results %}
       <button type="button"
               class="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-[#2a2f35] hover:text-white"
-              onclick="document.getElementById('parent-season-input').value = 'Season {{ season.season_number }} of {{ season.parent_show.item.title }}'; document.getElementById('parent-season-id').value = '{{ season.id }}'; document.getElementById('parent-season-results').innerHTML = '';">
+              onclick="document.getElementById('parent-season-input').value = 'Season {{ season.item.season_number }} of {{ season.item.title }}'; document.getElementById('parent-season-id').value = '{{ season.id }}'; document.getElementById('parent-season-results').innerHTML = '';">
         {{ season.item.title }} - Season {{ season.item.season_number }}
       </button>
     {% endfor %}
