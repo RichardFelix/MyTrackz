@@ -356,7 +356,7 @@
           
                     {% if message.tags not in 'warning,error' %}
                       // Auto-dismiss non-critical messages
-                      setTimeout(() => this.$el.remove(), 3000);
+                      setTimeout(() => this.$el.remove(), 5000);
                     {% endif %}
                   }
               }">
