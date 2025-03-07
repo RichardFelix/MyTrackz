@@ -254,7 +254,7 @@ def get_in_progress(user, sort_by, specific_media_type=None):
                     else media_list.count()
                 )
 
-                media_list = media_list[20:] if specific_media_type else media_list[:20]
+                media_list = media_list[14:] if specific_media_type else media_list[:14]
 
                 list_by_type[media_type] = {
                     "items": media_list,
