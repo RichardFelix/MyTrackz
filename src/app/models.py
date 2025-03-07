@@ -461,7 +461,9 @@ class MediaManager(models.Manager):
         timeline = defaultdict(list)
 
         # Process each media type
-        for queryset in user_media.values():
+        for media_type, queryset in user_media.items():
+            if media_type == "tv":
+                continue
             for media in queryset:
                 # If there's an end date, add media to all months between start and end
                 if media.end_date:
