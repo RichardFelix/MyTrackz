@@ -1133,6 +1133,9 @@ class Episode(models.Model):
                 total_repeats=Sum("repeats"),
             )["total_repeats"]
 
+            # clear prefetch cache to get the updated episodes
+            self.related_season.refresh_from_db()
+
             total_watches = self.related_season.progress + total_repeats
 
             if total_watches >= max_progress * (self.related_season.repeats + 1):
