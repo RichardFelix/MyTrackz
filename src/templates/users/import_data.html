@@ -392,7 +392,7 @@
                   <span class="px-2 py-1 rounded text-xs font-medium text-emerald-400 bg-emerald-400/10">Success</span>
                 {% elif result.status == "STARTED" %}
                   <span class="px-2 py-1 rounded text-xs font-medium text-blue-400 bg-blue-400/10">Started</span>
-                {% elif result.status == "FAILED" %}
+                {% elif result.status == "FAILURE" %}
                   <span class="px-2 py-1 rounded text-xs font-medium text-red-400 bg-red-400/10">Failed</span>
                 {% else %}
                   <span class="px-2 py-1 rounded text-xs font-medium text-yellow-400 bg-yellow-400/10">Pending</span>
@@ -405,23 +405,27 @@
 
             <div class="text-xs text-gray-400 mb-2">Mode: {{ result.mode }}</div>
 
-            {% if result.status == "SUCCESS" or result.status == "FAILED" %}
-              <div class="text-sm text-gray-200">{{ result.summary }}</div>
+            {% if result.status %}
+              {% if result.status == "SUCCESS" %}<div class="text-sm text-gray-200">{{ result.summary }}</div>{% endif %}
 
-              {% if result.errors %}
-                <div class="mt-2" x-data="{ showFailedItems: false }">
-                  <button @click="showFailedItems = !showFailedItems"
+              <div class="mt-2" x-data="{ showDetails: false }" x-cloak>
+                {% if result.errors or result.status == "FAILURE" %}
+                  <button @click="showDetails = !showDetails"
                           class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                          x-text="showFailedItems ? 'Hide failed items' : 'Show failed items'">
-                    Show failed items
-                  </button>
-                  <div class="mt-2 space-y-1 text-sm text-red-400 bg-[#2a2f35] p-3 rounded"
-                       x-show="showFailedItems">
-                    <div class="text-xs text-gray-400 mb-2">Couldn't import the following media:</div>
-                    <div class="text-xs space-y-1">{{ result.errors|linebreaksbr }}</div>
+                          x-text="showDetails ? 'Hide details' : 'Show details'">Show details</button>
+
+                  <div class="mt-2 space-y-1 text-sm bg-[#2a2f35] p-3 rounded"
+                       x-show="showDetails">
+                    {% if result.errors %}
+                      <div class="text-xs text-gray-400 mb-2">Couldn't import the following media:</div>
+                      <div class="text-xs space-y-1 text-red-400">{{ result.errors|linebreaksbr }}</div>
+                    {% else %}
+                      <div class="text-xs text-gray-400 mb-2">Unexpected error occurred:</div>
+                      <div class="text-xs space-y-1 text-red-400">{{ result.summary }}</div>
+                    {% endif %}
                   </div>
-                </div>
-              {% endif %}
+                {% endif %}
+              </div>
             {% endif %}
           </div>
         {% empty %}
