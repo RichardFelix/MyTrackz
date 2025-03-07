@@ -13,6 +13,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
         super().setUpClass()
         cls.playwright = sync_playwright().start()
+        # use headless=False, slow_mo=400 to see the browser
         cls.browser = cls.playwright.chromium.launch()
 
     @classmethod
@@ -28,31 +29,23 @@ class IntegrationTest(StaticLiveServerTestCase):
         page.goto(f"{self.live_server_url}/")
 
         # Register
-        page.get_by_role("link", name="Register Now").click()
-        page.get_by_label("Username*").fill("TEST")
-        page.get_by_label("Username*").press("Tab")
-        page.get_by_label("Password*").fill(
-            "12341234",
+        page.get_by_role("link", name="Register now").click()
+        page.get_by_placeholder("Choose a username").fill("test1234")
+        page.get_by_placeholder("Create a password").fill("12341234")
+        page.get_by_placeholder("Confirm your password").fill("12341234")
+        page.get_by_role("button", name="Create account").click()
+        expect(page.locator("body")).to_contain_text(
+            "Your account has been created, you can now log in!",
         )
-        page.get_by_label("Password*").press("Tab")
-        page.get_by_label("Password confirmation*").fill(
-            "12341234",
-        )
-        page.get_by_role("button", name="Sign Up").click()
-        expect(
-            page.get_by_text("Your account has been created, you can now log in!"),
-        ).to_be_visible()
 
         # Login
-        page.get_by_label("Username*").click()
-        page.get_by_label("Username*").fill("TEST")
-        page.get_by_label("Password*").click()
-        page.get_by_label("Password*").fill(
-            "12341234",
-        )
-        page.get_by_role("button", name="Log In").click()
-        expect(
-            page.get_by_role("heading", name="You don't have any media in"),
-        ).to_be_visible()
+        page.get_by_placeholder("Enter your username").click()
+        page.get_by_placeholder("Enter your username").fill("test1234")
+        page.get_by_placeholder("Enter your password").click()
+        page.get_by_placeholder("Enter your password").fill("12341234")
+        page.get_by_role("button", name="Sign in").click()
+        expect(page.get_by_role("main")).to_contain_text("No media in progress")
 
-        page.close()
+        # Logout
+        page.get_by_role("button", name="Logout").click()
+        expect(page.locator("body")).to_contain_text("Sign in to your account")

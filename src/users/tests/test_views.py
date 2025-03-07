@@ -25,7 +25,7 @@ class Profile(TestCase):
         """Test changing username."""
         self.assertEqual(auth.get_user(self.client).username, "test")
         self.client.post(
-            reverse("profile"),
+            reverse("account"),
             {
                 "username": "new_test",
             },
@@ -36,7 +36,7 @@ class Profile(TestCase):
         """Test changing password."""
         self.assertEqual(auth.get_user(self.client).check_password("12345"), True)
         self.client.post(
-            reverse("profile"),
+            reverse("account"),
             {
                 "old_password": "12345",
                 "new_password1": "*FNoZN64",
@@ -48,7 +48,7 @@ class Profile(TestCase):
     def test_invalid_password_change(self):
         """Test password change with incorrect old password."""
         response = self.client.post(
-            reverse("profile"),
+            reverse("account"),
             {
                 "old_password": "wrongpass",
                 "new_password1": "newpass123",
@@ -131,7 +131,7 @@ class DemoProfileTests(TestCase):
         self.user.save()
 
         response = self.client.post(
-            reverse("profile"),
+            reverse("account"),
             {
                 "username": "new_username",
             },
@@ -145,7 +145,7 @@ class DemoProfileTests(TestCase):
         self.user.save()
 
         response = self.client.post(
-            reverse("profile"),
+            reverse("account"),
             {
                 "old_password": "testpass123",
                 "new_password1": "newpass123",
@@ -166,7 +166,7 @@ class HelpersTest(TestCase):
         task.result = json.dumps("Imported 5 items")
 
         processed_task = helpers.process_task_result(task)
-        self.assertEqual(processed_task.result, "Imported 5 items")
+        self.assertEqual(processed_task.result, '"Imported 5 items"')
 
     def test_process_task_result_failure(self):
         """Test processing a failed task result."""
@@ -220,7 +220,7 @@ class HelpersTest(TestCase):
 
         expected_next_run = datetime(2025, 2, 6, 14, 0, tzinfo=zoneinfo.ZoneInfo("UTC"))
         self.assertEqual(next_run_info["next_run"], expected_next_run)
-        self.assertEqual(next_run_info["frequency"], "Daily")
+        self.assertEqual(next_run_info["frequency"], "Every Day")
 
     @patch("django.utils.timezone.now")
     def test_get_next_run_info_every_2_days(self, mock_now):

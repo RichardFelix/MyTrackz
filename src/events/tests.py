@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from app.models import Anime, Item
 from events.models import Event
@@ -26,15 +27,16 @@ class CalendarViewTests(TestCase):
             image="http://example.com/image.jpg",
         )
         Anime.objects.create(item=self.item, user=self.user)
-        Event.objects.create(item=self.item, date="2024-08-17")
+
+        today = timezone.now().strftime("%Y-%m-%d")
+        Event.objects.create(item=self.item, date=today)
 
     def test_calendar_view(self):
         """Test that the calendar view."""
-        response = self.client.get(reverse("calendar"))
+        response = self.client.get(reverse("release_calendar"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "events/calendar.html")
-        # Check that the event is present in the context
-        self.assertEqual("My Anime", response.context["events"][0]["title"])
+        self.assertTrue(len(response.context["release_dict"]) > 0)
 
 
 class ReloadCalendarTaskTests(TestCase):

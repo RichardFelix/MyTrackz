@@ -34,7 +34,7 @@ class CustomListModelTest(TestCase):
         self.item = Item.objects.create(
             title="Test Item",
             media_id="123",
-            media_type="TV",
+            media_type="tv",
             source="tmdb",
         )
 
@@ -160,7 +160,7 @@ class CreateListViewTest(TestCase):
     def test_create_list(self):
         """Test creating a new custom list."""
         self.client.post(
-            reverse("create"),
+            reverse("list_create"),
             {"name": "New List", "description": "New Description"},
         )
         self.assertEqual(CustomList.objects.count(), 1)
@@ -193,7 +193,7 @@ class EditListViewTest(TestCase):
         """Test editing an existing custom list."""
         self.client.login(**self.credentials)
         self.client.post(
-            reverse("edit"),
+            reverse("list_edit"),
             {
                 "list_id": self.list.id,
                 "name": "Updated List",
@@ -208,7 +208,7 @@ class EditListViewTest(TestCase):
         """Test editing an existing custom list as a collaborator."""
         self.client.login(**self.collaborator_credentials)
         self.client.post(
-            reverse("edit"),
+            reverse("list_edit"),
             {
                 "list_id": self.list.id,
                 "name": "Updated List",
@@ -242,13 +242,13 @@ class DeleteListViewTest(TestCase):
     def test_delete_list(self):
         """Test deleting a list."""
         self.client.login(**self.credentials)
-        self.client.post(reverse("delete"), {"list_id": self.list.id})
+        self.client.post(reverse("list_delete"), {"list_id": self.list.id})
         self.assertEqual(CustomList.objects.count(), 0)
 
     def test_delete_list_collaborator(self):
         """Test deleting a list as a collaborator."""
         self.client.login(**self.collaborator_credentials)
-        self.client.post(reverse("delete"), {"list_id": self.list.id})
+        self.client.post(reverse("list_delete"), {"list_id": self.list.id})
         self.assertEqual(CustomList.objects.count(), 1)
 
 

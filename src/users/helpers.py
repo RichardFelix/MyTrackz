@@ -47,8 +47,7 @@ def process_task_result(task):
         task.result = "Task in progress"
         task.summary = task.result
         task.errors = ""
-    # Process the result to separate summary and errors
-    elif isinstance(result_json, str):
+    elif task.status == "SUCCESS":
         # Split by the error indicator
         parts = result_json.split("Couldn't import the following media:")
 
@@ -63,7 +62,6 @@ def process_task_result(task):
             task.summary = result_json.strip()
             task.errors = ""
     else:
-        # If result is not a string (e.g., a dict or other structure)
         task.result = result_json
         task.summary = str(result_json)
         task.errors = ""

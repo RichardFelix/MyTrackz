@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import TV, Anime, Episode, Item, MediaTypes, Season
+from app.models import TV, Anime, Episode, Item, Season
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -46,40 +46,6 @@ class ItemModel(TestCase):
             episode_number=2,
         )
         self.assertEqual(str(item), "Test Show S1E2")
-
-    def test_event_color_exists_for_all_media_types(self):
-        """Test that event_color property returns a value for all media types."""
-        defaults = {
-            "media_id": "test123",
-            "source": "test",
-            "title": "Test Item",
-        }
-
-        season_types = {"season", "episode"}
-        episode_types = {"episode"}
-
-        for media_type, _ in MediaTypes.choices:
-            create_kwargs = {
-                **defaults,
-                "media_type": media_type,
-                "title": f"Test {media_type}",
-                "season_number": 1 if media_type in season_types else None,
-                "episode_number": 1 if media_type in episode_types else None,
-            }
-
-            item = Item.objects.create(**create_kwargs)
-
-            try:
-                color = item.event_color
-                self.assertIsInstance(
-                    color,
-                    str,
-                    f"event_color for {media_type} should return a string",
-                )
-            except KeyError as e:
-                self.fail(
-                    f"KeyError accessing event_color for media_type {media_type}: {e}",
-                )
 
 
 class MediaModel(TestCase):

@@ -94,6 +94,7 @@ class CreateMedia(TestCase):
                 "episode_number": 1,
                 "source": "tmdb",
                 "date": "2023-06-01",
+                "watch": "",
             },
         )
         self.assertEqual(

@@ -1,4 +1,5 @@
 import os
+import re
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -23,9 +24,13 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.page.goto(f"{self.live_server_url}/")
-        self.page.get_by_label("Username*").fill(self.credentials["username"])
-        self.page.get_by_label("Password*").fill(self.credentials["password"])
-        self.page.get_by_role("button", name="Log In").click()
+        self.page.get_by_placeholder("Enter your username").fill(
+            self.credentials["username"],
+        )
+        self.page.get_by_placeholder("Enter your password").fill(
+            self.credentials["password"],
+        )
+        self.page.get_by_role("button", name="Sign in").click()
 
     @classmethod
     def tearDownClass(cls):
@@ -36,63 +41,51 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_blank_modal(self):
         """Test the blank modal for creating a list."""
-        self.page.get_by_role("combobox").select_option("anime")
-        self.page.get_by_placeholder("Search").click()
-        self.page.get_by_placeholder("Search").fill("perfect blue")
-        self.page.get_by_placeholder("Search").press("Enter")
-        self.page.get_by_placeholder("Search").press("Enter")
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_role("link", name="Perfect Blue").click()
-        self.page.locator(".mt-sm-auto > button:nth-child(3)").click()
-        expect(self.page.get_by_text("No custom lists found.")).to_be_visible()
+        self.page.get_by_role("button", name="TV Shows").click()
+        self.page.locator("li").filter(has_text=re.compile(r"^Anime$")).click()
+        self.page.get_by_placeholder("Search anime...").fill("perfect blue")
+        self.page.locator("form").filter(has_text="Anime TV").get_by_role(
+            "button",
+        ).first.click()
+        self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
+        expect(self.page.locator("#lists-anime-437")).to_contain_text(
+            "No lists available",
+        )
 
     def test_flow(self):
         """Test the flow of adding an item to a list and editing the list."""
-        # create list
-        self.page.goto(f"{self.live_server_url}/lists")
+        # Create list
+        self.page.get_by_role("link", name="Lists").click()
+        self.page.get_by_role("button", name="New List").click()
+        expect(self.page.locator("h2")).to_contain_text("Create New List")
+        self.page.locator("#id_name").click()
+        self.page.locator("#id_name").fill("test")
         self.page.get_by_role("button", name="Create List").click()
-        self.page.get_by_label("Name*").click()
-        self.page.get_by_label("Name*").fill("test")
-        self.page.get_by_label("Name*").press("Tab")
-        self.page.get_by_label("Description").fill("test description")
-        self.page.get_by_role("button", name="Save").click()
-        expect(self.page.get_by_text("test (0 items) test")).to_be_visible()
-
-        # add item to list
-        self.page.get_by_role("combobox").select_option("anime")
-        self.page.get_by_placeholder("Search").click()
-        self.page.get_by_placeholder("Search").fill("perfect blue")
-        self.page.get_by_role("button", name="").click()
-        self.page.get_by_role("link", name="Perfect Blue").click()
-        self.page.locator(".mt-sm-auto > button:nth-child(3)").click()
-        expect(self.page.get_by_role("button", name=" test")).to_be_visible()
-        self.page.get_by_role("button", name=" test").click()
-        self.page.get_by_label("Close").click()
-        self.page.get_by_role("link", name=" Lists").click()
-        expect(self.page.get_by_text("test (1 item) test description")).to_be_visible()
-
-        # check item
-        self.page.locator("a").filter(has_text="test").click()
-        expect(self.page.get_by_role("link", name="Perfect Blue")).to_be_visible()
-        expect(self.page.get_by_text("Last added 0 minutes ago")).to_be_visible()
-        self.page.get_by_role("button", name="").click()
         expect(
-            self.page.locator("#filter-modal div")
-            .filter(has_text="Media type* All TV Show Season")
-            .nth(2),
+            self.page.locator("#lists-grid div").filter(has_text="T 0 items").nth(1),
         ).to_be_visible()
-        self.page.wait_for_timeout(500)
-        self.page.locator("#filter-modal").press("Escape")
-        self.page.wait_for_timeout(500)
-        self.page.get_by_role("button", name="").first.click()
 
-        # edit list
+        # Add item to list
+        self.page.get_by_role("button", name="TV Shows").click()
+        self.page.locator("li").filter(has_text=re.compile(r"^Anime$")).click()
+        self.page.get_by_placeholder("Search anime...").click()
+        self.page.get_by_placeholder("Search anime...").fill("perfect blue")
+        self.page.locator("form").filter(has_text="Anime TV").get_by_role(
+            "button",
+        ).first.click()
+        self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
+        expect(self.page.locator("#lists-anime-437")).to_contain_text("Lists test Add")
+        self.page.get_by_role("button", name="Add").click()
+        expect(self.page.locator("#lists-anime-437")).to_contain_text("Remove")
+        self.page.locator("#lists-anime-437").get_by_role("button").first.click()
+
+        # Edit list
+        self.page.get_by_role("link", name="Lists").click()
         expect(
-            self.page.locator("#edit-list div")
-            .filter(has_text="Name* Description test")
-            .nth(2),
+            self.page.locator("#lists-grid div").filter(has_text="T 1 item").nth(1),
         ).to_be_visible()
-        self.page.get_by_label("Name*").click()
-        self.page.get_by_label("Name*").fill("test rename")
+        self.page.get_by_role("button", name="Edit list").click()
+        expect(self.page.locator("#lists-grid")).to_contain_text("Edit List")
+        self.page.locator("#id_1_name").click()
+        self.page.locator("#id_1_name").fill("test rename")
         self.page.get_by_role("button", name="Save").click()
-        expect(self.page.get_by_role("heading", name="test rename")).to_be_visible()
