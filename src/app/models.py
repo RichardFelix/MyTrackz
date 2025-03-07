@@ -269,7 +269,6 @@ class MediaManager(models.Manager):
                 {
                     "data": [],
                     "backgroundColor": [],
-                    "borderWidth": 1,
                 },
             ],
         }
@@ -331,7 +330,6 @@ class MediaManager(models.Manager):
                 {
                     "data": [],
                     "backgroundColor": [],
-                    "borderWidth": 1,
                 },
             ],
         }

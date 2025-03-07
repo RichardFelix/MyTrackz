@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const labels = original.call(this, chart);
             labels.forEach((label, i) => {
               label.text = `${label.text} (${chart.data.datasets[0].data[i]})`;
+              label.strokeStyle = "transparent";
             });
             return labels;
           },
@@ -56,6 +57,12 @@ document.addEventListener("DOMContentLoaded", function () {
       },
     },
     layout: { padding: { bottom: 10 } },
+    elements: {
+      arc: {
+        borderWidth: 1,
+        borderColor: "#d3d3d3",
+      },
+    },
   };
 
   // Common configuration for bar charts
@@ -107,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
         align: "center",
         formatter: (value) => (value > 0 ? value : ""),
         font: { weight: "bold", size: 11 },
-        display: 'auto',
+        display: "auto",
       },
     },
   };
