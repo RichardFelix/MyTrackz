@@ -127,6 +127,9 @@ def process_episodes(season_metadata, episodes_in_db):
 
         episode_data = {
             "source": "manual",
+            "media_id": episode["media_id"],
+            "media_type": "episode",
+            "season_number": season_metadata["season_number"],
             "episode_number": episode_number,
             "air_date": episode["air_date"],
             "image": episode["image"],
