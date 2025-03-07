@@ -241,6 +241,7 @@ def track_modal(
         request,
         "app/components/fill_track.html",
         {
+            "title": media.item if media else "Track",
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],
