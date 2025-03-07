@@ -187,16 +187,6 @@ class Item(models.Model):
 
         return str(int(latest_item.media_id) + 1)
 
-    @property
-    def event_color(self):
-        """Return the color of the item for the calendar."""
-        return self.Colors[self.media_type.upper()].value
-
-    @property
-    def media_type_readable(self):
-        """Return the readable media type."""
-        return MediaTypes(self.media_type).label
-
 
 class MediaManager(models.Manager):
     """Custom manager for media models."""

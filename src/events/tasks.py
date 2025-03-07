@@ -9,6 +9,7 @@ from django.db.models import Q
 
 from app.models import Item
 from app.providers import services, tmdb
+from app.templatetags import app_tags
 from events.models import Event
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,8 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     reloaded_count = len(reloaded_items)
     result_msg = "\n".join(
-        f"{item} ({item.media_type_readable})" for item in reloaded_items
+        f"{item} ({app_tags.media_type_readable_plural(item.media_type)})"
+        for item in reloaded_items
     )
 
     if reloaded_count > 0:
