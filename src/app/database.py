@@ -130,12 +130,16 @@ def get_historical_models():
     return [f"historical{media_type}" for media_type in media_types]
 
 
-def get_in_progress(user, sort_by):
+def get_in_progress(user, sort_by, specific_media_type=None):
     """Get a media list of in progress media by type."""
     today = timezone.now().date()
     list_by_type = {}
 
-    for media_type in MediaTypes.values:
+    media_types_to_process = (
+        [specific_media_type] if specific_media_type else MediaTypes.values
+    )
+
+    for media_type in media_types_to_process:
         # dont show tv and episodes in home page
         if media_type not in ("tv", "episode"):
             media_list = get_media_list(
@@ -243,7 +247,19 @@ def get_in_progress(user, sort_by):
                                 "item__title",
                             )
 
-                list_by_type[media_type] = media_list
+                # Store the full count before limiting
+                total_count = (
+                    len(media_list)
+                    if isinstance(media_list, list)
+                    else media_list.count()
+                )
+
+                media_list = media_list[20:] if specific_media_type else media_list[:20]
+
+                list_by_type[media_type] = {
+                    "items": media_list,
+                    "total": total_count,
+                }
 
     return list_by_type
 

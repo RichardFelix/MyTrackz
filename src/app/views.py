@@ -24,6 +24,21 @@ logger = logging.getLogger(__name__)
 def home(request):
     """Home page with media items in progress and repeating."""
     sort_by = request.GET.get("sort", "upcoming")
+    media_type_to_load = request.GET.get("load_media_type")
+
+    # If this is an HTMX request to load more items for a specific media type
+    if request.headers.get("HX-Request") and media_type_to_load:
+        list_by_type = database.get_in_progress(
+            request.user,
+            sort_by,
+            media_type_to_load,
+        )
+        context = {
+            "media_list": list_by_type.get(media_type_to_load, []),
+        }
+        return render(request, "app/components/home_grid.html", context)
+
+    # Regular page load
     list_by_type = database.get_in_progress(request.user, sort_by)
     context = {
         "list_by_type": list_by_type,
