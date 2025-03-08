@@ -5,12 +5,6 @@ import django.contrib.auth.validators
 import django.utils.timezone
 from django.db import migrations, models
 
-
-# Functions from the following migrations need manual copying.
-# Move them and any dependencies into this file, then update the
-# RunPython operations to refer to the local versions:
-# users.migrations.0006_alter_user_anime_layout_alter_user_manga_layout_and_more
-
 class Migration(migrations.Migration):
 
     replaces = [('users', '0001_initial'), ('users', '0002_alter_user_last_search_type'), ('users', '0003_user_default_layout'), ('users', '0004_user_editable'), ('users', '0005_remove_user_default_layout_user_anime_layout_and_more'), ('users', '0006_alter_user_anime_layout_alter_user_manga_layout_and_more'), ('users', '0007_remove_user_editable_user_is_demo'), ('users', '0008_user_game_layout_alter_user_last_search_type')]
