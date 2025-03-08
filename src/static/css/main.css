@@ -1006,9 +1006,6 @@
   .flex-grow {
     flex-grow: 1;
   }
-  .border-collapse {
-    border-collapse: collapse;
-  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1/2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -1980,14 +1977,6 @@
       margin-bottom: calc(var(--spacing) * 0);
     }
   }
-  .hover\:-translate-y-1 {
-    &:hover {
-      @media (hover: hover) {
-        --tw-translate-y: calc(var(--spacing) * -1);
-        translate: var(--tw-translate-x) var(--tw-translate-y);
-      }
-    }
-  }
   .hover\:scale-110 {
     &:hover {
       @media (hover: hover) {
@@ -1995,6 +1984,20 @@
         --tw-scale-y: 110%;
         --tw-scale-z: 110%;
         scale: var(--tw-scale-x) var(--tw-scale-y);
+      }
+    }
+  }
+  .hover\:bg-\[\#343a40\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: #343a40;
+      }
+    }
+  }
+  .hover\:bg-\[\#454d5a\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: #454d5a;
       }
     }
   }
@@ -2016,20 +2019,6 @@
     &:hover {
       @media (hover: hover) {
         background-color: #2a2f35;
-      }
-    }
-  }
-  .hover\:bg-\[\#343a40\] {
-    &:hover {
-      @media (hover: hover) {
-        background-color: #343a40;
-      }
-    }
-  }
-  .hover\:bg-\[\#454d5a\] {
-    &:hover {
-      @media (hover: hover) {
-        background-color: #454d5a;
       }
     }
   }
@@ -2237,14 +2226,6 @@
     &:hover {
       @media (hover: hover) {
         --tw-shadow: 0 10px 15px -3px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 4px 6px -4px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
-        box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-      }
-    }
-  }
-  .hover\:shadow-xl {
-    &:hover {
-      @media (hover: hover) {
-        --tw-shadow: 0 20px 25px -5px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
         box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
       }
     }
