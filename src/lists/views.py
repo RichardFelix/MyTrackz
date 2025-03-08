@@ -1,5 +1,6 @@
 import logging
 
+from django.apps import apps
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
@@ -95,7 +96,6 @@ def list_detail(request, list_id):
         CustomList.objects.select_related("owner").prefetch_related("collaborators"),
         id=list_id,
     )
-    media_types = MediaTypes.values
 
     if not custom_list.user_can_view(request.user):
         msg = "List not found"
@@ -107,65 +107,91 @@ def list_detail(request, list_id):
     page = request.GET.get("page", 1)
     search_query = request.GET.get("q", "")
 
+    # Apply filters and sorting
     items = custom_list.items.all()
-    items_count = items.count()
-
     if search_query:
         items = items.filter(title__icontains=search_query)
     if media_type != "all":
         items = items.filter(media_type=media_type)
 
+    # Apply sorting
     sort_options = {
         "date_added": "-customlistitem__date_added",
         "title": ("title", "season_number", "episode_number"),
         "media_type": "media_type",
     }
-
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
+
     if isinstance(sort_field, tuple):
-        # Create a list of OrderBy expressions to handle nulls properly
         order_expressions = []
         for field in sort_field:
-            # For season_number and episode_number, null values should come last
             if field in ["season_number", "episode_number"]:
-                order_expressions.append(
-                    F(field).asc(nulls_last=True),
-                )
+                order_expressions.append(F(field).asc(nulls_last=True))
             else:
                 order_expressions.append(field)
-
         items = items.order_by(*order_expressions)
     else:
         items = items.order_by(sort_field)
 
-    items_per_page = 20
-    paginator = Paginator(items, items_per_page)
+    # Paginate results
+    paginator = Paginator(items, 16)
+    items_count = paginator.count
     items_page = paginator.get_page(page)
 
+    # Get media objects for the current page
+    item_ids = [item.id for item in items_page]
+    media_by_item_id = {}
+
+    # Get unique media types and query each one
+    for media_type_value in {item.media_type for item in items_page}:
+        model = apps.get_model("app", media_type_value)
+        entries = model.objects.filter(
+            item_id__in=item_ids,
+            user=request.user,
+        ).select_related("item")
+
+        for entry in entries:
+            media_by_item_id[entry.item_id] = entry
+
+    # Create ordered media list
+    ordered_media_list = [
+        media_by_item_id.get(item.id)
+        for item in items_page
+        if item.id in media_by_item_id
+    ]
+
+    # Prepare pagination info
+    pagination_info = {
+        "has_next": items_page.has_next(),
+        "next_page_number": items_page.next_page_number()
+        if items_page.has_next()
+        else None,
+    }
+
+    # Handle HTMX request
     if request.headers.get("HX-Request"):
         return render(
             request,
-            "lists/components/item_grid.html",
+            "lists/components/media_grid.html",
             {
                 "custom_list": custom_list,
-                "items": items_page,
+                "media_list": ordered_media_list,
+                **pagination_info,
             },
         )
 
-    form = CustomListForm(instance=custom_list)
+    # Prepare context for full page render
+    context = {
+        "custom_list": custom_list,
+        "media_list": ordered_media_list,
+        "form": CustomListForm(instance=custom_list),
+        "media_types": MediaTypes.values,
+        "items_count": items_count,
+        "collaborators_count": custom_list.collaborators.count() + 1,
+        **pagination_info,
+    }
 
-    return render(
-        request,
-        "lists/list_detail.html",
-        {
-            "custom_list": custom_list,
-            "items": items_page,
-            "form": form,
-            "media_types": media_types,
-            "items_count": items_count,
-            "collaborators_count": custom_list.collaborators.count() + 1,
-        },
-    )
+    return render(request, "lists/list_detail.html", context)
 
 
 @require_POST

@@ -236,10 +236,10 @@
         </div>
       </div>
     </div>
-    {% if items %}
+    {% if media_list %}
       <div id="items-grid"
            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
-        {% include "lists/components/item_grid.html" %}
+        {% include "lists/components/media_grid.html" %}
       </div>
 
       <div id="loading-indicator" class="htmx-indicator text-center pt-8">
