@@ -101,7 +101,6 @@ def list_detail(request, list_id):
         msg = "List not found"
         raise Http404(msg)
 
-    # Get parameters from request
     sort_by = request.GET.get("sort", "date_added")
     media_type = request.GET.get("type", "all")
     page = request.GET.get("page", 1)
@@ -123,75 +122,70 @@ def list_detail(request, list_id):
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
 
     if isinstance(sort_field, tuple):
-        order_expressions = []
-        for field in sort_field:
-            if field in ["season_number", "episode_number"]:
-                order_expressions.append(F(field).asc(nulls_last=True))
-            else:
-                order_expressions.append(field)
-        items = items.order_by(*order_expressions)
+        # Create order expressions for tuple-based sorting
+        items = items.order_by(
+            *[
+                F(field).asc(nulls_last=True)
+                if field in ["season_number", "episode_number"]
+                else field
+                for field in sort_field
+            ],
+        )
     else:
         items = items.order_by(sort_field)
 
-    # Paginate results
+    # Paginate and prepare items
     paginator = Paginator(items, 16)
-    items_count = paginator.count
     items_page = paginator.get_page(page)
 
     # Get media objects for the current page
     item_ids = [item.id for item in items_page]
     media_by_item_id = {}
 
-    # Get unique media types and query each one
-    for media_type_value in {item.media_type for item in items_page}:
-        model = apps.get_model("app", media_type_value)
-        entries = model.objects.filter(
-            item_id__in=item_ids,
-            user=request.user,
-        ).select_related("item")
+    # Get media objects by type
+    for media_type in {item.media_type for item in items_page}:
+        model = apps.get_model("app", media_type)
+        filter_kwargs = {"item_id__in": item_ids}
+
+        # Handle episode type differently
+        if media_type == "episode":
+            filter_kwargs["related_season__user"] = request.user
+        else:
+            filter_kwargs["user"] = request.user
+
+        entries = model.objects.filter(**filter_kwargs).select_related("item")
 
         for entry in entries:
             media_by_item_id[entry.item_id] = entry
 
-    # Create ordered media list
-    ordered_media_list = [
-        media_by_item_id.get(item.id)
-        for item in items_page
-        if item.id in media_by_item_id
-    ]
+    # Add media to each item
+    for item in items_page:
+        item.media = media_by_item_id.get(item.id)
 
-    # Prepare pagination info
-    pagination_info = {
+    # Prepare context
+    context = {
+        "custom_list": custom_list,
+        "items": items_page,
         "has_next": items_page.has_next(),
         "next_page_number": items_page.next_page_number()
         if items_page.has_next()
         else None,
     }
 
-    # Handle HTMX request
-    if request.headers.get("HX-Request"):
-        return render(
-            request,
-            "lists/components/media_grid.html",
+    # For full page render, add additional context
+    if not request.headers.get("HX-Request"):
+        context.update(
             {
-                "custom_list": custom_list,
-                "media_list": ordered_media_list,
-                **pagination_info,
+                "form": CustomListForm(instance=custom_list),
+                "media_types": MediaTypes.values,
+                "items_count": paginator.count,
+                "collaborators_count": custom_list.collaborators.count() + 1,
             },
         )
+        return render(request, "lists/list_detail.html", context)
 
-    # Prepare context for full page render
-    context = {
-        "custom_list": custom_list,
-        "media_list": ordered_media_list,
-        "form": CustomListForm(instance=custom_list),
-        "media_types": MediaTypes.values,
-        "items_count": items_count,
-        "collaborators_count": custom_list.collaborators.count() + 1,
-        **pagination_info,
-    }
-
-    return render(request, "lists/list_detail.html", context)
+    # For HTMX request
+    return render(request, "lists/components/media_grid.html", context)
 
 
 @require_POST
