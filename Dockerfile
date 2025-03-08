@@ -37,4 +37,4 @@ EXPOSE 8000
 
 CMD ["/entrypoint.sh"]
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=5 CMD [ "curl", "-fs", "-S", "--max-time", "2", "http://localhost:8000" ]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=5 CMD [ "curl", "-fs", "-S", "--max-time", "2", "http://localhost:8000/health" ]

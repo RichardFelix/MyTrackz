@@ -15,6 +15,7 @@ urlpatterns = [
     path("", include("lists.urls")),
     path("", include("events.urls")),
     path("select2/", include("django_select2.urls")),
+    path("health", include("health_check.urls")),
 ]
 
 
