@@ -19,7 +19,9 @@
     {% block extra_head %}
     {% endblock extra_head %}
 
-    <link rel="stylesheet" type="text/css" href="{% static "css/main.css" %}" />
+    <link rel="stylesheet"
+          type="text/css"
+          href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
 
     <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
     <script defer

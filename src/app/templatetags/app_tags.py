@@ -1,7 +1,9 @@
 from decimal import Decimal
+from pathlib import Path
 from urllib.parse import parse_qsl, urlparse
 
 from django import template
+from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
@@ -11,6 +13,19 @@ from unidecode import unidecode
 from app import helpers, models
 
 register = template.Library()
+
+
+@register.simple_tag
+def get_static_file_mtime(file_path):
+    """Return the last modification time of a static file for cache busting."""
+    full_path = Path(settings.STATIC_ROOT) / file_path
+    try:
+        mtime = int(full_path.stat().st_mtime)
+    except OSError:
+        # If file doesn't exist or can't be accessed
+        return ""
+    else:
+        return f"?{mtime}"
 
 
 @register.filter
