@@ -6,7 +6,7 @@
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
 ![GitHub](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
-Yamtrack is a self hosted media tracker for movies, tv shows, anime and manga.
+Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games and books.
 
 You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) using the username `demo` and password `demo`.
 
