@@ -165,6 +165,11 @@ def sidebar(request):
     if request.method != "POST":
         return render(request, "users/sidebar.html", {"media_types": media_types})
 
+    # Prevent demo users from updating preferences
+    if request.user.is_demo:
+        messages.error(request, "This section is view-only for demo accounts.")
+        return redirect("sidebar")
+
     # Process form submission
     request.user.hide_from_search = "hide_disabled" in request.POST
     media_types_checked = request.POST.getlist("media_types_checkboxes")
