@@ -1,4 +1,7 @@
+from urllib.parse import parse_qsl, urlencode, urlparse
+
 from django.contrib import messages
+from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -14,10 +17,28 @@ def minutes_to_hhmm(total_minutes):
 
 
 def redirect_back(request):
-    """Redirect to the previous page."""
+    """Redirect to the previous page, removing the 'page' parameter if present."""
     if url_has_allowed_host_and_scheme(request.GET.get("next"), None):
-        url = iri_to_uri(request.GET["next"])
-        return redirect(url)
+        next_url = request.GET["next"]
+
+        # Parse the URL
+        parsed_url = urlparse(next_url)
+
+        # Get the query parameters and remove 'page'
+        query_params = dict(parse_qsl(parsed_url.query))
+        if "page" in query_params:
+            del query_params["page"]
+
+        # Reconstruct the URL
+        new_query = urlencode(query_params)
+        new_parts = list(parsed_url)
+        new_parts[4] = new_query  # index 4 is the query part
+
+        # Convert back to a URL string
+        clean_url = iri_to_uri(parsed_url._replace(query=new_query).geturl())
+
+        return HttpResponseRedirect(clean_url)
+
     return redirect("home")
 
 
