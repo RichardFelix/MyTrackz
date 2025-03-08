@@ -1,6 +1,154 @@
 document.addEventListener("DOMContentLoaded", function () {
   Chart.register(ChartDataLabels);
 
+  // Custom external tooltip for bar charts
+  function customBarTooltip(context) {
+    // External custom tooltip
+    let tooltipEl = document.getElementById("chartjs-tooltip");
+
+    // Create element if it doesn't exist
+    if (!tooltipEl) {
+      tooltipEl = document.createElement("div");
+      tooltipEl.id = "chartjs-tooltip";
+      tooltipEl.innerHTML = "<table></table>";
+      document.body.appendChild(tooltipEl);
+    }
+
+    // Hide if no tooltip
+    const tooltipModel = context.tooltip;
+    if (tooltipModel.opacity === 0) {
+      tooltipEl.style.opacity = 0;
+      return;
+    }
+
+    // Set Text
+    if (tooltipModel.body) {
+      const chart = context.chart;
+      const dataIndex = tooltipModel.dataPoints[0].dataIndex;
+      const title = tooltipModel.title[0] || "";
+
+      // Format title based on chart type
+      let formattedTitle = title;
+      if (chart.canvas.id === "scoreStackedChart") {
+        const score = parseInt(title);
+        if (score === 10) {
+          formattedTitle = `Score: 10`;
+        } else {
+          formattedTitle = `Score: ${score}.0-${score}.9`;
+        }
+      }
+
+      // Get all values for this stack
+      let tableBody =
+        '<thead><tr><th colspan="2">' +
+        formattedTitle +
+        "</th></tr></thead><tbody>";
+      let stackTotal = 0;
+
+      chart.data.datasets.forEach((dataset, i) => {
+        if (dataset.data[dataIndex] && dataset.data[dataIndex] > 0) {
+          const value = dataset.data[dataIndex];
+          stackTotal += value;
+          const bgColor = dataset.backgroundColor;
+          const label = dataset.label || "";
+
+          tableBody +=
+            "<tr>" +
+            '<td style="padding-right:15px;"><span style="display:inline-block;width:12px;height:12px;background:' +
+            bgColor +
+            ';margin-right:8px;border-radius:2px;"></span>' +
+            label +
+            ":</td>" +
+            '<td style="text-align:right;font-weight:bold;">' +
+            value +
+            "</td>" +
+            "</tr>";
+        }
+      });
+
+      // Add total row
+      tableBody +=
+        '<tr class="total-row">' +
+        "<td>Total:</td>" +
+        '<td style="text-align:right;font-weight:bold;">' +
+        stackTotal +
+        "</td>" +
+        "</tr>";
+
+      tableBody += "</tbody>";
+
+      const tableRoot = tooltipEl.querySelector("table");
+      tableRoot.innerHTML = tableBody;
+    }
+
+    // Position and style the tooltip
+    const position = context.chart.canvas.getBoundingClientRect();
+
+    // Set tooltip styles
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.position = "absolute";
+    tooltipEl.style.left =
+      position.left + window.scrollX + tooltipModel.caretX + "px";
+    tooltipEl.style.top =
+      position.top + window.scrollY + tooltipModel.caretY + "px";
+    tooltipEl.style.transform = "translate(-50%, -100%)";
+    tooltipEl.style.pointerEvents = "none";
+  }
+
+  // Custom external tooltip for pie charts
+  function customPieTooltip(context) {
+    // External custom tooltip
+    let tooltipEl = document.getElementById("chartjs-pie-tooltip");
+
+    // Create element if it doesn't exist
+    if (!tooltipEl) {
+      tooltipEl = document.createElement("div");
+      tooltipEl.id = "chartjs-pie-tooltip";
+      document.body.appendChild(tooltipEl);
+    }
+
+    // Hide if no tooltip
+    const tooltipModel = context.tooltip;
+    if (tooltipModel.opacity === 0) {
+      tooltipEl.style.opacity = 0;
+      return;
+    }
+
+    // Set Text
+    if (tooltipModel.body) {
+      const dataPoint = tooltipModel.dataPoints[0];
+      const label = dataPoint.label;
+      const value = dataPoint.raw;
+
+      // Calculate percentage
+      const dataset = context.chart.data.datasets[dataPoint.datasetIndex];
+      const total = dataset.data.reduce((sum, val) => sum + val, 0);
+      const percentage = Math.round((value / total) * 100);
+
+      // Create tooltip content
+      let tooltipContent = `
+        <div class="pie-label">${label}</div>
+        <div class="pie-value">Count: ${value}</div>
+        <div class="pie-percent">${percentage}%</div>
+      `;
+
+      tooltipEl.innerHTML = tooltipContent;
+    }
+
+    // Position and style the tooltip
+    const position = context.chart.canvas.getBoundingClientRect();
+
+    // Set tooltip styles
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.position = "absolute";
+    tooltipEl.style.left =
+      position.left + window.scrollX + tooltipModel.caretX + "px";
+    tooltipEl.style.top =
+      position.top + window.scrollY + tooltipModel.caretY + "px";
+    tooltipEl.style.transform = "translate(-50%, -100%)";
+    tooltipEl.style.pointerEvents = "none";
+  }
+
   // Common configuration for pie charts
   const pieChartConfig = {
     responsive: true,
@@ -43,17 +191,8 @@ document.addEventListener("DOMContentLoaded", function () {
         margin: { top: 20 },
       },
       tooltip: {
-        callbacks: {
-          label: function (context) {
-            const value = context.raw || 0;
-            const total = context.chart.data.datasets[0].data.reduce(
-              (a, b) => a + b,
-              0
-            );
-            const percentage = Math.round((value / total) * 100);
-            return ` ${value} (${percentage}%)`;
-          },
-        },
+        enabled: false,
+        external: customPieTooltip,
       },
     },
     layout: { padding: { bottom: 10 } },
@@ -100,22 +239,18 @@ document.addEventListener("DOMContentLoaded", function () {
         },
       },
       tooltip: {
-        callbacks: {
-          label: function (context) {
-            const label = context.dataset.label || "";
-            const value = context.raw || 0;
-            return `${label}: ${value}`;
-          },
-        },
+        enabled: false, // Disable default tooltip
+        mode: "index",
+        external: customBarTooltip,
       },
+      // Disable datalabels for bar charts
       datalabels: {
-        color: "#D1D5DB",
-        anchor: "center",
-        align: "center",
-        formatter: (value) => (value > 0 ? value : ""),
-        font: { weight: "bold", size: 11 },
-        display: "auto",
+        display: false,
       },
+    },
+    interaction: {
+      mode: "index",
+      intersect: false,
     },
   };
 
@@ -221,36 +356,12 @@ document.addEventListener("DOMContentLoaded", function () {
       font: { size: 14 },
     };
 
-    scoreChartOptions.plugins.tooltip.callbacks.title = function (
-      tooltipItems
-    ) {
-      return `Score: ${tooltipItems[0].label}`;
-    };
-
-    // Override datalabels for score chart to ensure zeros are never displayed
-    scoreChartOptions.plugins.datalabels = {
-      color: "#D1D5DB",
-      anchor: "center",
-      align: "center",
-      formatter: function (value) {
-        // Only return a value if it's greater than 0
-        return value > 0 ? value : "";
-      },
-      font: { weight: "bold", size: 11 },
-      display: function (context) {
-        // Get the current value
-        const value = context.dataset.data[context.dataIndex];
-
-        // Get the maximum value in the dataset for comparison
-        const maxValue = Math.max(...context.dataset.data);
-
-        // Calculate the relative size (as a percentage of the max)
-        const relativeSize = value / maxValue;
-
-        // Only show label if value is significant enough (e.g., at least 20% of max)
-        // and greater than zero
-        return value > 0 && relativeSize >= 0.2;
-      },
+    // Ensure tooltip is properly configured for score chart
+    scoreChartOptions.plugins.tooltip = {
+      enabled: false,
+      mode: "index",
+      intersect: false,
+      external: customBarTooltip,
     };
 
     initializeChartIfExists(
