@@ -31,7 +31,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 | Homepage                                                                                    | Calendar                                                                                    |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png" alt="Homepage" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/calendar.png" alt="calendar" /> |
+| <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2" alt="Homepage" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/calendar.png" alt="calendar" /> |
 
 | Media List Grid                                                                                    | Media List Table                                                                                     |
 | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |

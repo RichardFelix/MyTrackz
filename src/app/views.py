@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 from django.apps import apps
 from django.contrib import messages
@@ -35,6 +36,7 @@ def home(request):
         )
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
+            "max_date": date.max,
         }
         return render(request, "app/components/home_grid.html", context)
 
@@ -43,6 +45,7 @@ def home(request):
     context = {
         "list_by_type": list_by_type,
         "current_sort": sort_by,
+        "max_date": date.max,
     }
     return render(request, "app/home.html", context)
 
