@@ -6,7 +6,6 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from allauth.account import views as allauth_account_views
-from allauth.mfa.base import views as allauth_mfa_views
 from allauth.socialaccount import views as allauth_social_account_views
 from allauth.urls import build_provider_urlpatterns
 from django.conf import settings
@@ -20,59 +19,66 @@ urlpatterns = [
     path("", include("events.urls")),
     path("select2/", include("django_select2.urls")),
     path("health", include("health_check.urls")),
+]
+
+# Build the accounts URLs
+account_patterns = [
+    # see allauth/account/urls.py
+    # login, logout, signup, account_inactive
+    path("login/", allauth_account_views.login, name="account_login"),
+    path("logout/", allauth_account_views.logout, name="account_logout"),
+    path("signup/", allauth_account_views.signup, name="account_signup"),
     path(
-        "accounts/",
+        "account_inactive/",
+        allauth_account_views.account_inactive,
+        name="account_inactive",
+    ),
+    # social account base urls, see allauth/socialaccount/urls.py
+    path(
+        "3rdparty/",
         include(
             [
-                # see allauth/account/urls.py
-                # login, logout, signup, account_inactive
-                path("login/", allauth_account_views.login, name="account_login"),
-                path("logout/", allauth_account_views.logout, name="account_logout"),
-                path("signup/", allauth_account_views.signup, name="account_signup"),
                 path(
-                    "account_inactive/",
-                    allauth_account_views.account_inactive,
-                    name="account_inactive",
+                    "login/cancelled/",
+                    allauth_social_account_views.login_cancelled,
+                    name="socialaccount_login_cancelled",
                 ),
-                # social account base urls, see allauth/socialaccount/urls.py
                 path(
-                    "3rdparty/",
-                    include(
-                        [
-                            path(
-                                "login/cancelled/",
-                                allauth_social_account_views.login_cancelled,
-                                name="socialaccount_login_cancelled",
-                            ),
-                            path(
-                                "login/error/",
-                                allauth_social_account_views.login_error,
-                                name="socialaccount_login_error",
-                            ),
-                            path(
-                                "signup/",
-                                allauth_social_account_views.signup,
-                                name="socialaccount_signup",
-                            ),
-                            path(
-                                "",
-                                allauth_social_account_views.connections,
-                                name="socialaccount_connections",
-                            ),
-                        ],
-                    ),
+                    "login/error/",
+                    allauth_social_account_views.login_error,
+                    name="socialaccount_login_error",
                 ),
-                *build_provider_urlpatterns(),
                 path(
-                    "2fa/authenticate/",
-                    allauth_mfa_views.authenticate,
-                    name="mfa_authenticate",
+                    "signup/",
+                    allauth_social_account_views.signup,
+                    name="socialaccount_signup",
+                ),
+                path(
+                    "",
+                    allauth_social_account_views.connections,
+                    name="socialaccount_connections",
                 ),
             ],
         ),
     ),
+    *build_provider_urlpatterns(),
 ]
 
+# Only import and add MFA views if not using social account only
+if not settings.SOCIALACCOUNT_ONLY:
+    from allauth.mfa.base import views as allauth_mfa_views
 
+    account_patterns.append(
+        path(
+            "2fa/authenticate/",
+            allauth_mfa_views.authenticate,
+            name="mfa_authenticate",
+        ),
+    )
+
+# Add the accounts URLs to the main urlpatterns
+urlpatterns.append(path("accounts/", include(account_patterns)))
+
+# Add debug toolbar if in DEBUG mode
 if settings.DEBUG:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))

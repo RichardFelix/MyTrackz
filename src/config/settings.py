@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     "health_check.contrib.redis",
     "allauth",
     "allauth.account",
-    "allauth.mfa",
     "allauth.socialaccount",
 ]
 
@@ -330,7 +329,7 @@ ACCOUNT_FORMS = {
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())
-INSTALLED_APPS = INSTALLED_APPS + SOCIAL_PROVIDERS
+INSTALLED_APPS += SOCIAL_PROVIDERS
 
 SOCIALACCOUNT_PROVIDERS = config(
     "SOCIALACCOUNT_PROVIDERS",
@@ -341,6 +340,9 @@ SOCIALACCOUNT_PROVIDERS = config(
 SOCIALACCOUNT_ONLY = config("SOCIALACCOUNT_ONLY", default=False, cast=bool)
 if SOCIALACCOUNT_ONLY:
     ACCOUNT_EMAIL_VERIFICATION = "none"
+else:
+    # only works if SOCIALACCOUNT_ONLY is False
+    INSTALLED_APPS += ["allauth.mfa"]
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 if not REGISTRATION:
