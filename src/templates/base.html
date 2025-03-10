@@ -206,7 +206,7 @@
             </div>
           </nav>
           <div class="absolute bottom-4 left-4 right-4">
-            <form method="post" action="{% url 'logout' %}" class="w-full">
+            <form method="post" action="{% url 'account_logout' %}" class="w-full">
               {% csrf_token %}
               <button type="submit"
                       class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">

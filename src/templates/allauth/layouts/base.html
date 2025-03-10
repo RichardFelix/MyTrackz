@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load app_tags %}
+
+{% block title %}
+  {% block head_title %}
+  {% endblock head_title %}
+  - Yamtrack
+{% endblock title %}
+
+{% block body %}
+  {% block content %}
+  {% endblock content %}
+{% endblock body %}
+
+{% block js %}
+  {% block extra_body %}
+  {% endblock extra_body %}
+{% endblock js %}
+
+{% block messages_sidebar_offset %}
+  top-10 lg:top-64
+{% endblock messages_sidebar_offset %}

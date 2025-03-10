@@ -1,56 +1,29 @@
+from allauth.account.forms import SignupForm
 from django import forms
 from django.contrib.auth.forms import (
-    AuthenticationForm,
     PasswordChangeForm,
-    UserCreationForm,
 )
 
 from .models import User
 
 
-class UserLoginForm(AuthenticationForm):
-    """Override the default login form."""
+class CustomSignupForm(SignupForm):
+    """Custom signup form for django-allauth."""
 
-    # Override the default error messages
-    error_messages = {
-        "invalid_login": "Please enter a correct username and password.",
-        "inactive": "This account is inactive.",
-    }
+    def __init__(self, *args, **kwargs):
+        """Remove email field and change password2 label."""
+        super().__init__(*args, **kwargs)
 
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(),
-    )
-    password = forms.CharField(
-        widget=forms.PasswordInput(),
-    )
+        # Remove email field
+        if "email" in self.fields:
+            del self.fields["email"]
 
-
-class UserRegisterForm(UserCreationForm):
-    """Override the default registration form."""
-
-    username = forms.CharField(
-        max_length=150,
-        widget=forms.TextInput(),
-    )
-    password1 = forms.CharField(
-        widget=forms.PasswordInput(),
-        label="Password",
-    )
-
-    password2 = forms.CharField(
-        widget=forms.PasswordInput(),
-        label="Confirm Password",
-    )
-
-    usable_password = None
-
-    class Meta:
-        """Only include the username and password fields."""
-
-        model = User
-        fields = ["username", "password1", "password2"]
-
+        # Change label and placeholder for password2 field
+        if "password2" in self.fields:
+            self.fields["password2"].label = "Confirm Password"
+            self.fields["password2"].widget.attrs["placeholder"] = (
+                "Confirm your password"
+            )
 
 
 class UserUpdateForm(forms.ModelForm):

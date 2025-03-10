@@ -1,0 +1,110 @@
+{% load allauth %}
+
+<div>
+  {% if attrs.type != "checkbox" and attrs.type != "radio" %}
+    <label for="{{ attrs.id }}"
+           class="block text-sm font-medium mb-2 text-gray-300">
+      {% slot label %}
+      {% endslot %}
+    </label>
+  {% endif %}
+
+  {% if attrs.type == "textarea" %}
+    <textarea {% if attrs.required %}required=""{% endif %}
+              {% if attrs.rows %}rows="{{ attrs.rows }}"{% endif %}
+              {% if attrs.disabled %}disabled{% endif %}
+              {% if attrs.readonly %}readonly{% endif %}
+              {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+              {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+              {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+              class="w-full p-3 bg-[#39404b] rounded-md text-white border {% if attrs.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">{% slot value %}{% endslot %}</textarea>
+  {% elif attrs.type == "password" %}
+    <div class="relative">
+      <input {% if attrs.required %}required=""{% endif %}
+             {% if attrs.disabled %}disabled{% endif %}
+             {% if attrs.readonly %}readonly{% endif %}
+             {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+             {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+             {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+             {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+             {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+             :type="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %} ? 'text' : 'password'"
+             class="w-full p-3 pr-10 bg-[#39404b] rounded-md text-white border {% if attrs.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+      <button type="button"
+              @click="{% if attrs.name == 'password2' %}showConfirmPassword = !showConfirmPassword{% else %}showPassword = !showPassword{% endif %}"
+              class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-white cursor-pointer">
+        <!-- Show when password is hidden -->
+        <svg x-show="{% if attrs.name == 'password2' %}!showConfirmPassword{% else %}!showPassword{% endif %}"
+             xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <!-- Show when password is visible -->
+        <svg x-show="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %}"
+             xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-5 h-5">
+          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+          <line x1="2" x2="22" y1="2" y2="22"></line>
+        </svg>
+      </button>
+    </div>
+  {% elif attrs.type == "checkbox" or attrs.type == "radio" %}
+    <div class="flex items-center">
+      <input {% if attrs.required %}required=""{% endif %}
+             {% if attrs.disabled %}disabled{% endif %}
+             {% if attrs.readonly %}readonly{% endif %}
+             {% if attrs.checked %}checked{% endif %}
+             {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+             {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+             {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+             type="{{ attrs.type }}"
+             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 bg-[#39404b] rounded">
+      <label for="{{ attrs.id }}" class="ml-2 block text-sm text-gray-300">
+        {% slot label %}
+        {% endslot %}
+      </label>
+    </div>
+  {% else %}
+    <input {% if attrs.required %}required=""{% endif %}
+           {% if attrs.disabled %}disabled{% endif %}
+           {% if attrs.readonly %}readonly{% endif %}
+           {% if attrs.checked %}checked{% endif %}
+           {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+           {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+           {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+           {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+           {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+           type="{{ attrs.type }}"
+           class="w-full p-3 bg-[#39404b] rounded-md text-white border {% if attrs.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+  {% endif %}
+
+  {% if attrs.errors %}
+    {% for error in attrs.errors %}<p class="mt-1 text-sm text-red-400">{{ error }}</p>{% endfor %}
+  {% endif %}
+
+  {% if slots.help_text and not attrs.type == "password" %}
+    <p class="mt-1 text-sm text-gray-400">
+      {% slot help_text %}
+      {% endslot %}
+    </p>
+  {% endif %}
+</div>

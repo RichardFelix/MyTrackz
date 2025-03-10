@@ -1,5 +1,6 @@
 """Django settings for Yamtrack project."""
 
+import json
 import warnings
 import zoneinfo
 from pathlib import Path
@@ -66,6 +67,10 @@ INSTALLED_APPS = [
     "health_check.contrib.celery",
     "health_check.contrib.celery_ping",
     "health_check.contrib.redis",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
+    "allauth.socialaccount",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +84,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -96,9 +102,15 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
+                "django.template.context_processors.request",
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
@@ -215,11 +227,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Auth settings
 
-LOGIN_URL = "login"
+LOGIN_URL = "account_login"
 
 LOGIN_REDIRECT_URL = "home"
 
-LOGOUT_REDIRECT_URL = "login"
+LOGOUT_REDIRECT_URL = "account_login"
 
 AUTH_USER_MODEL = "users.User"
 
@@ -252,8 +264,6 @@ SIMKL_SECRET = config(
     "SIMKL_SECRET",
     default="9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
 )
-
-REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 
 TESTING = False
 
@@ -309,3 +319,26 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60 * 6,  # every 6 hours
     },
 }
+
+# Allauth settings
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_USER_MODEL_EMAIL_FIELD = None
+ACCOUNT_FORMS = {"signup": "users.forms.CustomSignupForm"}
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())
+INSTALLED_APPS = INSTALLED_APPS + SOCIAL_PROVIDERS
+
+SOCIALACCOUNT_PROVIDERS = config(
+    "SOCIALACCOUNT_PROVIDERS",
+    default="{}",
+    cast=json.loads,
+)
+
+SOCIALACCOUNT_ONLY = config("SOCIALACCOUNT_ONLY", default=False, cast=bool)
+if SOCIALACCOUNT_ONLY:
+    ACCOUNT_EMAIL_VERIFICATION = "none"
+
+REGISTRATION = config("REGISTRATION", default=True, cast=bool)
+if not REGISTRATION:
+    ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"

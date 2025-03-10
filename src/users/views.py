@@ -3,99 +3,18 @@ import secrets
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.decorators import login_not_required
-from django.contrib.auth.views import LoginView
 from django.db import IntegrityError
 from django.shortcuts import redirect, render
-from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
 import app
-from users import helpers
 from users.forms import (
     PasswordChangeForm,
-    UserLoginForm,
-    UserRegisterForm,
     UserUpdateForm,
 )
 
 logger = logging.getLogger(__name__)
-
-
-@login_not_required
-@require_http_methods(["GET", "POST"])
-def register(request):
-    """Register a new user."""
-    form = UserRegisterForm(request.POST or None)
-    context = {"form": form}
-
-    if request.method != "POST":
-        return render(request, "users/register.html", context)
-
-    if form.is_valid():
-        form.save()
-        messages.success(request, "Your account has been created, you can now log in!")
-        logger.info(
-            "New user registered at %s",
-            helpers.get_client_ip(request),
-        )
-        return redirect("login")
-
-    # Add form errors to context for display in template
-    field_errors = {}
-    for field_name, error_list in form.errors.items():
-        field_errors[field_name] = error_list[0]  # Get first error for each field
-
-    context["field_errors"] = field_errors
-    context["non_field_errors"] = form.non_field_errors()
-
-    logger.warning(
-        "Failed registration attempt at %s: %s",
-        helpers.get_client_ip(request),
-        form.errors.as_json(),
-    )
-
-    return render(request, "users/register.html", context)
-
-
-@method_decorator(login_not_required, name="dispatch")
-class CustomLoginView(LoginView):
-    """Custom login view with logging."""
-
-    form_class = UserLoginForm
-    template_name = "users/login.html"
-    http_method_names = ["get", "post"]
-
-    def form_valid(self, form):
-        """Log the user in."""
-        logger.info(
-            "User logged in at %s",
-            helpers.get_client_ip(self.request),
-        )
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        """Log the failed login attempt."""
-        logger.warning(
-            "Failed login attempt at %s with errors: %s",
-            helpers.get_client_ip(self.request),
-            list(form.errors.keys()),
-        )
-
-        # Add structured errors to context
-        field_errors = {}
-        for field_name, error_list in form.errors.items():
-            if field_name != "__all__":  # Skip non-field errors
-                field_errors[field_name] = error_list[0]
-
-        return self.render_to_response(
-            self.get_context_data(
-                form=form,
-                field_errors=field_errors,
-                non_field_errors=form.non_field_errors(),
-            ),
-        )
 
 
 @require_http_methods(["GET", "POST"])

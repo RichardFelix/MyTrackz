@@ -1,0 +1,134 @@
+{% extends "socialaccount/base_manage.html" %}
+{% load allauth %}
+{% load socialaccount %}
+
+{% block head_title %}
+  Account Connections
+{% endblock head_title %}
+
+{% block content_title %}
+  Account Connections
+{% endblock content_title %}
+
+{% block content %}
+
+  {% if form.accounts %}
+    {% element p %}
+      You can sign in to your account using any of the following third-party accounts:
+    {% endelement %}
+
+    {% url 'socialaccount_connections' as action_url %}
+    {% element form form=form method="post" action=action_url %}
+      {% slot body %}
+        {% csrf_token %}
+
+        <!-- Move x-data to the parent element to share state -->
+        <div x-data="{ selectedAccount: null }">
+          <div class="space-y-3">
+            {% for acc in form.fields.account.choices %}
+              {% with account=acc.0.instance.get_provider_account %}
+                {% setvar radio_id %}
+                  id_account_{{ account.account.pk }}
+                {% endsetvar %}
+                {% setvar tags %}
+                  socialaccount,{{ account.account.provider }}
+                {% endsetvar %}
+
+                <div class="flex items-center p-4 rounded-md border cursor-pointer"
+                     :class="selectedAccount === '{{ account.account.pk }}' ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 bg-[#39404b]'"
+                     x-on:click="selectedAccount = '{{ account.account.pk }}'; document.getElementById('{{ radio_id }}').checked = true;">
+                  <input type="radio"
+                         id="{{ radio_id }}"
+                         name="account"
+                         value="{{ account.account.pk }}"
+                         @change="selectedAccount = '{{ account.account.pk }}'"
+                         class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+
+                  <div class="ml-4 flex items-center flex-1">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         width="24"
+                         height="24"
+                         viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         stroke-linecap="round"
+                         stroke-linejoin="round"
+                         class="w-5 h-5 mr-3 text-purple-400">
+                      <path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"></path>
+                      <circle cx="16.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                    </svg>
+                    <div>
+                      <p class="font-medium">{{ account }}</p>
+                      <p class="text-sm text-gray-400">{{ account.get_brand.name }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+
+          <div class="flex justify-end mb-4 mt-4">
+            <button type="submit"
+                    :disabled="selectedAccount === null"
+                    class="flex items-center px-3 py-1.5 rounded-md text-sm transition-colors"
+                    :class="selectedAccount !== null ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer' : 'bg-red-600/50 text-white/70 cursor-not-allowed'">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-4 h-4 mr-2">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                <line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line>
+              </svg>
+              Remove Selected
+            </button>
+          </div>
+        </div>
+      {% endslot %}
+    {% endelement %}
+
+  {% else %}
+    {% element p %}
+      You currently have no third-party accounts connected to this account.
+    {% endelement %}
+  {% endif %}
+
+  {% get_providers as socialaccount_providers %}
+  {% if socialaccount_providers %}
+    <div class="relative flex items-center justify-center mt-6">
+      <div class="border-t border-gray-600 flex-grow"></div>
+      <span class="mx-4 text-sm text-gray-400">Add a Third-Party Account</span>
+      <div class="border-t border-gray-600 flex-grow"></div>
+    </div>
+
+    {% include "socialaccount/snippets/provider_list.html" with process="connect" %}
+    {% include "socialaccount/snippets/login_extra.html" %}
+  {% endif %}
+
+  <div class="flex mt-8">
+    <a href="{% url 'home' %}"
+       class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="w-5 h-5">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Back to Home</span></a>
+  </div>
+{% endblock content %}

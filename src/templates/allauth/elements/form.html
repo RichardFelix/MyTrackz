@@ -1,0 +1,17 @@
+{% load allauth %}
+
+{% if attrs.form.non_field_errors %}
+  <div class="mb-4 p-3 bg-red-900/60 border border-red-700 rounded-md text-red-200">
+    {% for error in attrs.form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}
+
+<form method="{{ attrs.method }}"
+      action="{{ attrs.action }}"
+      class="space-y-6"
+      x-data="{ showPassword: false, showConfirmPassword: false }">
+  {% slot body %}
+  {% endslot body %}
+  {% slot actions %}
+  {% endslot actions %}
+</form>
