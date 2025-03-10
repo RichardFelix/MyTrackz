@@ -2572,6 +2572,11 @@
       position: sticky;
     }
   }
+  .lg\:top-55 {
+    @media (width >= 64rem) {
+      top: calc(var(--spacing) * 55);
+    }
+  }
   .lg\:top-64 {
     @media (width >= 64rem) {
       top: calc(var(--spacing) * 64);
