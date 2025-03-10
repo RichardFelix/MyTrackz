@@ -323,7 +323,10 @@ CELERY_BEAT_SCHEDULE = {
 # Allauth settings
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
-ACCOUNT_FORMS = {"signup": "users.forms.CustomSignupForm"}
+ACCOUNT_FORMS = {
+    "login": "users.forms.CustomLoginForm",
+    "signup": "users.forms.CustomSignupForm",
+}
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())

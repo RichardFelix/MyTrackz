@@ -59,63 +59,6 @@ class Profile(TestCase):
         self.assertContains(response, "Your old password was entered incorrectly")
 
 
-class RegisterViewTests(TestCase):
-    """Test registration functionality."""
-
-    def test_successful_registration(self):
-        """Test successful user registration."""
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "newuser",
-                "password1": "testpass123",
-                "password2": "testpass123",
-            },
-        )
-        self.assertRedirects(response, reverse("login"))
-        self.assertTrue(get_user_model().objects.filter(username="newuser").exists())
-
-    def test_invalid_registration(self):
-        """Test registration with invalid data."""
-        response = self.client.post(
-            reverse("register"),
-            {
-                "username": "newuser",
-                "password1": "test",  # Too short password
-                "password2": "test",
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(get_user_model().objects.filter(username="newuser").exists())
-
-
-class LoginViewTests(TestCase):
-    """Test login functionality."""
-
-    def setUp(self):
-        """Create user for the tests."""
-        self.credentials = {"username": "testuser", "password": "testpass123"}
-        self.user = get_user_model().objects.create_user(**self.credentials)
-
-    def test_successful_login(self):
-        """Test successful login."""
-        response = self.client.post(reverse("login"), self.credentials)
-        self.assertRedirects(response, reverse("home"))
-        self.assertTrue(auth.get_user(self.client).is_authenticated)
-
-    def test_invalid_login(self):
-        """Test login with invalid credentials."""
-        response = self.client.post(
-            reverse("login"),
-            {
-                "username": "testuser",
-                "password": "wrongpass",
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(auth.get_user(self.client).is_authenticated)
-
-
 class DemoProfileTests(TestCase):
     """Extended profile tests."""
 

@@ -1,10 +1,22 @@
-from allauth.account.forms import SignupForm
+from allauth.account.forms import LoginForm, SignupForm
 from django import forms
 from django.contrib.auth.forms import (
     PasswordChangeForm,
 )
 
 from .models import User
+
+
+class CustomLoginForm(LoginForm):
+    """Custom login form for django-allauth."""
+
+    def __init__(self, *args, **kwargs):
+        """Remove email field and change password2 label."""
+        super().__init__(*args, **kwargs)
+
+        self.fields["login"].widget.attrs["placeholder"] = "Enter your username"
+
+        self.fields["password"].widget.attrs["placeholder"] = "Enter your password"
 
 
 class CustomSignupForm(SignupForm):
@@ -14,16 +26,11 @@ class CustomSignupForm(SignupForm):
         """Remove email field and change password2 label."""
         super().__init__(*args, **kwargs)
 
-        # Remove email field
-        if "email" in self.fields:
-            del self.fields["email"]
+        del self.fields["email"]
 
         # Change label and placeholder for password2 field
-        if "password2" in self.fields:
-            self.fields["password2"].label = "Confirm Password"
-            self.fields["password2"].widget.attrs["placeholder"] = (
-                "Confirm your password"
-            )
+        self.fields["password2"].label = "Confirm Password"
+        self.fields["password2"].widget.attrs["placeholder"] = "Confirm your password"
 
 
 class UserUpdateForm(forms.ModelForm):
