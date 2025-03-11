@@ -13,6 +13,7 @@ from app.models import Item, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
+from users.models import ListSortChoices
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def lists(request):
         custom_lists = custom_lists.annotate(
             items_count=Count("items", distinct=True),
         ).order_by("-items_count")
-    elif sort_by == "creation_order":
+    elif sort_by == "newest_first":
         custom_lists = custom_lists.order_by("-id")
     else:  # last_item_added is the default
         # Get the latest update date for each list
@@ -85,6 +86,8 @@ def lists(request):
         {
             "custom_lists": lists_page,
             "form": create_list_form,
+            "current_sort": sort_by,
+            "sort_choices": ListSortChoices.choices,
         },
     )
 

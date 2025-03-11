@@ -36,7 +36,7 @@
     </div>
 
     <div class="relative mb-6 flex gap-2"
-         x-data="{ sort: '{{ request.GET.sort|default:'last_item_added' }}', query: '{{ request.GET.q|default:'' }}' }">
+         x-data="{ sort: '{{ current_sort }}', query: '{{ request.GET.q|default:'' }}' }">
 
       <!-- Form to manage state -->
       <form id="filter-form" class="hidden">
@@ -94,7 +94,7 @@
             <path d="M7 4v16"></path>
           </svg>
           <span class="text-sm"
-                x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'creation_order' ? 'Creation Order' : 'Items Count'))"></span>
+                x-text="sort === 'last_item_added' ? 'Last Item Added' : (sort === 'name' ? 'Name' : (sort === 'newest_first' ? 'Newest First' : 'Items Count'))"></span>
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
                height="24"
@@ -119,38 +119,16 @@
              x-transition:leave="transition ease-in duration-75"
              x-transition:leave-start="transform opacity-100 scale-100"
              x-transition:leave-end="transform opacity-0 scale-95">
-          <button hx-get="{% url 'lists' %}"
-                  hx-target="#lists-grid"
-                  hx-include="#filter-form"
-                  hx-indicator="#loading-indicator"
-                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                  :class="sort === 'last_item_added' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                  @click="sort = 'last_item_added'; open = false"
-                  type="button">Last Item Added</button>
-          <button hx-get="{% url 'lists' %}"
-                  hx-target="#lists-grid"
-                  hx-include="#filter-form"
-                  hx-indicator="#loading-indicator"
-                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                  :class="sort === 'creation_order' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                  @click="sort = 'creation_order'; open = false"
-                  type="button">Creation Order</button>
-          <button hx-get="{% url 'lists' %}"
-                  hx-target="#lists-grid"
-                  hx-include="#filter-form"
-                  hx-indicator="#loading-indicator"
-                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                  :class="sort === 'name' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                  @click="sort = 'name'; open = false"
-                  type="button">Name</button>
-          <button hx-get="{% url 'lists' %}"
-                  hx-target="#lists-grid"
-                  hx-include="#filter-form"
-                  hx-indicator="#loading-indicator"
-                  class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                  :class="sort === 'items_count' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                  @click="sort = 'items_count'; open = false"
-                  type="button">Items Count</button>
+          {% for value, label in sort_choices %}
+            <button hx-get="{% url 'lists' %}"
+                    hx-target="#lists-grid"
+                    hx-include="#filter-form"
+                    hx-indicator="#loading-indicator"
+                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                    :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                    @click="sort = '{{ value }}'; open = false"
+                    type="button">{{ label }}</button>
+          {% endfor %}
         </div>
       </div>
     </div>
