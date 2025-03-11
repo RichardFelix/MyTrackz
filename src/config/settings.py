@@ -230,8 +230,6 @@ LOGIN_URL = "account_login"
 
 LOGIN_REDIRECT_URL = "home"
 
-LOGOUT_REDIRECT_URL = "account_login"
-
 AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
@@ -343,6 +341,7 @@ else:
     # Empty CSRF_TRUSTED_ORIGINS, default to http
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
+ACCOUNT_LOGOUT_REDIRECT_URL = "/accounts/login/?loggedout=1"
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
 ACCOUNT_FORMS = {
@@ -370,3 +369,5 @@ else:
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 if not REGISTRATION:
     ACCOUNT_ADAPTER = "users.account_adapter.NoNewUsersAccountAdapter"
+
+REDIRECT_LOGIN_TO_SSO = config("REDIRECT_LOGIN_TO_SSO", default=False, cast=bool)

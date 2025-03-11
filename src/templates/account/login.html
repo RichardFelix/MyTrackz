@@ -1,5 +1,6 @@
 {% extends "account/base_entrance.html" %}
 {% load allauth account %}
+{% load socialaccount %}
 
 {% block head_title %}
   Login
@@ -65,5 +66,22 @@
   {{ block.super }}
   {% if PASSKEY_LOGIN_ENABLED %}
     {% include "mfa/webauthn/snippets/login_script.html" with button_id="passkey_login" %}
+  {% endif %}
+
+  {% get_providers as socialaccount_providers %}
+  {% if socialaccount_providers and REDIRECT_LOGIN_TO_SSO and request.GET.loggedout != '1' %}
+    <script>
+      (function() {
+        const providerContainer = document.getElementById('providers');
+        if (providerContainer) {
+          const providerForms = providerContainer.querySelectorAll('form');
+      
+          // Only submit if there's exactly one provider form
+          if (providerForms.length === 1) {
+            providerForms[0].submit();
+          }
+        }
+      })();
+    </script>
   {% endif %}
 {% endblock extra_body %}

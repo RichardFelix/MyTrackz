@@ -111,6 +111,7 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 | SOCIALACCOUNT_PROVIDERS       | JSON configuration for social providers, see the [Wiki](https://github.com/FuzzyGrim/Yamtrack/wiki/Social-Authentication-in-Yamtrack) for a OIDC configuration example.                             |
 | ACCOUNT_DEFAULT_HTTP_PROTOCOL | Protocol for social providers, if your `redirect_uri` in OIDC config is `https` set this to `https`, default is determined based on your `CSRF_TRUSTED_ORIGINS` settings                            |
 | SOCIALACCOUNT_ONLY            | Default to `False`, set to `True` to disable local authentication when using social authentication only                                                                                             |
+| REDIRECT_LOGIN_TO_SSO         | Default to `False`, set to `True` to automatically redirect (using javascript) to the SSO provider when there's only one available. Useful for single sign-on setups.                               |
 
 ### Environment variables for PostgreSQL
 
