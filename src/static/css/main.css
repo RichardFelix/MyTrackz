@@ -688,6 +688,9 @@
   .me-2 {
     margin-inline-end: calc(var(--spacing) * 2);
   }
+  .-mt-\[3px\] {
+    margin-top: calc(3px * -1);
+  }
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
@@ -2012,13 +2015,6 @@
       }
     }
   }
-  .hover\:bg-\[\#343a40\] {
-    &:hover {
-      @media (hover: hover) {
-        background-color: #343a40;
-      }
-    }
-  }
   .hover\:bg-\[\#454d5a\] {
     &:hover {
       @media (hover: hover) {
@@ -2044,6 +2040,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: #2a2f35;
+      }
+    }
+  }
+  .hover\:bg-\[\#343a40\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: #343a40;
       }
     }
   }
