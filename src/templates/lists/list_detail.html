@@ -76,7 +76,7 @@
                autocomplete="off"
                hx-get="{% url 'list_detail' custom_list.id %}"
                hx-trigger="keyup changed delay:300ms, search"
-               hx-target="#items-grid"
+               {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +142,7 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             <button hx-get="{% url 'list_detail' custom_list.id %}"
-                    hx-target="#items-grid"
+                    {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -151,7 +151,7 @@
                     type="button">All</button>
             {% for media_type in media_types %}
               <button hx-get="{% url 'list_detail' custom_list.id %}"
-                      hx-target="#items-grid"
+                      {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -210,7 +210,7 @@
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in sort_choices %}
               <button hx-get="{% url 'list_detail' custom_list.id %}"
-                      hx-target="#items-grid"
+                      {% if items %}hx-target="#items-grid"{% else %}hx-target="this" hx-swap="none"{% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -226,12 +226,6 @@
       <div id="items-grid"
            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
         {% include "lists/components/media_grid.html" %}
-      </div>
-
-      <div id="loading-indicator" class="htmx-indicator text-center pt-8">
-        <div class="inline-flex justify-center items-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-        </div>
       </div>
     {% else %}
       <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
@@ -263,6 +257,12 @@
         </div>
       </div>
     {% endif %}
+
+    <div id="loading-indicator" class="htmx-indicator text-center pt-8">
+      <div class="inline-flex justify-center items-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    </div>
   </div>
 {% endblock content %}
 

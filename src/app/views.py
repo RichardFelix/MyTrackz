@@ -150,6 +150,7 @@ def media_list(request, media_type):
         "media_list": media_page,
         "current_page": page,
         "current_layout": layout,
+        "layout_class": ".grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
         "sort_choices": MediaSortChoices.choices,
     }

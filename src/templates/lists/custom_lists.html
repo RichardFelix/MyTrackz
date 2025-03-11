@@ -52,7 +52,7 @@
                autocomplete="off"
                hx-get="{% url 'lists' %}"
                hx-trigger="keyup changed delay:300ms, search"
-               hx-target="#lists-grid"
+               {% if custom_lists %} hx-target="#lists-grid" {% else %} hx-target="this" hx-swap="none" {% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +121,7 @@
              x-transition:leave-end="transform opacity-0 scale-95">
           {% for value, label in sort_choices %}
             <button hx-get="{% url 'lists' %}"
-                    hx-target="#lists-grid"
+                    {% if custom_lists %} hx-target="#lists-grid" {% else %} hx-target="this" hx-swap="none" {% endif %}
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
