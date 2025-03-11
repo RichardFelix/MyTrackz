@@ -17,6 +17,7 @@ from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from users.models import HomeSortChoices
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,11 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    sort_by = request.GET.get("sort", "upcoming")
+    sort_by = request.GET.get("sort") or request.user.home_sort
+    if sort_by != request.user.home_sort:
+        request.user.home_sort = sort_by
+        request.user.save(update_fields=["home_sort"])
+
     media_type_to_load = request.GET.get("load_media_type")
 
     # If this is an HTMX request to load more items for a specific media type
@@ -45,6 +50,7 @@ def home(request):
     context = {
         "list_by_type": list_by_type,
         "current_sort": sort_by,
+        "sort_choices": HomeSortChoices.choices,
         "max_date": date.max,
     }
     return render(request, "app/home.html", context)

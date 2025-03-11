@@ -8,6 +8,15 @@ from app.models import MediaTypes
 from users import helpers
 
 
+class HomeSortChoices(models.TextChoices):
+    """Choices for home page sort options."""
+
+    UPCOMING = "upcoming", "Upcoming"
+    COMPLETION = "completion", "Completion"
+    EPISODES_LEFT = "episodes_left", "Episodes Left"
+    TITLE = "title", "Title"
+
+
 class LayoutChoices(models.TextChoices):
     """Choices for media list layout options."""
 
@@ -40,6 +49,12 @@ class User(AbstractUser):
         max_length=10,
         default=MediaTypes.TV.value,
         choices=MediaTypes.choices,
+    )
+
+    home_sort = models.CharField(
+        max_length=20,
+        default=HomeSortChoices.UPCOMING,
+        choices=HomeSortChoices.choices,
     )
 
     tv_enabled = models.BooleanField(default=True)
@@ -121,6 +136,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="last_search_type_valid",
                 check=models.Q(last_search_type__in=MediaTypes.values),
+            ),
+            models.CheckConstraint(
+                name="home_sort_valid",
+                check=models.Q(home_sort__in=HomeSortChoices.values),
             ),
             models.CheckConstraint(
                 name="tv_layout_valid",

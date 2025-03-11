@@ -49,22 +49,12 @@
            x-transition:leave-start="transform opacity-100 scale-100"
            x-transition:leave-end="transform opacity-0 scale-95"
            class="absolute right-0 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden z-10 border border-gray-700">
-        <a href="{% url 'home' %}?sort=upcoming"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'upcoming' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          Upcoming
-        </a>
-        <a href="{% url 'home' %}?sort=completion"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'completion' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          Completion
-        </a>
-        <a href="{% url 'home' %}?sort=episodes_left"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'episodes_left' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          Episodes Left
-        </a>
-        <a href="{% url 'home' %}?sort=title"
-           class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == 'title' %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          Title
-        </a>
+        {% for value, label in sort_choices %}
+          <a href="{% url 'home' %}?sort={{ value }}"
+             class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+            {{ label }}
+          </a>
+        {% endfor %}
       </div>
     </div>
   </div>
