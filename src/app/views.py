@@ -17,7 +17,7 @@ from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices
+from users.models import HomeSortChoices, MediaSortChoices
 
 logger = logging.getLogger(__name__)
 
@@ -115,13 +115,15 @@ def progress_edit(request):
 @require_GET
 def media_list(request, media_type):
     """Return the media list page."""
-    # Get filter parameters from request
     layout = request.user.update_preference(
         f"{media_type}_layout",
         request.GET.get("layout"),
     )
+    sort_filter = request.user.update_preference(
+        f"{media_type}_sort",
+        request.GET.get("sort"),
+    )
     status_filter = request.GET.get("status", "all")
-    sort_filter = request.GET.get("sort", "score")
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
@@ -148,6 +150,8 @@ def media_list(request, media_type):
         "media_list": media_page,
         "current_page": page,
         "current_layout": layout,
+        "current_sort": sort_filter,
+        "sort_choices": MediaSortChoices.choices,
     }
 
     # Handle HTMX requests for partial updates

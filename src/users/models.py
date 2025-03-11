@@ -23,6 +23,16 @@ class HomeSortChoices(models.TextChoices):
     TITLE = "title", "Title"
 
 
+class MediaSortChoices(models.TextChoices):
+    """Choices for media list sort options."""
+
+    SCORE = "score", "Rating"
+    TITLE = "title", "Title"
+    PROGRESS = "progress", "Progress"
+    START_DATE = "start_date", "Start Date"
+    END_DATE = "end_date", "End Date"
+
+
 class LayoutChoices(models.TextChoices):
     """Choices for media list layout options."""
 
@@ -69,12 +79,22 @@ class User(AbstractUser):
         default=LayoutChoices.GRID,
         choices=LayoutChoices.choices,
     )
+    tv_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
 
     season_enabled = models.BooleanField(default=True)
     season_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
         choices=LayoutChoices.choices,
+    )
+    season_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
     )
 
     movie_enabled = models.BooleanField(default=True)
@@ -83,12 +103,22 @@ class User(AbstractUser):
         default=LayoutChoices.GRID,
         choices=LayoutChoices.choices,
     )
+    movie_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
 
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.TABLE,
         choices=LayoutChoices.choices,
+    )
+    anime_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
     )
 
     manga_enabled = models.BooleanField(default=True)
@@ -97,6 +127,11 @@ class User(AbstractUser):
         default=LayoutChoices.TABLE,
         choices=LayoutChoices.choices,
     )
+    manga_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
 
     game_enabled = models.BooleanField(default=True)
     game_layout = models.CharField(
@@ -104,12 +139,22 @@ class User(AbstractUser):
         default=LayoutChoices.GRID,
         choices=LayoutChoices.choices,
     )
+    game_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
 
     book_enabled = models.BooleanField(default=True)
     book_layout = models.CharField(
         max_length=20,
         default=LayoutChoices.GRID,
         choices=LayoutChoices.choices,
+    )
+    book_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
     )
 
     hide_from_search = models.BooleanField(default=True)
@@ -174,6 +219,34 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="book_layout_valid",
                 check=models.Q(book_layout__in=LayoutChoices.values),
+            ),
+            models.CheckConstraint(
+                name="tv_sort_valid",
+                check=models.Q(tv_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="season_sort_valid",
+                check=models.Q(season_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="movie_sort_valid",
+                check=models.Q(movie_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="anime_sort_valid",
+                check=models.Q(anime_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="manga_sort_valid",
+                check=models.Q(manga_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="game_sort_valid",
+                check=models.Q(game_sort__in=MediaSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_sort_valid",
+                check=models.Q(book_sort__in=MediaSortChoices.values),
             ),
             models.CheckConstraint(
                 name="calendar_layout_valid",
