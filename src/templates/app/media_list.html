@@ -9,7 +9,7 @@
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">{{ media_type|media_type_readable_plural }}</h1>
 
-  <div x-data="{ sort: '{{ request.GET.sort|default:'score' }}', status: '{{ request.GET.status|default:'all' }}', layout: '{{ user_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: { 'all': 'All', 'completed': 'Completed', 'in progress': 'In Progress', 'planning': 'Planning', 'paused': 'Paused', 'dropped': 'Dropped', 'repeating': 'Repeating' }, sortLabels: { 'score': 'Rating', 'title': 'Title', 'start_date': 'Start Date', 'end_date': 'End Date', 'progress': 'Progress' } }">
+  <div x-data="{ sort: '{{ request.GET.sort|default:'score' }}', status: '{{ request.GET.status|default:'all' }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: { 'all': 'All', 'completed': 'Completed', 'in progress': 'In Progress', 'planning': 'Planning', 'paused': 'Paused', 'dropped': 'Dropped', 'repeating': 'Repeating' }, sortLabels: { 'score': 'Rating', 'title': 'Title', 'start_date': 'Start Date', 'end_date': 'End Date', 'progress': 'Progress' } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -28,7 +28,7 @@
                x-model="search"
                hx-get="{% url 'medialist' media_type %}"
                hx-trigger="keyup changed delay:300ms, search"
-               hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+               hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -94,7 +94,7 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -102,7 +102,7 @@
                     @click="status = 'all'; open = false"
                     type="button">All</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -110,7 +110,7 @@
                     @click="status = 'Completed'; open = false"
                     type="button">Completed</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -118,7 +118,7 @@
                     @click="status = 'In progress'; open = false"
                     type="button">In Progress</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -126,7 +126,7 @@
                     @click="status = 'Planning'; open = false"
                     type="button">Planning</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -134,7 +134,7 @@
                     @click="status = 'Paused'; open = false"
                     type="button">Paused</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -142,7 +142,7 @@
                     @click="status = 'Dropped'; open = false"
                     type="button">Dropped</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -198,7 +198,7 @@
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -206,7 +206,7 @@
                     @click="sort = 'score'; open = false"
                     type="button">Rating</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -214,7 +214,7 @@
                     @click="sort = 'title'; open = false"
                     type="button">Title</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -222,7 +222,7 @@
                     @click="sort = 'progress'; open = false"
                     type="button">Progress</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -230,7 +230,7 @@
                     @click="sort = 'start_date'; open = false"
                     type="button">Start Date</button>
             <button hx-get="{% url 'medialist' media_type %}"
-                    hx-target="{% if user_layout == 'table' %}tbody{% else %}.grid{% endif %}"
+                    hx-target="{% if current_layout == 'table' %}tbody{% else %}.grid{% endif %}"
                     hx-include="#filter-form"
                     hx-indicator="#loading-indicator"
                     class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -313,7 +313,7 @@
           </a>
         </div>
       </div>
-    {% elif user_layout == "grid" %}
+    {% elif current_layout == "grid" %}
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
         {% include "app/components/media_grid_items.html" %}
       </div>

@@ -25,11 +25,7 @@ logger = logging.getLogger(__name__)
 @require_GET
 def home(request):
     """Home page with media items in progress and repeating."""
-    sort_by = request.GET.get("sort") or request.user.home_sort
-    if sort_by != request.user.home_sort:
-        request.user.home_sort = sort_by
-        request.user.save(update_fields=["home_sort"])
-
+    sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
 
     # If this is an HTMX request to load more items for a specific media type
@@ -119,19 +115,15 @@ def progress_edit(request):
 @require_GET
 def media_list(request, media_type):
     """Return the media list page."""
-    layout_user = request.user.get_layout(media_type)
-
     # Get filter parameters from request
-    layout_request = request.GET.get("layout", layout_user)
+    layout = request.user.update_preference(
+        f"{media_type}_layout",
+        request.GET.get("layout"),
+    )
     status_filter = request.GET.get("status", "all")
     sort_filter = request.GET.get("sort", "score")
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
-
-    # Update user layout preference if changed
-    if layout_request != layout_user:
-        request.user.set_layout(media_type, layout_request)
-        layout_user = layout_request
 
     # Prepare status filter for database query
     status_filters = ["All"] if status_filter.lower() == "all" else [status_filter]
@@ -155,12 +147,12 @@ def media_list(request, media_type):
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
         "media_list": media_page,
         "current_page": page,
-        "user_layout": layout_user,
+        "current_layout": layout,
     }
 
     # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
-        if layout_user == "grid" or layout_request == "grid":
+        if layout == "grid":
             template_name = "app/components/media_grid_items.html"
         else:
             template_name = "app/components/media_table_items.html"
@@ -173,9 +165,11 @@ def media_list(request, media_type):
 @require_GET
 def media_search(request):
     """Return the media search page."""
-    media_type = request.GET["media_type"]
+    media_type = request.user.update_preference(
+        "last_search_type",
+        request.GET["media_type"],
+    )
     query = request.GET["q"]
-    request.user.set_last_search_type(media_type)
 
     # only receives source when searching with secondary source
     source = request.GET.get("source")

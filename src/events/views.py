@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 def release_calendar(request):
     """Display the calendar page."""
     # Handle view type
-    view_type = request.GET.get("view") or request.user.calendar_layout
-    if view_type != request.user.calendar_layout:
-        request.user.calendar_layout = view_type
-        request.user.save(update_fields=["calendar_layout"])
+    view_type = request.user.update_preference(
+        "calendar_layout",
+        request.GET.get("view"),
+    )
 
     month = request.GET.get("month")
     year = request.GET.get("year")

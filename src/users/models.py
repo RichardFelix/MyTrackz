@@ -7,6 +7,12 @@ from django_celery_results.models import TaskResult
 from app.models import MediaTypes
 from users import helpers
 
+EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
+
+VALID_SEARCH_TYPES = [
+    value for value in MediaTypes.values if value not in EXCLUDED_SEARCH_TYPES
+]
+
 
 class HomeSortChoices(models.TextChoices):
     """Choices for home page sort options."""
@@ -37,7 +43,7 @@ class ListSortChoices(models.TextChoices):
     LAST_ITEM_ADDED = "last_item_added", "Last Item Added"
     NAME = "name", "Name"
     ITEMS_COUNT = "items_count", "Items Count"
-    CREATION_ORDER = "creation_order", "Newest First"
+    NEWEST_FIRST = "newest_first", "Newest First"
 
 
 class User(AbstractUser):
@@ -135,7 +141,7 @@ class User(AbstractUser):
         constraints = [
             models.CheckConstraint(
                 name="last_search_type_valid",
-                check=models.Q(last_search_type__in=MediaTypes.values),
+                check=models.Q(last_search_type__in=VALID_SEARCH_TYPES),
             ),
             models.CheckConstraint(
                 name="home_sort_valid",
@@ -179,19 +185,44 @@ class User(AbstractUser):
             ),
         ]
 
-    def get_layout(self, media_type):
-        """Return the layout for the media type."""
-        return getattr(self, f"{media_type}_layout")
+    def update_preference(self, field_name, new_value):
+        """
+        Update user preference if the new value is valid and different from current.
 
-    def set_layout(self, media_type, layout):
-        """Set the layout for the media type."""
-        setattr(self, f"{media_type}_layout", layout)
-        self.save(update_fields=[f"{media_type}_layout"])
+        Args:
+            field_name: The name of the field to update
+            new_value: The new value to set
 
-    def set_last_search_type(self, media_type):
-        """Set the last search type, used for default search type."""
-        self.last_search_type = media_type
-        self.save(update_fields=["last_search_type"])
+        Returns:
+            The value that was set (or the original value if invalid)
+        """
+        # If no new value provided, return current value
+        if not new_value:
+            return getattr(self, field_name)
+
+        # Special case for last_search_type
+        if field_name == "last_search_type" and new_value not in VALID_SEARCH_TYPES:
+            return getattr(self, field_name)
+
+        field = self._meta.get_field(field_name)
+        # Check if the field has choices
+        if hasattr(field, "choices") and field.choices:
+            # Get valid values from field choices
+            valid_values = [choice[0] for choice in field.choices]
+
+            # If the new value is not valid, return current value
+            if new_value not in valid_values:
+                return getattr(self, field_name)
+
+        # Get current value
+        current_value = getattr(self, field_name)
+
+        # Update if different
+        if new_value != current_value:
+            setattr(self, field_name, new_value)
+            self.save(update_fields=[field_name])
+
+        return new_value
 
     def get_active_media_types(self):
         """Return a list of active media types."""
