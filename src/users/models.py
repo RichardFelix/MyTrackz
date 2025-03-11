@@ -56,6 +56,14 @@ class ListSortChoices(models.TextChoices):
     NEWEST_FIRST = "newest_first", "Newest First"
 
 
+class ListDetailSortChoices(models.TextChoices):
+    """Choices for list detail sort options."""
+
+    DATE_ADDED = "date_added", "Date Added"
+    TITLE = "title", "Title"
+    MEDIA_TYPE = "media_type", "Media Type"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -171,6 +179,12 @@ class User(AbstractUser):
         choices=ListSortChoices.choices,
     )
 
+    list_detail_sort = models.CharField(
+        max_length=20,
+        default=ListDetailSortChoices.DATE_ADDED,
+        choices=ListDetailSortChoices.choices,
+    )
+
     token = models.CharField(
         max_length=32,
         null=True,
@@ -255,6 +269,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="lists_sort_valid",
                 check=models.Q(lists_sort__in=ListSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="list_detail_sort_valid",
+                check=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
             ),
         ]
 

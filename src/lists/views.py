@@ -13,7 +13,7 @@ from app.models import Item, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
-from users.models import ListSortChoices
+from users.models import ListDetailSortChoices, ListSortChoices
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,10 @@ def list_detail(request, list_id):
         msg = "List not found"
         raise Http404(msg)
 
-    sort_by = request.GET.get("sort", "date_added")
+    sort_by = request.user.update_preference(
+        "list_detail_sort",
+        request.GET.get("sort"),
+    )
     media_type = request.GET.get("type", "all")
     page = request.GET.get("page", 1)
     search_query = request.GET.get("q", "")
@@ -169,6 +172,8 @@ def list_detail(request, list_id):
         "next_page_number": items_page.next_page_number()
         if items_page.has_next()
         else None,
+        "current_sort": sort_by,
+        "sort_choices": ListDetailSortChoices.choices,
     }
 
     # For full page render, add additional context

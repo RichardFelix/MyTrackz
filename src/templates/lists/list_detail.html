@@ -54,7 +54,7 @@
     {% include "lists/components/list_form.html" %}
   </div>
 
-  <div x-data="{ sort: '{{ request.GET.sort|default:'date_added' }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', type: '{{ request.GET.type|default:'all' }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
     {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
     'all': 'All Types' }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
@@ -208,30 +208,16 @@
                x-transition:leave="transition ease-in duration-75"
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
-            <button hx-get="{% url 'list_detail' custom_list.id %}"
-                    hx-target="#items-grid"
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="sort === 'date_added' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="sort = 'date_added'; open = false"
-                    type="button">Date Added</button>
-            <button hx-get="{% url 'list_detail' custom_list.id %}"
-                    hx-target="#items-grid"
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="sort === 'title' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="sort = 'title'; open = false"
-                    type="button">Title</button>
-            <button hx-get="{% url 'list_detail' custom_list.id %}"
-                    hx-target="#items-grid"
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="sort === 'media_type' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="sort = 'media_type'; open = false"
-                    type="button">Media Type</button>
+            {% for value, label in sort_choices %}
+              <button hx-get="{% url 'list_detail' custom_list.id %}"
+                      hx-target="#items-grid"
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      @click="sort = '{{ value }}'; open = false"
+                      type="button">{{ label }}</button>
+            {% endfor %}
           </div>
         </div>
       </div>
