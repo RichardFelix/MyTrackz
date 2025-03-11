@@ -320,6 +320,29 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # Allauth settings
+if CSRF_TRUSTED_ORIGINS:
+    # Check if all origins start with http:// or https://
+    all_http = all(
+        origin.startswith("http://") for origin in CSRF_TRUSTED_ORIGINS if origin
+    )
+    all_https = all(
+        origin.startswith("https://") for origin in CSRF_TRUSTED_ORIGINS if origin
+    )
+
+    if all_http:
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
+    elif all_https:
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+    else:
+        # Mixed protocols or invalid formats, use config value
+        ACCOUNT_DEFAULT_HTTP_PROTOCOL = config(
+            "ACCOUNT_DEFAULT_HTTP_PROTOCOL",
+            default="https",
+        )
+else:
+    # Empty CSRF_TRUSTED_ORIGINS, default to http
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
+
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None
 ACCOUNT_FORMS = {
