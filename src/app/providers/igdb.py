@@ -205,7 +205,9 @@ def get_parent(parent_game):
     if parent_game:
         return [
             {
+                "source": "igdb",
                 "media_id": parent_game["id"],
+                "media_type": "game",
                 "title": parent_game["name"],
                 "image": get_image_url(parent_game),
             },
