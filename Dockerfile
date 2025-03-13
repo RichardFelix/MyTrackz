@@ -10,14 +10,14 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 
 WORKDIR /yamtrack
 
-RUN apk add --no-cache nginx \
+RUN apk add --no-cache nginx shadow \
     && pip install --no-cache-dir -r /requirements.txt \
     && pip install --no-cache-dir supervisor==4.2.5 \
     && rm -rf /root/.cache /tmp/* \
     && find /usr/local -type d -name __pycache__ -exec rm -rf {} + \
     && chmod +x /entrypoint.sh \
     # create user abc for later PUID/PGID mapping
-    && adduser -D -H -s /bin/sh abc \
+    && useradd -U -M -s /bin/sh abc \
     # Create required nginx directories and set permissions
     && mkdir -p /var/log/nginx \
     && mkdir -p /var/lib/nginx/body \
