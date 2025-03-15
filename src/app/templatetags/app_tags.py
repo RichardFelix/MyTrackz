@@ -1,6 +1,4 @@
-from decimal import Decimal
 from pathlib import Path
-from urllib.parse import parse_qsl, urlparse
 
 from django import template
 from django.conf import settings
@@ -29,12 +27,6 @@ def get_static_file_mtime(file_path):
 
 
 @register.filter
-def addslashes_double(arg1):
-    """Add slashes before double quotes."""
-    return arg1.replace('"', '\\"')
-
-
-@register.filter
 def no_underscore(arg1):
     """Return the title case of the string."""
     return arg1.replace("_", " ")
@@ -54,33 +46,6 @@ def slug(arg1):
             template.defaultfilters.urlencode(unidecode(arg1)),
         )
     return cleaned
-
-
-@register.simple_tag
-def set_param(url, param, value):
-    """
-    Set or replace a query parameter in the given URL.
-
-    Usage: {% set_param request.get_full_path 'sort' 'title' %}
-    """
-    # Parse the URL
-    parsed_url = urlparse(url)
-
-    # Parse the query string into a dictionary
-    query_dict = dict(parse_qsl(parsed_url.query))
-
-    # Update or add the parameter
-    if value is not None:
-        query_dict[param] = value
-    elif param in query_dict:
-        del query_dict[param]
-
-    # Reconstruct the URL with the updated query string
-    new_query = urlencode(query_dict)
-
-    # Return the path with the updated query string
-    path = parsed_url.path or "/"
-    return f"{path}?{new_query}" if new_query else path
 
 
 @register.filter
@@ -165,25 +130,6 @@ def sample_search(media_type):
 def media_color(media_type):
     """Return the color associated with the media type."""
     return models.Colors[media_type.upper()].value
-
-
-@register.filter
-def percentage_ratio(value, total):
-    """Calculate percentage, showing one decimal place for values between 0 and 1."""
-    try:
-        if total == 0:
-            return "0"
-
-        result = (Decimal(value) / Decimal(total)) * 100
-
-        # If result is between 0 and 1, show one decimal
-        if 0 < result < 1:
-            return f"{result:.1f}"
-
-        # For all other values, show as integer
-        return str(int(round(result)))
-    except (TypeError, ValueError):
-        return "0"
 
 
 @register.filter
