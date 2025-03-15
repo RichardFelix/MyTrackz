@@ -478,7 +478,7 @@ def search_parent_tv(request):
     if len(query) <= 1:
         return render(request, "app/components/search_parent_tv.html")
 
-    logging.debug(
+    logger.debug(
         "%s - Searching for TV shows with query: %s",
         request.user.username,
         query,
@@ -506,7 +506,7 @@ def search_parent_season(request):
     if len(query) <= 1:
         return render(request, "app/components/search_parent_tv.html")
 
-    logging.debug(
+    logger.debug(
         "%s - Searching for seasons with query: %s",
         request.user.username,
         query,

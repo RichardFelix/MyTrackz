@@ -26,8 +26,7 @@ def redirect_back(request):
 
         # Get the query parameters and remove 'page'
         query_params = dict(parse_qsl(parsed_url.query))
-        if "page" in query_params:
-            del query_params["page"]
+        query_params.pop("page", None)
 
         # Reconstruct the URL
         new_query = urlencode(query_params)

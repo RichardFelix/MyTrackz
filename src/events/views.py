@@ -31,7 +31,7 @@ def release_calendar(request):
         )
         month, year = current_date.month, current_date.year
     except (ValueError, TypeError):
-        logging.warning("Invalid month or year provided: %s, %s", month, year)
+        logger.warning("Invalid month or year provided: %s, %s", month, year)
         current_date = timezone.now().date()
         month, year = current_date.month, current_date.year
 

@@ -481,7 +481,7 @@ def get_earliest_media_start_date(user):
                     earliest_date is None or earliest_start < earliest_date
                 ):
                     earliest_date = earliest_start
-                    logging.info(
+                    logger.info(
                         "Found earlier start_date: %s from model %s",
                         earliest_date,
                         model.__name__,
@@ -499,13 +499,13 @@ def get_earliest_media_start_date(user):
                     earliest_date is None or earliest_tv_date < earliest_date
                 ):
                     earliest_date = earliest_tv_date
-                    logging.info(
+                    logger.info(
                         "Found earlier TV start_date via seasons: %s",
                         earliest_date,
                     )
 
         except Exception:
-            logging.exception(
+            logger.exception(
                 "Error checking start_date for model %s",
                 media_type,
             )
@@ -538,15 +538,15 @@ def get_earliest_historical_date(user):
 
                 if earliest_date is None or history_date < earliest_date:
                     earliest_date = history_date
-                    logging.info(
+                    logger.info(
                         "Found earlier history_date: %s from model %s",
                         earliest_date,
                         model_name,
                     )
         except LookupError:
-            logging.warning("Historical model %s not found", model_name)
+            logger.warning("Historical model %s not found", model_name)
         except Exception:
-            logging.exception("Error checking historical model %s", model_name)
+            logger.exception("Error checking historical model %s", model_name)
 
     # Also check Episode historical records
     try:
@@ -564,9 +564,9 @@ def get_earliest_historical_date(user):
 
             if earliest_date is None or episode_history_date < earliest_date:
                 earliest_date = episode_history_date
-                logging.info("Found earlier episode history_date: %s", earliest_date)
+                logger.info("Found earlier episode history_date: %s", earliest_date)
     except Exception:
-        logging.exception("Error checking Episode history")
+        logger.exception("Error checking Episode history")
 
     return earliest_date
 
@@ -591,7 +591,7 @@ def get_first_interaction_date(user):
     if cached_result:
         return cached_result
 
-    logging.info("Getting first interaction date for user: %s", user)
+    logger.info("Getting first interaction date for user: %s", user)
 
     # Get earliest dates from both sources
     earliest_media_date = get_earliest_media_start_date(user)
@@ -606,10 +606,10 @@ def get_first_interaction_date(user):
         earliest_date = earliest_history_date
 
     if earliest_date:
-        logging.info("First interaction date for user %s: %s", user, earliest_date)
+        logger.info("First interaction date for user %s: %s", user, earliest_date)
     else:
         earliest_date = user.date_joined.date()
-        logging.info("No interaction found for user %s", user)
+        logger.info("No interaction found for user %s", user)
 
     cache.set(cache_key, earliest_date, 60 * 60 * 24)
     return earliest_date

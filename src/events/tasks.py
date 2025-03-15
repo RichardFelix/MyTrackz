@@ -170,7 +170,7 @@ def get_anime_schedule_bulk(media_ids):
                     ]
                     # Log any filtering that occurred
                     if len(media["airingSchedule"]["nodes"]) > len(airing_schedule):
-                        logging.info(
+                        logger.info(
                             "Filtered episodes for MAL ID %s - keep only %s episodes",
                             mal_id,
                             total_episodes,
@@ -214,7 +214,7 @@ def process_season(item, metadata, events_bulk):
             try:
                 air_date = date_parser(episode["air_date"])
             except ValueError:
-                logging.warning(
+                logger.warning(
                     "%s - Invalid air date for episode %s",
                     item,
                     episode_number,

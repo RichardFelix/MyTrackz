@@ -256,7 +256,7 @@ class MediaManager(models.Manager):
             media_count[model_name] = count
             media_count["total"] += count
 
-        logging.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
+        logger.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
         return user_media, media_count
 
     def get_media_type_distribution(self, media_count):
@@ -293,7 +293,7 @@ class MediaManager(models.Manager):
         # Define status order to ensure consistent stacking
         status_order = list(Media.Status.values)
         for model_name, media_list in user_media.items():
-            status_counts = {status: 0 for status in status_order}
+            status_counts = dict.fromkeys(status_order, 0)
             counts = media_list.values("status").annotate(count=models.Count("id"))
             for count_data in counts:
                 status_counts[count_data["status"]] = count_data["count"]
@@ -364,7 +364,7 @@ class MediaManager(models.Manager):
 
         for model_name, media_list in user_media.items():
             # Initialize score counts for this media type
-            score_counts = {score: 0 for score in score_range}
+            score_counts = dict.fromkeys(score_range, 0)
 
             # Get all scored media with their scores
             scored_media = media_list.exclude(score__isnull=True).select_related("item")
