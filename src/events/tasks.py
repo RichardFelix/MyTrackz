@@ -114,33 +114,39 @@ def get_anime_schedule_bulk(media_ids):
     """Get the airing schedule for multiple anime items from AniList API."""
     all_data = {}
     page = 1
-
-    while True:
-        query = """
-        query ($ids: [Int], $page: Int) {
-          Page(page: $page) {
-            pageInfo {
-              hasNextPage
-            }
-            media(idMal_in: $ids, type: ANIME) {
-              idMal
-              startDate {
-                year
-                month
-                day
-              }
-              airingSchedule {
-                nodes {
-                  episode
-                  airingAt
-                }
-              }
+    url = "https://graphql.anilist.co"
+    query = """
+    query ($ids: [Int], $page: Int) {
+      Page(page: $page) {
+        pageInfo {
+          hasNextPage
+        }
+        media(idMal_in: $ids, type: ANIME) {
+          idMal
+          startDate {
+            year
+            month
+            day
+          }
+          endDate {
+            year
+            month
+            day
+          }
+          episodes
+          airingSchedule {
+            nodes {
+              episode
+              airingAt
             }
           }
         }
-        """
+      }
+    }
+    """
+
+    while True:
         variables = {"ids": media_ids, "page": page}
-        url = "https://graphql.anilist.co"
         response = services.api_request(
             "ANILIST",
             "POST",
@@ -148,29 +154,51 @@ def get_anime_schedule_bulk(media_ids):
             params={"query": query, "variables": variables},
         )
 
-        media_list = response["data"]["Page"]["media"]
-
-        for media in media_list:
+        for media in response["data"]["Page"]["media"]:
             airing_schedule = media["airingSchedule"]["nodes"]
+            total_episodes = media["episodes"]
+            mal_id = str(media["idMal"])
 
-            # if no airing schedule is available, use the start date
-            if not airing_schedule:
-                timestamp = anilist_date_parser(media["startDate"])
-                if timestamp:
+            if airing_schedule:
+                # Filter episodes if total_episodes is known
+                # happens with idMal: 54857
+                if total_episodes is not None:
                     airing_schedule = [
-                        {
-                            "episode": 1,
-                            "airingAt": timestamp,
-                        },
+                        episode
+                        for episode in airing_schedule
+                        if episode["episode"] <= total_episodes
                     ]
-                else:
-                    airing_schedule = []
+                    # Log any filtering that occurred
+                    if len(media["airingSchedule"]["nodes"]) > len(airing_schedule):
+                        logging.info(
+                            "Filtered episodes for MAL ID %s - keep only %s episodes",
+                            mal_id,
+                            total_episodes,
+                        )
+            # No airing schedule, create basic one from dates
+            else:
+                airing_schedule = []
+                start_date_timestamp = anilist_date_parser(media["startDate"])
 
-            all_data[str(media["idMal"])] = airing_schedule
+                # Add first episode
+                if start_date_timestamp:
+                    airing_schedule.append(
+                        {"episode": 1, "airingAt": start_date_timestamp},
+                    )
+
+                # Add last episode if we know total episodes
+                if total_episodes and total_episodes > 1:
+                    end_date_timestamp = anilist_date_parser(media["endDate"])
+                    if end_date_timestamp:
+                        airing_schedule.append(
+                            {"episode": total_episodes, "airingAt": end_date_timestamp},
+                        )
+
+            # Store the processed schedule
+            all_data[mal_id] = airing_schedule
 
         if not response["data"]["Page"]["pageInfo"]["hasNextPage"]:
             break
-
         page += 1
 
     return all_data
