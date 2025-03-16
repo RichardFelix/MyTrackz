@@ -17,7 +17,7 @@ from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices
+from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +153,7 @@ def media_list(request, media_type):
         "layout_class": ".grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
         "sort_choices": MediaSortChoices.choices,
+        "status_choices": MediaStatusChoices.choices,
     }
 
     # Handle HTMX requests for partial updates

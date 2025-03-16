@@ -9,7 +9,21 @@
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">{{ media_type|media_type_readable_plural }}</h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ request.GET.status|default:'all' }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: { 'all': 'All', 'completed': 'Completed', 'in progress': 'In Progress', 'planning': 'Planning', 'paused': 'Paused', 'dropped': 'Dropped', 'repeating': 'Repeating' }, sortLabels: { 'score': 'Rating', 'title': 'Title', 'start_date': 'Start Date', 'end_date': 'End Date', 'progress': 'Progress' } }">
+  <div x-data="{
+    sort: '{{ current_sort }}',
+    layout: '{{ current_layout }}',
+    search: '{{ request.GET.search|default:'' }}',
+    statusLabels: {
+      {% for value, label in status_choices %}
+        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    },
+    sortLabels: {
+      {% for value, label in sort_choices %}
+        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    }
+  }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -68,7 +82,7 @@
                  class="w-4 h-4 mr-2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
-            <span x-text="statusLabels[status.toLowerCase()] || status"></span>
+            <span x-text="statusLabels[status] || status"></span>
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
