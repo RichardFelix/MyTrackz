@@ -321,6 +321,34 @@ class User(AbstractUser):
                 name="list_detail_sort_valid",
                 check=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
             ),
+            models.CheckConstraint(
+                name="tv_status_valid",
+                check=models.Q(tv_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="season_status_valid",
+                check=models.Q(season_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="movie_status_valid",
+                check=models.Q(movie_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="anime_status_valid",
+                check=models.Q(anime_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="manga_status_valid",
+                check=models.Q(manga_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="game_status_valid",
+                check=models.Q(game_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_status_valid",
+                check=models.Q(book_status__in=MediaStatusChoices.values),
+            ),
         ]
 
     def update_preference(self, field_name, new_value):
