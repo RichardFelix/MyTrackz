@@ -17,7 +17,7 @@ from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from users.models import HomeSortChoices, MediaSortChoices
+from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -123,12 +123,15 @@ def media_list(request, media_type):
         f"{media_type}_sort",
         request.GET.get("sort"),
     )
-    status_filter = request.GET.get("status", "all")
+    status_filter = request.user.update_preference(
+        f"{media_type}_status",
+        request.GET.get("status"),
+    )
     search_query = request.GET.get("search", "")
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
-    status_filters = ["All"] if status_filter.lower() == "all" else [status_filter]
+    status_filters = [MediaStatusChoices.ALL] if not status_filter else [status_filter]
 
     # Get media list with filters applied
     media_queryset = database.get_media_list(
@@ -152,7 +155,9 @@ def media_list(request, media_type):
         "current_layout": layout,
         "layout_class": ".grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
+        "current_status": status_filter,
         "sort_choices": MediaSortChoices.choices,
+        "status_choices": MediaStatusChoices.choices,
     }
 
     # Handle HTMX requests for partial updates

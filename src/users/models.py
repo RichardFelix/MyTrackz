@@ -4,7 +4,7 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import MediaTypes
+from app.models import Media, MediaTypes
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -31,6 +31,18 @@ class MediaSortChoices(models.TextChoices):
     PROGRESS = "progress", "Progress"
     START_DATE = "start_date", "Start Date"
     END_DATE = "end_date", "End Date"
+
+
+class MediaStatusChoices(models.TextChoices):
+    """Choices for media list status options."""
+
+    ALL = "All", "All"
+    COMPLETED = Media.Status.COMPLETED.value, Media.Status.COMPLETED.label
+    IN_PROGRESS = Media.Status.IN_PROGRESS.value, Media.Status.IN_PROGRESS.label
+    REPEATING = Media.Status.REPEATING.value, Media.Status.REPEATING.label
+    PLANNING = Media.Status.PLANNING.value, Media.Status.PLANNING.label
+    PAUSED = Media.Status.PAUSED.value, Media.Status.PAUSED.label
+    DROPPED = Media.Status.DROPPED.value, Media.Status.DROPPED.label
 
 
 class LayoutChoices(models.TextChoices):
@@ -92,6 +104,11 @@ class User(AbstractUser):
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
     )
+    tv_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
     season_enabled = models.BooleanField(default=True)
     season_layout = models.CharField(
@@ -103,6 +120,11 @@ class User(AbstractUser):
         max_length=20,
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
+    )
+    season_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
     )
 
     movie_enabled = models.BooleanField(default=True)
@@ -116,6 +138,11 @@ class User(AbstractUser):
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
     )
+    movie_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
     anime_enabled = models.BooleanField(default=True)
     anime_layout = models.CharField(
@@ -127,6 +154,11 @@ class User(AbstractUser):
         max_length=20,
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
+    )
+    anime_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
     )
 
     manga_enabled = models.BooleanField(default=True)
@@ -140,6 +172,11 @@ class User(AbstractUser):
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
     )
+    manga_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
     game_enabled = models.BooleanField(default=True)
     game_layout = models.CharField(
@@ -152,6 +189,11 @@ class User(AbstractUser):
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
     )
+    game_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
     book_enabled = models.BooleanField(default=True)
     book_layout = models.CharField(
@@ -163,6 +205,11 @@ class User(AbstractUser):
         max_length=20,
         default=MediaSortChoices.SCORE,
         choices=MediaSortChoices.choices,
+    )
+    book_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
     )
 
     hide_from_search = models.BooleanField(default=True)
@@ -273,6 +320,34 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="list_detail_sort_valid",
                 check=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="tv_status_valid",
+                check=models.Q(tv_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="season_status_valid",
+                check=models.Q(season_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="movie_status_valid",
+                check=models.Q(movie_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="anime_status_valid",
+                check=models.Q(anime_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="manga_status_valid",
+                check=models.Q(manga_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="game_status_valid",
+                check=models.Q(game_status__in=MediaStatusChoices.values),
+            ),
+            models.CheckConstraint(
+                name="book_status_valid",
+                check=models.Q(book_status__in=MediaStatusChoices.values),
             ),
         ]
 

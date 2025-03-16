@@ -80,7 +80,7 @@
       </td>
     {% endif %}
     <td class="p-2 text-center">{{ media.progress }}</td>
-    <td class="p-2 text-center">{{ media.status }}</td>
+    <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
     {% if media.start_date %}
       <td class="p-2 text-center">{{ media.start_date|date:"Y-m-d" }}</td>
     {% else %}

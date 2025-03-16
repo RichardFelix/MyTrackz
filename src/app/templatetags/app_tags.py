@@ -79,6 +79,12 @@ def media_type_readable_plural(media_type):
 
 
 @register.filter
+def media_status_readable(media_status):
+    """Return the readable media status."""
+    return models.Media.Status(media_status).label
+
+
+@register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
     media_type_source = {

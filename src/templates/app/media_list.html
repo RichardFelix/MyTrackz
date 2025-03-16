@@ -9,7 +9,22 @@
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">{{ media_type|media_type_readable_plural }}</h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ request.GET.status|default:'all' }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: { 'all': 'All', 'completed': 'Completed', 'in progress': 'In Progress', 'planning': 'Planning', 'paused': 'Paused', 'dropped': 'Dropped', 'repeating': 'Repeating' }, sortLabels: { 'score': 'Rating', 'title': 'Title', 'start_date': 'Start Date', 'end_date': 'End Date', 'progress': 'Progress' } }">
+  <div x-data="{
+    sort: '{{ current_sort }}',
+    status: '{{ current_status }}',
+    layout: '{{ current_layout }}',
+    search: '{{ request.GET.search|default:'' }}',
+    statusLabels: {
+      {% for value, label in status_choices %}
+        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    },
+    sortLabels: {
+      {% for value, label in sort_choices %}
+        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    }
+  }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -68,7 +83,7 @@
                  class="w-4 h-4 mr-2">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
-            <span x-text="statusLabels[status.toLowerCase()] || status"></span>
+            <span x-text="statusLabels[status] || status"></span>
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -93,62 +108,16 @@
                x-transition:leave="transition ease-in duration-75"
                x-transition:leave-start="transform opacity-100 scale-100"
                x-transition:leave-end="transform opacity-0 scale-95">
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'all' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'all'; open = false"
-                    type="button">All</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'Completed' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'Completed'; open = false"
-                    type="button">Completed</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'In progress' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'In progress'; open = false"
-                    type="button">In Progress</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'Planning' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'Planning'; open = false"
-                    type="button">Planning</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'Paused' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'Paused'; open = false"
-                    type="button">Paused</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'Dropped' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'Dropped'; open = false"
-                    type="button">Dropped</button>
-            <button hx-get="{% url 'medialist' media_type %}"
-                    {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
-                    hx-include="#filter-form"
-                    hx-indicator="#loading-indicator"
-                    class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                    :class="status === 'Repeating' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
-                    @click="status = 'Repeating'; open = false"
-                    type="button">Repeating</button>
+            {% for value, label in status_choices %}
+              <button hx-get="{% url 'medialist' media_type %}"
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="status === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      @click="status = '{{ value }}'; open = false"
+                      type="button">{{ label }}</button>
+            {% endfor %}
           </div>
         </div>
 
