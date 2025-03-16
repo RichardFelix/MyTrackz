@@ -2,13 +2,19 @@ import calendar
 import logging
 from datetime import date, timedelta
 
+import icalendar
 from django.contrib import messages
+from django.contrib.auth.decorators import login_not_required
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from events import tasks
 from events.models import Event
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -96,3 +102,44 @@ def reload_calendar(request):
     tasks.reload_calendar.delay(request.user)
     messages.info(request, "The task to refresh upcoming releases has been queued.")
     return redirect("release_calendar")
+
+
+@login_not_required
+@csrf_exempt
+@require_GET
+def download_calendar(_, token: str):
+    """Download the calendar as a iCalendar file."""
+
+    try:
+        user = User.objects.get(token=token)
+    except ObjectDoesNotExist:
+        logger.warning(
+            "Could not process Calendar request: Invalid token: %s",
+            token,
+        )
+        return HttpResponse(status=401)
+
+    # Define default start and end date (from past 30 days to incoming 90 days)
+    start_date = timezone.now().date() - timedelta(days=30)
+    end_date = timezone.now().date() + timedelta(days=90)
+
+    # Retrieve release events
+    releases = Event.objects.get_user_events(user, start_date, end_date)
+
+    # Create iCalendar object
+    cal = icalendar.Calendar()
+    cal.add("prodid", "-//Yamtrack//EN")
+    cal.add("version", "2.0")
+
+    for release in releases:
+        cal_event = icalendar.Event()
+        cal_event.add("uid", release.id)
+        cal_event.add("summary", str(release))
+        cal_event.add("dtstart", release.datetime.date())
+        cal_event.add("dtend", release.datetime.date() + timedelta(days=1))
+        cal.add_component(cal_event)
+
+    # Return the iCal file
+    response = HttpResponse(cal.to_ical(), content_type="text/calendar")
+    response["Content-Disposition"] = f'attachment; filename="release_calendar.ics"'
+    return response

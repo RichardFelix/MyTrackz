@@ -111,6 +111,24 @@
             </svg>
           </a>
         </div>
+        
+        <a class="p-3 text-sm bg-[#39404b] hover:bg-[#454d5a] rounded-md transition-colors"
+        href="{% url 'download_calendar' token=user.token %}">
+          <svg xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="w-4 h-4">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </a>
       </div>
     </div>
 
@@ -119,5 +137,31 @@
     {% else %}
       {% include "events/components/calendar_list.html" %}
     {% endif %}
+  </div>
+
+  <div class="bg-[#2a2f35] p-5 rounded-lg mb-6">
+    <div class="flex items-center mb-3">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="24"
+           height="24"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           stroke-width="2"
+           stroke-linecap="round"
+           stroke-linejoin="round"
+           class="w-5 h-5 text-indigo-400 mr-2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+      <h3 class="text-base font-medium">Export link</h3>
+    </div>
+    <p class="text-gray-400 mb-4 text-sm">This link can be used to integrate your release calendar into any of your calendar applications.</p>
+    <div class="bg-[#262a2f] p-3 rounded-md mb-4">
+      <input readonly=""
+             class="w-full py-2 px-3 bg-[#262a2f] rounded-md text-gray-300 text-sm border-0 focus:ring-0 outline-none font-mono"
+             type="text"
+             value="{{ request.scheme }}://{{ request.get_host }}{% url 'download_calendar' token=user.token %}">
+    </div>
   </div>
 {% endblock content %}
