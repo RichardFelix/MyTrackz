@@ -253,9 +253,8 @@ class User(AbstractUser):
 
     token = models.CharField(
         max_length=32,
-        null=True,
-        blank=True,
         unique=True,
+        default=generate_token,
         help_text="Token for external webhooks",
     )
 
