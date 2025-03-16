@@ -21,6 +21,7 @@ from django.db.models.functions import Cast, TruncDate
 from django.utils import timezone
 
 from app.models import Episode, Item, Media, MediaTypes, Season
+from users.models import MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def get_media_list(user, media_type, status_filter, sort_filter, search=None):
     model = apps.get_model(app_label="app", model_name=media_type)
     queryset = model.objects.filter(user=user.id)
 
-    if "All" not in status_filter:
+    if MediaStatusChoices.ALL not in status_filter:
         queryset = queryset.filter(status__in=status_filter)
 
     if search:
