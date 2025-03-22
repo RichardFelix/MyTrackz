@@ -65,6 +65,7 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 def process_item(item, events_bulk):
     """Process each item and add events to the event list."""
     try:
+        logger.info("Fetching releases for %s", item)
         if item.media_type == "season":
             tv_with_seasons_metadata = tmdb.tv_with_seasons(
                 item.media_id,
@@ -82,7 +83,11 @@ def process_item(item, events_bulk):
     except requests.exceptions.HTTPError as err:
         # happens for niche media in which the mappings during import are incorrect
         if err.response.status_code == requests.codes.not_found:
-            pass
+            logger.warning(
+                "Failed to fetch metadata for %s - %s",
+                item,
+                err.response.json(),
+            )
         else:
             raise
 
