@@ -28,8 +28,8 @@ class CalendarViewTests(TestCase):
         )
         Anime.objects.create(item=self.item, user=self.user)
 
-        today = timezone.now().strftime("%Y-%m-%d")
-        Event.objects.create(item=self.item, date=today)
+        now = timezone.now()
+        Event.objects.create(item=self.item, datetime=now)
 
     def test_calendar_view(self):
         """Test that the calendar view."""
@@ -62,9 +62,23 @@ class ReloadCalendarTaskTests(TestCase):
 
     def test_date_parser_valid(self):
         """Test date_parser with valid date strings."""
+        from django.conf import settings
+
         valid_date = "2024-08-17"
         parsed_date = date_parser(valid_date)
-        expected_date = datetime(2024, 8, 17, tzinfo=ZoneInfo("UTC"))
+
+        # Create expected datetime with sentinel time values
+        expected_date = datetime(
+            2024,
+            8,
+            17,
+            hour=settings.SENTINEL_TIME_HOUR,
+            minute=settings.SENTINEL_TIME_MINUTE,
+            second=settings.SENTINEL_TIME_SECOND,
+            microsecond=settings.SENTINEL_TIME_MICROSECOND,
+            tzinfo=ZoneInfo("UTC"),
+        )
+
         self.assertEqual(parsed_date, expected_date)
 
     def test_date_parser_invalid(self):
@@ -74,14 +88,42 @@ class ReloadCalendarTaskTests(TestCase):
 
     def test_date_parser_year_only(self):
         """Test date_parser with year-only date strings."""
+        from django.conf import settings
+
         year_only_date = "2024"
         parsed_date = date_parser(year_only_date)
-        expected_date = datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC"))
+
+        # Create expected datetime with sentinel time values
+        expected_date = datetime(
+            2024,
+            1,
+            1,
+            hour=settings.SENTINEL_TIME_HOUR,
+            minute=settings.SENTINEL_TIME_MINUTE,
+            second=settings.SENTINEL_TIME_SECOND,
+            microsecond=settings.SENTINEL_TIME_MICROSECOND,
+            tzinfo=ZoneInfo("UTC"),
+        )
+
         self.assertEqual(parsed_date, expected_date)
 
     def test_date_parser_year_month(self):
         """Test date_parser with year and month date strings."""
+        from django.conf import settings
+
         year_month_date = "2024-08"
         parsed_date = date_parser(year_month_date)
-        expected_date = datetime(2024, 8, 1, tzinfo=ZoneInfo("UTC"))
+
+        # Create expected datetime with sentinel time values
+        expected_date = datetime(
+            2024,
+            8,
+            1,
+            hour=settings.SENTINEL_TIME_HOUR,
+            minute=settings.SENTINEL_TIME_MINUTE,
+            second=settings.SENTINEL_TIME_SECOND,
+            microsecond=settings.SENTINEL_TIME_MICROSECOND,
+            tzinfo=ZoneInfo("UTC"),
+        )
+
         self.assertEqual(parsed_date, expected_date)
