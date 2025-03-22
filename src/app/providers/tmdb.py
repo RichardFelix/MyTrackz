@@ -29,7 +29,11 @@ def search(media_type, query):
         response = services.api_request("TMDB", "GET", url, params=params)
 
         # Sort results by popularity
-        response = sorted(response["results"], key=lambda r: r["popularity"], reverse=True)
+        response = sorted(
+            response["results"],
+            key=lambda r: r["popularity"],
+            reverse=True,
+        )
         data = [
             {
                 "media_id": media["id"],
