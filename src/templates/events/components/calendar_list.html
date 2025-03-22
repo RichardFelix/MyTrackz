@@ -13,20 +13,22 @@
 
       <div class="p-4 space-y-3">
         {% for release in releases %}
-          <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#454d5a] transition-colors">
-            <img alt="{{ release }}"
-                 class="w-10 h-10 object-cover rounded-md flex-shrink-0"
-                 src="{{ release.item.image }}">
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-sm line-clamp-1">{{ release.item }}</h4>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-400">{{ release.item.media_type|media_type_readable }}</span>
-                {% if release.readable_episode_number %}
-                  <span class="text-xs text-indigo-400">{{ release.readable_episode_number }}</span>
-                {% endif %}
+          <a href="{{ release.item|media_url }}" class="block">
+            <div class="flex items-center gap-3 p-2 rounded-md hover:bg-[#454d5a] transition-colors">
+              <img alt="{{ release }}"
+                   class="w-10 h-10 object-cover rounded-md flex-shrink-0"
+                   src="{{ release.item.image }}">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-sm line-clamp-1">{{ release.item }}</h4>
+                <div class="flex items-center">
+                  <span class="text-xs text-gray-400 me-2">{{ release.item.media_type|media_type_readable }}</span>
+                  {% if release.readable_episode_number %}
+                    <span class="text-xs text-indigo-400">{{ release.readable_episode_number }} {{ release.datetime|format_time }}</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
-          </div>
+          </a>
         {% endfor %}
       </div>
     </div>

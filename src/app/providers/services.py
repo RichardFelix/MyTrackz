@@ -42,6 +42,10 @@ session.mount(
     "https://api.igdb.com/v4",
     LimiterAdapter(per_second=3),
 )
+session.mount(
+    "https://api.tvmaze.com",
+    LimiterAdapter(per_second=1),
+)
 
 
 def retry_on_error(delay=1):

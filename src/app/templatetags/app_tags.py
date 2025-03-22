@@ -49,7 +49,7 @@ def slug(arg1):
 
 
 @register.filter
-def format_time(total_minutes):
+def format_minutes(total_minutes):
     """Convert total minutes to HH:MM format."""
     return helpers.minutes_to_hhmm(total_minutes)
 
@@ -139,20 +139,50 @@ def media_color(media_type):
 
 
 @register.filter
-def naturalday(value):
-    """Return the natural day for the date."""
-    today = timezone.now().date()
-    diff = value - today
-    days = diff.days
-    days_threshold = 5
+def natural_day(value):
+    """Format date with natural language (Today, Tomorrow, etc.)."""
+    # Get today's date in the current timezone
+    today = timezone.localtime(timezone.now()).date()
 
+    # Extract just the date part for comparison
+    value_date = value.date()
+
+    # Calculate the difference in days
+    diff = value_date - today
+    days = diff.days
+
+    threshold = 5
     if days == 0:
         return "Today"
     if days == 1:
         return "Tomorrow"
-    if days > 1 and days <= days_threshold:
+    if days > 1 and days <= threshold:
         return f"In {days} days"
+
+    # For dates further away
     return value.strftime("%b %d, %Y")
+
+
+@register.filter
+def format_time(value):
+    """Format time component if not a sentinel value (time.max)."""
+    # Check if this is a sentinel value (time.max)
+    is_sentinel = (
+        value.hour == settings.SENTINEL_TIME_HOUR
+        and value.minute == settings.SENTINEL_TIME_MINUTE
+        and value.second == settings.SENTINEL_TIME_SECOND
+        and value.microsecond == settings.SENTINEL_TIME_MICROSECOND
+    )
+
+    # Don't show time for sentinel values
+    if is_sentinel:
+        return ""
+
+    # Convert to local timezone for display
+    localized_value = timezone.localtime(value)
+
+    # Return formatted time
+    return f"at {localized_value.strftime('%H:%M')}"
 
 
 @register.filter

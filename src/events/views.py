@@ -27,12 +27,14 @@ def release_calendar(request):
 
     try:
         current_date = (
-            date(int(year), int(month), 1) if month and year else timezone.now().date()
+            date(int(year), int(month), 1)
+            if month and year
+            else timezone.localtime().date()
         )
         month, year = current_date.month, current_date.year
     except (ValueError, TypeError):
         logger.warning("Invalid month or year provided: %s, %s", month, year)
-        current_date = timezone.now().date()
+        current_date = timezone.localtime().date()
         month, year = current_date.month, current_date.year
 
     # Calculate navigation dates
@@ -62,13 +64,15 @@ def release_calendar(request):
 
     release_dict = {}
     for release in releases:
-        day = release.date.day
+        # Convert UTC datetime to user's timezone and extract day
+        local_datetime = timezone.localtime(release.datetime)
+        day = local_datetime.day
         if day not in release_dict:
             release_dict[day] = []
         release_dict[day].append(release)
 
     # Get today's date for highlighting
-    today = timezone.now().date()
+    today = timezone.localtime().date()
 
     context = {
         "calendar": cal,

@@ -1,10 +1,11 @@
 import logging
-from datetime import date, datetime
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
 from celery import shared_task
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Q
 
 from app.models import Item
@@ -41,7 +42,7 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
         Event.objects.update_or_create(
             item=event.item,
             episode_number=event.episode_number,
-            defaults={"date": event.date},
+            defaults={"datetime": event.datetime},
         )
 
     if user:
@@ -96,16 +97,15 @@ def process_anime_bulk(items, events_bulk):
 
         if episodes:
             for episode in episodes:
-                air_date = datetime.fromtimestamp(
+                episode_datetime = datetime.fromtimestamp(
                     episode["airingAt"],
                     tz=ZoneInfo("UTC"),
                 )
-                local_air_date = air_date.astimezone(settings.TZ)
                 events_bulk.append(
                     Event(
                         item=item,
                         episode_number=episode["episode"],
-                        date=local_air_date,
+                        datetime=episode_datetime,
                     ),
                 )
 
@@ -206,32 +206,84 @@ def get_anime_schedule_bulk(media_ids):
 
 def process_season(item, metadata, events_bulk):
     """Process season item and add events to the event list."""
-    for episode in reversed(metadata["episodes"]):
-        episode_number = episode["episode_number"]
-        air_date = None
+    # Check if we have TVMaze data available
+    tvmaze_episodes = None
 
-        if episode["air_date"]:
+    if metadata["external_ids"].get("tvdb_id"):
+        tvdb_id = metadata["external_ids"]["tvdb_id"]
+        tvmaze_episodes = get_tvmaze_episodes(tvdb_id)
+
+    # Create a mapping of TVMaze episodes by season and episode number
+    tvmaze_map = {}
+    if tvmaze_episodes:
+        for ep in tvmaze_episodes:
+            season_num = ep.get("season")
+            episode_num = ep.get("number")
+            if season_num is not None and episode_num is not None:
+                key = f"{season_num}_{episode_num}"
+                value = {"airstamp": ep["airstamp"], "airtime": ep["airtime"]}
+                tvmaze_map[key] = value
+
+    for episode in metadata["episodes"]:
+        episode_number = episode["episode_number"]
+        season_number = metadata["season_number"]
+
+        # First check if we have TVMaze data for this episode
+        tvmaze_key = f"{season_number}_{episode_number}"
+        tvmaze_episode = tvmaze_map.get(tvmaze_key)
+
+        # only use TVMaze data if it has an airtime
+        if tvmaze_episode and tvmaze_episode["airtime"]:
+            episode_datetime = datetime.fromisoformat(tvmaze_episode["airstamp"])
+        elif episode["air_date"]:
+            # Fall back to TMDB data (date only)
             try:
-                air_date = date_parser(episode["air_date"])
+                episode_datetime = date_parser(episode["air_date"])
             except ValueError:
                 logger.warning(
-                    "%s - Invalid air date for episode %s",
+                    "%s - Invalid air date for episode %s from TMDB",
                     item,
                     episode_number,
                 )
-                air_date = date.min
-
+                episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
         else:
-            # use max, so it gets updated when a new air date is available
-            air_date = date.max
+            # No air date available
+            episode_datetime = datetime.max.replace(tzinfo=ZoneInfo("UTC"))
 
         events_bulk.append(
             Event(
                 item=item,
                 episode_number=episode_number,
-                date=air_date,
+                datetime=episode_datetime,
             ),
         )
+
+
+def get_tvmaze_episodes(tvdb_id):
+    """Fetch episode data from TVMaze using TVDB ID with caching."""
+    # Check cache first
+    cache_key = f"tvmaze_{tvdb_id}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
+    # First, lookup the TVMaze ID using the TVDB ID
+    lookup_url = f"https://api.tvmaze.com/lookup/shows?thetvdb={tvdb_id}"
+    lookup_response = services.api_request("TVMaze", "GET", lookup_url)
+    tvmaze_id = lookup_response["id"]
+
+    if not tvmaze_id:
+        logger.warning("TVMaze ID not found for TVDB ID %s", tvdb_id)
+        return None
+
+    # Now fetch the show with embedded episodes
+    show_url = f"https://api.tvmaze.com/shows/{tvmaze_id}?embed=episodes"
+    show_response = services.api_request("TVMaze", "GET", show_url)
+
+    episodes = show_response["_embedded"]["episodes"]
+    # Cache the result for 24 hours
+    cache.set(cache_key, episodes, timeout=86400)
+    return episodes
 
 
 def process_other(item, metadata, events_bulk):
@@ -241,7 +293,7 @@ def process_other(item, metadata, events_bulk):
     for date_key in date_keys:
         if date_key in metadata["details"] and metadata["details"][date_key]:
             try:
-                air_date = date_parser(metadata["details"][date_key])
+                episode_datetime = date_parser(metadata["details"][date_key])
                 if item.media_type == "book" and metadata["details"]["number_of_pages"]:
                     episode_number = metadata["details"]["number_of_pages"]
                 elif item.media_type == "movie":
@@ -249,22 +301,26 @@ def process_other(item, metadata, events_bulk):
                 else:
                     episode_number = None
                 events_bulk.append(
-                    Event(item=item, episode_number=episode_number, date=air_date),
+                    Event(
+                        item=item,
+                        episode_number=episode_number,
+                        datetime=episode_datetime,
+                    ),
                 )
             except ValueError:
                 pass
     if item.media_type == "manga" and metadata["max_progress"]:
         # MyAnimeList manga has an end date when it's completed
         if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
-            air_date = date_parser(metadata["details"]["end_date"])
+            episode_datetime = date_parser(metadata["details"]["end_date"])
         # MangaUpdates doesn't have an end date, so use a placeholder
         else:
-            air_date = date.min
+            episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
         events_bulk.append(
             Event(
                 item=item,
                 episode_number=metadata["max_progress"],
-                date=air_date,
+                datetime=episode_datetime,
             ),
         )
 
@@ -281,8 +337,13 @@ def date_parser(date_str):
         # Year and month are provided, append "-01"
         date_str += DEFAULT_DAY
 
-    # Parse the date string
-    return datetime.strptime(date_str, "%Y-%m-%d").replace(
+    dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
+    # Set to max time and add UTC timezone
+    return dt.replace(
+        hour=settings.SENTINEL_TIME_HOUR,
+        minute=settings.SENTINEL_TIME_MINUTE,
+        second=settings.SENTINEL_TIME_SECOND,
+        microsecond=settings.SENTINEL_TIME_MICROSECOND,
         tzinfo=ZoneInfo("UTC"),
     )
 
@@ -294,7 +355,20 @@ def anilist_date_parser(start_date):
 
     month = start_date["month"] or 1
     day = start_date["day"] or 1
-    return datetime(start_date["year"], month, day, tzinfo=ZoneInfo("UTC")).timestamp()
+
+    # Create date with max time
+    dt = datetime(
+        start_date["year"],
+        month,
+        day,
+        hour=settings.SENTINEL_TIME_HOUR,
+        minute=settings.SENTINEL_TIME_MINUTE,
+        second=settings.SENTINEL_TIME_SECOND,
+        microsecond=settings.SENTINEL_TIME_MICROSECOND,
+        tzinfo=ZoneInfo("UTC"),
+    )
+
+    return dt.timestamp()
 
 
 def get_user_reloaded(reloaded_events, user):

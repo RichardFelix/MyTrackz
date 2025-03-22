@@ -133,7 +133,7 @@ def get_historical_models():
 
 def get_in_progress(user, sort_by, specific_media_type=None):
     """Get a media list of in progress media by type."""
-    today = timezone.now().date()
+    now = timezone.now()
     list_by_type = {}
 
     media_types_to_process = (
@@ -168,11 +168,11 @@ def get_in_progress(user, sort_by, specific_media_type=None):
             max_progress=Max("item__event__episode_number"),
             next_episode_number=Min(
                 "item__event__episode_number",
-                filter=Q(item__event__date__gt=today),
+                filter=Q(item__event__datetime__gt=now),
             ),
-            next_episode_date=Min(
-                "item__event__date",
-                filter=Q(item__event__date__gt=today),
+            next_episode_datetime=Min(
+                "item__event__datetime",
+                filter=Q(item__event__datetime__gt=now),
             ),
         )
 
@@ -180,10 +180,10 @@ def get_in_progress(user, sort_by, specific_media_type=None):
         if sort_by == "upcoming":
             media_list = media_list.order_by(
                 Case(
-                    When(next_episode_date__isnull=True, then=1),
+                    When(next_episode_datetime__isnull=True, then=1),
                     default=0,
                 ),
-                "next_episode_date",
+                "next_episode_datetime",
                 "item__title",
             )
         elif sort_by == "title":

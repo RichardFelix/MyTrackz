@@ -94,7 +94,7 @@ def tv_with_seasons(media_id, season_numbers):
         return tv(media_id)
 
     url = f"{base_url}/tv/{media_id}"
-    base_append = "recommendations"
+    base_append = "recommendations,external_ids"
     data = cache.get(f"tv_{media_id}", {})
 
     uncached_seasons = []
@@ -106,8 +106,8 @@ def tv_with_seasons(media_id, season_numbers):
         else:
             uncached_seasons.append(season_number)
 
-    # tmdb max remote request is 20 but we have recommendations in the response
-    max_seasons_per_request = 19
+    # tmdb max remote request is 20 but we have recommendations and external_ids
+    max_seasons_per_request = 18
     for i in range(0, len(uncached_seasons), max_seasons_per_request):
         season_subset = uncached_seasons[i : i + max_seasons_per_request]
         append_text = ",".join([f"season/{season}" for season in season_subset])
@@ -124,6 +124,8 @@ def tv_with_seasons(media_id, season_numbers):
         if "media_id" not in data:
             tv_data = process_tv(response)
             cache.set(f"tv_{media_id}", tv_data)
+
+            # merge tv show metadata with seasons metadata
             data = tv_data | data
 
         # add seasons metadata to the response
@@ -139,6 +141,7 @@ def tv_with_seasons(media_id, season_numbers):
             season_data = process_season(response[season_key])
             season_data["media_id"] = media_id
             season_data["title"] = data["title"]
+            season_data["external_ids"] = data["external_ids"]
             season_data["genres"] = data["genres"]
             season_data["backdrop"] = data["backdrop"]
             if season_data["synopsis"] == "No synopsis available.":
@@ -157,7 +160,7 @@ def tv(media_id):
         url = f"{base_url}/tv/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations",
+            "append_to_response": "recommendations,external_ids",
         }
         response = services.api_request("TMDB", "GET", url, params=params)
         data = process_tv(response)
@@ -198,6 +201,7 @@ def process_tv(response):
                 "tv",
             ),
         },
+        "external_ids": response["external_ids"],
     }
 
 

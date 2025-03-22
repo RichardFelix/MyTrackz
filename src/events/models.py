@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 from django.db.models import Count, Exists, OuterRef, Q, UniqueConstraint
 from django.utils import timezone
@@ -10,6 +12,14 @@ class EventManager(models.Manager):
 
     def get_user_events(self, user, first_day, last_day):
         """Get all upcoming media events of the specified user."""
+        # Convert date objects to datetime objects with timezone awareness
+        first_datetime = timezone.make_aware(
+            datetime.combine(first_day, datetime.min.time()),
+        )
+        last_datetime = timezone.make_aware(
+            datetime.combine(last_day, datetime.max.time()),
+        )
+
         media_types_with_user = [
             choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
@@ -19,8 +29,8 @@ class EventManager(models.Manager):
 
         return self.filter(
             query,
-            date__gte=first_day,
-            date__lte=last_day,
+            datetime__gte=first_datetime,
+            datetime__lte=last_datetime,
         ).select_related("item")
 
     def get_items_to_process(self):
@@ -41,9 +51,10 @@ class EventManager(models.Manager):
         items_with_status = Item.objects.filter(query).distinct()
 
         # Subquery to check if an item has any future events
+        now = timezone.now()
         future_events = Event.objects.filter(
             item=OuterRef("pk"),
-            date__gte=timezone.now(),
+            datetime__gte=now,
         )
 
         # manga with less than two events means we don't have total chapters count
@@ -63,13 +74,13 @@ class Event(models.Model):
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     episode_number = models.IntegerField(null=True)
-    date = models.DateField()
+    datetime = models.DateTimeField()
     objects = EventManager()
 
     class Meta:
         """Meta class for Event model."""
 
-        ordering = ["date"]
+        ordering = ["datetime"]
         constraints = [
             UniqueConstraint(
                 fields=["item", "episode_number"],

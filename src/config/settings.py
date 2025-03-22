@@ -147,7 +147,7 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": 18000,  # 5 hours,
-        "VERSION": 4,
+        "VERSION": 5,
     },
 }
 
@@ -209,6 +209,14 @@ TIME_ZONE = config("TZ", default="UTC")
 USE_I18N = True
 
 USE_TZ = True
+
+# Sentinel datetime value for unknown times (11:59:59.999999 AM UTC)
+# Falls in the middle of the day in UTC,
+# which helps avoid date boundary issues in various timezones
+SENTINEL_TIME_HOUR = 11
+SENTINEL_TIME_MINUTE = 59
+SENTINEL_TIME_SECOND = 59
+SENTINEL_TIME_MICROSECOND = 999999
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/

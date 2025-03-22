@@ -24,7 +24,7 @@
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
     {% if media.item.media_type == "game" %}
-      {{ media.progress|format_time }}
+      {{ media.progress|format_minutes }}
     {% else %}
       {{ media.progress }}
       {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
