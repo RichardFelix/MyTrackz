@@ -160,7 +160,7 @@ def natural_day(value):
         return f"In {days} days"
 
     # For dates further away
-    return value.strftime("%b %d, %Y")
+    return value.strftime("%b %d")
 
 
 @register.filter
