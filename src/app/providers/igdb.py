@@ -35,9 +35,9 @@ def search(query):
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id;"
-            "sort rating desc;"
+            "sort total_rating_count desc;"
             "limit 25;"
-            f'where name ~ *"{query}"* & category = (0,2,3,4,8,9,10)'
+            f'where name ~ *"{query}"* & game_type = (0,2,3,4,8,9,10)'
         )
 
         # exclude adult games depending on the settings
@@ -73,7 +73,7 @@ def game(media_id):
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id,artworks.image_id,"
-            "summary,category,first_release_date,"
+            "summary,game_type,first_release_date,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,"
             "parent_game.name,parent_game.cover.image_id,"
             "remasters.name,remasters.cover.image_id,"
@@ -101,7 +101,7 @@ def game(media_id):
             "synopsis": response["summary"],
             "genres": get_list(response, "genres"),
             "details": {
-                "format": get_category(response["category"]),
+                "format": get_game_type(response["game_type"]),
                 "release_date": get_start_date(response),
                 "themes": get_list(response, "themes"),
                 "platforms": get_list(response, "platforms"),
@@ -143,9 +143,9 @@ def get_backdrop(response):
         return get_image_url(response)
 
 
-def get_category(category_id):
-    """Return the category of the game."""
-    category_mapping = {
+def get_game_type(game_type_id):
+    """Return the game_type of the game."""
+    game_type_mapping = {
         0: "Main game",
         1: "DLC",
         2: "Expansion",
@@ -162,7 +162,7 @@ def get_category(category_id):
         13: "Pack",
         14: "Update",
     }
-    return category_mapping.get(category_id)
+    return game_type_mapping.get(game_type_id)
 
 
 def get_start_date(response):
