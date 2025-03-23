@@ -27,13 +27,7 @@ def search(media_type, query):
             params["include_adult"] = "true"
 
         response = services.api_request("TMDB", "GET", url, params=params)
-
-        # Sort results by popularity
-        response = sorted(
-            response["results"],
-            key=lambda r: r["popularity"],
-            reverse=True,
-        )
+        response = response["results"]
         data = [
             {
                 "media_id": media["id"],
