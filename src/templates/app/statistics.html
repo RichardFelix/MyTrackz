@@ -264,6 +264,7 @@
           {% if activity_data.stats.most_active_day %}
             <p class="text-2xl font-bold">
               {{ activity_data.stats.current_streak }} day{{ activity_data.stats.current_streak|pluralize }}
+              <p class="text-sm text-gray-500">Longest: {{ activity_data.stats.longest_streak }} day{{ activity_data.stats.longest_streak|pluralize }}</p>
             </p>
           {% else %}
             <p class="text-2xl font-bold text-gray-500">--</p>

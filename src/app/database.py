@@ -353,22 +353,44 @@ def calculate_day_of_week_stats(date_counts, start_date):
     return most_active_day[0], round(percentage)
 
 
-def calculate_streaks(date_counts, start_date, end_date):
-    """Calculate current activity streak with optimized algorithm."""
-    if not date_counts:
-        return 0
+def calculate_streaks(date_counts, end_date):
+    """Calculate current and longest activity streaks."""
+    # Get active dates and sort them in descending order (newest first)
+    active_dates = sorted(
+        [date for date, count in date_counts.items() if count > 0],
+        reverse=True,
+    )
 
-    # Calculate current streak
-    current_streak = 0
-    current_date = end_date
+    if not active_dates:
+        return 0, 0
 
-    active_dates = {date for date, count in date_counts.items() if count > 0}
+    longest_streak = 1
+    streak_count = 1
 
-    while current_date in active_dates and current_date >= start_date:
-        current_streak += 1
-        current_date -= datetime.timedelta(days=1)
+    # Check if the most recent active date is today/end_date
+    is_current = active_dates[0] == end_date
 
-    return current_streak
+    current_streak = 1 if is_current else 0
+
+    for i in range(1, len(active_dates)):
+        # Check if this date is consecutive with the previous one
+        if (active_dates[i - 1] - active_dates[i]).days == 1:
+            streak_count += 1
+
+            if is_current:
+                current_streak += 1
+        else:
+            longest_streak = max(longest_streak, streak_count)
+            streak_count = 1
+
+            if is_current:
+                is_current = False
+
+    # Check final streak for longest calculation
+    # needed if the last date is today/end_date
+    longest_streak = max(longest_streak, streak_count)
+
+    return current_streak, longest_streak
 
 
 def get_activity_data(user, start_date, end_date):
@@ -394,9 +416,8 @@ def get_activity_data(user, start_date, end_date):
         date_counts,
         start_date,
     )
-    current_streak = calculate_streaks(
+    current_streak, longest_streak = calculate_streaks(
         date_counts,
-        start_date,
         end_date,
     )
 
@@ -447,6 +468,7 @@ def get_activity_data(user, start_date, end_date):
             "most_active_day": most_active_day,
             "most_active_day_percentage": day_percentage,
             "current_streak": current_streak,
+            "longest_streak": longest_streak,
         },
     }
 
