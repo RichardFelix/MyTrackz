@@ -308,7 +308,7 @@
                 <div class="flex flex-col gap-1">
                   {% for day in week %}
                     <div class="w-4 h-4 rounded-sm transition-colors duration-200 hover:ring-2 hover:ring-white {% if day.level == 0 %}bg-[#2f353e]{% elif day.level == 1 %}bg-indigo-700{% elif day.level == 2 %}bg-indigo-600{% elif day.level == 3 %}bg-indigo-500{% elif day.level == 4 %}bg-indigo-400{% endif %}"
-                         title="{{ day.date }}: {{ day.count }} activitie{{ day.count|pluralize }}"></div>
+                         title="{{ day.date }}: {{ day.count }} activit{{ day.count|pluralize:"y,ies" }}"></div>
                   {% endfor %}
                 </div>
               {% endfor %}
