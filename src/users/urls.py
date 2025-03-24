@@ -4,6 +4,8 @@ from users import views
 
 urlpatterns = [
     path("settings/account", views.account, name="account"),
+    path("settings/notifications", views.notifications, name="notifications"),
+    path("test_notification", views.test_notification, name="test_notification"),
     path("settings/sidebar", views.sidebar, name="sidebar"),
     path("settings/integrations", views.integrations, name="integrations"),
     path("settings/import", views.import_data, name="import_data"),

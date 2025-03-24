@@ -273,6 +273,23 @@ def modal_url(modal_type, media):
 
 
 @register.simple_tag
+def unicode_icon(name):
+    """Return the Unicode icon for the media type."""
+    icons = {
+        "tv": "📺",
+        "season": "📺",
+        "episode": "📺",
+        "movie": "🎬",
+        "anime": "🎭",
+        "manga": "📚",
+        "book": "📖",
+        "game": "🎮",
+    }
+
+    return icons[name]
+
+
+@register.simple_tag
 def icon(name, is_active, extra_classes=None):
     """Return the SVG icon for the media type."""
     base_svg = """<svg xmlns="http://www.w3.org/2000/svg"

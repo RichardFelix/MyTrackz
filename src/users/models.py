@@ -232,6 +232,11 @@ class User(AbstractUser):
         choices=ListDetailSortChoices.choices,
     )
 
+    notification_urls = models.TextField(
+        blank=True,
+        help_text="Apprise URLs for notifications",
+    )
+
     token = models.CharField(
         max_length=32,
         null=True,

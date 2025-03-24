@@ -1,8 +1,10 @@
+import apprise
 from allauth.account.forms import LoginForm, SignupForm
 from django import forms
 from django.contrib.auth.forms import (
     PasswordChangeForm,
 )
+from django.core.exceptions import ValidationError
 
 from .models import User
 
@@ -72,3 +74,42 @@ class PasswordChangeForm(PasswordChangeForm):
         super().__init__(*args, **kwargs)
         self.fields["old_password"].widget.attrs.pop("autofocus", None)
         self.fields["new_password1"].help_text = None
+
+
+class NotificationSettingsForm(forms.ModelForm):
+    """Form for notification settings."""
+
+    class Meta:
+        """Only allow updating notification urls."""
+
+        model = User
+        fields = ["notification_urls"]
+        widgets = {
+            "notification_urls": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                    "wrap": "off",
+                    "placeholder": "discord://webhook_id/webhook_token\ntgram://bot_token/chat_id",
+                },
+            ),
+        }
+
+    def clean_notification_urls(self):
+        """Validate that each URL is a valid Apprise URL."""
+        notification_urls = self.cleaned_data.get("notification_urls", "")
+
+        if not notification_urls.strip():
+            return notification_urls
+
+        # Create Apprise instance for validation
+        apobj = apprise.Apprise()
+
+        # Check each URL
+        urls = [url.strip() for url in notification_urls.splitlines() if url.strip()]
+
+        for url in urls:
+            if not apobj.add(url):
+                message = f"'{url}' is not a valid Apprise URL."
+                raise ValidationError(message)
+
+        return notification_urls

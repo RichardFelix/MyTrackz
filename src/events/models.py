@@ -75,6 +75,7 @@ class Event(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     episode_number = models.IntegerField(null=True)
     datetime = models.DateTimeField()
+    notification_sent = models.BooleanField(default=False)
     objects = EventManager()
 
     class Meta:

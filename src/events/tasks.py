@@ -2,13 +2,19 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import apprise
 import requests
 from celery import shared_task
+from django.apps import apps
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import (
+    Q,
+)
+from django.utils import timezone
 
-from app.models import Item
+from app.models import Item, Media
 from app.providers import services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
@@ -399,3 +405,147 @@ def get_user_reloaded(reloaded_events, user):
         )
 
     return Item.objects.filter(q_filters).distinct()
+
+
+@shared_task
+def send_recent_release_notifications():
+    """Send notifications for recently released media."""
+    logger.info("Starting recent release notification task")
+
+    # Find events that were released in the past hour and haven't been notified yet
+    now = timezone.now()
+    one_hour_ago = now - timezone.timedelta(hours=1)
+
+    recent_events = Event.objects.filter(
+        datetime__gte=one_hour_ago,
+        datetime__lte=now,
+        notification_sent=False,
+    )
+
+    if not recent_events.exists():
+        logger.info("No recent releases found in the past hour")
+        return
+
+    logger.info("Found %s recent releases in the past hour", recent_events.count())
+
+    # Dictionary to store releases by user
+    user_releases = {}
+
+    # Process each event
+    for event in recent_events:
+        item = event.item
+        media_type = item.media_type
+
+        # Get the appropriate model for this media type
+        model_name = media_type.capitalize()
+        model = apps.get_model("app", model_name)
+
+        # Get users who are tracking this media with appropriate status
+        tracking_user_ids = (
+            model.objects.filter(
+                item=item,
+            )
+            .exclude(
+                status__in=[
+                    Media.Status.PAUSED.value,
+                    Media.Status.DROPPED.value,
+                ],
+                user__notification_urls="",
+            )
+            .values_list("user_id", flat=True)
+        )
+
+        logger.info(
+            "Found %s users tracking %s with appropriate status",
+            tracking_user_ids.count(),
+            item,
+        )
+
+        # Add this event to each user's list of releases
+        for user_id in tracking_user_ids:
+            if user_id not in user_releases:
+                user_releases[user_id] = []
+            user_releases[user_id].append(event)
+
+        # Mark notification as sent
+        event.notification_sent = True
+        event.save()
+
+    # Send a single notification to each user with all their releases
+    for user_id, releases in user_releases.items():
+        user = get_user_model().objects.get(pk=user_id)
+
+        # Create Apprise instance
+        apobj = apprise.Apprise()
+
+        # Add all of the user's notification URLs
+        notification_urls = [
+            url.strip() for url in user.notification_urls.splitlines() if url.strip()
+        ]
+        for url in notification_urls:
+            apobj.add(url)
+
+        # Format notification text using the separate function
+        notification_body = format_notification_text(releases)
+
+        try:
+            result = apobj.notify(
+                title="🔔 YamTrack: New Releases Available! 🔔",
+                body=notification_body,
+            )
+
+            if result:
+                logger.info(
+                    "Notification sent to %s for %s releases",
+                    user.username,
+                    len(releases),
+                )
+            else:
+                logger.error(
+                    "Failed to send notification to %s for %s releases",
+                    user.username,
+                    len(releases),
+                )
+        except Exception:
+            logger.exception("Error sending notification to %s", user.username)
+
+
+def format_notification_text(releases):
+    """Format notification text for a user based on their releases."""
+    # Group releases by media type for better organization
+    releases_by_type = {}
+    for event in releases:
+        media_type = event.item.media_type
+        if media_type not in releases_by_type:
+            releases_by_type[media_type] = []
+        releases_by_type[media_type].append(event)
+
+    # Format the notification body with better structure
+    notification_body = []
+
+    # Add greeting with date
+    notification_body.append("--------------------------------------------")
+
+    # Add releases grouped by media type
+    for media_type, events in releases_by_type.items():
+        # Get icon for this media type (default to a generic icon if not found)
+        icon = app_tags.unicode_icon(media_type)
+
+        # Add a header for each media type with icon
+        if media_type == "season":
+            notification_body.append(f"{icon}  TV Shows")
+        else:
+            notification_body.append(f"{icon}  {media_type.upper()}")
+
+        for event in events:
+            notification_body.extend(
+                [f"  • {event}"],
+            )
+
+        # Add a blank line between media types
+        notification_body.append("")
+
+    # Add footer
+    notification_body.append("Enjoy your media!")
+
+    return "\n".join(notification_body)

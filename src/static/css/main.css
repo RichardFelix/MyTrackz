@@ -880,6 +880,9 @@
   .min-h-\[130px\] {
     min-height: 130px;
   }
+  .min-h-\[150px\] {
+    min-height: 150px;
+  }
   .min-h-screen {
     min-height: 100vh;
   }
@@ -2166,6 +2169,13 @@
     &:hover {
       @media (hover: hover) {
         color: var(--color-gray-200);
+      }
+    }
+  }
+  .hover\:text-gray-300 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-gray-300);
       }
     }
   }

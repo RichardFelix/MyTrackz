@@ -1,6 +1,7 @@
 import logging
 import secrets
 
+import apprise
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.db import IntegrityError
@@ -10,6 +11,7 @@ from django_celery_beat.models import PeriodicTask
 
 import app
 from users.forms import (
+    NotificationSettingsForm,
     PasswordChangeForm,
     UserUpdateForm,
 )
@@ -73,6 +75,68 @@ def account(request):
     }
 
     return render(request, "users/account.html", context)
+
+
+def notifications(request):
+    """Render the notifications settings page."""
+    if request.method == "POST":
+        form = NotificationSettingsForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Notification settings updated successfully!")
+        else:
+            for errors in form.errors.values():
+                for error in errors:
+                    messages.error(request, f"{error}")
+
+        return redirect("notifications")
+    form = NotificationSettingsForm(instance=request.user)
+
+    return render(
+        request,
+        "users/notifications.html",
+        {
+            "form": form,
+        },
+    )
+
+
+def test_notification(request):
+    """Send a test notification to the user."""
+    try:
+        # Create Apprise instance
+        apobj = apprise.Apprise()
+
+        # Add all notification URLs
+        notification_urls = [
+            url.strip()
+            for url in request.user.notification_urls.splitlines()
+            if url.strip()
+        ]
+        if not notification_urls:
+            messages.error(request, "No notification URLs configured.")
+            return redirect("notifications")
+
+        for url in notification_urls:
+            apobj.add(url)
+
+        # Send test notification
+        result = apobj.notify(
+            title="YamTrack Test Notification",
+            body=(
+                "This is a test notification from YamTrack. "
+                "If you're seeing this, your notifications are working correctly!"
+            ),
+        )
+
+        if result:
+            messages.success(request, "Test notification sent successfully!")
+        else:
+            messages.error(request, "Failed to send test notification.")
+    except Exception:
+        logger.exception("Error sending notification")
+
+    return redirect("notifications")
 
 
 @require_http_methods(["GET", "POST"])

@@ -30,6 +30,25 @@
               <span>Account</span>
             </a>
 
+            {% url 'notifications' as notifications_url %}
+            <a href="{{ notifications_url }}"
+               class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == notifications_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-5 h-5">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+              </svg>
+              <span>Notifications</span>
+            </a>
+
             {% url 'sidebar' as sidebar_url %}
             <a href="{{ sidebar_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == sidebar_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
@@ -92,10 +111,10 @@
               </svg>
               <span>Import Data</span>
             </a>
-            
+
             {% url 'export_data' as export_url %}
             <a href="{{ export_url }}"
-            class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == export_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
+               class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == export_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
               <svg xmlns="http://www.w3.org/2000/svg"
                    width="24"
                    height="24"

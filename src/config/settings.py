@@ -320,7 +320,11 @@ CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
-        "schedule": 60 * 60 * 6,  # every 6 hours
+        "schedule": 60 * 60 * 12,  # every 12 hours
+    },
+    "send-recent-release-notifications": {
+        "task": "events.tasks.send_recent_release_notifications",
+        "schedule": 60 * 30,  # every 30 minutes
     },
 }
 
