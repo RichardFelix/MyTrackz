@@ -20,9 +20,7 @@ RUN apk add --no-cache nginx shadow \
     && useradd -U -M -s /bin/sh abc \
     # Create required nginx directories and set permissions
     && mkdir -p /var/log/nginx \
-    && mkdir -p /var/lib/nginx/body \
-    && chown -R abc:abc /var/log/nginx \
-    && chown -R abc:abc /var/lib/nginx
+    && mkdir -p /var/lib/nginx/body
 
 # Django app
 COPY src ./
