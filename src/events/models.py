@@ -99,7 +99,7 @@ class Event(models.Model):
         if self.item.media_type == "season":
             return f"{self.item.title} S{self.item.season_number} - Ep. {self.episode_number}"  # noqa: E501
         if self.item.media_type == "manga":
-            return f"{self.item.__str__()} - Ch. {self.episode}"
+            return f"{self.item.__str__()} - Ch. {self.episode_number}"
         if self.item.media_type == "anime":
             return f"{self.item.__str__()} - Ep. {self.episode_number}"
         return self.item.__str__()
