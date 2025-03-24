@@ -28,7 +28,8 @@
              {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
              {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
              {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
-             :type="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %} ? 'text' : 'password'"
+             type="password"
+             x-bind:type="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %} ? 'text' : 'password'"
              class="w-full p-3 pr-10 bg-[#39404b] rounded-md text-white border {% if attrs.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
       <button type="button"
               @click="{% if attrs.name == 'password2' %}showConfirmPassword = !showConfirmPassword{% else %}showPassword = !showPassword{% endif %}"
@@ -49,7 +50,8 @@
           <circle cx="12" cy="12" r="3"></circle>
         </svg>
         <!-- Show when password is visible -->
-        <svg x-show="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %}"
+        <svg x-cloak
+             x-show="{% if attrs.name == 'password2' %}showConfirmPassword{% else %}showPassword{% endif %}"
              xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
