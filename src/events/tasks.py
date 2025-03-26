@@ -217,23 +217,11 @@ def get_anime_schedule_bulk(media_ids):
 
 def process_season(item, metadata, events_bulk):
     """Process season item and add events to the event list."""
-    # Check if we have TVMaze data available
-    tvmaze_episodes = None
-
+    # Get TVMaze episode data if available
+    tvmaze_map = {}
     if metadata["external_ids"].get("tvdb_id"):
         tvdb_id = metadata["external_ids"]["tvdb_id"]
-        tvmaze_episodes = get_tvmaze_episodes(tvdb_id)
-
-    # Create a mapping of TVMaze episodes by season and episode number
-    tvmaze_map = {}
-    if tvmaze_episodes:
-        for ep in tvmaze_episodes:
-            season_num = ep.get("season")
-            episode_num = ep.get("number")
-            if season_num is not None and episode_num is not None:
-                key = f"{season_num}_{episode_num}"
-                value = {"airstamp": ep["airstamp"], "airtime": ep["airtime"]}
-                tvmaze_map[key] = value
+        tvmaze_map = get_tvmaze_episode_map(tvdb_id)
 
     for episode in metadata["episodes"]:
         episode_number = episode["episode_number"]
@@ -243,8 +231,8 @@ def process_season(item, metadata, events_bulk):
         tvmaze_key = f"{season_number}_{episode_number}"
         tvmaze_episode = tvmaze_map.get(tvmaze_key)
 
-        # only use TVMaze data if it has an airtime
-        if tvmaze_episode and tvmaze_episode["airtime"]:
+        # only use TVMaze data if it has an airstamp
+        if tvmaze_episode and tvmaze_episode["airstamp"]:
             episode_datetime = datetime.fromisoformat(tvmaze_episode["airstamp"])
         elif episode["air_date"]:
             # Fall back to TMDB data (date only)
@@ -270,31 +258,55 @@ def process_season(item, metadata, events_bulk):
         )
 
 
-def get_tvmaze_episodes(tvdb_id):
-    """Fetch episode data from TVMaze using TVDB ID with caching."""
-    # Check cache first
-    cache_key = f"tvmaze_{tvdb_id}"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
+def get_tvmaze_episode_map(tvdb_id):
+    """Fetch and process episode data from TVMaze using TVDB ID with caching."""
+    # Check cache first for the processed map
+    cache_key = f"tvmaze_map_{tvdb_id}"
+    cached_map = cache.get(cache_key)
+
+    if cached_map:
+        logger.info("%s - Using cached TVMaze episode map", tvdb_id)
+        return cached_map
 
     # First, lookup the TVMaze ID using the TVDB ID
     lookup_url = f"https://api.tvmaze.com/lookup/shows?thetvdb={tvdb_id}"
     lookup_response = services.api_request("TVMaze", "GET", lookup_url)
-    tvmaze_id = lookup_response["id"]
+
+    if not lookup_response:
+        logger.warning("%s - No TVMaze lookup response for TVDB ID", tvdb_id)
+        return {}
+
+    tvmaze_id = lookup_response.get("id")
 
     if not tvmaze_id:
-        logger.warning("TVMaze ID not found for TVDB ID %s", tvdb_id)
-        return None
+        logger.warning("%s - TVMaze ID not found for TVDB ID", tvdb_id)
+        return {}
 
     # Now fetch the show with embedded episodes
     show_url = f"https://api.tvmaze.com/shows/{tvmaze_id}?embed=episodes"
     show_response = services.api_request("TVMaze", "GET", show_url)
 
+    # Process episodes into the map format we need
+    tvmaze_map = {}
     episodes = show_response["_embedded"]["episodes"]
-    # Cache the result for 24 hours
-    cache.set(cache_key, episodes, timeout=86400)
-    return episodes
+
+    for ep in episodes:
+        season_num = ep.get("season")
+        episode_num = ep.get("number")
+        if season_num is not None and episode_num is not None:
+            key = f"{season_num}_{episode_num}"
+            value = {"airstamp": ep.get("airstamp"), "airtime": ep.get("airtime")}
+            tvmaze_map[key] = value
+
+    # Cache the processed map for 24 hours
+    cache.set(cache_key, tvmaze_map, timeout=86400)
+    logger.info(
+        "%s - Cached TVMaze episode map with %d entries",
+        tvdb_id,
+        len(tvmaze_map),
+    )
+
+    return tvmaze_map
 
 
 def process_other(item, metadata, events_bulk):
