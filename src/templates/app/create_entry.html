@@ -167,8 +167,7 @@
                      autocomplete="off"
                      hx-get="{% url 'search_parent_tv' %}"
                      hx-trigger="keyup changed delay:300ms"
-                     hx-target="#parent-tv-results"
-                     hx-params="*">
+                     hx-target="#parent-tv-results">
               <!-- Hidden input to store the selected TV ID -->
               <input id="parent-tv-id" name="parent_tv" type="hidden">
               <svg xmlns="http://www.w3.org/2000/svg"
@@ -249,8 +248,7 @@
                      autocomplete="off"
                      hx-get="{% url 'search_parent_season' %}"
                      hx-trigger="keyup changed delay:300ms"
-                     hx-target="#parent-season-results"
-                     hx-params="*">
+                     hx-target="#parent-season-results">
               <!-- Hidden input to store the selected Season ID -->
               <input id="parent-season-id" name="parent_season" type="hidden">
               <svg xmlns="http://www.w3.org/2000/svg"
