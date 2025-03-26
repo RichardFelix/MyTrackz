@@ -44,7 +44,7 @@ session.mount(
 )
 session.mount(
     "https://api.tvmaze.com",
-    LimiterAdapter(per_second=1),
+    LimiterAdapter(per_second=2),
 )
 
 
