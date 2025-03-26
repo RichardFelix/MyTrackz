@@ -2,7 +2,7 @@ from django import forms
 from django.conf import settings
 
 from app import models
-from app.models import Item, Media
+from app.models import Item
 
 
 def get_form_class(media_type):
@@ -298,63 +298,3 @@ class EpisodeForm(forms.ModelForm):
             "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
-
-
-class FilterForm(forms.Form):
-    """Form for filtering media on media list view."""
-
-    search = forms.CharField(
-        required=False,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Search...",
-                "hx-get": "",
-                "hx-trigger": "keyup changed delay:500ms",
-                "hx-include": "[name=status],[name=sort],[name=layout]",
-                "hx-target": ".grid, tbody",
-                "name": "search",
-            },
-        ),
-    )
-
-    status = forms.ChoiceField(
-        required=False,
-        choices=[
-            # left side in lower case for better looking url when filtering
-            ("all", "All"),
-            ("completed", Media.Status.COMPLETED.value),
-            ("in progress", Media.Status.IN_PROGRESS.value),
-            ("repeating", Media.Status.REPEATING.value),
-            ("planning", Media.Status.PLANNING.value),
-            ("paused", Media.Status.PAUSED.value),
-            ("dropped", Media.Status.DROPPED.value),
-        ],
-    )
-
-    sort = forms.ChoiceField(
-        required=False,
-        choices=[
-            ("score", "Score"),
-            ("title", "Title"),
-            ("progress", "Progress"),
-            ("repeats", "Repeats"),
-            ("start_date", "Start Date"),
-            ("end_date", "End Date"),
-        ],
-    )
-
-    layout = forms.ChoiceField(
-        required=False,
-        choices=[
-            ("grid", "Grid"),
-            ("table", "Table"),
-        ],
-    )
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the form."""
-        layout = kwargs.pop("layout")
-
-        super().__init__(*args, **kwargs)
-        self.fields["layout"].initial = layout
