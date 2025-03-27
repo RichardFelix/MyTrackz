@@ -20,6 +20,7 @@
                 hx-post="{% url 'include_notification_item' %}"
                 hx-target="#excluded-items-container"
                 hx-swap="innerHTML"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-vals='{"item_id": "{{ item.id }}"}'>
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
