@@ -432,30 +432,60 @@ def send_recent_release_notifications():
         datetime__gte=one_hour_ago,
         datetime__lte=now,
         notification_sent=False,
-    )
+    ).select_related("item")
 
     if not recent_events.exists():
         logger.info("No recent releases found in the past hour")
         return
 
-    logger.info("Found %s recent releases in the past hour", recent_events.count())
+    event_count = recent_events.count()
+    logger.info("Found %s recent releases in the past hour", event_count)
 
-    # Dictionary to store releases by user
+    users_with_notifications = (
+        get_user_model()
+        .objects.filter(
+            ~Q(notification_urls=""),
+        )
+        .prefetch_related("notification_excluded_items")
+    )
+
+    user_exclusions = {
+        user.id: set(user.notification_excluded_items.values_list("id", flat=True))
+        for user in users_with_notifications
+    }
+
+    user_releases, events_to_mark = process_events(recent_events, user_exclusions)
+
+    if events_to_mark:
+        Event.objects.filter(id__in=events_to_mark).update(notification_sent=True)
+        logger.info("Marked %s events as notified", len(events_to_mark))
+
+    send_notifications(user_releases, users_with_notifications)
+
+
+def process_events(recent_events, user_exclusions):
+    """Process events and determine which users should receive notifications."""
     user_releases = {}
+    events_to_mark = []
 
-    # Process each event
+    events_by_media_type = {}
     for event in recent_events:
-        item = event.item
-        media_type = item.media_type
+        media_type = event.item.media_type
+        if media_type not in events_by_media_type:
+            events_by_media_type[media_type] = []
+        events_by_media_type[media_type].append(event)
+        events_to_mark.append(event.id)
 
-        # Get the appropriate model for this media type
+    # Process events by media type
+    for media_type, events in events_by_media_type.items():
         model_name = media_type.capitalize()
         model = apps.get_model("app", model_name)
 
-        # Get users who are tracking this media with appropriate status
-        tracking_users = (
+        item_ids = [event.item.id for event in events]
+
+        tracking_records = (
             model.objects.filter(
-                item=item,
+                item_id__in=item_ids,
             )
             .exclude(
                 status__in=[
@@ -465,51 +495,57 @@ def send_recent_release_notifications():
                 user__notification_urls="",
             )
             .select_related("user")
+            .values_list("user_id", "item_id")
         )
 
-        logger.info(
-            "Found %s users tracking %s with appropriate status",
-            tracking_users.count(),
-            item,
-        )
+        # Create a dict mapping item_id to list of user_ids
+        item_to_users = {}
+        for user_id, item_id in tracking_records:
+            if item_id not in item_to_users:
+                item_to_users[item_id] = []
+            item_to_users[item_id].append(user_id)
 
-        # Check each user to see if they've excluded this item
-        for tracking in tracking_users:
-            user = tracking.user
+        # Match users with events they should be notified about
+        for event in events:
+            item_id = event.item.id
+            users_tracking = item_to_users.get(item_id, [])
 
-            # Skip if user has excluded this item from notifications
-            if user.notification_excluded_items.filter(id=item.id).exists():
-                logger.info(
-                    "User %s has excluded %s from notifications, skipping",
-                    user.username,
-                    item,
-                )
-                continue
+            for user_id in users_tracking:
+                # Skip if user has excluded this item
+                if item_id in user_exclusions.get(user_id, set()):
+                    logger.info(
+                        "User %s has excluded item %s from notifications, skipping",
+                        user_id,
+                        item_id,
+                    )
+                    continue
 
-            # Add this event to the user's list of releases
-            if user.id not in user_releases:
-                user_releases[user.id] = []
-            user_releases[user.id].append(event)
+                # Add this event to the user's list of releases
+                if user_id not in user_releases:
+                    user_releases[user_id] = []
+                user_releases[user_id].append(event)
 
-        # Mark notification as sent
-        event.notification_sent = True
-        event.save()
+    return user_releases, events_to_mark
+
+
+def send_notifications(user_releases, users_with_notifications):
+    """Send notifications to users about their releases."""
+    users_by_id = {user.id: user for user in users_with_notifications}
 
     # Send a single notification to each user with all their releases
     for user_id, releases in user_releases.items():
-        user = get_user_model().objects.get(pk=user_id)
+        user = users_by_id.get(user_id)
+        if not user:
+            logger.error("User %s not found", user_id)
+            continue
 
-        # Create Apprise instance
         apobj = apprise.Apprise()
-
-        # Add all of the user's notification URLs
         notification_urls = [
             url.strip() for url in user.notification_urls.splitlines() if url.strip()
         ]
         for url in notification_urls:
             apobj.add(url)
 
-        # Format notification text using the separate function
         notification_body = format_notification_text(releases)
 
         try:
@@ -546,13 +582,10 @@ def format_notification_text(releases):
 
     # Format the notification body with better structure
     notification_body = []
-
-    # Add greeting with date
     notification_body.append("--------------------------------------------")
 
     # Add releases grouped by media type
     for media_type, events in releases_by_type.items():
-        # Get icon for this media type (default to a generic icon if not found)
         icon = app_tags.unicode_icon(media_type)
 
         # Add a header for each media type with icon
@@ -569,7 +602,6 @@ def format_notification_text(releases):
         # Add a blank line between media types
         notification_body.append("")
 
-    # Add footer
     notification_body.append("Enjoy your media!")
 
     return "\n".join(notification_body)
