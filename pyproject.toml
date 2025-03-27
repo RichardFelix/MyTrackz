@@ -19,3 +19,4 @@ ignore = "H006,H021"
 
 [tool.coverage.run]
 concurrency = ["greenlet"]
+omit = ["*/migrations/*", "*/__init__.py"]
