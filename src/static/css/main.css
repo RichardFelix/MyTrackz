@@ -970,6 +970,9 @@
   .max-w-6xl {
     max-width: var(--container-6xl);
   }
+  .max-w-\[95\%\] {
+    max-width: 95%;
+  }
   .max-w-\[250px\] {
     max-width: 250px;
   }
@@ -1596,9 +1599,6 @@
   .pr-12 {
     padding-right: calc(var(--spacing) * 12);
   }
-  .pb-2 {
-    padding-bottom: calc(var(--spacing) * 2);
-  }
   .pl-5 {
     padding-left: calc(var(--spacing) * 5);
   }
@@ -1675,9 +1675,6 @@
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
-  }
-  .text-balance {
-    text-wrap: balance;
   }
   .text-pretty {
     text-wrap: pretty;
