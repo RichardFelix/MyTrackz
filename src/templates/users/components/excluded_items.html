@@ -1,0 +1,45 @@
+{% load app_tags %}
+
+<h4 class="text-sm font-medium text-gray-300 mb-2">Currently Excluded:</h4>
+<div class="space-y-2">
+  {% if excluded_items %}
+    {% for item in excluded_items %}
+      <div class="flex items-center justify-between p-2 bg-[#39404b] rounded-md">
+        <div class="flex items-center">
+          <img alt="{{ item }}"
+               class="w-6 h-8 object-cover rounded mr-2"
+               src="{{ item.image }}">
+
+          <div>
+            <span class="text-sm text-gray-300">{{ item }}</span>
+            <p class="text-xs text-gray-400">{{ item.media_type|media_type_readable }}</p>
+          </div>
+        </div>
+        <button type="button"
+                class="me-2 text-xs text-red-400 hover:text-red-300 cursor-pointer"
+                hx-post="{% url 'include_notification_item' %}"
+                hx-target="#excluded-items-container"
+                hx-swap="innerHTML"
+                hx-vals='{"item_id": "{{ item.id }}"}'>
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="space-y-2">
+      <p class="text-xs text-gray-400 italic text-center py-2 bg-[#39404b] rounded-md">No media items excluded yet</p>
+    </div>
+  {% endif %}
+</div>

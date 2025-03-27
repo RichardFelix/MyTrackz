@@ -5,11 +5,13 @@ import apprise
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.db import IntegrityError
-from django.shortcuts import redirect, render
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
 import app
+from app.models import Item
 from users.forms import (
     NotificationSettingsForm,
     PasswordChangeForm,
@@ -77,6 +79,7 @@ def account(request):
     return render(request, "users/account.html", context)
 
 
+@require_http_methods(["GET", "POST"])
 def notifications(request):
     """Render the notifications settings page."""
     if request.method == "POST":
@@ -90,6 +93,7 @@ def notifications(request):
                     messages.error(request, f"{error}")
 
         return redirect("notifications")
+
     form = NotificationSettingsForm(instance=request.user)
 
     return render(
@@ -101,6 +105,73 @@ def notifications(request):
     )
 
 
+@require_GET
+def search_items(request):
+    """Search for items to exclude from notifications."""
+    query = request.GET.get("q", "").strip()
+
+    if not query or len(query) <= 1:
+        return render(
+            request,
+            "users/components/search_results.html",
+        )
+
+    # Search for items that match the query
+    items = (
+        Item.objects.filter(
+            Q(title__icontains=query),
+        )
+        .exclude(
+            id__in=request.user.notification_excluded_items.values_list(
+                "id",
+                flat=True,
+            ),
+        )
+        .distinct()[:10]
+    )
+
+    return render(
+        request,
+        "users/components/search_results.html",
+        {"items": items, "query": query},
+    )
+
+
+@require_POST
+def exclude_item(request):
+    """Exclude an item from notifications."""
+    item_id = request.POST["item_id"]
+    item = get_object_or_404(Item, id=item_id)
+    request.user.notification_excluded_items.add(item)
+
+    # Return the updated excluded items list
+    excluded_items = request.user.notification_excluded_items.all()
+
+    return render(
+        request,
+        "users/components/excluded_items.html",
+        {"excluded_items": excluded_items},
+    )
+
+
+@require_POST
+def include_item(request):
+    """Remove an item from the exclusion list."""
+    item_id = request.POST["item_id"]
+    item = get_object_or_404(Item, id=item_id)
+    request.user.notification_excluded_items.remove(item)
+
+    # Return the updated excluded items list
+    excluded_items = request.user.notification_excluded_items.all()
+
+    return render(
+        request,
+        "users/components/excluded_items.html",
+        {"excluded_items": excluded_items},
+    )
+
+
+@require_GET
 def test_notification(request):
     """Send a test notification to the user."""
     try:

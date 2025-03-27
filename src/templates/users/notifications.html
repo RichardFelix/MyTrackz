@@ -7,32 +7,87 @@
 {% endblock title %}
 
 {% block settings_content %}
-  <div class="bg-[#2a2f35] rounded-lg p-6">
-    <div class="flex items-center mb-4">
-      <svg xmlns="http://www.w3.org/2000/svg"
-           width="24"
-           height="24"
-           viewBox="0 0 24 24"
-           fill="none"
-           stroke="currentColor"
-           stroke-width="2"
-           stroke-linecap="round"
-           stroke-linejoin="round"
-           class="w-6 h-6 text-indigo-400 mr-3">
-        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-      </svg>
-      <h2 class="text-xl font-semibold">Notifications</h2>
-    </div>
-    <p class="text-gray-400 mb-5 text-sm">Configure how you want to receive notifications about your media.</p>
-    <form class="space-y-6" method="post">
-      {% csrf_token %}
-      <div x-data="{ showInfo: false }">
-        <div class="flex items-center justify-between mb-2">
-          <label for="apprise-urls" class="block text-sm font-medium text-gray-300">Apprise URLs</label>
-          <button type="button"
-                  class="text-gray-400 hover:text-gray-300 cursor-pointer"
-                  @click="showInfo = !showInfo">
+  <div class="space-y-6">
+
+    {# Notification URLS #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="w-6 h-6 text-indigo-400 mr-3">
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+        </svg>
+        <h2 class="text-xl font-semibold">Notification URL List</h2>
+      </div>
+      <p class="text-gray-400 mb-5 text-sm">Configure how you want to receive notifications about your media.</p>
+      <form class="space-y-6" method="post">
+        {% csrf_token %}
+        <div x-data="{ showInfo: false }">
+          <div class="flex items-center justify-between mb-2">
+            <label for="apprise-urls" class="block text-sm font-medium text-gray-300">Apprise URLs</label>
+            <button type="button"
+                    class="text-gray-400 hover:text-gray-300 cursor-pointer"
+                    @click="showInfo = !showInfo">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-4 h-4">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="mb-4 p-3 bg-[#39404b] rounded-md text-sm text-gray-300"
+               x-show="showInfo">
+            <p class="mb-2">
+              <a href="https://github.com/caronc/apprise"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="text-indigo-400 hover:underline">Apprise</a> is a notification service that supports
+              <a href="https://github.com/caronc/apprise/wiki"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="text-indigo-400 hover:underline">many platforms</a> including:
+            </p>
+            <ul class="list-disc pl-5 space-y-1 text-gray-400">
+              <li>Discord</li>
+              <li>Telegram</li>
+              <li>Slack</li>
+              <li>Email</li>
+              <li>Pushover</li>
+              <li>ntfy</li>
+              <li>And many more...</li>
+            </ul>
+            <p class="mt-2">
+              Enter one URL per line. Example: <code class="bg-[#2a2f35] px-1 py-0.5 rounded">discord://webhook_id/webhook_token</code>
+            </p>
+          </div>
+
+          {{ form.notification_urls|add_class:"w-full p-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 min-h-[150px]" }}
+          <p class="mt-1 text-xs text-gray-400">
+            Enter each Apprise URL on a separate line to send notifications to multiple services.
+          </p>
+        </div>
+
+        <div class="pt-4 border-t border-gray-700 flex justify-between">
+          <a href="{% url 'test_notification' %}"
+             class="flex items-center px-4 py-2 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors text-sm cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg"
                  width="24"
                  height="24"
@@ -42,83 +97,85 @@
                  stroke-width="2"
                  stroke-linecap="round"
                  stroke-linejoin="round"
-                 class="lucide lucide-info w-4 h-4">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 16v-4"></path>
-              <path d="M12 8h.01"></path>
+                 class="w-4 h-4 mr-2">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
             </svg>
+            Test Notifications
+          </a>
+          <button type="submit"
+                  class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-4 h-4 mr-2">
+              <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
+              <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
+              <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
+            </svg>
+            Save Settings
           </button>
         </div>
+      </form>
+    </div>
 
-        <div class="mb-4 p-3 bg-[#39404b] rounded-md text-sm text-gray-300"
-             x-show="showInfo">
-          <p class="mb-2">
-            <a href="https://github.com/caronc/apprise"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="text-indigo-400 hover:underline">Apprise</a> is a notification service that supports
-            <a href="https://github.com/caronc/apprise/wiki"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="text-indigo-400 hover:underline">many platforms</a> including:
-          </p>
-          <ul class="list-disc pl-5 space-y-1 text-gray-400">
-            <li>Discord</li>
-            <li>Telegram</li>
-            <li>Slack</li>
-            <li>Email</li>
-            <li>Pushover</li>
-            <li>ntfy</li>
-            <li>And many more...</li>
-          </ul>
-          <p class="mt-2">
-            Enter one URL per line. Example: <code class="bg-[#2a2f35] px-1 py-0.5 rounded">discord://webhook_id/webhook_token</code>
-          </p>
-        </div>
-
-        {{ form.notification_urls|add_class:"w-full p-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 min-h-[150px]" }}
-        <p class="mt-1 text-xs text-gray-400">
-          Enter each Apprise URL on a separate line to send notifications to multiple services.
-        </p>
+    {# Excluded Media Items #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="lucide lucide-user w-6 h-6 text-indigo-400 mr-3">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        <h2 class="text-xl font-semibold">Excluded Media Items</h2>
       </div>
 
-      <div class="pt-4 border-t border-gray-700 flex justify-between">
-        <a href="{% url 'test_notification' %}"
-           class="flex items-center px-4 py-2 bg-[#39404b] text-white rounded-md hover:bg-[#454d5a] transition-colors text-sm cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 mr-2">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
-          </svg>
-          Test Notifications
-        </a>
-        <button type="submit"
-                class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="24"
-               height="24"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round"
-               class="w-4 h-4 mr-2">
-            <path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
-            <path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"></path>
-            <path d="M7 3v4a1 1 0 0 0 1 1h7"></path>
-          </svg>
-          Save Settings
-        </button>
+      <p class="text-sm text-gray-300 mb-3">Exclude specific media items from notifications:</p>
+
+      <div class="relative mb-4">
+        <input placeholder="Search for media to exclude..."
+               class="w-full p-2 pl-8 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+               name="q"
+               type="text"
+               autocomplete="off"
+               hx-get="{% url 'search_notification_items' %}"
+               hx-trigger="keyup changed delay:300ms"
+               hx-target="#search-results">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             width="24"
+             height="24"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
       </div>
-    </form>
+
+      <div id="search-results"></div>
+
+      <div id="excluded-items-container">
+        {% include "users/components/excluded_items.html" with excluded_items=user.notification_excluded_items.all %}
+      </div>
+
+      <p class="text-xs text-gray-400 mt-3">You won't receive any notifications for the excluded media items.</p>
+    </div>
   </div>
 {% endblock settings_content %}

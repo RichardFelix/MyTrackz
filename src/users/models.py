@@ -4,7 +4,7 @@ from django.db import models
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
-from app.models import Media, MediaTypes
+from app.models import Item, Media, MediaTypes
 from users import helpers
 
 EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
@@ -235,6 +235,13 @@ class User(AbstractUser):
     notification_urls = models.TextField(
         blank=True,
         help_text="Apprise URLs for notifications",
+    )
+
+    notification_excluded_items = models.ManyToManyField(
+        Item,
+        related_name="excluded_by_users",
+        blank=True,
+        help_text="Items excluded from notifications",
     )
 
     token = models.CharField(

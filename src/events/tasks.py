@@ -453,7 +453,7 @@ def send_recent_release_notifications():
         model = apps.get_model("app", model_name)
 
         # Get users who are tracking this media with appropriate status
-        tracking_user_ids = (
+        tracking_users = (
             model.objects.filter(
                 item=item,
             )
@@ -464,20 +464,32 @@ def send_recent_release_notifications():
                 ],
                 user__notification_urls="",
             )
-            .values_list("user_id", flat=True)
+            .select_related("user")
         )
 
         logger.info(
             "Found %s users tracking %s with appropriate status",
-            tracking_user_ids.count(),
+            tracking_users.count(),
             item,
         )
 
-        # Add this event to each user's list of releases
-        for user_id in tracking_user_ids:
-            if user_id not in user_releases:
-                user_releases[user_id] = []
-            user_releases[user_id].append(event)
+        # Check each user to see if they've excluded this item
+        for tracking in tracking_users:
+            user = tracking.user
+
+            # Skip if user has excluded this item from notifications
+            if user.excluded_notification_items.filter(id=item.id).exists():
+                logger.info(
+                    "User %s has excluded %s from notifications, skipping",
+                    user.username,
+                    item,
+                )
+                continue
+
+            # Add this event to the user's list of releases
+            if user.id not in user_releases:
+                user_releases[user.id] = []
+            user_releases[user.id].append(event)
 
         # Mark notification as sent
         event.notification_sent = True

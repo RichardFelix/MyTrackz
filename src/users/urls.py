@@ -5,6 +5,17 @@ from users import views
 urlpatterns = [
     path("settings/account", views.account, name="account"),
     path("settings/notifications", views.notifications, name="notifications"),
+    path("notifications/search/", views.search_items, name="search_notification_items"),
+    path(
+        "notifications/exclude/",
+        views.exclude_item,
+        name="exclude_notification_item",
+    ),
+    path(
+        "notifications/include/",
+        views.include_item,
+        name="include_notification_item",
+    ),
     path("test_notification", views.test_notification, name="test_notification"),
     path("settings/sidebar", views.sidebar, name="sidebar"),
     path("settings/integrations", views.integrations, name="integrations"),
