@@ -104,9 +104,11 @@
         </div>
       </div>
     </div>
+
     <div class="p-3 space-y-3">
       <a href="{{ media.item|media_url }}"
-         class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center">{{ media }}</a>
+         class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1 text-center"
+         title="{{ media }}">{{ media }}</a>
       <div id="progress-changer-{{ media.item.id }}">
         {% include "app/components/progress_changer.html" with media=media csrf_token=csrf_token only %}
       </div>

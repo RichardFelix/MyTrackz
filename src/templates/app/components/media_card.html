@@ -3,7 +3,7 @@
 <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
-    <img alt="{{ item.title }}"
+    <img alt="{{ title }}"
          class="w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
          src="{{ item.image }}">
 
@@ -141,15 +141,8 @@
 
   <div class="p-3">
     <a href="{{ item|media_url }}"
-       class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-2">
-      {% if from_grid %}
-        {{ item }}
-      {% elif item.media_type == "season" and item.season_title %}
-        {{ item.season_title }}
-      {% else %}
-        {{ item.title }}
-      {% endif %}
-    </a>
+       class="text-sm font-semibold text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
+       title="{{ title }}">{{ title }}</a>
   </div>
 
   {% if item.media_type == "episode" %}
@@ -182,11 +175,11 @@
           {# Episode preview data #}
           <div class="bg-[#343a40] rounded-lg p-4 mb-6">
             <div class="flex items-start gap-4">
-              <img alt="{{ item.title }}"
+              <img alt="{{ title }}"
                    class="w-20 h-20 rounded object-cover flex-shrink-0"
                    src="{{ item.image }}">
               <div>
-                <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ item.title }}</h3>
+                <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ title }}</h3>
                 <p class="text-sm text-gray-400">Episode {{ item.episode_number }}</p>
                 {% if media %}
                   {% if media.repeats == 0 %}

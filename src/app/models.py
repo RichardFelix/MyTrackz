@@ -373,7 +373,7 @@ class MediaManager(models.Manager):
             for media in scored_media:
                 # Update top rated using heap
                 item_data = {
-                    "title": media.item.title,
+                    "title": media.item.__str__(),
                     "image": media.item.image,
                     "score": media.score,
                     "url": app_tags.media_url(media.item),
