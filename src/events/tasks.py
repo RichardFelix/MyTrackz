@@ -478,7 +478,7 @@ def send_recent_release_notifications():
             user = tracking.user
 
             # Skip if user has excluded this item from notifications
-            if user.excluded_notification_items.filter(id=item.id).exists():
+            if user.notification_excluded_items.filter(id=item.id).exists():
                 logger.info(
                     "User %s has excluded %s from notifications, skipping",
                     user.username,
