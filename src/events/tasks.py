@@ -488,11 +488,13 @@ def process_events(recent_events, user_exclusions):
                 item_id__in=item_ids,
             )
             .exclude(
-                status__in=[
-                    Media.Status.PAUSED.value,
-                    Media.Status.DROPPED.value,
-                ],
-                user__notification_urls="",
+                Q(
+                    status__in=[
+                        Media.Status.PAUSED.value,
+                        Media.Status.DROPPED.value,
+                    ],
+                )
+                | Q(user__notification_urls=""),
             )
             .select_related("user")
             .values_list("user_id", "item_id")
