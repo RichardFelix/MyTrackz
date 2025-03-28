@@ -6,6 +6,13 @@ from django.utils import timezone
 
 from app.models import Item, Media, MediaTypes
 
+# Statuses that represent inactive tracking
+# will be ignored when creating events
+INACTIVE_TRACKING_STATUSES = [
+    Media.Status.PAUSED.value,
+    Media.Status.DROPPED.value,
+]
+
 
 class EventManager(models.Manager):
     """Custom manager for the Event model."""
@@ -35,18 +42,12 @@ class EventManager(models.Manager):
 
     def get_items_to_process(self):
         """Get items to process for the calendar."""
-        statuses_to_track = [
-            Media.Status.IN_PROGRESS.value,
-            Media.Status.PLANNING.value,
-            Media.Status.PAUSED.value,
-            Media.Status.REPEATING.value,
-        ]
         media_types_with_status = [
             choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
         query = Q()
         for media_type in media_types_with_status:
-            query |= Q(**{f"{media_type}__status__in": statuses_to_track})
+            query |= ~Q(**{f"{media_type}__status__in": INACTIVE_TRACKING_STATUSES})
 
         items_with_status = Item.objects.filter(query).distinct()
 

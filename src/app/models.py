@@ -620,10 +620,10 @@ class Media(CalendarTriggerMixin, models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        if not self._disable_calendar_triggers and self.status not in (
-                self.Status.PAUSED.value,
-                self.Status.DROPPED.value,
-            ):
+        if (
+            not self._disable_calendar_triggers
+            and self.status not in events.models.INACTIVE_TRACKING_STATUSES
+        ):
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     def increase_progress(self):
@@ -659,10 +659,7 @@ class TV(Media):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
             elif (
-                self.status not in (
-                    self.Status.PAUSED.value,
-                    self.Status.DROPPED.value,
-                )
+                self.status not in events.models.INACTIVE_TRACKING_STATUSES
                 and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
@@ -807,10 +804,7 @@ class Season(Media):
                     Episode,
                 )
             elif (
-                self.status not in (
-                    self.Status.PAUSED.value,
-                    self.Status.DROPPED.value,
-                )
+                self.status not in events.models.INACTIVE_TRACKING_STATUSES
                 and not self._disable_calendar_triggers
             ):
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
