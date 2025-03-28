@@ -130,13 +130,28 @@ class ManualItemForm(forms.ModelForm):
         if media_type in ["season", "episode"]:
             if media_type == "season":
                 parent = cleaned_data.get("parent_tv")
+                if not parent:
+                    self.add_error(
+                        "parent_tv",
+                        "Parent TV show is required for seasons",
+                    )
+                    return cleaned_data
                 cleaned_data["title"] = parent.item.title
                 cleaned_data["episode_number"] = None
             else:  # episode
                 parent = cleaned_data.get("parent_season")
+                if not parent:
+                    self.add_error(
+                        "parent_season",
+                        "Parent season is required for episodes",
+                    )
+                    return cleaned_data
                 cleaned_data["title"] = parent.item.title
                 cleaned_data["season_number"] = parent.item.season_number
         else:
+            # For standalone media, title is required
+            if not cleaned_data.get("title"):
+                self.add_error("title", "Title is required for this media type")
             cleaned_data["season_number"] = None
             cleaned_data["episode_number"] = None
 
