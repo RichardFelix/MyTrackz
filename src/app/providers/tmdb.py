@@ -439,34 +439,14 @@ def find_next_episode(episode_number, episodes_metadata):
             current_episode_index = index
             break
 
-    # If the current episode is not the last episode, return the next episode number
-    if current_episode_index + 1 < len(
+    # If episode not found or it's the last episode, return None
+    if current_episode_index is None or current_episode_index + 1 >= len(
         episodes_metadata,
     ):
-        return episodes_metadata[current_episode_index + 1]["episode_number"]
+        return None
 
-    return None
-
-
-def find_from_external(external_id, external_source):
-    """Find the media from an external source."""
-    cache_key = f"{external_id}_{external_source}"
-    cached_result = cache.get(cache_key)
-
-    if cached_result:
-        return cached_result
-
-    url = f"https://api.themoviedb.org/3/find/{external_id}"
-    params = {
-        "api_key": settings.TMDB_API,
-        "language": settings.TMDB_LANG,
-        "external_source": f"{external_source}_id",
-    }
-
-    data = services.api_request("TMDB", "GET", url, params=params)
-    cache.set(cache_key, data)
-
-    return data
+    # Return the next episode number
+    return episodes_metadata[current_episode_index + 1]["episode_number"]
 
 
 def episode(media_id, season_number, episode_number):
