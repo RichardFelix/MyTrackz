@@ -77,7 +77,7 @@ def get_media_verb(media_type, past_tense):
         "book": ("read", "read"),
         "game": ("play", "played"),
     }
-    return verbs.get(media_type, ("consum", "consumed"))[1 if past_tense else 0]
+    return verbs[media_type][1 if past_tense else 0]
 
 
 def format_description(field_name, old_value, new_value, media_type=None):  # noqa: C901, PLR0911, PLR0912
@@ -106,11 +106,11 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Rated {new_value}/10"
 
         if field_name == "progress":
-            if media_type == "Game":
+            if media_type == "game":
                 return f"Played for {minutes_to_hhmm(new_value)}"
-            if media_type == "Book":
+            if media_type == "book":
                 return f"Read {new_value} pages"
-            if media_type == "Manga":
+            if media_type == "manga":
                 return f"Read {new_value} chapters"
             return f"Watched {new_value} episodes"
 
@@ -155,19 +155,19 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         return f"Changed rating from {old_value} to {new_value}"
 
     if field_name == "progress":
-        if media_type == "Game":
+        if media_type == "game":
             diff = new_value - old_value
             if diff > 0:
                 return f"Added {minutes_to_hhmm(diff)} of playtime"
             return f"Removed {minutes_to_hhmm(abs(diff))} of playtime"
         diff = new_value - old_value
-        if media_type == "Book":
+        if media_type == "book":
             unit = "pages"
-        elif media_type == "Manga":
+        elif media_type == "manga":
             unit = "chapters"
         else:
             unit = "episodes"
-        verb = "Read" if media_type in ["Book", "Manga"] else "Watched"
+        verb = "Read" if media_type in ["book", "manga"] else "Watched"
         return f"{verb} {abs(diff)} {unit}"
 
     if field_name == "repeats":
