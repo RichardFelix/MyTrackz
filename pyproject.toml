@@ -18,5 +18,5 @@ preserve_blank_lines = true
 ignore = "H006,H021"
 
 [tool.coverage.run]
-concurrency = ["greenlet"]
-omit = ["*/migrations/*", "*/__init__.py"]
+concurrency = ["multiprocessing"]
+omit = ["*/migrations/*", "*/tests/*", "*/__init__.py"]
