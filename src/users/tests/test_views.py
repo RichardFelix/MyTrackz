@@ -1,14 +1,16 @@
 import json
 import zoneinfo
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.contrib import auth
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
+from app.models import Item
 from users import helpers
 
 
@@ -97,6 +99,190 @@ class DemoProfileTests(TestCase):
         )
         self.assertTrue(auth.get_user(self.client).check_password("testpass123"))
         self.assertContains(response, "not allowed for the demo account")
+
+
+class NotificationExclusionTests(TestCase):
+    """Tests for notification exclusion functionality."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+        # Create items
+        self.item1 = Item.objects.create(
+            media_id="1",
+            source="mal",
+            media_type="anime",
+            title="Test Anime",
+            image="http://example.com/anime.jpg",
+        )
+
+        self.item2 = Item.objects.create(
+            media_id="2",
+            source="mal",
+            media_type="manga",
+            title="Test Manga",
+            image="http://example.com/manga.jpg",
+        )
+
+    def test_exclude_item(self):
+        """Test excluding an item from notifications."""
+        response = self.client.post(
+            reverse("exclude_notification_item"),
+            {"item_id": self.item1.id},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/components/excluded_items.html")
+
+        # Verify item was added to exclusions
+        self.assertTrue(
+            self.user.notification_excluded_items.filter(id=self.item1.id).exists(),
+        )
+
+    def test_include_item(self):
+        """Test removing an item from exclusions."""
+        # First add the item to exclusions
+        self.user.notification_excluded_items.add(self.item1)
+
+        response = self.client.post(
+            reverse("include_notification_item"),
+            {"item_id": self.item1.id},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/components/excluded_items.html")
+
+        # Verify item was removed from exclusions
+        self.assertFalse(
+            self.user.notification_excluded_items.filter(id=self.item1.id).exists(),
+        )
+
+    def test_search_items(self):
+        """Test searching for items to exclude."""
+        response = self.client.get(
+            reverse("search_notification_items"),
+            {"q": "Test"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/components/search_results.html")
+
+        # Both items should be in results
+        self.assertContains(response, "Test Anime")
+        self.assertContains(response, "Test Manga")
+
+        # Add item1 to exclusions
+        self.user.notification_excluded_items.add(self.item1)
+
+        response = self.client.get(
+            reverse("search_notification_items"),
+            {"q": "Test"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        # Only item2 should be in results now
+        self.assertNotContains(response, "Test Anime")
+        self.assertContains(response, "Test Manga")
+
+    def test_search_items_short_query(self):
+        """Test searching with a query that's too short."""
+        response = self.client.get(
+            reverse("search_notification_items"),
+            {"q": "T"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/components/search_results.html")
+
+        # No items should be returned for a 1-character query
+        self.assertNotContains(response, "Test Anime")
+        self.assertNotContains(response, "Test Manga")
+
+    def test_search_items_empty_query(self):
+        """Test searching with an empty query."""
+        response = self.client.get(
+            reverse("search_notification_items"),
+            {"q": ""},
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "users/components/search_results.html")
+
+        # No items should be returned for an empty query
+        self.assertNotContains(response, "Test Anime")
+        self.assertNotContains(response, "Test Manga")
+
+    @patch("apprise.Apprise")
+    def test_test_notification(self, mock_apprise):
+        """Test the test notification endpoint."""
+        # User with notification URLs
+        self.user.notification_urls = "https://example.com/notify"
+        self.user.save()
+
+        mock_instance = MagicMock()
+        mock_apprise.return_value = mock_instance
+        mock_instance.notify.return_value = True
+
+        response = self.client.get(reverse("test_notification"))
+
+        # Should redirect back to notifications page
+        self.assertRedirects(response, reverse("notifications"))
+
+        # Should have called notify
+        mock_instance.notify.assert_called_once()
+
+        # Check for success message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("successfully", str(messages[0]))
+
+    def test_test_notification_no_urls(self):
+        """Test the test notification endpoint with no URLs configured."""
+        # User without notification URLs
+        self.user.notification_urls = ""
+        self.user.save()
+
+        response = self.client.get(reverse("test_notification"))
+
+        # Should redirect back to notifications page
+        self.assertRedirects(response, reverse("notifications"))
+
+        # Check for error message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("No notification URLs configured", str(messages[0]))
+
+    @patch("apprise.Apprise")
+    def test_test_notification_failure(self, mock_apprise):
+        """Test the test notification endpoint when notification fails."""
+        # User with notification URLs
+        self.user.notification_urls = "https://example.com/notify"
+        self.user.save()
+
+        mock_instance = MagicMock()
+        mock_apprise.return_value = mock_instance
+        mock_instance.notify.return_value = False
+
+        response = self.client.get(reverse("test_notification"))
+
+        # Should redirect back to notifications page
+        self.assertRedirects(response, reverse("notifications"))
+
+        # Should have called notify
+        mock_instance.notify.assert_called_once()
+
+        # Check for error message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Failed", str(messages[0]))
 
 
 class HelpersTest(TestCase):
