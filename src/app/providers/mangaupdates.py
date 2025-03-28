@@ -29,12 +29,18 @@ def search(query):
                 "Doujinshi",
             ]
 
-        response = services.api_request(
-            "MANGAUPDATES",
-            "POST",
-            url,
-            params=params,
-        )
+        try:
+            response = services.api_request(
+                "MANGAUPDATES",
+                "POST",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            # if the query is invalid, return an empty list
+            if error.response.json()["reason"] == "Field Validation Error":
+                return []
+            raise
 
         response = response["results"]
         data = [
