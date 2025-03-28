@@ -3,6 +3,7 @@ import json
 import logging
 
 from django.contrib import messages
+from django.db import models
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
@@ -92,7 +93,7 @@ def bulk_create_new_with_history(bulk_media, model, user):
     """Filter out existing records and bulk create only new ones."""
     # Get existing records' unique IDs since bulk_create_with_history
     # returns all objects even if they weren't created due to conflicts
-    unique_fields = app.database.get_unique_constraint_fields(model)
+    unique_fields = get_unique_constraint_fields(model)
     existing_combos = set(
         model.objects.values_list(*unique_fields),
     )
@@ -120,8 +121,8 @@ def bulk_create_update_with_history(
     user,
 ):
     """Bulk create new records and update existing ones with history tracking."""
-    unique_fields = app.database.get_unique_constraint_fields(model)
-    model_fields = app.database.get_fields(model)
+    unique_fields = get_unique_constraint_fields(model)
+    model_fields = [f.name for f in model._meta.fields]  # noqa: SLF001
     update_fields = [
         field for field in model_fields if field not in unique_fields and field != "id"
     ]
@@ -220,3 +221,11 @@ def create_import_schedule(username, request, mode, frequency, import_time, sour
         start_time=timezone.now(),
     )
     messages.success(request, f"{source} import task scheduled.")
+
+
+def get_unique_constraint_fields(model):
+    """Get fields that make up the unique constraint for the model."""
+    for constraint in model._meta.constraints:  # noqa: SLF001
+        if isinstance(constraint, models.UniqueConstraint):
+            return constraint.fields
+    return None

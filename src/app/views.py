@@ -13,7 +13,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import database, helpers
+from app import helpers
+from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
 from app.providers import manual, services, tmdb
@@ -31,7 +32,7 @@ def home(request):
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
-        list_by_type = database.get_in_progress(
+        list_by_type = BasicMedia.objects.get_in_progress(
             request.user,
             sort_by,
             media_type_to_load,
@@ -43,7 +44,7 @@ def home(request):
         return render(request, "app/components/home_grid.html", context)
 
     # Regular page load
-    list_by_type = database.get_in_progress(request.user, sort_by)
+    list_by_type = BasicMedia.objects.get_in_progress(request.user, sort_by)
     context = {
         "list_by_type": list_by_type,
         "current_sort": sort_by,
@@ -60,7 +61,7 @@ def progress_edit(request):
     media_type = item.media_type
     operation = request.POST["operation"]
 
-    media = database.get_media(
+    media = BasicMedia.objects.get_media(
         request.user,
         item.media_id,
         item.media_type,
@@ -135,7 +136,7 @@ def media_list(request, media_type):
     status_filters = [MediaStatusChoices.ALL] if not status_filter else [status_filter]
 
     # Get media list with filters applied
-    media_queryset = database.get_media_list(
+    media_queryset = BasicMedia.objects.get_media_list(
         user=request.user,
         media_type=media_type,
         status_filter=status_filters,
@@ -246,7 +247,7 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
-    media = database.get_media(
+    media = BasicMedia.objects.get_media(
         request.user,
         media_id,
         media_type,
@@ -286,7 +287,7 @@ def media_save(request):
     media_type = request.POST["media_type"]
     season_number = request.POST.get("season_number")
 
-    instance = database.get_media(
+    instance = BasicMedia.objects.get_media(
         request.user,
         media_id,
         media_type,
@@ -340,7 +341,7 @@ def media_delete(request):
     media_type = request.POST["media_type"]
     season_number = request.POST.get("season_number")
 
-    media = database.get_media(
+    media = BasicMedia.objects.get_media(
         request.user,
         media_id,
         media_type,
@@ -542,7 +543,7 @@ def history_modal(
     episode_number=None,
 ):
     """Return the history page for a media item."""
-    media = database.get_media(
+    media = BasicMedia.objects.get_media(
         request.user,
         media_id,
         media_type,
@@ -668,27 +669,27 @@ def statistics(request):
     end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
     # Get user's first interaction date first - might be used for validation
-    user_first_interaction = database.get_first_interaction_date(request.user)
+    user_first_interaction = stats.get_first_interaction_date(request.user)
 
     # Get all user media data in a single operation
-    user_media, media_count = BasicMedia.objects.get_user_media(
+    user_media, media_count = stats.get_user_media(
         request.user,
         start_date,
         end_date,
     )
 
     # Calculate all statistics from the retrieved data
-    media_type_distribution = BasicMedia.objects.get_media_type_distribution(
+    media_type_distribution = stats.get_media_type_distribution(
         media_count,
     )
-    score_distribution = BasicMedia.objects.get_score_distribution(user_media)
-    status_distribution = BasicMedia.objects.get_status_distribution(user_media)
-    status_pie_chart_data = BasicMedia.objects.get_status_pie_chart_data(
+    score_distribution = stats.get_score_distribution(user_media)
+    status_distribution = stats.get_status_distribution(user_media)
+    status_pie_chart_data = stats.get_status_pie_chart_data(
         status_distribution,
     )
-    timeline = BasicMedia.objects.get_timeline(user_media)
+    timeline = stats.get_timeline(user_media)
 
-    activity_data = database.get_activity_data(request.user, start_date, end_date)
+    activity_data = stats.get_activity_data(request.user, start_date, end_date)
 
     context = {
         "start_date": start_date,

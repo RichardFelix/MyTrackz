@@ -1,10 +1,6 @@
-import calendar
-import heapq
-import itertools
 import logging
-from collections import defaultdict
 
-from dateutil.relativedelta import relativedelta
+from django.apps import apps
 from django.conf import settings
 from django.core.validators import (
     DecimalValidator,
@@ -13,13 +9,18 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import (
+    Case,
     CheckConstraint,
+    F,
+    FloatField,
     IntegerField,
     Max,
+    Min,
     Prefetch,
     Q,
     Sum,
     UniqueConstraint,
+    When,
 )
 from django.db.models.functions import Cast
 from django.utils import timezone
@@ -28,9 +29,9 @@ from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
 import events
+import users
 from app.mixins import CalendarTriggerMixin
 from app.providers import services, tmdb
-from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
 
@@ -191,319 +192,262 @@ class Item(models.Model):
 class MediaManager(models.Manager):
     """Custom manager for media models."""
 
-    def get_user_media(self, user, start_date, end_date):
-        """Get all media items and their counts for a user within date range."""
-        media_models = [
-            model for model in user.get_active_media_types() if model != Episode
-        ]
-        user_media = {}
-        media_count = {"total": 0}
+    def get_historical_models(self):
+        """Return list of historical model names."""
+        media_types = MediaTypes.values
+        return [f"historical{media_type}" for media_type in media_types]
 
-        # Cache the base episodes query
-        base_episodes = None
-        if TV in media_models or Season in media_models:
-            base_episodes = Episode.objects.filter(
-                related_season__user=user,
-                end_date__range=(start_date, end_date),
+    def get_media_list(self, user, media_type, status_filter, sort_filter, search=None):
+        """Get media list based on filters, sorting and search."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        queryset = model.objects.filter(user=user.id)
+
+        if users.models.MediaStatusChoices.ALL not in status_filter:
+            queryset = queryset.filter(status__in=status_filter)
+
+        if search:
+            queryset = queryset.filter(item__title__icontains=search)
+
+        queryset = queryset.select_related("item")
+
+        # Apply prefetch related based on media type
+        if media_type == "tv":
+            # For TV, prefetch seasons and their episodes with their items
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "seasons",
+                    queryset=Season.objects.select_related("item"),
+                ),
+                Prefetch(
+                    "seasons__episodes",
+                    queryset=Episode.objects.select_related("item"),
+                ),
+            )
+        elif media_type == "season":
+            # For Season, prefetch episodes with their items
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "episodes",
+                    queryset=Episode.objects.select_related("item"),
+                ),
             )
 
-        for model in media_models:
-            model_name = model.__name__.lower()
-            queryset = None
+        sort_is_property = sort_filter in [
+            name for name in dir(model) if isinstance(getattr(model, name), property)
+        ]
+        sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
 
-            if model in (TV, Season):
-                if model == TV:
-                    tv_ids = base_episodes.values_list(
-                        "related_season__related_tv",
-                        flat=True,
-                    ).distinct()
-                    queryset = TV.objects.filter(id__in=tv_ids).prefetch_related(
-                        Prefetch(
-                            "seasons",
-                            queryset=Season.objects.select_related(
-                                "item",
-                            ).prefetch_related(
-                                Prefetch(
-                                    "episodes",
-                                    queryset=base_episodes.filter(
-                                        related_season__related_tv__in=tv_ids,
-                                    ),
-                                ),
-                            ),
-                        ),
+        if media_type in ("tv", "season") and sort_is_property:
+            # For date fields, handle None values specially
+            if sort_filter in ("start_date", "end_date"):
+                # Convert queryset to list for manual sorting
+                result_list = list(queryset)
+
+                # Split into items with dates and without dates
+                with_dates = [
+                    item
+                    for item in result_list
+                    if getattr(item, sort_filter) is not None
+                ]
+                without_dates = [
+                    item for item in result_list if getattr(item, sort_filter) is None
+                ]
+
+                # Sort items with dates
+                if sort_filter == "start_date":
+                    # For start_date, sort ascending (earliest first)
+                    sorted_with_dates = sorted(
+                        with_dates,
+                        key=lambda x: getattr(x, sort_filter),
                     )
                 else:
-                    season_ids = base_episodes.values_list(
-                        "related_season",
-                        flat=True,
-                    ).distinct()
-                    queryset = Season.objects.filter(
-                        id__in=season_ids,
-                    ).prefetch_related(
-                        Prefetch("episodes", queryset=base_episodes),
+                    # For other date fields, sort descending (latest first)
+                    sorted_with_dates = sorted(
+                        with_dates,
+                        key=lambda x: getattr(x, sort_filter),
+                        reverse=True,
                     )
-            else:
-                queryset = model.objects.filter(
-                    user=user,
-                    start_date__gte=start_date,
-                ).filter(
-                    Q(end_date__lte=end_date) | Q(end_date__isnull=True),
+
+                # Combine lists - items with dates first, then items without dates
+                return sorted_with_dates + without_dates
+            # For non-date fields, use the original logic
+            return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
+
+        if sort_is_item_field:
+            sort_field = f"item__{sort_filter}"
+            return queryset.order_by(
+                F(sort_field).asc() if sort_filter == "title" else F(sort_field).desc(),
+            )
+
+        return queryset.order_by(F(sort_filter).desc(nulls_last=True))
+
+    def get_in_progress(self, user, sort_by, specific_media_type=None):
+        """Get a media list of in progress media by type."""
+        now = timezone.now()
+        list_by_type = {}
+
+        media_types_to_process = (
+            [specific_media_type]
+            if specific_media_type
+            else [
+                media_type
+                for media_type in MediaTypes.values
+                if (
+                    media_type not in [MediaTypes.TV.value, MediaTypes.EPISODE.value]
+                    and getattr(user, f"{media_type}_enabled", False)
                 )
-
-            queryset = queryset.select_related("item")
-            user_media[model_name] = queryset
-            count = queryset.count()
-            media_count[model_name] = count
-            media_count["total"] += count
-
-        logger.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
-        return user_media, media_count
-
-    def get_media_type_distribution(self, media_count):
-        """Get data formatted for Chart.js pie chart."""
-        # Define colors for each media type
-        # Format for Chart.js
-        chart_data = {
-            "labels": [],
-            "datasets": [
-                {
-                    "data": [],
-                    "backgroundColor": [],
-                },
-            ],
-        }
-
-        # Only include media types with counts > 0
-        for media_type, count in media_count.items():
-            if media_type != "total" and count > 0:
-                # Format label with first letter capitalized
-                label = app_tags.media_type_readable(media_type)
-                chart_data["labels"].append(label)
-                chart_data["datasets"][0]["data"].append(count)
-                chart_data["datasets"][0]["backgroundColor"].append(
-                    self.get_media_color(media_type),
-                )
-
-        return chart_data
-
-    def get_status_distribution(self, user_media):
-        """Get status distribution for each media type within date range."""
-        distribution = {}
-        total_completed = 0
-        # Define status order to ensure consistent stacking
-        status_order = list(Media.Status.values)
-        for model_name, media_list in user_media.items():
-            status_counts = dict.fromkeys(status_order, 0)
-            counts = media_list.values("status").annotate(count=models.Count("id"))
-            for count_data in counts:
-                status_counts[count_data["status"]] = count_data["count"]
-                if count_data["status"] == Media.Status.COMPLETED.value:
-                    total_completed += count_data["count"]
-
-            distribution[model_name] = status_counts
-
-        # Format the response for charting
-        return {
-            "labels": [app_tags.media_type_readable(x) for x in distribution],
-            "datasets": [
-                {
-                    "label": status,
-                    "data": [
-                        distribution[model_name][status] for model_name in distribution
-                    ],
-                    "background_color": self.get_status_color(status),
-                    "total": sum(
-                        distribution[model_name][status] for model_name in distribution
-                    ),
-                }
-                for status in status_order
-            ],
-            "total_completed": total_completed,
-        }
-
-    def get_status_pie_chart_data(self, status_distribution):
-        """Get status distribution as a pie chart."""
-        # Format for Chart.js pie chart
-        chart_data = {
-            "labels": [],
-            "datasets": [
-                {
-                    "data": [],
-                    "backgroundColor": [],
-                },
-            ],
-        }
-
-        # Process each status dataset
-        for dataset in status_distribution["datasets"]:
-            status_label = dataset["label"]
-            status_count = dataset["total"]
-            status_color = dataset["background_color"]
-
-            # Only include statuses with counts > 0
-            if status_count > 0:
-                chart_data["labels"].append(status_label)
-                chart_data["datasets"][0]["data"].append(status_count)
-                chart_data["datasets"][0]["backgroundColor"].append(status_color)
-
-        return chart_data
-
-    def get_score_distribution(self, user_media):
-        """Get score distribution for each media type within date range."""
-        distribution = {}
-        total_scored = 0
-        total_score_sum = 0
-
-        # Use heapq to maintain top items efficiently
-        top_rated = []
-        top_rated_count = 12
-        counter = itertools.count()  # For unique identifiers
-
-        # Define score range (0-10)
-        score_range = range(11)
-
-        for model_name, media_list in user_media.items():
-            # Initialize score counts for this media type
-            score_counts = dict.fromkeys(score_range, 0)
-
-            # Get all scored media with their scores
-            scored_media = media_list.exclude(score__isnull=True).select_related("item")
-
-            # Process each media item
-            for media in scored_media:
-                # Update top rated using heap
-                item_data = {
-                    "title": media.item.__str__(),
-                    "image": media.item.image,
-                    "score": media.score,
-                    "url": app_tags.media_url(media.item),
-                }
-
-                # Use negative score for max heap (heapq implements min heap)
-                # Add counter as tiebreaker
-                if len(top_rated) < top_rated_count:
-                    heapq.heappush(
-                        top_rated,
-                        (float(media.score), next(counter), item_data),
-                    )
-                else:
-                    heapq.heappushpop(
-                        top_rated,
-                        (float(media.score), next(counter), item_data),
-                    )
-
-                # Bin the score
-                binned_score = int(media.score)
-                score_counts[binned_score] += 1
-
-                # Update totals with exact score
-                total_scored += 1
-                total_score_sum += media.score
-
-            distribution[model_name] = score_counts
-
-        # Calculate average score
-        average_score = (
-            round(total_score_sum / total_scored, 2) if total_scored > 0 else None
+            ]
         )
 
-        # Convert heap to sorted list of top rated items
-        top_rated = [
-            item_data
-            for _, _, item_data in sorted(top_rated, key=lambda x: (-x[0], x[1]))
-        ]
+        for media_type in media_types_to_process:
+            media_list = self.get_media_list(
+                user=user,
+                media_type=media_type,
+                status_filter=[
+                    Media.Status.IN_PROGRESS.value,
+                    Media.Status.REPEATING.value,
+                ],
+                sort_filter="score",
+            )
 
-        return {
-            "labels": [str(score) for score in score_range],  # 0-10 as labels
-            "datasets": [
-                {
-                    "label": app_tags.media_type_readable(model_name),
-                    "data": [distribution[model_name][score] for score in score_range],
-                    "background_color": self.get_media_color(model_name),
-                }
-                for model_name in distribution
-            ],
-            "average_score": average_score,
-            "total_scored": total_scored,
-            "top_rated": top_rated,
-        }
-
-    def get_media_color(self, media_type):
-        """Get the color for the media type."""
-        colors = {
-            "tv": "rgb(16, 185, 129)",  # emerald-400
-            "season": "rgb(139, 92, 246)",  # purple-400
-            "episode": "rgb(99, 102, 241)",  # indigo-400
-            "movie": "rgb(245, 158, 11)",  # orange-400
-            "anime": "rgb(6, 182, 212)",  # blue-400
-            "manga": "rgb(244, 63, 94)",  # red-400
-            "game": "rgb(234, 179, 8)",  # yellow-400
-            "book": "rgb(236, 72, 153)",  # fuchsia-400
-        }
-        return colors.get(media_type, "rgba(201, 203, 207)")
-
-    def get_status_color(self, status):
-        """Get the color for the status of the media."""
-        colors = {
-            Media.Status.IN_PROGRESS.value: "rgb(99, 102, 241)",
-            Media.Status.COMPLETED.value: "rgb(16, 185, 129)",
-            Media.Status.REPEATING.value: "rgb(139, 92, 246)",
-            Media.Status.PLANNING.value: "rgb(6, 182, 212)",
-            Media.Status.PAUSED.value: "rgb(245, 158, 11)",
-            Media.Status.DROPPED.value: "rgb(239, 68, 68)",
-        }
-        return colors.get(status, "rgba(201, 203, 207)")
-
-    def get_timeline(self, user_media):
-        """Build a timeline of media consumption organized by month-year."""
-        timeline = defaultdict(list)
-
-        # Process each media type
-        for media_type, queryset in user_media.items():
-            if media_type == "tv":
+            if not media_list.exists():
                 continue
-            for media in queryset:
-                # If there's an end date, add media to all months between start and end
-                if media.end_date:
-                    current_date = media.start_date
-                    while current_date <= media.end_date:
-                        year = current_date.year
-                        month = current_date.month
-                        month_name = calendar.month_name[month]
-                        key = f"{month_name} {year}"
 
-                        timeline[key].append(media)
+            # Add common annotations
+            media_list = media_list.annotate(
+                max_progress=Max("item__event__episode_number"),
+                next_episode_number=Min(
+                    "item__event__episode_number",
+                    filter=Q(item__event__datetime__gt=now),
+                ),
+                next_episode_datetime=Min(
+                    "item__event__datetime",
+                    filter=Q(item__event__datetime__gt=now),
+                ),
+            )
 
-                        # Move to next month
-                        current_date += relativedelta(months=1)
-                        current_date = current_date.replace(day=1)
+            # Handle sorting based on model type
+            if sort_by == "upcoming":
+                media_list = media_list.order_by(
+                    Case(
+                        When(next_episode_datetime__isnull=True, then=1),
+                        default=0,
+                    ),
+                    "next_episode_datetime",
+                    "item__title",
+                )
+            elif sort_by == "title":
+                media_list = media_list.order_by("item__title")
+            elif sort_by in ["completion", "episodes_left"]:
+                # For Season, we need to evaluate the queryset and sort in Python
+                if media_type == "season":
+                    media_list = list(media_list)
+                    if sort_by == "completion":
+                        media_list.sort(
+                            key=lambda x: (
+                                x.max_progress is not None,
+                                (
+                                    x.progress / x.max_progress * 100
+                                    if x.max_progress
+                                    else 0
+                                ),
+                                x.item.title,
+                            ),
+                            reverse=True,
+                        )
+                    else:  # episodes_left
+                        media_list.sort(
+                            key=lambda x: (
+                                x.max_progress is not None,
+                                (x.max_progress - x.progress if x.max_progress else 0),
+                                x.item.title,
+                            ),
+                        )
                 else:
-                    # If no end date, only add to the start month
-                    year = media.start_date.year
-                    month = media.start_date.month
-                    month_name = calendar.month_name[month]
-                    key = f"{month_name} {year}"
+                    # For other media types, use database annotations
+                    media_list = media_list.annotate(
+                        completion_rate=Case(
+                            When(
+                                max_progress__isnull=False,
+                                then=(Cast("progress", FloatField()) * 100.0)
+                                / Cast("max_progress", FloatField()),
+                            ),
+                            default=0.0,
+                            output_field=FloatField(),
+                        ),
+                        episodes_remaining=Case(
+                            When(
+                                max_progress__isnull=False,
+                                then=F("max_progress") - F("progress"),
+                            ),
+                            default=0,
+                            output_field=IntegerField(),
+                        ),
+                    )
+                    if sort_by == "completion":
+                        media_list = media_list.order_by(
+                            Case(
+                                When(max_progress__isnull=True, then=0),
+                                default=1,
+                            ),
+                            "-completion_rate",
+                            "item__title",
+                        )
+                    else:  # episodes_left
+                        media_list = media_list.order_by(
+                            Case(
+                                When(max_progress__isnull=True, then=1),
+                                default=0,
+                            ),
+                            "episodes_remaining",
+                            "item__title",
+                        )
 
-                    timeline[key].append(media)
+            # Store the full count before limiting
+            total_count = (
+                len(media_list) if isinstance(media_list, list) else media_list.count()
+            )
 
-        # Convert to sorted dictionary with media sorted by start date
-        # Create a list of (key, media_list) sorted by year and month in reverse order
-        sorted_items = []
-        for key, media_list in timeline.items():
-            month_name, year_str = key.split()
-            year = int(year_str)
-            month = list(calendar.month_name).index(month_name)
-            sorted_items.append((key, media_list, year, month))
+            media_list = media_list[14:] if specific_media_type else media_list[:14]
 
-        # Sort by year and month in reverse chronological order
-        sorted_items.sort(key=lambda x: (x[2], x[3]), reverse=True)
+            list_by_type[media_type] = {
+                "items": media_list,
+                "total": total_count,
+            }
 
-        # Create the final result dictionary
-        result = {}
-        for key, media_list, _, _ in sorted_items:
-            result[key] = sorted(media_list, key=lambda x: x.start_date)
+        return list_by_type
 
-        return result
+    def get_media(
+        self,
+        user,
+        media_id,
+        media_type,
+        source,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Get user media object given the media type and item."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        params = {
+            "item__media_type": media_type,
+            "item__source": source,
+            "item__media_id": media_id,
+        }
+
+        if media_type == "season":
+            params["item__season_number"] = season_number
+            params["user"] = user
+        elif media_type == "episode":
+            params["item__season_number"] = season_number
+            params["item__episode_number"] = episode_number
+            params["related_season__user"] = user
+        else:
+            params["user"] = user
+
+        try:
+            return model.objects.get(**params)
+        except model.DoesNotExist:
+            return None
 
 
 class Media(CalendarTriggerMixin, models.Model):
