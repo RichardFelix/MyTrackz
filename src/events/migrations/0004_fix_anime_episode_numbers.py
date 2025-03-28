@@ -38,8 +38,6 @@ def fix_anime_episode_numbers(apps, schema_editor):
     if deleted_items_count > 0:
         logging.info(f"Deleted events for {deleted_items_count} anime items, scheduling calendar reload")
         tasks.reload_calendar.delay()
-    else:
-        logging.info("No events needed to be deleted, skipping calendar reload")
 
 
 def reverse_fix(apps, schema_editor):
