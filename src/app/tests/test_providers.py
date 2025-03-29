@@ -1,11 +1,13 @@
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import requests
 from django.conf import settings
 from django.test import TestCase
 
-from app.providers import igdb, mal, openlibrary, tmdb
+from app.models import Item
+from app.providers import igdb, mal, mangaupdates, manual, openlibrary, services, tmdb
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -28,6 +30,23 @@ class Search(TestCase):
     def test_anime_not_found(self):
         """Test the search method for anime with no results."""
         response = mal.search("anime", "q")
+
+        self.assertEqual(response, [])
+
+    def test_mangaupdates(self):
+        """Test the search method for manga.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = mangaupdates.search("One Piece")
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for manga in response:
+            self.assertTrue(all(key in manga for key in required_keys))
+
+    def test_manga_not_found(self):
+        """Test the search method for manga with no results."""
+        response = mangaupdates.search("")
 
         self.assertEqual(response, [])
 
@@ -100,6 +119,13 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["status"], "Finished")
         self.assertEqual(response["details"]["number_of_chapters"], 162)
 
+    def test_mangaupdates(self):
+        """Test the metadata method for manga from mangaupdates."""
+        response = mangaupdates.manga("72274276213")
+        self.assertEqual(response["title"], "Monster")
+        self.assertEqual(response["details"]["year"], "1994")
+        self.assertEqual(response["details"]["format"], "Manga")
+
     def test_tv(self):
         """Test the metadata method for TV shows."""
         response = tmdb.tv("1396")
@@ -107,6 +133,144 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["first_air_date"], "2008-01-20")
         self.assertEqual(response["details"]["status"], "Ended")
         self.assertEqual(response["details"]["episodes"], 62)
+
+    def test_tmdb_process_episodes(self):
+        """Test the process_episodes function for TMDB episodes."""
+        # Create a sample season metadata structure
+        season_metadata = {
+            "media_id": "1396",  # Breaking Bad
+            "season_number": 1,
+            "episodes": [
+                {
+                    "episode_number": 1,
+                    "air_date": "2008-01-20",
+                    "still_path": "/path/to/still1.jpg",
+                    "name": "Pilot",
+                    "overview": "overview of the episode",
+                },
+                {
+                    "episode_number": 2,
+                    "air_date": "2008-01-27",
+                    "still_path": "/path/to/still2.jpg",
+                    "name": "Cat's in the Bag...",
+                    "overview": "overview of the episode",
+                },
+                {
+                    "episode_number": 3,
+                    "air_date": "2008-02-10",
+                    "still_path": "/path/to/still3.jpg",
+                    "name": "...And the Bag's in the River",
+                    "overview": "overview of the episode",
+                },
+            ],
+        }
+
+        # Create a sample episodes_in_db structure (simulating watched episodes)
+        from datetime import date
+
+        episodes_in_db = [
+            {
+                "item__episode_number": 1,
+                "end_date": date(2025, 1, 1),
+                "repeats": 2,
+            },
+            {
+                "item__episode_number": 2,
+                "end_date": date(2025, 1, 2),
+                "repeats": 0,
+            },
+        ]
+
+        # Call process_episodes
+        result = tmdb.process_episodes(season_metadata, episodes_in_db)
+
+        # Verify results
+        self.assertEqual(len(result), 3)
+
+        # Check first episode (watched with repeats)
+        self.assertEqual(result[0]["episode_number"], 1)
+        self.assertEqual(result[0]["title"], "Pilot")
+        self.assertEqual(result[0]["air_date"], "2008-01-20")
+        self.assertTrue(result[0]["watched"])
+        self.assertEqual(result[0]["end_date"], date(2025, 1, 1))
+        self.assertEqual(result[0]["repeats"], 2)
+
+        # Check second episode (watched without repeats)
+        self.assertEqual(result[1]["episode_number"], 2)
+        self.assertEqual(result[1]["title"], "Cat's in the Bag...")
+        self.assertEqual(result[1]["air_date"], "2008-01-27")
+        self.assertTrue(result[1]["watched"])
+        self.assertEqual(result[1]["end_date"], date(2025, 1, 2))
+        self.assertEqual(result[1]["repeats"], 0)
+
+        # Check third episode (not watched)
+        self.assertEqual(result[2]["episode_number"], 3)
+        self.assertEqual(result[2]["title"], "...And the Bag's in the River")
+        self.assertEqual(result[2]["air_date"], "2008-02-10")
+        self.assertFalse(result[2]["watched"])
+        self.assertIsNone(result[2]["end_date"])
+        self.assertIsNone(result[2]["repeats"])
+
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_tmdb_episode(self, mock_tv_with_seasons):
+        """Test the episode method for TMDB episodes."""
+        # Create a mock response for tv_with_seasons
+        mock_tv_with_seasons.return_value = {
+            "title": "Breaking Bad",
+            "season/1": {
+                "title": "Breaking Bad",
+                "season_title": "Season 1",
+                "episodes": [
+                    {
+                        "episode_number": 1,
+                        "name": "Pilot",
+                        "still_path": "/path/to/still1.jpg",
+                    },
+                    {
+                        "episode_number": 2,
+                        "name": "Cat's in the Bag...",
+                        "still_path": "/path/to/still2.jpg",
+                    },
+                ],
+            },
+        }
+
+        # Test getting an existing episode
+        result = tmdb.episode("1396", "1", "1")
+
+        # Verify the result
+        self.assertEqual(result["title"], "Breaking Bad")
+        self.assertEqual(result["season_title"], "Season 1")
+        self.assertEqual(result["episode_title"], "Pilot")
+        self.assertEqual(result["image"], tmdb.get_image_url("/path/to/still1.jpg"))
+
+        # Test getting a non-existent episode
+        result = tmdb.episode("1396", "1", "3")
+        self.assertIsNone(result)
+
+        # Verify tv_with_seasons was called with correct parameters
+        mock_tv_with_seasons.assert_called_with("1396", ["1"])
+
+    def test_tmdb_find_next_episode(self):
+        """Test the find_next_episode function."""
+        # Create sample episodes metadata
+        episodes_metadata = [
+            {"episode_number": 1, "title": "Episode 1"},
+            {"episode_number": 2, "title": "Episode 2"},
+            {"episode_number": 3, "title": "Episode 3"},
+        ]
+
+        # Test finding next episode in the middle
+        next_episode = tmdb.find_next_episode(1, episodes_metadata)
+        self.assertEqual(next_episode, 2)
+
+        # Test finding next episode at the end
+        next_episode = tmdb.find_next_episode(3, episodes_metadata)
+        self.assertIsNone(next_episode)
+
+        # Test finding next episode for non-existent episode
+        next_episode = tmdb.find_next_episode(5, episodes_metadata)
+        self.assertIsNone(next_episode)
 
     def test_movie(self):
         """Test the metadata method for movies."""
@@ -150,3 +314,840 @@ class Metadata(TestCase):
         response = openlibrary.book("OL46835937M")
         self.assertEqual(response["title"], "The Name of the Wind")
         self.assertEqual(response["details"]["author"], ["Patrick Rothfuss"])
+
+    def test_manual_tv(self):
+        """Test the metadata method for manually created TV shows."""
+        # Create test data
+        Item.objects.create(
+            media_id="1",
+            source="manual",
+            media_type="tv",
+            title="Manual TV Show",
+            image="http://example.com/manual.jpg",
+        )
+
+        # Create a season
+        Item.objects.create(
+            media_id="1",
+            source="manual",
+            media_type="season",
+            title="Manual TV Show",
+            image="http://example.com/manual_s1.jpg",
+            season_number=1,
+        )
+
+        # Create episodes
+        for i in range(1, 4):
+            Item.objects.create(
+                media_id="1",
+                source="manual",
+                media_type="episode",
+                title=f"Episode {i}",
+                image=f"http://example.com/manual_s1e{i}.jpg",
+                season_number=1,
+                episode_number=i,
+            )
+
+        # Test metadata
+        response = manual.metadata("1", "tv")
+
+        # Check basic fields
+        self.assertEqual(response["title"], "Manual TV Show")
+        self.assertEqual(response["media_id"], "1")
+        self.assertEqual(response["source"], "manual")
+        self.assertEqual(response["media_type"], "tv")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+
+        # Check season and episode data
+        self.assertEqual(response["details"]["seasons"], 1)
+        self.assertEqual(response["details"]["episodes"], 3)
+        self.assertEqual(response["max_progress"], 3)
+        self.assertEqual(len(response["related"]["seasons"]), 1)
+
+        # Check season data
+        season_data = response["season/1"]
+        self.assertEqual(season_data["season_number"], 1)
+        self.assertEqual(season_data["max_progress"], 3)
+        self.assertEqual(len(season_data["episodes"]), 3)
+
+    def test_manual_movie(self):
+        """Test the metadata method for manually created movies."""
+        # Create test data
+        Item.objects.create(
+            media_id="2",
+            source="manual",
+            media_type="movie",
+            title="Manual Movie",
+            image="http://example.com/manual_movie.jpg",
+        )
+
+        # Test metadata
+        response = manual.metadata("2", "movie")
+
+        # Check basic fields
+        self.assertEqual(response["title"], "Manual Movie")
+        self.assertEqual(response["media_id"], "2")
+        self.assertEqual(response["source"], "manual")
+        self.assertEqual(response["media_type"], "movie")
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertEqual(response["max_progress"], 1)
+
+    def test_manual_season(self):
+        """Test the season method for manually created seasons."""
+        # Create test data
+        Item.objects.create(
+            media_id="3",
+            source="manual",
+            media_type="tv",
+            title="Another TV Show",
+            image="http://example.com/another.jpg",
+        )
+
+        Item.objects.create(
+            media_id="3",
+            source="manual",
+            media_type="season",
+            title="Another TV Show",
+            image="http://example.com/another_s1.jpg",
+            season_number=1,
+        )
+
+        # Create episodes
+        for i in range(1, 3):
+            Item.objects.create(
+                media_id="3",
+                source="manual",
+                media_type="episode",
+                title=f"Episode {i}",
+                image=f"http://example.com/another_s1e{i}.jpg",
+                season_number=1,
+                episode_number=i,
+            )
+
+        # Test season metadata
+        response = manual.season("3", 1)
+
+        # Check season data
+        self.assertEqual(response["season_number"], 1)
+        self.assertEqual(response["title"], "Another TV Show")
+        self.assertEqual(response["season_title"], "Season 1")
+        self.assertEqual(response["max_progress"], 2)
+        self.assertEqual(len(response["episodes"]), 2)
+
+    def test_manual_episode(self):
+        """Test the episode method for manually created episodes."""
+        # Create test data
+        Item.objects.create(
+            media_id="4",
+            source="manual",
+            media_type="tv",
+            title="Third TV Show",
+            image="http://example.com/third.jpg",
+        )
+
+        Item.objects.create(
+            media_id="4",
+            source="manual",
+            media_type="season",
+            title="Third TV Show",
+            image="http://example.com/third_s1.jpg",
+            season_number=1,
+        )
+
+        Item.objects.create(
+            media_id="4",
+            source="manual",
+            media_type="episode",
+            title="Special Episode",
+            image="http://example.com/third_s1e1.jpg",
+            season_number=1,
+            episode_number=1,
+        )
+
+        # Test episode metadata
+        response = manual.episode("4", 1, 1)
+
+        # Check episode data
+        self.assertEqual(response["media_type"], "episode")
+        self.assertEqual(response["title"], "Third TV Show")
+        self.assertEqual(response["season_title"], "Season 1")
+        self.assertEqual(response["episode_title"], "Special Episode")
+
+    def test_manual_process_episodes(self):
+        """Test the process_episodes function for manual episodes."""
+        # Create test data
+        Item.objects.create(
+            media_id="5",
+            source="manual",
+            media_type="tv",
+            title="Process Episodes Test",
+            image="http://example.com/process.jpg",
+        )
+
+        Item.objects.create(
+            media_id="5",
+            source="manual",
+            media_type="season",
+            title="Process Episodes Test",
+            image="http://example.com/process_s1.jpg",
+            season_number=1,
+        )
+
+        # Create episodes
+        for i in range(1, 4):
+            Item.objects.create(
+                media_id="5",
+                source="manual",
+                media_type="episode",
+                title=f"Process Episode {i}",
+                image=f"http://example.com/process_s1e{i}.jpg",
+                season_number=1,
+                episode_number=i,
+            )
+
+        # Create season metadata structure
+        season_metadata = {
+            "season_number": 1,
+            "episodes": [
+                {
+                    "media_id": "5",
+                    "episode_number": 1,
+                    "air_date": "2025-01-01",
+                    "image": "http://example.com/process_s1e1.jpg",
+                    "title": "Process Episode 1",
+                },
+                {
+                    "media_id": "5",
+                    "episode_number": 2,
+                    "air_date": "2025-01-08",
+                    "image": "http://example.com/process_s1e2.jpg",
+                    "title": "Process Episode 2",
+                },
+                {
+                    "media_id": "5",
+                    "episode_number": 3,
+                    "air_date": "2025-01-15",
+                    "image": "http://example.com/process_s1e3.jpg",
+                    "title": "Process Episode 3",
+                },
+            ],
+        }
+
+        # Create episodes_in_db structure (simulating watched episodes)
+        from datetime import date
+
+        episodes_in_db = [
+            {
+                "item__episode_number": 1,
+                "end_date": date(2025, 1, 2),
+                "repeats": 0,
+            },
+            {
+                "item__episode_number": 2,
+                "end_date": date(2025, 1, 9),
+                "repeats": 2,
+            },
+        ]
+
+        # Call process_episodes
+        result = manual.process_episodes(season_metadata, episodes_in_db)
+
+        # Verify results
+        self.assertEqual(len(result), 3)
+
+        # Check first episode (watched)
+        self.assertEqual(result[0]["episode_number"], 1)
+        self.assertEqual(result[0]["title"], "Process Episode 1")
+        self.assertEqual(result[0]["air_date"], "2025-01-01")
+        self.assertTrue(result[0]["watched"])
+        self.assertEqual(result[0]["end_date"], date(2025, 1, 2))
+        self.assertEqual(result[0]["repeats"], 0)
+
+        # Check second episode (watched with repeats)
+        self.assertEqual(result[1]["episode_number"], 2)
+        self.assertEqual(result[1]["title"], "Process Episode 2")
+        self.assertEqual(result[1]["air_date"], "2025-01-08")
+        self.assertTrue(result[1]["watched"])
+        self.assertEqual(result[1]["end_date"], date(2025, 1, 9))
+        self.assertEqual(result[1]["repeats"], 2)
+
+        # Check third episode (not watched)
+        self.assertEqual(result[2]["episode_number"], 3)
+        self.assertEqual(result[2]["title"], "Process Episode 3")
+        self.assertEqual(result[2]["air_date"], "2025-01-15")
+        self.assertFalse(result[2]["watched"])
+        self.assertIsNone(result[2]["end_date"])
+        self.assertEqual(result[2]["repeats"], 0)
+
+
+class ServicesTests(TestCase):
+    """Test the services module functions."""
+
+    @patch("app.providers.services.session.get")
+    def test_api_request_get(self, mock_get):
+        """Test the api_request function with GET method."""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": "test"}
+        mock_get.return_value = mock_response
+
+        # Call the function
+        result = services.api_request(
+            "TEST",
+            "GET",
+            "https://example.com/api",
+            params={"param": "value"},
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"data": "test"})
+
+        # Verify the request was made correctly
+        mock_get.assert_called_once()
+        args, kwargs = mock_get.call_args
+        self.assertEqual(kwargs["url"], "https://example.com/api")
+        self.assertEqual(kwargs["params"], {"param": "value"})
+        self.assertIn("timeout", kwargs)
+
+    @patch("app.providers.services.session.post")
+    def test_api_request_post(self, mock_post):
+        """Test the api_request function with POST method."""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"data": "test"}
+        mock_post.return_value = mock_response
+
+        # Call the function
+        result = services.api_request(
+            "TEST",
+            "POST",
+            "https://example.com/api",
+            params={"json_param": "value"},
+            data={"form_data": "value"},
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"data": "test"})
+
+        # Verify the request was made correctly
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        self.assertEqual(kwargs["url"], "https://example.com/api")
+        self.assertEqual(kwargs["json"], {"json_param": "value"})
+        self.assertEqual(kwargs["data"], {"form_data": "value"})
+        self.assertIn("timeout", kwargs)
+
+    @patch("app.providers.services.session.get")
+    def test_api_request_http_error(self, mock_get):
+        """Test the api_request function with HTTP error."""
+        # Setup mock response for HTTP error
+        mock_response = MagicMock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Client Error",
+        )
+        mock_response.status_code = 404
+        mock_get.return_value = mock_response
+
+        # Setup mock for error handling
+        with patch(
+            "app.providers.services.request_error_handling",
+        ) as mock_error_handler:
+            mock_error_handler.return_value = {"error": "handled"}
+
+            # Call the function
+            result = services.api_request("TEST", "GET", "https://example.com/api")
+
+            # Verify error handler was called
+            mock_error_handler.assert_called_once()
+
+            # Verify the result
+            self.assertEqual(result, {"error": "handled"})
+
+    @patch("app.providers.services.time.sleep")
+    @patch("app.providers.services.api_request")
+    def test_request_error_handling_rate_limit(self, mock_api_request, mock_sleep):
+        """Test the request_error_handling function with rate limiting."""
+        # Setup mock response for rate limit error
+        mock_response = MagicMock()
+        mock_response.status_code = 429  # Too many requests
+        mock_response.headers = {"Retry-After": "5"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("429 Too Many Requests")
+        error.response = mock_response
+
+        # Setup mock for recursive api_request call
+        mock_api_request.return_value = {"data": "retry_success"}
+
+        # Call the function
+        result = services.request_error_handling(
+            error,
+            "TEST",
+            "GET",
+            "https://example.com/api",
+            {"param": "value"},
+            None,
+            None,
+        )
+
+        # Verify sleep was called with correct duration
+        mock_sleep.assert_called_once_with(8)  # 5 + 3 seconds
+
+        # Verify api_request was called again
+        mock_api_request.assert_called_once()
+
+        # Verify the result
+        self.assertEqual(result, {"data": "retry_success"})
+
+    @patch("app.providers.services.cache.delete")
+    @patch("app.providers.igdb.get_access_token")
+    @patch("app.providers.services.api_request")
+    def test_request_error_handling_igdb_unauthorized(
+        self,
+        mock_api_request,
+        mock_get_token,
+        mock_cache_delete,
+    ):
+        """Test the request_error_handling function with IGDB unauthorized error."""
+        # Setup mock response for unauthorized error
+        mock_response = MagicMock()
+        mock_response.status_code = 401  # Unauthorized
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        # Setup mocks
+        mock_get_token.return_value = "new_token"
+        mock_api_request.return_value = {"data": "retry_success"}
+
+        # Call the function
+        result = services.request_error_handling(
+            error,
+            "IGDB",
+            "GET",
+            "https://example.com/api",
+            {"param": "value"},
+            None,
+            {"Authorization": "Bearer old_token"},
+        )
+
+        # Verify cache delete was called
+        mock_cache_delete.assert_called_once_with("igdb_access_token")
+
+        # Verify get_access_token was called
+        mock_get_token.assert_called_once()
+
+        # Verify api_request was called again with new token
+        mock_api_request.assert_called_once()
+        args, kwargs = mock_api_request.call_args
+        self.assertEqual(args[0], "IGDB")
+        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer new_token")
+
+        # Verify the result
+        self.assertEqual(result, {"data": "retry_success"})
+
+    @patch("app.providers.services.logger.error")
+    def test_request_error_handling_igdb_bad_request(self, mock_logger):
+        """Test the request_error_handling function with IGDB bad request error."""
+        # Setup mock response for bad request error
+        mock_response = MagicMock()
+        mock_response.status_code = 400  # Bad Request
+        mock_response.json.return_value = {"message": "Invalid query"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("400 Bad Request")
+        error.response = mock_response
+
+        # Call the function and expect it to re-raise the error
+        with self.assertRaises(requests.exceptions.HTTPError):
+            services.request_error_handling(
+                error,
+                "IGDB",
+                "GET",
+                "https://example.com/api",
+                None,
+                None,
+                None,
+            )
+
+        # Verify logger was called
+        mock_logger.assert_called_once_with("IGDB bad request: %s", "Invalid query")
+
+    @patch("app.providers.services.logger.error")
+    def test_request_error_handling_tmdb_unauthorized(self, mock_logger):
+        """Test the request_error_handling function with TMDB unauthorized error."""
+        # Setup mock response for unauthorized error
+        mock_response = MagicMock()
+        mock_response.status_code = 401  # Unauthorized
+        mock_response.json.return_value = {"status_message": "Invalid API key"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        # Call the function and expect it to re-raise the error
+        with self.assertRaises(requests.exceptions.HTTPError):
+            services.request_error_handling(
+                error,
+                "TMDB",
+                "GET",
+                "https://example.com/api",
+                None,
+                None,
+                None,
+            )
+
+        # Verify logger was called
+        mock_logger.assert_called_once_with("TMDB unauthorized: %s", "Invalid API key")
+
+    @patch("app.providers.services.logger.error")
+    def test_request_error_handling_mal_forbidden(self, mock_logger):
+        """Test the request_error_handling function with MAL forbidden error."""
+        # Setup mock response for forbidden error
+        mock_response = MagicMock()
+        mock_response.status_code = 403  # Forbidden
+        mock_response.json.return_value = {"message": "Forbidden"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("403 Forbidden")
+        error.response = mock_response
+
+        # Call the function and expect it to re-raise the error
+        with self.assertRaises(requests.exceptions.HTTPError):
+            services.request_error_handling(
+                error,
+                "MAL",
+                "GET",
+                "https://example.com/api",
+                None,
+                None,
+                None,
+            )
+
+        # Verify logger was called
+        mock_logger.assert_called_once_with("MAL forbidden: is the API key set?")
+
+    @patch("app.providers.mal.anime")
+    def test_get_media_metadata_anime(self, mock_anime):
+        """Test the get_media_metadata function for anime."""
+        # Setup mock
+        mock_anime.return_value = {"title": "Test Anime"}
+
+        # Call the function
+        result = services.get_media_metadata("anime", "1", "mal")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Anime"})
+
+        # Verify the correct function was called
+        mock_anime.assert_called_once_with("1")
+
+    @patch("app.providers.mangaupdates.manga")
+    def test_get_media_metadata_manga_mangaupdates(self, mock_manga):
+        """Test the get_media_metadata function for manga from MangaUpdates."""
+        # Setup mock
+        mock_manga.return_value = {"title": "Test Manga"}
+
+        # Call the function
+        result = services.get_media_metadata("manga", "1", "mangaupdates")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Manga"})
+
+        # Verify the correct function was called
+        mock_manga.assert_called_once_with("1")
+
+    @patch("app.providers.mal.manga")
+    def test_get_media_metadata_manga_mal(self, mock_manga):
+        """Test the get_media_metadata function for manga from MAL."""
+        # Setup mock
+        mock_manga.return_value = {"title": "Test Manga"}
+
+        # Call the function
+        result = services.get_media_metadata("manga", "1", "mal")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Manga"})
+
+        # Verify the correct function was called
+        mock_manga.assert_called_once_with("1")
+
+    @patch("app.providers.tmdb.tv")
+    def test_get_media_metadata_tv(self, mock_tv):
+        """Test the get_media_metadata function for TV shows."""
+        # Setup mock
+        mock_tv.return_value = {"title": "Test TV"}
+
+        # Call the function
+        result = services.get_media_metadata("tv", "1", "tmdb")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test TV"})
+
+        # Verify the correct function was called
+        mock_tv.assert_called_once_with("1")
+
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_get_media_metadata_tv_with_seasons(self, mock_tv_with_seasons):
+        """Test the get_media_metadata function for TV shows with seasons."""
+        # Setup mock
+        mock_tv_with_seasons.return_value = {"title": "Test TV with Seasons"}
+
+        # Call the function
+        result = services.get_media_metadata(
+            "tv_with_seasons",
+            "1",
+            "tmdb",
+            season_numbers=[1, 2],
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test TV with Seasons"})
+
+        # Verify the correct function was called
+        mock_tv_with_seasons.assert_called_once_with("1", [1, 2])
+
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_get_media_metadata_season(self, mock_tv_with_seasons):
+        """Test the get_media_metadata function for TV seasons."""
+        # Setup mock
+        mock_tv_with_seasons.return_value = {
+            "season/1": {"title": "Test Season"},
+        }
+
+        # Call the function
+        result = services.get_media_metadata("season", "1", "tmdb", season_numbers=[1])
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Season"})
+
+        # Verify the correct function was called
+        mock_tv_with_seasons.assert_called_once_with("1", [1])
+
+    @patch("app.providers.tmdb.episode")
+    def test_get_media_metadata_episode(self, mock_episode):
+        """Test the get_media_metadata function for TV episodes."""
+        # Setup mock
+        mock_episode.return_value = {"title": "Test Episode"}
+
+        # Call the function
+        result = services.get_media_metadata(
+            "episode",
+            "1",
+            "tmdb",
+            season_numbers=[1],
+            episode_number="2",
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Episode"})
+
+        # Verify the correct function was called
+        mock_episode.assert_called_once_with("1", 1, "2")
+
+    @patch("app.providers.tmdb.movie")
+    def test_get_media_metadata_movie(self, mock_movie):
+        """Test the get_media_metadata function for movies."""
+        # Setup mock
+        mock_movie.return_value = {"title": "Test Movie"}
+
+        # Call the function
+        result = services.get_media_metadata("movie", "1", "tmdb")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Movie"})
+
+        # Verify the correct function was called
+        mock_movie.assert_called_once_with("1")
+
+    @patch("app.providers.igdb.game")
+    def test_get_media_metadata_game(self, mock_game):
+        """Test the get_media_metadata function for games."""
+        # Setup mock
+        mock_game.return_value = {"title": "Test Game"}
+
+        # Call the function
+        result = services.get_media_metadata("game", "1", "igdb")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Game"})
+
+        # Verify the correct function was called
+        mock_game.assert_called_once_with("1")
+
+    @patch("app.providers.openlibrary.book")
+    def test_get_media_metadata_book(self, mock_book):
+        """Test the get_media_metadata function for books."""
+        # Setup mock
+        mock_book.return_value = {"title": "Test Book"}
+
+        # Call the function
+        result = services.get_media_metadata("book", "1", "openlibrary")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Book"})
+
+        # Verify the correct function was called
+        mock_book.assert_called_once_with("1")
+
+    @patch("app.providers.manual.metadata")
+    def test_get_media_metadata_manual(self, mock_metadata):
+        """Test the get_media_metadata function for manual media."""
+        # Setup mock
+        mock_metadata.return_value = {"title": "Test Manual"}
+
+        # Call the function
+        result = services.get_media_metadata("movie", "1", "manual")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Manual"})
+
+        # Verify the correct function was called
+        mock_metadata.assert_called_once_with("1", "movie")
+
+    @patch("app.providers.manual.season")
+    def test_get_media_metadata_manual_season(self, mock_season):
+        """Test the get_media_metadata function for manual seasons."""
+        # Setup mock
+        mock_season.return_value = {"title": "Test Manual Season"}
+
+        # Call the function
+        result = services.get_media_metadata(
+            "season",
+            "1",
+            "manual",
+            season_numbers=[1],
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Manual Season"})
+
+        # Verify the correct function was called
+        mock_season.assert_called_once_with("1", 1)
+
+    @patch("app.providers.manual.episode")
+    def test_get_media_metadata_manual_episode(self, mock_episode):
+        """Test the get_media_metadata function for manual episodes."""
+        # Setup mock
+        mock_episode.return_value = {"title": "Test Manual Episode"}
+
+        # Call the function
+        result = services.get_media_metadata(
+            "episode",
+            "1",
+            "manual",
+            season_numbers=[1],
+            episode_number="2",
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Manual Episode"})
+
+        # Verify the correct function was called
+        mock_episode.assert_called_once_with("1", 1, "2")
+
+    @patch("app.providers.mal.search")
+    def test_search_anime(self, mock_search):
+        """Test the search function for anime."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Anime"}]
+
+        # Call the function
+        result = services.search("anime", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Anime"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("anime", "test")
+
+    @patch("app.providers.mangaupdates.search")
+    def test_search_manga_mangaupdates(self, mock_search):
+        """Test the search function for manga from MangaUpdates."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Manga"}]
+
+        # Call the function
+        result = services.search("manga", "test", source="mangaupdates")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Manga"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")
+
+    @patch("app.providers.mal.search")
+    def test_search_manga_mal(self, mock_search):
+        """Test the search function for manga from MAL."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Manga"}]
+
+        # Call the function
+        result = services.search("manga", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Manga"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("manga", "test")
+
+    @patch("app.providers.tmdb.search")
+    def test_search_tv(self, mock_search):
+        """Test the search function for TV shows."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test TV"}]
+
+        # Call the function
+        result = services.search("tv", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test TV"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("tv", "test")
+
+    @patch("app.providers.tmdb.search")
+    def test_search_movie(self, mock_search):
+        """Test the search function for movies."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Movie"}]
+
+        # Call the function
+        result = services.search("movie", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Movie"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("movie", "test")
+
+    @patch("app.providers.igdb.search")
+    def test_search_game(self, mock_search):
+        """Test the search function for games."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Game"}]
+
+        # Call the function
+        result = services.search("game", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Game"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")
+
+    @patch("app.providers.openlibrary.search")
+    def test_search_book(self, mock_search):
+        """Test the search function for books."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Book"}]
+
+        # Call the function
+        result = services.search("book", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Book"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")

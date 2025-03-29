@@ -1,8 +1,16 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from app.forms import AnimeForm, EpisodeForm, GameForm, SeasonForm, TvForm
-from app.models import Item
+from app.forms import (
+    AnimeForm,
+    EpisodeForm,
+    GameForm,
+    ManualItemForm,
+    SeasonForm,
+    TvForm,
+)
+from app.models import TV, Item, Season
 
 
 class BasicMediaForm(TestCase):
@@ -204,3 +212,169 @@ class BasicGameForm(TestCase):
         }
         form = GameForm(data=form_data)
         self.assertFalse(form.is_valid())
+
+
+class ManualItemFormTest(TestCase):
+    """Test the manual item form functionality."""
+
+    def setUp(self):
+        """Create a user and necessary parent items."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+        # Create a manual TV show
+        self.tv_item = Item.objects.create(
+            media_id="manual_tv_1",
+            source="manual",
+            media_type="tv",
+            title="Test Manual TV",
+            image="http://example.com/tv.jpg",
+        )
+        self.tv = TV.objects.create(
+            item=self.tv_item,
+            user=self.user,
+            status="Watching",
+        )
+
+        # Create a manual Season
+        self.season_item = Item.objects.create(
+            media_id="manual_tv_1",
+            source="manual",
+            media_type="season",
+            title="Test Manual TV",
+            season_number=1,
+            image="http://example.com/season.jpg",
+        )
+        self.season = Season.objects.create(
+            item=self.season_item,
+            user=self.user,
+            status="Watching",
+        )
+
+    def test_init_with_user(self):
+        """Test form initialization with user parameter."""
+        form = ManualItemForm(user=self.user)
+        self.assertEqual(form.fields["parent_tv"].queryset.count(), 1)
+        self.assertEqual(form.fields["parent_season"].queryset.count(), 1)
+
+    def test_init_without_user(self):
+        """Test form initialization without user parameter."""
+        form = ManualItemForm()
+        self.assertEqual(form.fields["parent_tv"].queryset.count(), 0)
+        self.assertEqual(form.fields["parent_season"].queryset.count(), 0)
+
+    def test_valid_standalone_media(self):
+        """Test creating a standalone media item (movie, anime, etc.)."""
+        form_data = {
+            "media_type": "movie",
+            "title": "Test Manual Movie",
+            "image": "http://example.com/movie.jpg",
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertTrue(form.is_valid())
+
+        # Save and verify
+        item = form.save()
+        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.media_id, "1")
+        self.assertIsNone(item.season_number)
+        self.assertIsNone(item.episode_number)
+
+    def test_valid_season_creation(self):
+        """Test creating a season for an existing TV show."""
+        form_data = {
+            "media_type": "season",
+            "parent_tv": self.tv.id,
+            "season_number": 2,
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertTrue(form.is_valid())
+
+        # Save and verify
+        item = form.save()
+        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.media_id, self.tv_item.media_id)
+        self.assertEqual(item.title, self.tv_item.title)
+        self.assertEqual(item.season_number, 2)
+        self.assertIsNone(item.episode_number)
+
+    def test_valid_episode_creation(self):
+        """Test creating an episode for an existing season."""
+        form_data = {
+            "media_type": "episode",
+            "parent_season": self.season.id,
+            "episode_number": 5,
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertTrue(form.is_valid())
+
+        # Save and verify
+        item = form.save()
+        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.media_id, self.season_item.media_id)
+        self.assertEqual(item.title, self.season_item.title)
+        self.assertEqual(item.season_number, self.season_item.season_number)
+        self.assertEqual(item.episode_number, 5)
+
+    def test_missing_title_for_standalone(self):
+        """Test that title is required for standalone media."""
+        form_data = {
+            "media_type": "movie",
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+
+    def test_missing_parent_for_season(self):
+        """Test that parent TV is required for seasons."""
+        form_data = {
+            "media_type": "season",
+            "season_number": 3,
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertFalse(form.is_valid())
+
+    def test_missing_parent_for_episode(self):
+        """Test that parent season is required for episodes."""
+        form_data = {
+            "media_type": "episode",
+            "episode_number": 2,
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertFalse(form.is_valid())
+
+    def test_default_image(self):
+        """Test that default image is used when none provided."""
+        form_data = {
+            "media_type": "book",
+            "title": "Test Manual Book",
+        }
+        form = ManualItemForm(data=form_data, user=self.user)
+        self.assertTrue(form.is_valid())
+
+        # Save and verify
+        item = form.save()
+        self.assertEqual(item.image, settings.IMG_NONE)
+
+    def test_manual_id_generation(self):
+        """Test that unique manual IDs are generated."""
+        # Create first item
+        form1 = ManualItemForm(
+            data={"media_type": "anime", "title": "Test Anime 1"},
+            user=self.user,
+        )
+        self.assertTrue(form1.is_valid())
+        item1 = form1.save()
+
+        # Create second item
+        form2 = ManualItemForm(
+            data={"media_type": "anime", "title": "Test Anime 2"},
+            user=self.user,
+        )
+        self.assertTrue(form2.is_valid())
+        item2 = form2.save()
+
+        # IDs should be different but follow the pattern
+        self.assertNotEqual(item1.media_id, item2.media_id)
+        self.assertEqual(item1.media_id, "1")
+        self.assertEqual(item2.media_id, "2")
