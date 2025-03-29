@@ -30,12 +30,22 @@ class EventManager(models.Manager):
         media_types_with_user = [
             choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
-        query = Q()
+
+        # Build query for user ownership
+        user_query = Q()
         for media_type in media_types_with_user:
-            query |= Q(**{f"item__{media_type}__user": user})
+            user_query |= Q(**{f"item__{media_type}__user": user})
+
+        # Build query to exclude inactive tracking statuses
+        active_status_query = Q()
+        for media_type in media_types_with_user:
+            active_status_query &= ~Q(
+                **{f"item__{media_type}__status__in": INACTIVE_TRACKING_STATUSES},
+            )
 
         return self.filter(
-            query,
+            user_query,
+            active_status_query,
             datetime__gte=first_datetime,
             datetime__lte=last_datetime,
         ).select_related("item")
