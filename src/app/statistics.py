@@ -385,43 +385,46 @@ def get_user_media(user, start_date, end_date):
         model_name = model.__name__.lower()
         queryset = None
 
-        if model in (TV, Season):
-            if model == TV:
-                tv_ids = base_episodes.values_list(
-                    "related_season__related_tv",
-                    flat=True,
-                ).distinct()
-                queryset = TV.objects.filter(id__in=tv_ids).prefetch_related(
-                    Prefetch(
-                        "seasons",
-                        queryset=Season.objects.select_related(
-                            "item",
-                        ).prefetch_related(
-                            Prefetch(
-                                "episodes",
-                                queryset=base_episodes.filter(
-                                    related_season__related_tv__in=tv_ids,
-                                ),
+        if model == TV:
+            tv_ids = base_episodes.values_list(
+                "related_season__related_tv",
+                flat=True,
+            ).distinct()
+            queryset = TV.objects.filter(id__in=tv_ids).prefetch_related(
+                Prefetch(
+                    "seasons",
+                    queryset=Season.objects.select_related(
+                        "item",
+                    ).prefetch_related(
+                        Prefetch(
+                            "episodes",
+                            queryset=base_episodes.filter(
+                                related_season__related_tv__in=tv_ids,
                             ),
                         ),
                     ),
-                )
-            else:
-                season_ids = base_episodes.values_list(
-                    "related_season",
-                    flat=True,
-                ).distinct()
-                queryset = Season.objects.filter(
-                    id__in=season_ids,
-                ).prefetch_related(
-                    Prefetch("episodes", queryset=base_episodes),
-                )
+                ),
+            )
+        elif model == Season:
+            season_ids = base_episodes.values_list(
+                "related_season",
+                flat=True,
+            ).distinct()
+            queryset = Season.objects.filter(
+                id__in=season_ids,
+            ).prefetch_related(
+                Prefetch("episodes", queryset=base_episodes),
+            )
         else:
             queryset = model.objects.filter(
                 user=user,
+                start_date__isnull=False,  # Exclude records with null start_date
                 start_date__gte=start_date,
+                start_date__lte=end_date,  # Ensure start_date is within range
             ).filter(
-                Q(end_date__lte=end_date) | Q(end_date__isnull=True),
+                # Either end_date is null OR end_date is within range
+                Q(end_date__isnull=True)
+                | Q(end_date__gte=start_date, end_date__lte=end_date),
             )
 
         queryset = queryset.select_related("item")
