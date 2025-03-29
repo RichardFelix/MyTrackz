@@ -117,47 +117,44 @@ def get_earliest_media_start_date(user):
     """Get the earliest start date across all media types for a user."""
     earliest_date = None
 
-    media_types = MediaTypes.values
-    media_types.remove("season")
-    media_types.remove("tv")
+    # Get all media types except season and tv which are handled differently
+    media_types = [mt for mt in MediaTypes.values if mt not in ["season", "tv"]]
 
+    # Process Episode model separately due to its unique relationship structure
+    episode_model = apps.get_model("app", "episode")
+    earliest_episode_date = episode_model.objects.filter(
+        related_season__related_tv__user=user,
+        end_date__isnull=False,
+    ).aggregate(earliest=Min("end_date"))["earliest"]
+
+    if earliest_episode_date:
+        earliest_date = earliest_episode_date
+        logger.info(
+            "%s - Found earliest TV start_date via episodes: %s",
+            user.username,
+            earliest_date,
+        )
+
+    # Process all other media types
     for media_type in media_types:
+        # Skip Episode as it's already processed
+        if media_type == "episode":
+            continue
+
         model = apps.get_model("app", media_type)
+        earliest_start = model.objects.filter(
+            user=user,
+            start_date__isnull=False,
+        ).aggregate(earliest=Min("start_date"))["earliest"]
 
-        # For models with start_date as a database field
-        if model.__name__ == "Episode":
-            earliest_episode_date = Episode.objects.filter(
-                related_season__related_tv__user=user,
-                end_date__isnull=False,
-            ).aggregate(
-                earliest=Min("end_date"),
-            )["earliest"]
-
-            if earliest_episode_date and (
-                earliest_date is None or earliest_episode_date < earliest_date
-            ):
-                earliest_date = earliest_episode_date
-                logger.info(
-                    "Found earlier TV start_date via episodes: %s",
-                    earliest_date,
-                )
-        else:
-            earliest_start = model.objects.filter(
-                user=user,
-                start_date__isnull=False,
-            ).aggregate(
-                earliest=Min("start_date"),
-            )["earliest"]
-
-            if earliest_start and (
-                earliest_date is None or earliest_start < earliest_date
-            ):
-                earliest_date = earliest_start
-                logger.info(
-                    "Found earlier start_date: %s from model %s",
-                    earliest_date,
-                    model.__name__,
-                )
+        if earliest_start and (earliest_date is None or earliest_start < earliest_date):
+            earliest_date = earliest_start
+            logger.info(
+                "%s - Found earlier start_date: %s from model %s",
+                user.username,
+                earliest_date,
+                model.__name__,
+            )
 
     return earliest_date
 
