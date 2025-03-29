@@ -26,9 +26,12 @@ INTERNAL_IPS = ["127.0.0.1"]
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
 
-if ALLOWED_HOSTS != ["*"] and "localhost" not in ALLOWED_HOSTS:
-    # Only add "localhost" if it's not already in ALLOWED_HOSTS
-    ALLOWED_HOSTS.append("localhost")
+if ALLOWED_HOSTS != ["*"]:
+    if "localhost" not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append("localhost")
+    if "127.0.0.1" not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append("127.0.0.1")
+
 
 CSRF_TRUSTED_ORIGINS = config("CSRF", default="", cast=Csv())
 
@@ -38,6 +41,7 @@ for url in URLS:
     CSRF_TRUSTED_ORIGINS.append(url)
     ALLOWED_HOSTS.append(urlparse(url).hostname)
 
+USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
