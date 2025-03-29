@@ -41,7 +41,6 @@ for url in URLS:
     CSRF_TRUSTED_ORIGINS.append(url)
     ALLOWED_HOSTS.append(urlparse(url).hostname)
 
-USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
