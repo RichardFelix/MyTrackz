@@ -55,11 +55,23 @@ class EventManager(models.Manager):
         media_types_with_status = [
             choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
         ]
-        query = Q()
-        for media_type in media_types_with_status:
-            query |= ~Q(**{f"{media_type}__status__in": INACTIVE_TRACKING_STATUSES})
 
-        items_with_status = Item.objects.filter(query).distinct()
+        # Build a query to find items with at least one active media
+        active_query = Q()
+        for media_type in media_types_with_status:
+            active_query |= Q(
+                **{f"{media_type}__isnull": False},
+                **{
+                    f"{media_type}__status__in": [
+                        status
+                        for status in Media.Status.values
+                        if status not in INACTIVE_TRACKING_STATUSES
+                    ],
+                },
+            )
+
+        # Get all items with at least one active media
+        items_with_active_media = Item.objects.filter(active_query).distinct()
 
         # Subquery to check if an item has any future events
         now = timezone.now()
@@ -70,7 +82,7 @@ class EventManager(models.Manager):
 
         # manga with less than two events means we don't have total chapters count
         return (
-            items_with_status.annotate(event_count=Count("event"))
+            items_with_active_media.annotate(event_count=Count("event"))
             .filter(
                 Q(Exists(future_events))  # has future events
                 | Q(event__isnull=True)  # no events
