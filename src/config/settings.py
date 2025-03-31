@@ -326,7 +326,7 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60 * 12,  # every 12 hours
     },
     "send-recent-release-notifications": {
-        "task": "events.tasks.send_recent_release_notifications",
+        "task": "Send release notifications",
         "schedule": 60 * 30,  # every 30 minutes
     },
 }

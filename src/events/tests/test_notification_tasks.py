@@ -12,7 +12,7 @@ from events.tasks import (
     format_notification_text,
     process_events,
     send_notifications,
-    send_recent_release_notifications,
+    send_release_notifications,
 )
 
 
@@ -112,10 +112,10 @@ class NotificationTaskTests(TestCase):
         self.user1.notification_excluded_items.add(self.manga_item)
 
     @patch("events.tasks.send_notifications")
-    def test_send_recent_release_notifications(self, mock_send_notifications):
-        """Test the send_recent_release_notifications task."""
+    def test_send_release_notifications(self, mock_send_notifications):
+        """Test the send_release_notifications task."""
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Check that events were marked as notified
         self.anime_event.refresh_from_db()
@@ -247,7 +247,7 @@ class NotificationTaskTests(TestCase):
         Event.objects.all().update(notification_sent=True)
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Verify process_events was not called
         mock_process_events.assert_not_called()
@@ -323,7 +323,7 @@ class NotificationTaskTests(TestCase):
         )
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Future event should not be marked as notified
         future_event.refresh_from_db()
@@ -343,7 +343,7 @@ class NotificationTaskTests(TestCase):
         )
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Old event should not be marked as notified
         old_event.refresh_from_db()

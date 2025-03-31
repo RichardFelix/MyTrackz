@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from app.models import Anime, Item, Manga, Media
 from events.models import Event
-from events.tasks import send_recent_release_notifications
+from events.tasks import send_release_notifications
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -58,7 +58,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Verify event was marked as notified
         event.refresh_from_db()
@@ -122,7 +122,7 @@ class NotificationIntegrationTests(TestCase):
         self.user.notification_excluded_items.add(self.item)
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Verify both events were marked as notified
         event1.refresh_from_db()
@@ -170,7 +170,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Verify event was still marked as notified
         event.refresh_from_db()
@@ -227,7 +227,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_recent_release_notifications()
+        send_release_notifications()
 
         # Verify both events were marked as notified
         anime_event.refresh_from_db()

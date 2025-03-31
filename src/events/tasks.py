@@ -419,8 +419,8 @@ def get_user_reloaded(reloaded_events, user):
     return Item.objects.filter(q_filters).distinct()
 
 
-@shared_task
-def send_recent_release_notifications():
+@shared_task(name="Send release notifications")
+def send_release_notifications():
     """Send notifications for recently released media."""
     logger.info("Starting recent release notification task")
 
@@ -435,8 +435,7 @@ def send_recent_release_notifications():
     ).select_related("item")
 
     if not recent_events.exists():
-        logger.info("No recent releases found in the past hour")
-        return
+        return "No recent releases found in the past hour"
 
     event_count = recent_events.count()
     logger.info("Found %s recent releases in the past hour", event_count)
@@ -447,6 +446,10 @@ def send_recent_release_notifications():
             ~Q(notification_urls=""),
         )
         .prefetch_related("notification_excluded_items")
+    )
+    logger.info(
+        "Found %s users with notification URLs",
+        users_with_notifications.count(),
     )
 
     user_exclusions = {
@@ -461,6 +464,8 @@ def send_recent_release_notifications():
         logger.info("Marked %s events as notified", len(events_to_mark))
 
     send_notifications(user_releases, users_with_notifications)
+
+    return f"{event_count} recent releases processed"
 
 
 def process_events(recent_events, user_exclusions):
