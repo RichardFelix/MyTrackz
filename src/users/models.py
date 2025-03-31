@@ -375,7 +375,7 @@ class User(AbstractUser):
             The value that was set (or the original value if invalid)
         """
         # If no new value provided, return current value
-        if not new_value:
+        if new_value is None:
             return getattr(self, field_name)
 
         # Special case for last_search_type
