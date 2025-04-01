@@ -12,6 +12,9 @@ max-doc-length = 88
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
 
+[tool.ruff.lint.per-file-ignores]
+"src/app/tests/test_models.py" = ["SLF001"]
+
 [tool.djlint]
 custom_blocks = "element,slot,setvar"
 preserve_blank_lines = true

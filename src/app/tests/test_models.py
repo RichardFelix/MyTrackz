@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db.models import Max, Min, Q
 from django.test import TestCase
 from django.utils import timezone
 
@@ -280,6 +281,35 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(media_list.count(), 0)
 
+    def test_apply_prefetch_related(self):
+        """Test the _apply_prefetch_related method."""
+        manager = MediaManager()
+
+        # Test with TV media type
+        queryset = TV.objects.filter(user=self.user.id)
+        prefetched_queryset = manager._apply_prefetch_related(queryset, "tv")
+
+        # Verify prefetch_related was applied
+        self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
+        prefetch_lookups = prefetched_queryset._prefetch_related_lookups
+        self.assertEqual(len(prefetch_lookups), 2)
+
+        # Test with Season media type
+        queryset = Season.objects.filter(user=self.user.id)
+        prefetched_queryset = manager._apply_prefetch_related(queryset, "season")
+
+        # Verify prefetch_related was applied
+        self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
+        prefetch_lookups = prefetched_queryset._prefetch_related_lookups
+        self.assertEqual(len(prefetch_lookups), 1)
+
+        # Test with other media type
+        queryset = Movie.objects.filter(user=self.user.id)
+        prefetched_queryset = manager._apply_prefetch_related(queryset, "movie")
+
+        # Verify no prefetch_related was applied
+        self.assertEqual(prefetched_queryset, queryset)
+
     def test_get_media_list_with_prefetch_related(self):
         """Test the get_media_list method with prefetch_related for TV and Season."""
         manager = MediaManager()
@@ -328,11 +358,11 @@ class MediaManagerTests(TestCase):
             for season in season_list:
                 list(season.episodes.all())
 
-    def test_get_media_list_sort_by_property(self):
-        """Test the get_media_list method with sorting by property."""
+    def test_sort_by_property(self):
+        """Test the _sort_by_property method."""
         manager = MediaManager()
 
-        # Create another season with different dates
+        # Create seasons with different dates
         season2_item = Item.objects.create(
             media_id="1668",
             source="tmdb",
@@ -368,29 +398,7 @@ class MediaManagerTests(TestCase):
                 end_date=date(2023, 7, i),
             )
 
-        # Test sorting by start_date (ascending)
-        season_list = manager.get_media_list(
-            user=self.user,
-            media_type="season",
-            status_filter=[MediaStatusChoices.ALL],
-            sort_filter="start_date",
-        )
-
-        # First season should come first (earlier start date)
-        self.assertEqual(list(season_list), [self.season1, season2])
-
-        # Test sorting by end_date (descending)
-        season_list = manager.get_media_list(
-            user=self.user,
-            media_type="season",
-            status_filter=[MediaStatusChoices.ALL],
-            sort_filter="end_date",
-        )
-
-        # Second season should come first (later end date)
-        self.assertEqual(list(season_list), [season2, self.season1])
-
-        # Test with a season that has no episodes (no dates)
+        # Create a season with no episodes (no dates)
         season3_item = Item.objects.create(
             media_id="1668",
             source="tmdb",
@@ -408,16 +416,26 @@ class MediaManagerTests(TestCase):
             score=0,
         )
 
-        # Test sorting by start_date with a season that has no dates
-        season_list = manager.get_media_list(
-            user=self.user,
-            media_type="season",
-            status_filter=[MediaStatusChoices.ALL],
-            sort_filter="start_date",
-        )
+        # Get all seasons
+        queryset = Season.objects.filter(user=self.user.id)
 
-        # Seasons with dates should come first, then the one without dates
-        self.assertEqual(list(season_list), [self.season1, season2, season3])
+        # Test sorting by start_date
+        sorted_list = manager._sort_by_property(queryset, "start_date")
+        self.assertEqual(sorted_list, [self.season1, season2, season3])
+
+        # Test sorting by end_date
+        sorted_list = manager._sort_by_property(queryset, "end_date")
+        self.assertEqual(sorted_list, [season2, self.season1, season3])
+
+        # Test sorting by non-date property
+        sorted_list = manager._sort_by_property(queryset, "score")
+        # Should be sorted by score in descending order
+        expected_order = sorted(
+            [self.season1, season2, season3],
+            key=lambda x: x.score,
+            reverse=True,
+        )
+        self.assertEqual(sorted_list, expected_order)
 
     def test_get_media_list_sort_by_item_field(self):
         """Test the get_media_list method with sorting by item field."""
@@ -464,6 +482,118 @@ class MediaManagerTests(TestCase):
 
         # Higher score should come first
         self.assertEqual(list(media_list), [self.anime, anime2])
+
+    def test_get_media_types_to_process(self):
+        """Test the _get_media_types_to_process method."""
+        manager = MediaManager()
+
+        # Test with specific media type
+        media_types = manager._get_media_types_to_process(self.user, "anime")
+        self.assertEqual(media_types, ["anime"])
+
+        # Test with no specific media type (all enabled)
+        media_types = manager._get_media_types_to_process(self.user, None)
+
+        # Should include all enabled media types except TV and Episode
+        # Season should be first if TV is enabled
+        self.assertIn("season", media_types)
+        self.assertEqual(media_types[0], "season")  # Season should be first
+
+        # Disable TV and season
+        self.user.tv_enabled = False
+        self.user.season_enabled = False
+        self.user.save()
+
+        # Test again with TV disabled
+        media_types = manager._get_media_types_to_process(self.user, None)
+
+        # Should not include season now
+        self.assertNotIn("season", media_types)
+
+    def test_sort_in_progress_media(self):
+        """Test the _sort_in_progress_media method."""
+        manager = MediaManager()
+
+        # Get anime queryset
+        queryset = Anime.objects.filter(user=self.user.id)
+
+        # Add annotations
+        now = timezone.now()
+        queryset = queryset.annotate(
+            max_progress=Max("item__event__episode_number"),
+            next_episode_number=Min(
+                "item__event__episode_number",
+                filter=Q(item__event__datetime__gt=now),
+            ),
+            next_episode_datetime=Min(
+                "item__event__datetime",
+                filter=Q(item__event__datetime__gt=now),
+            ),
+        )
+
+        # Test sort by upcoming
+        sorted_queryset = manager._sort_in_progress_media(queryset, "upcoming", "anime")
+        self.assertEqual(sorted_queryset.first(), self.anime)
+
+        # Test sort by title
+        sorted_queryset = manager._sort_in_progress_media(queryset, "title", "anime")
+        self.assertEqual(sorted_queryset.first(), self.anime)
+
+        # Create another anime for testing completion and episodes_left
+        anime_item2 = Item.objects.create(
+            media_id="5",
+            source="mal",
+            media_type="anime",
+            title="Naruto",
+            image="http://example.com/naruto.jpg",
+        )
+
+        anime2 = Anime.objects.create(
+            item=anime_item2,
+            user=self.user,
+            status="In progress",
+            score=8,
+            progress=20,
+        )
+
+        # Add events for max_progress
+        for i in range(1, 25):
+            Event.objects.create(
+                item=anime_item2,
+                episode_number=i,
+                datetime=timezone.now() - timedelta(days=i),
+                notification_sent=True,
+            )
+
+        # Update queryset to include the new anime
+        queryset = Anime.objects.filter(user=self.user.id)
+        queryset = queryset.annotate(
+            max_progress=Max("item__event__episode_number"),
+            next_episode_number=Min(
+                "item__event__episode_number",
+                filter=Q(item__event__datetime__gt=now),
+            ),
+            next_episode_datetime=Min(
+                "item__event__datetime",
+                filter=Q(item__event__datetime__gt=now),
+            ),
+        )
+
+        # Test sort by completion
+        sorted_queryset = manager._sort_in_progress_media(
+            queryset,
+            "completion",
+            "anime",
+        )
+        self.assertEqual(list(sorted_queryset), [self.anime, anime2])
+
+        # Test sort by episodes_left
+        sorted_queryset = manager._sort_in_progress_media(
+            queryset,
+            "episodes_left",
+            "anime",
+        )
+        self.assertEqual(list(sorted_queryset), [self.anime, anime2])
 
     @patch("app.providers.services.get_media_metadata")
     def test_get_in_progress_all_media_types(self, mock_get_media_metadata):

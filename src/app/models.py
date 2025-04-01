@@ -194,8 +194,7 @@ class MediaManager(models.Manager):
 
     def get_historical_models(self):
         """Return list of historical model names."""
-        media_types = MediaTypes.values
-        return [f"historical{media_type}" for media_type in media_types]
+        return [f"historical{media_type}" for media_type in MediaTypes.values]
 
     def get_media_list(self, user, media_type, status_filter, sort_filter, search=None):
         """Get media list based on filters, sorting and search."""
@@ -210,10 +209,15 @@ class MediaManager(models.Manager):
 
         queryset = queryset.select_related("item")
 
-        # Apply prefetch related based on media type
+        # Apply media-specific prefetches
+        queryset = self._apply_prefetch_related(queryset, media_type)
+
+        return self._apply_sorting(queryset, model, media_type, sort_filter)
+
+    def _apply_prefetch_related(self, queryset, media_type):
+        """Apply appropriate prefetch_related based on media type."""
         if media_type == "tv":
-            # For TV, prefetch seasons and their episodes with their items
-            queryset = queryset.prefetch_related(
+            return queryset.prefetch_related(
                 Prefetch(
                     "seasons",
                     queryset=Season.objects.select_related("item"),
@@ -223,91 +227,86 @@ class MediaManager(models.Manager):
                     queryset=Episode.objects.select_related("item"),
                 ),
             )
-        elif media_type == "season":
-            # For Season, prefetch episodes with their items
-            queryset = queryset.prefetch_related(
+        if media_type == "season":
+            return queryset.prefetch_related(
                 Prefetch(
                     "episodes",
                     queryset=Episode.objects.select_related("item"),
                 ),
             )
+        return queryset
 
+    def _apply_sorting(self, queryset, model, media_type, sort_filter):
+        """Apply sorting based on the sort filter and media type."""
+        # Check if sort_filter is a property on the model
         sort_is_property = sort_filter in [
             name for name in dir(model) if isinstance(getattr(model, name), property)
         ]
+
+        # Check if sort_filter is a field on the Item model
         sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
 
+        # Handle property-based sorting for TV and Season
         if media_type in ("tv", "season") and sort_is_property:
-            # For date fields, handle None values specially
-            if sort_filter in ("start_date", "end_date"):
-                # Convert queryset to list for manual sorting
-                result_list = list(queryset)
+            return self._sort_by_property(queryset, sort_filter)
 
-                # Split into items with dates and without dates
-                with_dates = [
-                    item
-                    for item in result_list
-                    if getattr(item, sort_filter) is not None
-                ]
-                without_dates = [
-                    item for item in result_list if getattr(item, sort_filter) is None
-                ]
-
-                # Sort items with dates
-                if sort_filter == "start_date":
-                    # For start_date, sort ascending (earliest first)
-                    sorted_with_dates = sorted(
-                        with_dates,
-                        key=lambda x: getattr(x, sort_filter),
-                    )
-                else:
-                    # For other date fields, sort descending (latest first)
-                    sorted_with_dates = sorted(
-                        with_dates,
-                        key=lambda x: getattr(x, sort_filter),
-                        reverse=True,
-                    )
-
-                # Combine lists - items with dates first, then items without dates
-                return sorted_with_dates + without_dates
-            # For non-date fields, use the original logic
-            return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
-
+        # Handle sorting by Item fields
         if sort_is_item_field:
             sort_field = f"item__{sort_filter}"
             return queryset.order_by(
                 F(sort_field).asc() if sort_filter == "title" else F(sort_field).desc(),
             )
 
+        # Default sorting
         return queryset.order_by(F(sort_filter).desc(nulls_last=True))
+
+    def _sort_by_property(self, queryset, sort_filter):
+        """Sort queryset by a property field."""
+        # Special handling for date fields
+        if sort_filter in ("start_date", "end_date"):
+            result_list = list(queryset)
+
+            # Split items with and without dates
+            with_dates = [
+                item for item in result_list if getattr(item, sort_filter) is not None
+            ]
+            without_dates = [
+                item for item in result_list if getattr(item, sort_filter) is None
+            ]
+
+            # Sort items with dates
+            if sort_filter == "start_date":
+                # For start_date, sort ascending (earliest first)
+                sorted_with_dates = sorted(
+                    with_dates,
+                    key=lambda x: getattr(x, sort_filter),
+                )
+            else:
+                # For other date fields, sort descending (latest first)
+                sorted_with_dates = sorted(
+                    with_dates,
+                    key=lambda x: getattr(x, sort_filter),
+                    reverse=True,
+                )
+
+            # Combine lists - items with dates first, then items without dates
+            return sorted_with_dates + without_dates
+
+        # For non-date properties, sort in descending order
+        return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
 
     def get_in_progress(self, user, sort_by, specific_media_type=None):
         """Get a media list of in progress media by type."""
         now = timezone.now()
         list_by_type = {}
 
-        media_types_to_process = (
-            [specific_media_type]
-            if specific_media_type
-            else [
-                media_type
-                for media_type in MediaTypes.values
-                if (
-                    media_type not in [MediaTypes.TV.value, MediaTypes.EPISODE.value]
-                    and getattr(user, f"{media_type}_enabled", False)
-                )
-            ]
+        media_types_to_process = self._get_media_types_to_process(
+            user,
+            specific_media_type,
         )
 
-        # Add season to the list if TV is enabled and season is not already in the list
-        if (
-            not specific_media_type
-            and getattr(user, "tv_enabled", False)
-            and MediaTypes.SEASON.value not in media_types_to_process
-        ):
-            media_types_to_process.insert(0, MediaTypes.SEASON.value)
-
         for media_type in media_types_to_process:
+            # Get base queryset for in-progress media
             media_list = self.get_media_list(
                 user=user,
                 media_type=media_type,
@@ -321,7 +320,7 @@ class MediaManager(models.Manager):
             if not media_list.exists():
                 continue
 
-            # Add common annotations
+            # Add common annotations for all media types
             media_list = media_list.annotate(
                 max_progress=Max("item__event__episode_number"),
                 next_episode_number=Min(
@@ -334,89 +333,26 @@ class MediaManager(models.Manager):
                 ),
             )
 
-            # Handle sorting based on model type
-            if sort_by == "upcoming":
-                media_list = media_list.order_by(
-                    Case(
-                        When(next_episode_datetime__isnull=True, then=1),
-                        default=0,
-                    ),
-                    "next_episode_datetime",
-                    "item__title",
-                )
-            elif sort_by == "title":
-                media_list = media_list.order_by("item__title")
-            elif sort_by in ["completion", "episodes_left"]:
-                # For Season, we need to evaluate the queryset and sort in Python
-                if media_type == "season":
-                    media_list = list(media_list)
-                    if sort_by == "completion":
-                        media_list.sort(
-                            key=lambda x: (
-                                x.max_progress is not None,
-                                (
-                                    x.progress / x.max_progress * 100
-                                    if x.max_progress
-                                    else 0
-                                ),
-                                x.item.title,
-                            ),
-                            reverse=True,
-                        )
-                    else:  # episodes_left
-                        media_list.sort(
-                            key=lambda x: (
-                                x.max_progress is not None,
-                                (x.max_progress - x.progress if x.max_progress else 0),
-                                x.item.title,
-                            ),
-                        )
-                else:
-                    # For other media types, use database annotations
-                    media_list = media_list.annotate(
-                        completion_rate=Case(
-                            When(
-                                max_progress__isnull=False,
-                                then=(Cast("progress", FloatField()) * 100.0)
-                                / Cast("max_progress", FloatField()),
-                            ),
-                            default=0.0,
-                            output_field=FloatField(),
-                        ),
-                        episodes_remaining=Case(
-                            When(
-                                max_progress__isnull=False,
-                                then=F("max_progress") - F("progress"),
-                            ),
-                            default=0,
-                            output_field=IntegerField(),
-                        ),
-                    )
-                    if sort_by == "completion":
-                        media_list = media_list.order_by(
-                            Case(
-                                When(max_progress__isnull=True, then=0),
-                                default=1,
-                            ),
-                            "-completion_rate",
-                            "item__title",
-                        )
-                    else:  # episodes_left
-                        media_list = media_list.order_by(
-                            Case(
-                                When(max_progress__isnull=True, then=1),
-                                default=0,
-                            ),
-                            "episodes_remaining",
-                            "item__title",
-                        )
+            # Apply sorting based on the requested sort criteria
+            media_list = self._sort_in_progress_media(media_list, sort_by, media_type)
 
-            # Store the full count before limiting
+            # Store results with pagination
             total_count = (
                 len(media_list) if isinstance(media_list, list) else media_list.count()
             )
 
-            media_list = media_list[14:] if specific_media_type else media_list[:14]
+            # Apply limit based on whether this is a specific type request or dashboard
+            limit = None if specific_media_type else 14
+            offset = 14 if specific_media_type else 0
+
+            if isinstance(media_list, list):
+                media_list = (
+                    media_list[offset:] if specific_media_type else media_list[:limit]
+                )
+            else:
+                media_list = (
+                    media_list[offset:] if specific_media_type else media_list[:limit]
+                )
 
             list_by_type[media_type] = {
                 "items": media_list,
@@ -424,6 +360,112 @@ class MediaManager(models.Manager):
             }
 
         return list_by_type
+
+    def _get_media_types_to_process(self, user, specific_media_type):
+        """Determine which media types to process based on user settings."""
+        if specific_media_type:
+            return [specific_media_type]
+
+        # Get all enabled media types except TV and Episode
+        media_types = [
+            media_type
+            for media_type in MediaTypes.values
+            if (
+                media_type not in [MediaTypes.TV.value, MediaTypes.EPISODE.value]
+                and getattr(user, f"{media_type}_enabled", False)
+            )
+        ]
+
+        # Add season if TV is enabled
+        if (
+            getattr(user, "tv_enabled", False)
+            and MediaTypes.SEASON.value not in media_types
+        ):
+            media_types.insert(0, MediaTypes.SEASON.value)
+
+        return media_types
+
+    def _sort_in_progress_media(self, media_list, sort_by, media_type):
+        """Sort in-progress media based on the sort criteria."""
+        if sort_by == "upcoming":
+            return media_list.order_by(
+                Case(
+                    When(next_episode_datetime__isnull=True, then=1),
+                    default=0,
+                ),
+                "next_episode_datetime",
+                "item__title",
+            )
+        if sort_by == "title":
+            return media_list.order_by("item__title")
+        if sort_by in ["completion", "episodes_left"]:
+            return self._sort_by_completion_or_episodes(media_list, sort_by, media_type)
+
+        return media_list
+
+    def _sort_by_completion_or_episodes(self, media_list, sort_by, media_type):
+        """Sort media by completion percentage or episodes left."""
+        # For Season, we need to evaluate the queryset and sort in Python
+        if media_type == "season":
+            return self._sort_season_by_completion_or_episodes(
+                list(media_list),
+                sort_by,
+            )
+
+        # For other media types, use database annotations
+        media_list = media_list.annotate(
+            completion_rate=Case(
+                When(
+                    max_progress__isnull=False,
+                    then=(Cast("progress", FloatField()) * 100.0)
+                    / Cast("max_progress", FloatField()),
+                ),
+                default=0.0,
+                output_field=FloatField(),
+            ),
+            episodes_remaining=Case(
+                When(
+                    max_progress__isnull=False,
+                    then=F("max_progress") - F("progress"),
+                ),
+                default=0,
+                output_field=IntegerField(),
+            ),
+        )
+
+        if sort_by == "completion":
+            return media_list.order_by(
+                Case(When(max_progress__isnull=True, then=0), default=1),
+                "-completion_rate",
+                "item__title",
+            )
+        # episodes_left
+        return media_list.order_by(
+            Case(When(max_progress__isnull=True, then=1), default=0),
+            "episodes_remaining",
+            "item__title",
+        )
+
+    def _sort_season_by_completion_or_episodes(self, media_list, sort_by):
+        """Sort season media by completion percentage or episodes left."""
+        if sort_by == "completion":
+            media_list.sort(
+                key=lambda x: (
+                    x.max_progress is not None,
+                    (x.progress / x.max_progress * 100 if x.max_progress else 0),
+                    x.item.title,
+                ),
+                reverse=True,
+            )
+        else:  # episodes_left
+            media_list.sort(
+                key=lambda x: (
+                    x.max_progress is not None,
+                    (x.max_progress - x.progress if x.max_progress else 0),
+                    x.item.title,
+                ),
+            )
+        return media_list
 
     def get_media(
         self,
