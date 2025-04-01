@@ -299,6 +299,14 @@ class MediaManager(models.Manager):
             ]
         )
 
+        # Add season to the list if TV is enabled and season is not already in the list
+        if (
+            not specific_media_type
+            and getattr(user, "tv_enabled", False)
+            and MediaTypes.SEASON.value not in media_types_to_process
+        ):
+            media_types_to_process.insert(0, MediaTypes.SEASON.value)
+
         for media_type in media_types_to_process:
             media_list = self.get_media_list(
                 user=user,
