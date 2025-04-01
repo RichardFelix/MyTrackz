@@ -117,7 +117,7 @@ class StatisticsTests(TestCase):
             status=Media.Status.COMPLETED.value,
             score=None,
             start_date=datetime.date(2025, 3, 1),
-            end_date=None,
+            end_date=datetime.date(2025, 3, 31),
         )
 
     def test_get_level(self):
