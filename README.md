@@ -29,7 +29,6 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 - 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
 - 📊 Export all your tracked media to a CSV file and import it back.
 
-
 ## 📱 Screenshots
 
 | Homepage                                                                                       | Calendar                                                                                    |
@@ -162,25 +161,28 @@ python manage.py runserver & celery -A config worker --beat --scheduler django -
 
 Go to: http://localhost:8000
 
-
 ## 💪 Support the Project
 
 There are many ways you can support Yamtrack's development:
 
 ### ⭐ Star the Project
+
 The simplest way to show your support is to star the repository on GitHub. It helps increase visibility and shows appreciation for the work.
 
 ### 🐛 Bug Reports
-Found a bug? Open an issue on GitHub with detailed steps to reproduce it. Quality bug reports are incredibly valuable for improving stability.
+
+Found a bug? Open an [issue](https://github.com/FuzzyGrim/Yamtrack/issues) on GitHub with detailed steps to reproduce it. Quality bug reports are incredibly valuable for improving stability.
 
 ### 💡 Feature Suggestions
-Have ideas for new features? Share them through GitHub issues. Your feedback helps shape the future of Yamtrack.
+
+Have ideas for new features? Share them through [GitHub issues](https://github.com/FuzzyGrim/Yamtrack/issues). Your feedback helps shape the future of Yamtrack.
 
 ### 🧪 Contributing
+
 Pull requests are welcome! Whether it's fixing typos, improving documentation, or adding new features, your contributions help make Yamtrack better for everyone.
 
 ### ☕ Donate
+
 If you'd like to support the project financially:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/fuzzygrim)
-
