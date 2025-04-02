@@ -8,28 +8,29 @@
 
 Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games and books.
 
-## Demo
+## 🚀 Demo
 
 You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) using the username `demo` and password `demo`.
 
-## Features
+## ✨ Features
 
-- Track movies, tv shows, anime, manga and games.
-- Track each season of a tv show individually and episodes watched.
-- Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
-- Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
-- Create custom media entries, for niche media that cannot be found by the supported APIs.
-- Use personal lists to organize your media for any purpose, add other members to collaborate on your lists.
-- Keep up with your upcoming media releases with a calendar.
-- Receive notifications of upcoming media releases via [Apprise](https://github.com/caronc/apprise/wiki) (supports Discord, Telegram, ntfy, Slack, email, and many more).
-- Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
-- Multi-users functionality allowing individual accounts with personalized tracking.
-- Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
-- Integration with [Jellyfin](https://jellyfin.org/), to automatically track new media watched.
-- Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
-- Export all your tracked media to a CSV file and import it back.
+- 🎬 Track movies, tv shows, anime, manga and games.
+- 📺 Track each season of a tv show individually and episodes watched.
+- ⭐ Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
+- 📈 Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
+- ✏️ Create custom media entries, for niche media that cannot be found by the supported APIs.
+- 📂 Create personal lists to organize your media for any purpose, add other members to collaborate on your lists.
+- 📅 Keep up with your upcoming media with a calendar.
+- 🔔 Receive notifications of upcoming releases via Apprise (supports Discord, Telegram, ntfy, Slack, email, and many more).
+- 🐳 Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
+- 👥 Multi-users functionality allowing individual accounts with personalized tracking.
+- 🔑 Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
+- 🦀 Integration with [Jellyfin](https://jellyfin.org/), to automatically track new media watched.
+- 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/) and [Kitsu](https://kitsu.app/).
+- 📊 Export all your tracked media to a CSV file and import it back.
 
-## Screenshots
+
+## 📱 Screenshots
 
 | Homepage                                                                                       | Calendar                                                                                    |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -55,7 +56,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/create_custom.png" alt="Create Manual Entries" /> | <img src="https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/import_data.png" alt="Import Data" /> |
 
-## Installing with Docker
+## 🐳 Installing with Docker
 
 Copy the default `docker-compose.yml` file from the repository and set the environment variables. This would use a SQlite database, which is enough for most use cases.
 
@@ -67,7 +68,7 @@ docker-compose up -d
 
 Alternatively, if you need a PostgreSQL database, you can use the `docker-compose.postgres.yml` file.
 
-### Reverse Proxy Setup
+### 🌊 Reverse Proxy Setup
 
 When using a reverse proxy, if you see a `403 - Forbidden` error, you need to set the `URLS` environment variable to the URL you are using for the app.
 
@@ -82,7 +83,7 @@ services:
 
 Note that the setting must include the correct protocol (`https` or `http`), and must not include the application `/` context path. Multiple origins can be specified by separating them with a comma (`,`).
 
-### Environment variables
+### ⚙️ Environment variables
 
 | Name                          | Notes                                                                                                                                                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -114,7 +115,7 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 | SOCIALACCOUNT_ONLY            | Default to `False`, set to `True` to disable local authentication when using social authentication only                                                                                             |
 | REDIRECT_LOGIN_TO_SSO         | Default to `False`, set to `True` to automatically redirect (using javascript) to the SSO provider when there's only one available. Useful for single sign-on setups.                               |
 
-### Environment variables for PostgreSQL
+### 🗄️ Environment variables for PostgreSQL
 
 | Name        | Notes                        |
 | ----------- | ---------------------------- |
@@ -124,7 +125,7 @@ Note that the setting must include the correct protocol (`https` or `http`), and
 | DB_USER     |                              |
 | DB_PASSWORD |                              |
 
-## Local development
+## 💻 Local development
 
 Clone the repository and change directory to it.
 
@@ -161,8 +162,25 @@ python manage.py runserver & celery -A config worker --beat --scheduler django -
 
 Go to: http://localhost:8000
 
-## Donate
 
-If you like the project and want to support it, you can donate via:
+## 💪 Support the Project
+
+There are many ways you can support Yamtrack's development:
+
+### ⭐ Star the Project
+The simplest way to show your support is to star the repository on GitHub. It helps increase visibility and shows appreciation for the work.
+
+### 🐛 Bug Reports
+Found a bug? Open an issue on GitHub with detailed steps to reproduce it. Quality bug reports are incredibly valuable for improving stability.
+
+### 💡 Feature Suggestions
+Have ideas for new features? Share them through GitHub issues. Your feedback helps shape the future of Yamtrack.
+
+### 🧪 Contributing
+Pull requests are welcome! Whether it's fixing typos, improving documentation, or adding new features, your contributions help make Yamtrack better for everyone.
+
+### ☕ Donate
+If you'd like to support the project financially:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/fuzzygrim)
+
