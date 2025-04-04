@@ -21,8 +21,8 @@ def search(query):
     if data is None:
         params = {
             "q": query,
-            "fields": "cover_edition_key,edition_key,title,cover_i",
-            "limit": 25,
+            "fields": "title,key,cover_edition_key,cover_i,editions",
+            "limit": 20,
         }
 
         response = services.api_request(
@@ -48,16 +48,30 @@ def search(query):
     return data
 
 
+def extract_openlibrary_id(path):
+    """
+    Extract the ID from an OpenLibrary path.
+
+    Args:
+        path (str): A path like '/works/OL123W' or a full URL
+
+    Returns:
+        str: The extracted ID (e.g., 'OL123W')
+    """
+    if not path:
+        return None
+
+    # Handle both full URLs and path fragments
+    return path.rstrip("/").split("/")[-1]
+
+
 def get_media_id(doc):
     """Get media ID from document with fallback logic."""
     if "cover_edition_key" in doc:
         return doc["cover_edition_key"]
 
-    # Fallback to first edition_key if available
-    if doc.get("edition_key"):
-        return doc["edition_key"][0]
-
-    return None
+    # Fallback to top ranked edition key
+    return extract_openlibrary_id(doc["editions"]["docs"][0]["key"])
 
 
 def book(media_id):
@@ -81,9 +95,8 @@ async def async_book(media_id):
         works = response_book.get("works", [])
         if works:
             work = works[0]
-            work_url = (
-                f"https://openlibrary.org/works/{work['key'].split('/')[-1]}.json"
-            )
+            work_id = extract_openlibrary_id(work["key"])
+            work_url = f"https://openlibrary.org/works/{work_id}.json"
 
             response_work = services.api_request(
                 "OpenLibrary",
@@ -254,8 +267,8 @@ def get_isbns(response):
 
 async def get_editions(response_book, response_work):
     """Get list of editions asynchronously."""
-    book_id = response_book.get("key", "").split("/")[-1]
-    work_id = response_work.get("key", "").split("/")[-1]
+    book_id = extract_openlibrary_id(response_book.get("key", ""))
+    work_id = extract_openlibrary_id(response_work.get("key", ""))
 
     if not work_id:
         work_id = book_id
@@ -268,12 +281,14 @@ async def get_editions(response_book, response_work):
             return [
                 {
                     "source": "openlibrary",
-                    "media_id": edition["key"].split("/")[-1],
+                    "source_url": f"https://openlibrary.org/books/{extract_openlibrary_id(edition['key'])}",
+                    "media_id": extract_openlibrary_id(edition["key"]),
                     "media_type": "book",
                     "title": edition.get("title"),
                     "image": get_cover_image_url(edition),
                 }
                 for edition in data["entries"][:10]
-                if edition["key"].split("/")[-1] != book_id and edition.get("title")
+                if extract_openlibrary_id(edition["key"]) != book_id
+                and edition.get("title")
             ]
     return []
