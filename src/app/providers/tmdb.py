@@ -58,6 +58,7 @@ def movie(media_id):
         data = {
             "media_id": media_id,
             "source": "tmdb",
+            "source_url": f"https://www.themoviedb.org/movie/{media_id}",
             "media_type": "movie",
             "title": response["title"],
             "max_progress": 1,
@@ -138,7 +139,12 @@ def tv_with_seasons(media_id, season_numbers):
                 raise requests.exceptions.HTTPError(msg, response=not_found_response)
 
             season_data = process_season(response[season_key])
+
+            # add from tv show metadata to the season metadata
             season_data["media_id"] = media_id
+            season_data["source_url"] = (
+                f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
+            )
             season_data["title"] = data["title"]
             season_data["external_ids"] = data["external_ids"]
             season_data["genres"] = data["genres"]
@@ -174,6 +180,7 @@ def process_tv(response):
     return {
         "media_id": response["id"],
         "source": "tmdb",
+        "source_url": f"https://www.themoviedb.org/tv/{response['id']}",
         "media_type": "tv",
         "title": response["name"],
         "max_progress": num_episodes,

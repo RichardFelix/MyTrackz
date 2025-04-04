@@ -73,7 +73,7 @@ def game(media_id):
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id,artworks.image_id,"
-            "summary,game_type,first_release_date,"
+            "url,summary,game_type,first_release_date,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,"
             "parent_game.name,parent_game.cover.image_id,"
             "remasters.name,remasters.cover.image_id,"
@@ -93,6 +93,7 @@ def game(media_id):
         data = {
             "media_id": response["id"],
             "source": "igdb",
+            "source_url": response["url"],
             "media_type": "game",
             "title": response["name"],
             "max_progress": None,

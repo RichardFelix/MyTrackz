@@ -61,6 +61,12 @@ def is_list(arg1):
 
 
 @register.filter
+def source_readable(source):
+    """Return the readable source name."""
+    return models.Sources(source).label
+
+
+@register.filter
 def media_type_readable(media_type):
     """Return the readable media type."""
     return models.MediaTypes(media_type).label

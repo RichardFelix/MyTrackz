@@ -117,6 +117,7 @@ async def async_book(media_id):
         data = {
             "media_id": media_id,
             "source": "openlibrary",
+            "source_url": f"https://openlibrary.org/books/{media_id}",
             "media_type": "book",
             "title": response_book["title"],
             "max_progress": response_book.get("number_of_pages"),

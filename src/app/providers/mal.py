@@ -77,6 +77,7 @@ def anime(media_id):
         data = {
             "media_id": media_id,
             "source": "mal",
+            "source_url": f"https://myanimelist.net/anime/{media_id}",
             "media_type": "anime",
             "title": response["title"],
             "max_progress": num_episodes,
@@ -132,6 +133,7 @@ def manga(media_id):
         data = {
             "media_id": media_id,
             "source": "mal",
+            "source_url": f"https://myanimelist.net/manga/{media_id}",
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),

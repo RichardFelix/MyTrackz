@@ -195,18 +195,28 @@
     <div class="w-full md:w-1/4 md:max-w-[250px]">
       <h2 class="text-2xl font-bold mb-4">Details</h2>
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
-        {% for key, value in media.details.items %}
-          <div class="mb-4 last:mb-0">
-            <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
-            {% if value|is_list %}
-              {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
-            {% else %}
-              <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
-            {% endif %}
-          </div>
-        {% empty %}
+        {% if media.details.items %}
+          {% for key, value in media.details.items %}
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
+              {% if value|is_list %}
+                {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
+              {% else %}
+                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+              {% endif %}
+            </div>
+          {% endfor %}
+          {% if media.source != "manual" %}
+            <div>
+              <h3 class="text-sm font-semibold text-gray-400">Source</h3>
+              <a href="{{ media.source_url }}"
+                 class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
+                 target="_blank">{{ media.source|source_readable }}</a>
+            </div>
+          {% endif %}
+        {% else %}
           <div class="text-gray-200">No details available</div>
-        {% endfor %}
+        {% endif %}
       </div>
     </div>
 

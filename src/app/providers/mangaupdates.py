@@ -83,6 +83,7 @@ async def async_manga(media_id):
         data = {
             "media_id": media_id,
             "source": "mangaupdates",
+            "source_url": response["url"],
             "media_type": "manga",
             "title": response["title"],
             "image": get_image_url(response),
