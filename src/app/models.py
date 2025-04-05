@@ -366,19 +366,18 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        # Get all enabled media types except TV and Episode
+        enabled_types = user.get_enabled_media_types()
+
+        # Filter out TV and Episode
         media_types = [
             media_type
-            for media_type in MediaTypes.values
-            if (
-                media_type not in [MediaTypes.TV.value, MediaTypes.EPISODE.value]
-                and getattr(user, f"{media_type}_enabled", False)
-            )
+            for media_type in enabled_types
+            if media_type not in [MediaTypes.TV.value, MediaTypes.EPISODE.value]
         ]
 
-        # Add season if TV is enabled
+        # Add season if TV is enabled (and season isn't already in the list)
         if (
-            getattr(user, "tv_enabled", False)
+            MediaTypes.TV.value in enabled_types
             and MediaTypes.SEASON.value not in media_types
         ):
             media_types.insert(0, MediaTypes.SEASON.value)

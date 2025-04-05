@@ -140,32 +140,42 @@ def sample_search(media_type):
 
 @register.simple_tag
 def get_search_media_types(user):
-    """Return available media types for search based on user preferences.
+    """Return available media types for search based on user preferences."""
+    excluded_types = [models.MediaTypes.SEASON.value, models.MediaTypes.EPISODE.value]
 
-    Excludes SEASON and EPISODE media types and respects user preferences by checking
-    the corresponding {mediatype}_enabled attribute on the user model.
-    """
-    available_types = []
+    enabled_types = (
+        user.get_enabled_media_types()
+        if user.hide_from_search
+        else models.MediaTypes.values
+    )
 
-    excluded_types = [models.MediaTypes.SEASON, models.MediaTypes.EPISODE]
-
-    for media_type in models.MediaTypes:
-        if media_type in excluded_types:
-            continue
-
-        # Get the preference field name (e.g., 'tv_enabled', 'movie_enabled')
-        preference_field = f"{media_type.value}_enabled"
-
-        if user.hide_from_search and not getattr(user, preference_field, True):
-            continue
-
-        available_types.append(
+    # Filter and format the types for search
+    return [
             {
-                "display": media_type_readable_plural(media_type.value),
-                "value": media_type.value,
-            },
-        )
-    return available_types
+            "display": media_type_readable_plural(media_type),
+            "value": media_type,
+        }
+        for media_type in enabled_types
+        if media_type not in excluded_types
+    ]
+
+
+@register.simple_tag
+def get_sidebar_media_types(user):
+    """Return available media types for sidebar navigation based on user preferences."""
+    excluded_types = [models.MediaTypes.EPISODE.value]
+
+    enabled_types = user.get_enabled_media_types()
+
+    # Format the types for sidebar
+    return [
+                {
+            "media_type": media_type,
+            "display_name": media_type_readable_plural(media_type),
+        }
+        for media_type in enabled_types
+        if media_type not in excluded_types
+    ]
 
 
 @register.filter

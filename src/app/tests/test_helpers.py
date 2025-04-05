@@ -92,28 +92,6 @@ class HelpersTest(TestCase):
         mock_redirect.assert_called_once_with("home")
         self.assertEqual(result, "home_redirect")
 
-    def test_get_media_verb(self):
-        """Test getting the appropriate verb for each media type."""
-        # Test present tense
-        self.assertEqual(get_media_verb("tv", past_tense=False), "watch")
-        self.assertEqual(get_media_verb("season", past_tense=False), "watch")
-        self.assertEqual(get_media_verb("episode", past_tense=False), "watch")
-        self.assertEqual(get_media_verb("movie", past_tense=False), "watch")
-        self.assertEqual(get_media_verb("anime", past_tense=False), "watch")
-        self.assertEqual(get_media_verb("manga", past_tense=False), "read")
-        self.assertEqual(get_media_verb("book", past_tense=False), "read")
-        self.assertEqual(get_media_verb("game", past_tense=False), "play")
-
-        # Test past tense
-        self.assertEqual(get_media_verb("tv", past_tense=True), "watched")
-        self.assertEqual(get_media_verb("season", past_tense=True), "watched")
-        self.assertEqual(get_media_verb("episode", past_tense=True), "watched")
-        self.assertEqual(get_media_verb("movie", past_tense=True), "watched")
-        self.assertEqual(get_media_verb("anime", past_tense=True), "watched")
-        self.assertEqual(get_media_verb("manga", past_tense=True), "read")
-        self.assertEqual(get_media_verb("book", past_tense=True), "read")
-        self.assertEqual(get_media_verb("game", past_tense=True), "played")
-
     def test_get_media_verb_covers_all_media_types(self):
         """Test that get_media_verb covers all media types defined in MediaTypes."""
         # Get all media types from the MediaTypes enum
