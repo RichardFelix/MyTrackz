@@ -248,49 +248,13 @@
                   {% firstof "tv" as search_type %}
                 {% else %}
                   {% firstof media_type user.last_search_type as search_type %}
-                {% endif %}             
-                
+                {% endif %}
+
                 {# Search bar #}
                 <div class="relative w-full max-w-2xl">
-                  <form
-                    method="get"
-                    action="{% url 'search' %}"
-                    x-data="
-                    {
-                      isOpen: false,
-                      selectedType: {
-                        display: '{{ search_type|media_type_readable_plural }}',
-                        value: '{{ search_type }}'
-                      },
-                      mediaTypes: [
-                        {% if not user.hide_from_search or user.tv_enabled %}
-                          { display: '{{ "tv"|media_type_readable_plural }}', value: 'tv' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.movie_enabled %}
-                          { display: '{{ "movie"|media_type_readable_plural }}', value: 'movie' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.anime_enabled %}
-                          { display: '{{ "anime"|media_type_readable_plural }}', value: 'anime' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.manga_enabled %}
-                          { display: '{{ "manga"|media_type_readable_plural }}', value: 'manga' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.game_enabled %}
-                          { display: '{{ "game"|media_type_readable_plural }}', value: 'game' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.book_enabled %}
-                          { display: '{{ "book"|media_type_readable_plural }}', value: 'book' },
-                        {% endif %}
-                      ],
-                      getPlaceholder() {
-                        return `Search ${this.selectedType.display.toLowerCase()}...`
-                      }
-                    }">
+                  <form method="get"
+                        action="{% url 'search' %}"
+                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
                       <div class="relative flex-grow">
                         {# Search input #}

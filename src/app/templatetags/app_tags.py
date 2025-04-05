@@ -138,6 +138,36 @@ def sample_search(media_type):
     return base_url
 
 
+@register.simple_tag
+def get_search_media_types(user):
+    """Return available media types for search based on user preferences.
+
+    Excludes SEASON and EPISODE media types and respects user preferences by checking
+    the corresponding {mediatype}_enabled attribute on the user model.
+    """
+    available_types = []
+
+    excluded_types = [models.MediaTypes.SEASON, models.MediaTypes.EPISODE]
+
+    for media_type in models.MediaTypes:
+        if media_type in excluded_types:
+            continue
+
+        # Get the preference field name (e.g., 'tv_enabled', 'movie_enabled')
+        preference_field = f"{media_type.value}_enabled"
+
+        if user.hide_from_search and not getattr(user, preference_field, True):
+            continue
+
+        available_types.append(
+            {
+                "display": media_type_readable_plural(media_type.value),
+                "value": media_type.value,
+            },
+        )
+    return available_types
+
+
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
