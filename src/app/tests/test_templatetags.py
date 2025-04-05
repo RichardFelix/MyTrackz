@@ -360,3 +360,32 @@ class AppTagsTests(TestCase):
         # Test with dict for Episode
         episode_dict_modal = app_tags.modal_url("history", self.episode_dict)
         self.assertEqual(episode_dict_modal, expected_episode_modal)
+
+    def test_unicode_icon(self):
+        """Test the unicode_icon tag for all media types."""
+        # Test all media types from MediaTypes
+        for media_type in MediaTypes.values:
+            try:
+                result = app_tags.unicode_icon(media_type)
+                # Just check that we get a non-empty string
+                self.assertTrue(isinstance(result, str))
+                self.assertTrue(len(result) > 0)
+            except KeyError:
+                self.fail(f"unicode_icon raised KeyError for {media_type}")
+
+    def test_icon_media_types(self):
+        """Test the icon tag for all media types."""
+        # Test all media types from MediaTypes
+        for media_type in MediaTypes.values:
+            try:
+                # Test with both active and inactive states
+                active_result = app_tags.icon(media_type, is_active=True)
+                inactive_result = app_tags.icon(media_type, is_active=False)
+
+                # Just check that we get a non-empty string
+                self.assertTrue(isinstance(active_result, str))
+                self.assertTrue(len(active_result) > 0)
+                self.assertTrue(isinstance(inactive_result, str))
+                self.assertTrue(len(inactive_result) > 0)
+            except KeyError:
+                self.fail(f"icon raised KeyError for {media_type}")

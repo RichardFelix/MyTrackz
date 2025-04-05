@@ -431,9 +431,7 @@ def icon(name, is_active, extra_classes=None):
         ),
     }
 
-    content = icons.get(name)
-    if not content:
-        return ""
+    content = icons[name]
 
     active_class = "text-indigo-400 " if is_active else ""
     extra_classes = extra_classes or "w-5 h-5"
