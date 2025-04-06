@@ -50,6 +50,10 @@ session.mount(
     "https://comicvine.gamespot.com/api",
     LimiterAdapter(per_hour=200),
 )
+session.mount(
+    "https://openlibrary.org",
+    LimiterAdapter(per_minute=20),
+)
 
 
 def retry_on_error(delay=1):
