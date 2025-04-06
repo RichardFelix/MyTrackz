@@ -170,37 +170,37 @@ def get_anime_schedule_bulk(media_ids):
             total_episodes = media["episodes"]
             mal_id = str(media["idMal"])
 
-            if airing_schedule:
-                # Filter episodes if total_episodes is known
-                # happens with idMal: 54857
-                if total_episodes is not None:
+            # First check if we know the total episode count
+            if total_episodes:
+                if airing_schedule:
+                    # Filter out episodes beyond the total count
+                    original_length = len(airing_schedule)
                     airing_schedule = [
                         episode
                         for episode in airing_schedule
                         if episode["episode"] <= total_episodes
                     ]
-                    # Log any filtering that occurred
-                    if len(media["airingSchedule"]["nodes"]) > len(airing_schedule):
+
+                    # Log if any filtering occurred
+                    if original_length > len(airing_schedule):
                         logger.info(
                             "Filtered episodes for MAL ID %s - keep only %s episodes",
                             mal_id,
                             total_episodes,
                         )
-            # No airing schedule, create basic one from dates
-            else:
-                airing_schedule = []
-                start_date_timestamp = anilist_date_parser(media["startDate"])
+                elif not airing_schedule:
+                    # No airing schedule but we know episode count, create from dates
+                    start_date_timestamp = anilist_date_parser(media["startDate"])
 
-                # Add first episode
-                if start_date_timestamp:
-                    airing_schedule.append(
-                        {"episode": 1, "airingAt": start_date_timestamp},
-                    )
+                    # Add first episode
+                    if start_date_timestamp:
+                        airing_schedule.append(
+                            {"episode": 1, "airingAt": start_date_timestamp},
+                        )
 
-                # Add last episode if we know total episodes
-                if total_episodes and total_episodes > 1:
                     end_date_timestamp = anilist_date_parser(media["endDate"])
-                    if end_date_timestamp:
+                    # Add last episode
+                    if end_date_timestamp and total_episodes > 1:
                         airing_schedule.append(
                             {"episode": total_episodes, "airingAt": end_date_timestamp},
                         )
