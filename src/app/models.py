@@ -44,6 +44,7 @@ class Sources(models.TextChoices):
     MANGAUPDATES = "mangaupdates", "MangaUpdates"
     IGDB = "igdb", "Internet Game Database"
     OPENLIBRARY = "openlibrary", "Open Library"
+    COMICVINE = "comicvine", "Comic Vine"
     MANUAL = "manual", "Manual"
 
 
@@ -58,6 +59,7 @@ class MediaTypes(models.TextChoices):
     MANGA = "manga", "Manga"
     GAME = "game", "Game"
     BOOK = "book", "Book"
+    COMIC = "comic", "Comic"
 
 
 class Colors(models.TextChoices):
@@ -1171,5 +1173,11 @@ class Game(Media):
 
 class Book(Media):
     """Model for books."""
+
+    tracker = FieldTracker()
+
+
+class Comic(Media):
+    """Model for comics."""
 
     tracker = FieldTracker()

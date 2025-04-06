@@ -274,6 +274,18 @@ class BookForm(MediaForm):
             "repeats": "Number of Rereads",
         }
 
+class ComicForm(MediaForm):
+    """Form for comics."""
+
+    class Meta(MediaForm.Meta):
+        """Bind form to model."""
+
+        model = models.Comic
+        labels = {
+            "progress": "Progress (Issues)",
+            "repeats": "Number of Rereads",
+        }
+
 
 class TvForm(MediaForm):
     """Form for TV shows."""

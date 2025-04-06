@@ -212,6 +212,23 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    comic_enabled = models.BooleanField(default=True)
+    comic_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
+    )
+    comic_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
+    comic_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
+
     hide_from_search = models.BooleanField(default=True)
 
     calendar_layout = models.CharField(
