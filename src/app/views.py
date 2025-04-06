@@ -415,7 +415,7 @@ def episode_handler(request):
 @require_http_methods(["GET", "POST"])
 def create_entry(request):
     """Return the form for manually adding media items."""
-    if request.method != "POST":
+    if request.method == "GET":
         media_types = MediaTypes.values
         return render(request, "app/create_entry.html", {"media_types": media_types})
 

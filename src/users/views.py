@@ -216,7 +216,7 @@ def sidebar(request):
     media_types = app.models.MediaTypes.values
     media_types.remove("episode")
 
-    if request.method != "POST":
+    if request.method == "GET":
         return render(request, "users/sidebar.html", {"media_types": media_types})
 
     # Prevent demo users from updating preferences
