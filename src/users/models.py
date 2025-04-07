@@ -1,3 +1,5 @@
+import secrets
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask
@@ -11,6 +13,11 @@ EXCLUDED_SEARCH_TYPES = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
 VALID_SEARCH_TYPES = [
     value for value in MediaTypes.values if value not in EXCLUDED_SEARCH_TYPES
 ]
+
+
+def generate_token():
+    """Generate a user token."""
+    return secrets.token_urlsafe(24)
 
 
 class HomeSortChoices(models.TextChoices):
@@ -262,9 +269,8 @@ class User(AbstractUser):
 
     token = models.CharField(
         max_length=32,
-        null=True,
-        blank=True,
         unique=True,
+        default=generate_token,
         help_text="Token for external webhooks",
     )
 
@@ -510,3 +516,7 @@ class User(AbstractUser):
             "results": results,
             "schedules": schedules,
         }
+
+    def regenerate_token(self):
+        self.token = generate_token()
+        self.save(update_fields=["token"])
