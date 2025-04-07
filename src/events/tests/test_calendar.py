@@ -16,7 +16,9 @@ from events.tasks import (
     get_tvmaze_episode_map,
     get_user_reloaded,
     process_anime_bulk,
-    process_item,
+    process_comic,
+    process_other,
+    process_season,
     reload_calendar,
 )
 
@@ -80,16 +82,25 @@ class ReloadCalendarTaskTests(TestCase):
         )
         Book.objects.create(item=self.book_item, user=self.user, status="Planning")
 
-    @patch("events.tasks.process_item")
+    @patch("events.tasks.process_season")
+    @patch("events.tasks.process_other")
     @patch("events.tasks.process_anime_bulk")
     def test_reload_calendar_all_types(
         self,
         mock_process_anime_bulk,
-        mock_process_item,
+        mock_process_other,
+        mock_process_season,
     ):
         """Test reload_calendar with all media types."""
         # Setup mocks
-        mock_process_item.side_effect = lambda item, events_bulk: events_bulk.append(
+        mock_process_season.side_effect = lambda item, events_bulk: events_bulk.append(
+            Event(
+                item=item,
+                episode_number=1,
+                datetime=timezone.now(),
+            ),
+        )
+        mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
             Event(
                 item=item,
                 episode_number=1,
@@ -117,14 +128,16 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(len(anime_items), 1)
         self.assertEqual(anime_items[0].id, self.anime_item.id)
 
-        # Verify process_item was called for non-anime items
-        # 5 items: movie, tv, season, manga, book
-        self.assertEqual(mock_process_item.call_count, 5)
+        # Verify process_season was called for season items
+        self.assertTrue(Event.objects.filter(item=self.season_item).exists())
+
+        # Verify process_other was called for non-anime items
+        #  items: movie, tv, manga, book
+        self.assertEqual(mock_process_other.call_count, 4)
 
         # Verify events were created
         self.assertTrue(Event.objects.filter(item=self.anime_item).exists())
         self.assertTrue(Event.objects.filter(item=self.movie_item).exists())
-        self.assertTrue(Event.objects.filter(item=self.season_item).exists())
         self.assertTrue(Event.objects.filter(item=self.manga_item).exists())
         self.assertTrue(Event.objects.filter(item=self.book_item).exists())
 
@@ -136,16 +149,19 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertIn("Berserk", result)
         self.assertIn("1984", result)
 
-    @patch("events.tasks.process_item")
+    @patch("events.tasks.process_season")
+    @patch("events.tasks.process_other")
     @patch("events.tasks.process_anime_bulk")
     def test_reload_calendar_no_changes(
         self,
         mock_process_anime_bulk,
-        mock_process_item,
+        mock_process_other,
+        mock_process_season,
     ):
         """Test reload_calendar with no changes."""
         # Setup mocks to not add any events
-        mock_process_item.return_value = None
+        mock_process_season.return_value = None
+        mock_process_other.return_value = None
         mock_process_anime_bulk.return_value = None
 
         # Call the task
@@ -154,11 +170,11 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify result message
         self.assertEqual("There have been no changes in the calendar", result)
 
-    @patch("events.tasks.process_item")
-    def test_reload_calendar_specific_items(self, mock_process_item):
+    @patch("events.tasks.process_other")
+    def test_reload_calendar_specific_items(self, mock_process_other):
         """Test reload_calendar with specific items to process."""
         # Setup mock
-        mock_process_item.side_effect = lambda item, events_bulk: events_bulk.append(
+        mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
             Event(
                 item=item,
                 episode_number=1,
@@ -170,8 +186,8 @@ class ReloadCalendarTaskTests(TestCase):
         items_to_process = [self.movie_item, self.book_item]
         result = reload_calendar(self.user.id, items_to_process)
 
-        # Verify process_item was called only for specified items
-        self.assertEqual(mock_process_item.call_count, 2)
+        # Verify process_other was called only for specified items
+        self.assertEqual(mock_process_other.call_count, 2)
 
         # Verify events were created only for specified items
         self.assertFalse(Event.objects.filter(item=self.anime_item).exists())
@@ -189,8 +205,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertNotIn("Berserk", result)
 
     @patch("events.tasks.services.get_media_metadata")
-    def test_process_item_movie(self, mock_get_media_metadata):
-        """Test process_item for a movie."""
+    def test_process_other_movie(self, mock_get_media_metadata):
+        """Test process_other for a movie."""
         # Setup mock
         mock_get_media_metadata.return_value = {
             "details": {
@@ -200,7 +216,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.movie_item, events_bulk)
+        process_other(self.movie_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -215,8 +231,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(events_bulk[0].datetime, expected_date)
 
     @patch("events.tasks.services.get_media_metadata")
-    def test_process_item_book(self, mock_get_media_metadata):
-        """Test process_item for a book."""
+    def test_process_other_book(self, mock_get_media_metadata):
+        """Test process_other for a book."""
         # Setup mock
         mock_get_media_metadata.return_value = {
             "details": {
@@ -227,7 +243,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.book_item, events_bulk)
+        process_other(self.book_item, events_bulk)
 
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
@@ -240,12 +256,12 @@ class ReloadCalendarTaskTests(TestCase):
 
     @patch("events.tasks.tmdb.tv_with_seasons")
     @patch("events.tasks.get_tvmaze_episode_map")
-    def test_process_item_season(
+    def test_process_other_season(
         self,
         mock_get_tvmaze_episode_map,
         mock_tv_with_seasons,
     ):
-        """Test process_item for a TV season."""
+        """Test process_other for a TV season."""
         # Setup mocks
         mock_tv_with_seasons.return_value = {
             "season/1": {
@@ -268,7 +284,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.season_item, events_bulk)
+        process_season(self.season_item, events_bulk)
 
         # Verify events were added
         self.assertEqual(len(events_bulk), 3)
@@ -282,8 +298,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(events_bulk[0].datetime, expected_date)
 
     @patch("events.tasks.services.get_media_metadata")
-    def test_process_item_manga(self, mock_get_media_metadata):
-        """Test process_item for manga."""
+    def test_process_other_manga(self, mock_get_media_metadata):
+        """Test process_other for manga."""
         # Setup mock
         mock_get_media_metadata.return_value = {
             "details": {
@@ -295,7 +311,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.manga_item, events_bulk)
+        process_other(self.manga_item, events_bulk)
 
         # Verify events were added
         self.assertEqual(len(events_bulk), 2)
@@ -583,7 +599,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.movie_item, events_bulk)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -598,7 +614,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item
         events_bulk = []
-        process_item(self.movie_item, events_bulk)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -663,7 +679,7 @@ class ReloadCalendarTaskTests(TestCase):
 
     @patch("events.tasks.services.get_media_metadata")
     def test_http_error_handling(self, mock_get_media_metadata):
-        """Test handling of HTTP errors in process_item."""
+        """Test handling of HTTP errors in process_other."""
         # Setup mock to raise 404 error
         import requests
 
@@ -677,7 +693,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item - should not raise exception
         events_bulk = []
-        process_item(self.movie_item, events_bulk)
+        process_other(self.movie_item, events_bulk)
 
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
@@ -690,4 +706,119 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Process the item - should raise exception
         with self.assertRaises(requests.exceptions.HTTPError):
-            process_item(self.movie_item, events_bulk)
+            process_other(self.movie_item, events_bulk)
+
+    @patch("events.tasks.services.get_media_metadata")
+    @patch("events.tasks.comicvine.issue")
+    def test_process_comic_with_store_date(self, mock_issue, mock_get_media_metadata):
+        """Test process_comic with store date available."""
+        # Create comic item
+        comic_item = Item.objects.create(
+            media_id="4050-18166",
+            source="comicvine",
+            media_type="comic",
+            title="Batman",
+            image="http://example.com/batman.jpg",
+        )
+
+        # Setup mocks
+        mock_get_media_metadata.return_value = {
+            "max_progress": 10,
+            "last_issue_id": "4000-123456",
+            "last_issue": {"issue_number": "10"},
+        }
+
+        mock_issue.return_value = {
+            "store_date": "2023-04-15",
+            "cover_date": "2023-05-01",  # Should use store_date instead
+        }
+
+        # Process the item
+        events_bulk = []
+        process_comic(comic_item, events_bulk)
+
+        # Verify event was added
+        self.assertEqual(len(events_bulk), 1)
+        self.assertEqual(events_bulk[0].item, comic_item)
+        self.assertEqual(events_bulk[0].episode_number, 10)
+
+        # Verify the date was parsed correctly (should use store_date)
+        expected_date = date_parser("2023-04-15")
+        self.assertEqual(events_bulk[0].datetime, expected_date)
+
+        # Verify the correct issue was fetched
+        mock_issue.assert_called_once_with("4000-123456")
+
+    @patch("events.tasks.services.get_media_metadata")
+    @patch("events.tasks.comicvine.issue")
+    def test_process_comic_with_cover_date_only(
+        self,
+        mock_issue,
+        mock_get_media_metadata,
+    ):
+        """Test process_comic with only cover date available."""
+        # Create comic item
+        comic_item = Item.objects.create(
+            media_id="4050-18167",
+            source="comicvine",
+            media_type="comic",
+            title="Superman",
+            image="http://example.com/superman.jpg",
+        )
+
+        # Setup mocks
+        mock_get_media_metadata.return_value = {
+            "max_progress": 5,
+            "last_issue_id": "4000-123457",
+            "last_issue": {"issue_number": "5"},
+        }
+
+        mock_issue.return_value = {
+            "store_date": None,  # No store date
+            "cover_date": "2023-05-01",  # Should use cover_date
+        }
+
+        # Process the item
+        events_bulk = []
+        process_comic(comic_item, events_bulk)
+
+        # Verify event was added
+        self.assertEqual(len(events_bulk), 1)
+        self.assertEqual(events_bulk[0].item, comic_item)
+        self.assertEqual(events_bulk[0].episode_number, 5)
+
+        # Verify the date was parsed correctly (should use cover_date)
+        expected_date = date_parser("2023-05-01")
+        self.assertEqual(events_bulk[0].datetime, expected_date)
+
+    @patch("events.tasks.services.get_media_metadata")
+    @patch("events.tasks.comicvine.issue")
+    def test_process_comic_no_dates(self, mock_issue, mock_get_media_metadata):
+        """Test process_comic with no dates available."""
+        # Create comic item
+        comic_item = Item.objects.create(
+            media_id="4050-18168",
+            source="comicvine",
+            media_type="comic",
+            title="Wonder Woman",
+            image="http://example.com/wonderwoman.jpg",
+        )
+
+        # Setup mocks
+        mock_get_media_metadata.return_value = {
+            "max_progress": 3,
+            "last_issue_id": "4000-123458",
+            "last_issue": {"issue_number": "3"},
+        }
+
+        mock_issue.return_value = {
+            "store_date": None,
+            "cover_date": None,
+        }
+
+        # Process the item
+        events_bulk = []
+        process_comic(comic_item, events_bulk)
+
+        # Verify no event was added
+        self.assertEqual(len(events_bulk), 0)

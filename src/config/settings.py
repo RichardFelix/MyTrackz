@@ -263,6 +263,11 @@ IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
 IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+COMICVINE_API = config(
+    "COMICVINE_API",
+    default="cdab0706269e4bca03a096fbc39920dadf7e4992",
+)
+
 SIMKL_ID = config(
     "SIMKL_ID",
     default="f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",

@@ -77,75 +77,16 @@
                 </a>
               </li>
 
-              {% if user.tv_enabled %}
+              {% get_sidebar_media_types user as sidebar_media_types %}
+              {% for item in sidebar_media_types %}
                 <li>
-                  <a href="{% url 'medialist' media_type='tv' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'tv' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'tv' is_active=media_type|str_equals:"tv" %}
-                    <span>{{ "tv"|media_type_readable_plural }}</span>
+                  <a href="{% url 'medialist' media_type=item.media_type %}"
+                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                    {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
+                    <span>{{ item.display_name }}</span>
                   </a>
                 </li>
-              {% endif %}
-
-              {% if user.season_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='season' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'season' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'season' is_active=media_type|str_equals:"season" %}
-                    <span>{{ "season"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
-
-              {% if user.movie_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='movie' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'movie' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'movie' is_active=media_type|str_equals:"movie" %}
-                    <span>{{ "movie"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
-
-              {% if user.anime_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='anime' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'anime' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'anime' is_active=media_type|str_equals:"anime" %}
-                    <span>{{ "anime"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
-
-              {% if user.manga_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='manga' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'manga' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'manga' is_active=media_type|str_equals:"manga" %}
-                    <span>{{ "manga"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
-
-              {% if user.game_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='game' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'game' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'game' is_active=media_type|str_equals:"game" %}
-                    <span>{{ "game"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
-
-              {% if user.book_enabled %}
-                <li>
-                  <a href="{% url 'medialist' media_type='book' %}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == 'book' %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% icon 'book' is_active=media_type|str_equals:"book" %}
-                    <span>{{ "book"|media_type_readable_plural }}</span>
-                  </a>
-                </li>
-              {% endif %}
+              {% endfor %}
             </ul>
 
             <div class="border-t border-[#2c3136] pt-4">
@@ -248,49 +189,13 @@
                   {% firstof "tv" as search_type %}
                 {% else %}
                   {% firstof media_type user.last_search_type as search_type %}
-                {% endif %}             
-                
+                {% endif %}
+
                 {# Search bar #}
                 <div class="relative w-full max-w-2xl">
-                  <form
-                    method="get"
-                    action="{% url 'search' %}"
-                    x-data="
-                    {
-                      isOpen: false,
-                      selectedType: {
-                        display: '{{ search_type|media_type_readable_plural }}',
-                        value: '{{ search_type }}'
-                      },
-                      mediaTypes: [
-                        {% if not user.hide_from_search or user.tv_enabled %}
-                          { display: '{{ "tv"|media_type_readable_plural }}', value: 'tv' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.movie_enabled %}
-                          { display: '{{ "movie"|media_type_readable_plural }}', value: 'movie' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.anime_enabled %}
-                          { display: '{{ "anime"|media_type_readable_plural }}', value: 'anime' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.manga_enabled %}
-                          { display: '{{ "manga"|media_type_readable_plural }}', value: 'manga' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.game_enabled %}
-                          { display: '{{ "game"|media_type_readable_plural }}', value: 'game' },
-                        {% endif %}
-
-                        {% if not user.hide_from_search or user.book_enabled %}
-                          { display: '{{ "book"|media_type_readable_plural }}', value: 'book' },
-                        {% endif %}
-                      ],
-                      getPlaceholder() {
-                        return `Search ${this.selectedType.display.toLowerCase()}...`
-                      }
-                    }">
+                  <form method="get"
+                        action="{% url 'search' %}"
+                        x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
                       <div class="relative flex-grow">
                         {# Search input #}
@@ -342,7 +247,7 @@
                           x-transition:leave="transition ease-in duration-75"
                           x-transition:leave-start="transform opacity-100 scale-100"
                           x-transition:leave-end="transform opacity-0 scale-95"
-                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg max-h-60 right-0 w-[128px]">
+                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-[128px]">
                         <template x-for="type in mediaTypes" :key="type.value">
                           <li @click="selectedType = type; isOpen = false"
                               class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"

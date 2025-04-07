@@ -9,7 +9,7 @@ from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
-from app.providers import igdb, mal, mangaupdates, manual, openlibrary, tmdb
+from app.providers import comicvine, igdb, mal, mangaupdates, manual, openlibrary, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,14 @@ session.mount(
 session.mount(
     "https://api.tvmaze.com",
     LimiterAdapter(per_second=2),
+)
+session.mount(
+    "https://comicvine.gamespot.com/api",
+    LimiterAdapter(per_hour=190),
+)
+session.mount(
+    "https://openlibrary.org",
+    LimiterAdapter(per_minute=20),
 )
 
 
@@ -101,7 +109,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
     return json_response
 
 
-def request_error_handling(error, *args):
+def request_error_handling(error, *args):  # noqa: C901
     """Handle errors when making a request to the API."""
     # unpack the arguments
     provider, method, url, params, data, headers = args
@@ -147,12 +155,12 @@ def request_error_handling(error, *args):
             message = error_json["message"]
             logger.error("IGDB bad request: %s", message)
 
-    if provider == "TMDB" and status_code == requests.codes.unauthorized:
+    elif provider == "TMDB" and status_code == requests.codes.unauthorized:
         error_json = error_resp.json()
         message = error_json["status_message"]
         logger.error("TMDB unauthorized: %s", message)
 
-    if provider == "MAL":
+    elif provider == "MAL":
         error_json = error_resp.json()
         if status_code == requests.codes.forbidden:
             logger.error("MAL forbidden: is the API key set?")
@@ -160,7 +168,13 @@ def request_error_handling(error, *args):
             status_code == requests.codes.bad_request
             and error_json["message"] == "Invalid client id"
         ):
-            logger.error("MAL bad request: check the API key")
+            logger.error("MAL bad request: Invalid API key")
+
+    elif provider == "ComicVine":
+        error_json = error_resp.json()
+        if status_code == requests.codes.unauthorized:
+            message = error_json["error"]
+            logger.error("ComicVine unauthorized: %s", message)
 
     raise error  # re-raise the error if it's not handled
 
@@ -196,6 +210,7 @@ def get_media_metadata(
         "movie": lambda: tmdb.movie(media_id),
         "game": lambda: igdb.game(media_id),
         "book": lambda: openlibrary.book(media_id),
+        "comic": lambda: comicvine.comic(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -215,5 +230,7 @@ def search(media_type, query, source=None):
         query_list = igdb.search(query)
     elif media_type == "book":
         query_list = openlibrary.search(query)
+    elif media_type == "comic":
+        query_list = comicvine.search(query)
 
     return query_list

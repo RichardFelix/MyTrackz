@@ -102,6 +102,7 @@ def default_source(media_type):
         "manga": "MyAnimeList",
         "game": "The Internet Game Database",
         "book": "Open Library",
+        "comic": "Comic Vine",
     }
 
     return media_type_source[media_type]
@@ -125,17 +126,54 @@ def sample_search(media_type):
         "manga": "Berserk",
         "game": "Half-Life",
         "book": "The Great Gatsby",
+        "comic": "Batman",
     }
 
-    if media_type in sample_queries:
-        query_params = {
-            "media_type": media_type,
-            "q": sample_queries[media_type],
-        }
-        return f"{base_url}?{urlencode(query_params)}"
+    query_params = {
+        "media_type": media_type,
+        "q": sample_queries[media_type],
+    }
+    return f"{base_url}?{urlencode(query_params)}"
 
-    # Return base search URL if media type not recognized
-    return base_url
+
+@register.simple_tag
+def get_search_media_types(user):
+    """Return available media types for search based on user preferences."""
+    excluded_types = [models.MediaTypes.SEASON.value, models.MediaTypes.EPISODE.value]
+
+    enabled_types = (
+        user.get_enabled_media_types()
+        if user.hide_from_search
+        else models.MediaTypes.values
+    )
+
+    # Filter and format the types for search
+    return [
+        {
+            "display": media_type_readable_plural(media_type),
+            "value": media_type,
+        }
+        for media_type in enabled_types
+        if media_type not in excluded_types
+    ]
+
+
+@register.simple_tag
+def get_sidebar_media_types(user):
+    """Return available media types for sidebar navigation based on user preferences."""
+    excluded_types = [models.MediaTypes.EPISODE.value]
+
+    enabled_types = user.get_enabled_media_types()
+
+    # Format the types for sidebar
+    return [
+        {
+            "media_type": media_type,
+            "display_name": media_type_readable_plural(media_type),
+        }
+        for media_type in enabled_types
+        if media_type not in excluded_types
+    ]
 
 
 @register.filter
@@ -288,8 +326,9 @@ def unicode_icon(name):
         "movie": "🎬",
         "anime": "🎭",
         "manga": "📚",
-        "book": "📖",
         "game": "🎮",
+        "book": "📖",
+        "comic": "📕",
     }
 
     return icons[name]
@@ -360,6 +399,13 @@ def icon(name, is_active, extra_classes=None):
             """<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20">
                </path>"""
         ),
+        "comic": (
+            """<rect width="8" height="18" x="3" y="3" rx="1"></rect>
+               <path d="M7 3v18"></path>
+               <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1
+               5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"></path>
+            """
+        ),
         "create": (
             """<circle cx="12" cy="12" r="10"></circle>
                <path d="M8 12h8"></path>
@@ -401,9 +447,7 @@ def icon(name, is_active, extra_classes=None):
         ),
     }
 
-    content = icons.get(name)
-    if not content:
-        return ""
+    content = icons[name]
 
     active_class = "text-indigo-400 " if is_active else ""
     extra_classes = extra_classes or "w-5 h-5"

@@ -27,9 +27,11 @@ def tailwind_to_hex(tailwind_color):
         "red-500": "#ef4444",  # manga
         "yellow-500": "#eab308",  # game
         "fuchsia-500": "#d946ef",  # book
+        "cyan-500": "#06b6d4",  # comic
     }
 
-    return tailwind_colors.get(tailwind_color)
+    return tailwind_colors[tailwind_color]
+
 
 def minutes_to_hhmm(total_minutes):
     """Convert total minutes to HH:MM format."""
@@ -74,8 +76,9 @@ def get_media_verb(media_type, past_tense):
         "movie": ("watch", "watched"),
         "anime": ("watch", "watched"),
         "manga": ("read", "read"),
-        "book": ("read", "read"),
         "game": ("play", "played"),
+        "book": ("read", "read"),
+        "comic": ("read", "read"),
     }
     return verbs[media_type][1 if past_tense else 0]
 

@@ -1,6 +1,5 @@
 import secrets
 
-from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask
@@ -219,6 +218,23 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    comic_enabled = models.BooleanField(default=True)
+    comic_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
+    )
+    comic_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
+    comic_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
+
     hide_from_search = models.BooleanField(default=True)
 
     calendar_layout = models.CharField(
@@ -408,13 +424,22 @@ class User(AbstractUser):
 
         return new_value
 
-    def get_active_media_types(self):
-        """Return a list of active media types."""
-        return [
-            apps.get_model(app_label="app", model_name=media_type)
-            for media_type in MediaTypes.values
-            if media_type != "episode" and getattr(self, f"{media_type}_enabled")
-        ]
+    def get_enabled_media_types(self):
+        """Return a list of enabled media type values based on user preferences."""
+        enabled_types = []
+
+        for media_type in MediaTypes.values:
+            # Special case for episode which doesn't have its own enabled field
+            if media_type == MediaTypes.EPISODE.value:
+                if self.season_enabled:  # Consider episode enabled if season is enabled
+                    enabled_types.append(media_type)
+                continue
+
+            enabled_field = f"{media_type}_enabled"
+            if getattr(self, enabled_field, False):
+                enabled_types.append(media_type)
+
+        return enabled_types
 
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
