@@ -1,4 +1,3 @@
-from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask

@@ -109,7 +109,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
     return json_response
 
 
-def request_error_handling(error, *args):
+def request_error_handling(error, *args):  # noqa: C901
     """Handle errors when making a request to the API."""
     # unpack the arguments
     provider, method, url, params, data, headers = args

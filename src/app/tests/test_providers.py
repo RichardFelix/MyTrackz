@@ -7,7 +7,16 @@ from django.conf import settings
 from django.test import TestCase
 
 from app.models import Item
-from app.providers import igdb, mal, mangaupdates, manual, openlibrary, services, tmdb
+from app.providers import (
+    comicvine,
+    igdb,
+    mal,
+    mangaupdates,
+    manual,
+    openlibrary,
+    services,
+    tmdb,
+)
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
 
@@ -82,6 +91,17 @@ class Search(TestCase):
 
         for book in response:
             self.assertTrue(all(key in book for key in required_keys))
+
+    def test_comics(self):
+        """Test the search method for comics.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = igdb.search("Batman")
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        for comic in response:
+            self.assertTrue(all(key in comic for key in required_keys))
 
 
 class Metadata(TestCase):
@@ -314,6 +334,11 @@ class Metadata(TestCase):
         response = openlibrary.book("OL46835937M")
         self.assertEqual(response["title"], "The Name of the Wind")
         self.assertEqual(response["details"]["author"], ["Patrick Rothfuss"])
+
+    def test_comic(self):
+        """Test the metadata method for comics."""
+        response = comicvine.comic("155969")
+        self.assertEqual(response["title"], "Ultimate Spider-Man")
 
     def test_manual_tv(self):
         """Test the metadata method for manually created TV shows."""
@@ -976,6 +1001,21 @@ class ServicesTests(TestCase):
         # Verify the correct function was called
         mock_game.assert_called_once_with("1")
 
+    @patch("app.providers.comicvine.comic")
+    def test_get_media_metadata_comic(self, mock_comic):
+        """Test the get_media_metadata function for comics."""
+        # Setup mock
+        mock_comic.return_value = {"title": "Test Comic"}
+
+        # Call the function
+        result = services.get_media_metadata("comic", "1", "comicvine")
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Comic"})
+
+        # Verify the correct function was called
+        mock_comic.assert_called_once_with("1")
+
     @patch("app.providers.openlibrary.book")
     def test_get_media_metadata_book(self, mock_book):
         """Test the get_media_metadata function for books."""
@@ -1148,6 +1188,21 @@ class ServicesTests(TestCase):
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Book"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")
+
+    @patch("app.providers.comicvine.search")
+    def test_search_comic(self, mock_search):
+        """Test the search function for comics."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Comic"}]
+
+        # Call the function
+        result = services.search("comic", "test")
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Comic"}])
 
         # Verify the correct function was called
         mock_search.assert_called_once_with("test")

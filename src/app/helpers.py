@@ -27,9 +27,10 @@ def tailwind_to_hex(tailwind_color):
         "red-500": "#ef4444",  # manga
         "yellow-500": "#eab308",  # game
         "fuchsia-500": "#d946ef",  # book
+        "cyan-500": "#06b6d4",  # comic
     }
 
-    return tailwind_colors.get(tailwind_color)
+    return tailwind_colors[tailwind_color]
 
 
 def minutes_to_hhmm(total_minutes):

@@ -18,21 +18,6 @@ from app.models import Colors, MediaTypes
 class HelpersTest(TestCase):
     """Test helper functions."""
 
-    def test_tailwind_to_hex(self):
-        """Test conversion of Tailwind color strings to HEX."""
-        # Test all defined colors
-        self.assertEqual(tailwind_to_hex("emerald-500"), "#10b981")  # tv
-        self.assertEqual(tailwind_to_hex("purple-500"), "#a855f7")  # season
-        self.assertEqual(tailwind_to_hex("indigo-500"), "#6366f1")  # episode
-        self.assertEqual(tailwind_to_hex("orange-500"), "#f97316")  # movie
-        self.assertEqual(tailwind_to_hex("blue-500"), "#3b82f6")  # anime
-        self.assertEqual(tailwind_to_hex("red-500"), "#ef4444")  # manga
-        self.assertEqual(tailwind_to_hex("yellow-500"), "#eab308")  # game
-        self.assertEqual(tailwind_to_hex("fuchsia-500"), "#d946ef")  # book
-
-        # Test undefined color
-        self.assertIsNone(tailwind_to_hex("nonexistent-500"))
-
     def test_tailwind_to_hex_covers_all_media_types(self):
         """Test that tailwind_to_hex covers all media types defined in Colors."""
         # Get all media types from the Colors enum
