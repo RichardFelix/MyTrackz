@@ -518,5 +518,6 @@ class User(AbstractUser):
         }
 
     def regenerate_token(self):
+        """Regenerate the user's token."""
         self.token = generate_token()
         self.save(update_fields=["token"])

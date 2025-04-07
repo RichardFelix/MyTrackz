@@ -16,7 +16,7 @@ def fill_missing_tokens(apps, _):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("users", "0030_user_notification_excluded_items"),
+        ("users", "0031_remove_user_last_search_type_valid_and_more"),
     ]
 
     operations = [

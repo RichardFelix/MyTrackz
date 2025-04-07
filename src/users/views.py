@@ -1,5 +1,4 @@
 import logging
-import secrets
 
 import apprise
 from django.contrib import messages

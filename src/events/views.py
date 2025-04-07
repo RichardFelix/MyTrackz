@@ -109,7 +109,6 @@ def reload_calendar(request):
 @require_GET
 def download_calendar(_, token: str):
     """Download the calendar as a iCalendar file."""
-
     try:
         user = User.objects.get(token=token)
     except ObjectDoesNotExist:
@@ -141,5 +140,5 @@ def download_calendar(_, token: str):
 
     # Return the iCal file
     response = HttpResponse(cal.to_ical(), content_type="text/calendar")
-    response["Content-Disposition"] = f'attachment; filename="release_calendar.ics"'
+    response["Content-Disposition"] = 'attachment; filename="release_calendar.ics"'
     return response
