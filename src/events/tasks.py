@@ -14,6 +14,7 @@ from django.db.models import (
 )
 from django.utils import timezone
 
+from app import media_type_config
 from app.models import Item, Media
 from app.providers import comicvine, services, tmdb
 from app.templatetags import app_tags
@@ -367,7 +368,7 @@ def process_other(item, events_bulk):
             return
         raise
 
-    date_key = get_date_key(item.media_type)
+    date_key = media_type_config.get_date_key(item.media_type)
 
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:
@@ -402,20 +403,6 @@ def process_other(item, events_bulk):
                 datetime=episode_datetime,
             ),
         )
-
-
-def get_date_key(media_type):
-    """Get the date key for the given media type."""
-    date_key_by_media_type = {
-        "anime": "start_date",
-        "manga": "start_date",
-        "tv": "first_air_date",
-        "season": "first_air_date",
-        "movie": "release_date",
-        "game": "release_date",
-        "book": "publish_date",
-    }
-    return date_key_by_media_type[media_type]
 
 
 def date_parser(date_str):

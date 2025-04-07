@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, patch
 from django.http import HttpRequest
 from django.test import TestCase
 
+from app import media_type_config
 from app.helpers import (
     form_error_messages,
     format_description,
-    get_media_verb,
     minutes_to_hhmm,
     redirect_back,
     tailwind_to_hex,
@@ -77,16 +77,16 @@ class HelpersTest(TestCase):
         mock_redirect.assert_called_once_with("home")
         self.assertEqual(result, "home_redirect")
 
-    def test_get_media_verb_covers_all_media_types(self):
-        """Test that get_media_verb covers all media types defined in MediaTypes."""
+    def test_get_verb_covers_all_media_types(self):
+        """Test that get_verb covers all media types defined in MediaTypes."""
         # Get all media types from the MediaTypes enum
         for media_type in MediaTypes:
             # Ensure both present and past tense verbs are defined
             try:
-                get_media_verb(media_type.value, past_tense=False)
-                get_media_verb(media_type.value, past_tense=True)
+                media_type_config.get_verb(media_type.value, past_tense=False)
+                media_type_config.get_verb(media_type.value, past_tense=True)
             except KeyError:
-                self.fail(f"Media type {media_type.name} not defined in get_media_verb")
+                self.fail(f"Media type {media_type.name} not defined in get_verb")
 
     def test_format_description_status_initial(self):
         """Test format_description for initial status changes."""

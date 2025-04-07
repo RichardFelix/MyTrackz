@@ -1,0 +1,162 @@
+from django.urls import reverse
+from django.utils.http import urlencode
+
+# --- Central Configuration Dictionary ---
+MEDIA_TYPE_CONFIG = {
+    "tv": {
+        "default_source": "The Movie Database",
+        "sample_query": "Breaking Bad",
+        "unicode_icon": "📺",
+        "verb": ("watch", "watched"),
+        "svg_icon": """
+            <rect width="20" height="15" x="2" y="7" rx="2" ry="2"/>
+            <polyline points="17 2 12 7 7 2"/>""",
+        "date_key": "first_air_date",
+    },
+    "season": {
+        "default_source": "The Movie Database",
+        "sample_query": None,
+        "unicode_icon": "📺",
+        "verb": ("watch", "watched"),
+        "svg_icon": """
+            <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0
+            1.83l8.58 3.91 a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
+            <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
+            <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>""",
+        "date_key": None,
+    },
+    "episode": {
+        "default_source": "The Movie Database",
+        "sample_query": None,
+        "unicode_icon": "📺",
+        "verb": ("watch", "watched"),
+        "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
+        "date_key": None,
+    },
+    "movie": {
+        "default_source": "The Movie Database",
+        "sample_query": "The Shawshank Redemption",
+        "unicode_icon": "🎬",
+        "verb": ("watch", "watched"),
+        "svg_icon": """
+            <rect width="18" height="18" x="3" y="3" rx="2"/>
+            <path d="M7 3v18"/>
+            <path d="M3 7.5h4"/>
+            <path d="M3 12h18"/>
+            <path d="M3 16.5h4"/>
+            <path d="M17 3v18"/>
+            <path d="M17 7.5h4"/>
+            <path d="M17 16.5h4"/>""",
+        "date_key": "release_date",
+    },
+    "anime": {
+        "default_source": "MyAnimeList",
+        "sample_query": "Perfect Blue",
+        "unicode_icon": "🎭",
+        "verb": ("watch", "watched"),
+        "svg_icon": """
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="10 8 16 12 10 16 10 8"/>""",
+        "date_key": None,
+    },
+    "manga": {
+        "default_source": "MyAnimeList",
+        "sample_query": "Berserk",
+        "unicode_icon": "📚",
+        "verb": ("read", "read"),
+        "svg_icon": """
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2
+            0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+            <path d="M10 9H8"/>
+            <path d="M16 13H8"/>
+            <path d="M16 17H8"/>""",
+        "date_key": "start_date",
+    },
+    "game": {
+        "default_source": "The Internet Game Database",
+        "sample_query": "Half-Life",
+        "unicode_icon": "🎮",
+        "verb": ("play", "played"),
+        "svg_icon": """
+            <line x1="6" x2="10" y1="12" y2="12"/>
+            <line x1="8" x2="8" y1="10" y2="14"/>
+            <line x1="15" x2="15.01" y1="13" y2="13"/>
+            <line x1="18" x2="18.01" y1="11" y2="11"/>
+            <rect width="20" height="12" x="2" y="6" rx="2"/>""",
+        "date_key": "release_date",
+    },
+    "book": {
+        "default_source": "Open Library",
+        "sample_query": "The Great Gatsby",
+        "unicode_icon": "📖",
+        "verb": ("read", "read"),
+        "svg_icon": """
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5
+            2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>""",
+        "date_key": "publish_date",
+    },
+    "comic": {
+        "default_source": "Comic Vine",
+        "sample_query": "Batman",
+        "unicode_icon": "📕",
+        "verb": ("read", "read"),
+        "svg_icon": """
+            <rect width="8" height="18" x="3" y="3" rx="1"/>
+            <path d="M7 3v18"/>
+            <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1
+            5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
+        "date_key": None,
+    },
+}
+
+
+def get_config(media_type):
+    """Get the full config dictionary for a media type."""
+    return MEDIA_TYPE_CONFIG.get(media_type)
+
+
+def get_property(media_type, prop_name):
+    """Get a specific property for a media type."""
+    config = get_config(media_type)
+    return config[prop_name]
+
+
+def get_default_source_name(media_type):
+    """Get the human-readable default source name."""
+    return get_property(media_type, "default_source")
+
+
+def get_sample_query(media_type):
+    """Get the sample search query."""
+    return get_property(media_type, "sample_query")
+
+
+def get_sample_search_url(media_type):
+    """Get the full sample search URL."""
+    query = get_sample_query(media_type)
+
+    base_url = reverse("search")
+    query_params = {"media_type": media_type, "q": query}
+    return f"{base_url}?{urlencode(query_params)}"
+
+
+def get_unicode_icon(media_type):
+    """Get the unicode icon."""
+    return get_property(media_type, "unicode_icon")
+
+
+def get_verb(media_type, past_tense):
+    """Get the verb (present or past tense)."""
+    verbs = get_property(media_type, "verb")
+    return verbs[1] if past_tense else verbs[0]
+
+
+def get_svg_icon(media_type):
+    """Get the SVG path data."""
+    return get_property(media_type, "svg_icon")
+
+
+def get_date_key(media_type):
+    """Get the primary date key used for fetching release/start dates."""
+    return get_property(media_type, "date_key")

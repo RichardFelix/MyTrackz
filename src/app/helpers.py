@@ -6,6 +6,8 @@ from django.shortcuts import redirect
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from app import media_type_config
+
 
 def tailwind_to_hex(tailwind_color):
     """Convert a Tailwind color string to HEX format.
@@ -67,22 +69,6 @@ def redirect_back(request):
     return redirect("home")
 
 
-def get_media_verb(media_type, past_tense):
-    """Get the appropriate verb for the media type."""
-    verbs = {
-        "tv": ("watch", "watched"),
-        "season": ("watch", "watched"),
-        "episode": ("watch", "watched"),
-        "movie": ("watch", "watched"),
-        "anime": ("watch", "watched"),
-        "manga": ("read", "read"),
-        "game": ("play", "played"),
-        "book": ("read", "read"),
-        "comic": ("read", "read"),
-    }
-    return verbs[media_type][1 if past_tense else 0]
-
-
 def format_description(field_name, old_value, new_value, media_type=None):  # noqa: C901, PLR0911, PLR0912
     """Format change description in a human-readable way.
 
@@ -92,7 +78,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     # If old_value is None, treat it as an initial setting
     if old_value is None:
         if field_name == "status":
-            verb = get_media_verb(media_type, past_tense=False)
+            verb = media_type_config.get_verb(media_type, past_tense=False)
             if new_value == "In progress":
                 return f"Started {verb}ing"
             if new_value == "Completed":
@@ -118,7 +104,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Watched {new_value} episodes"
 
         if field_name == "repeats":
-            verb = get_media_verb(media_type, past_tense=True)
+            verb = media_type_config.get_verb(media_type, past_tense=True)
             return f"{verb.title()} for the first time"
 
         if field_name in ["start_date", "end_date"]:
@@ -136,7 +122,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     # Regular change (old_value to new_value)
     if field_name == "status":
-        verb = get_media_verb(media_type, past_tense=False)
+        verb = media_type_config.get_verb(media_type, past_tense=False)
         # Status transitions
         transitions = {
             ("Planning", "In progress"): f"Started {verb}ing",
@@ -174,7 +160,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         return f"{verb} {abs(diff)} {unit}"
 
     if field_name == "repeats":
-        verb = get_media_verb(media_type, past_tense=True)
+        verb = media_type_config.get_verb(media_type, past_tense=True)
         if new_value > old_value:
             return f"{verb.title()} again (#{new_value + 1})"
         return f"Adjusted repeat count from {old_value} to {new_value}"
