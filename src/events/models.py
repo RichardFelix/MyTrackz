@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.db import models
-from django.db.models import Count, Exists, OuterRef, Q, UniqueConstraint
+from django.db.models import Count, Exists, OuterRef, Q, Subquery, UniqueConstraint
 from django.utils import timezone
 
 from app.models import Item, Media, MediaTypes
@@ -80,13 +80,28 @@ class EventManager(models.Manager):
             datetime__gte=now,
         )
 
+        # Subquery to check if a comic has events in the last year
+        one_year_ago = now - timezone.timedelta(days=365)
+        recent_comic_events = Event.objects.filter(
+            item=OuterRef("pk"),
+            item__media_type=MediaTypes.COMIC,
+            datetime__gte=one_year_ago,
+        ).order_by("-datetime")
+
         # manga with less than two events means we don't have total chapters count
+        # comics with events in the last year should also be processed
         return (
-            items_with_active_media.annotate(event_count=Count("event"))
+            items_with_active_media.annotate(
+                event_count=Count("event"),
+                latest_comic_event=Subquery(recent_comic_events.values("datetime")[:1]),
+            )
             .filter(
                 Q(Exists(future_events))  # has future events
                 | Q(event__isnull=True)  # no events
-                | (Q(media_type=MediaTypes.MANGA) & Q(event_count__lt=2)),
+                | (Q(media_type=MediaTypes.MANGA) & Q(event_count__lt=2))
+                | (
+                    Q(media_type=MediaTypes.COMIC) & Q(latest_comic_event__isnull=False)
+                ),
             )
             .distinct()
         )
@@ -125,6 +140,8 @@ class Event(models.Model):
             return f"{self.item.__str__()} - Ch. {self.episode_number}"
         if self.item.media_type == "anime":
             return f"{self.item.__str__()} - Ep. {self.episode_number}"
+        if self.item.media_type == "comic":
+            return f"{self.item.__str__()} #{self.episode_number}"
         return self.item.__str__()
 
     @property

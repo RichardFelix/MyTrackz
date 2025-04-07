@@ -73,6 +73,7 @@ class Colors(models.TextChoices):
     MANGA = "text-red-400", "Red"
     GAME = "text-yellow-400", "Yellow"
     BOOK = "text-fuchsia-400", "Fuchsia"
+    COMIC = "text-cyan-400", "Cyan"
 
 
 class Item(models.Model):

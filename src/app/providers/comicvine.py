@@ -59,8 +59,8 @@ def comic(media_id):
             "api_key": settings.COMICVINE_API,
             "format": "json",
             "field_list": (
-                "publisher,site_detail_url,name,last_issue,image,issues,"
-                "description,concepts,start_year,count_of_issues,people,"
+                "publisher,site_detail_url,name,last_issue,image,description,"
+                "concepts,start_year,count_of_issues,people,date_last_updated"
             ),
         }
 
@@ -84,7 +84,7 @@ def comic(media_id):
             "source_url": response["site_detail_url"],
             "media_type": "comic",
             "title": response["name"],
-            "max_progress": get_last_issue_number(response),
+            "max_progress": get_issue_number(response["last_issue"]["issue_number"]),
             "image": get_image(response),
             "synopsis": get_synopsis(response),
             "genres": get_genres(response),
@@ -95,10 +95,13 @@ def comic(media_id):
                 "last_issue_name": get_last_issue_name(response),
                 "last_issue_number": get_last_issue_number(response),
                 "people": get_people(response),
+                "last_updated": response.get("date_last_updated").split()[0],
             },
             "related": {
                 "from_the_same_publisher": recommendations,
             },
+            # used for events fetching
+            "last_issue_id": response["last_issue"]["id"],
         }
 
         cache.set(cache_key, data)
@@ -124,9 +127,28 @@ def get_image(response):
     return settings.IMG_NONE
 
 
+def get_issue_number(issue_number):
+    """
+    Return the last issue number as an integer if possible.
+
+    For compound issue numbers (like "463-464"), returns the highest number.
+    Returns None if no valid issue number can be extracted.
+    """
+    try:
+        return int(issue_number)
+    except ValueError:
+        # Handle compound issue numbers like "463-464"
+        try:
+            # Split by hyphen and get the highest number
+            parts = [int(part.strip()) for part in issue_number.split("-")]
+            return max(parts)
+        except (ValueError, AttributeError):
+            return None
+
+
 def get_synopsis(response):
     """Return the synopsis."""
-    if "description" not in response:
+    if not response.get("description"):
         return "No synopsis available"
 
     soup = BeautifulSoup(response["description"], "html.parser")
@@ -137,7 +159,7 @@ def get_synopsis(response):
 def get_genres(response):
     """Return the list of genres."""
     if "concepts" in response:
-        return [concept["name"] for concept in response["concepts"]]
+        return [concept["name"] for concept in response["concepts"][:5]]
     return None
 
 
@@ -171,7 +193,7 @@ def get_last_issue_number(response):
     """Return the last issue number."""
     last_issue = response.get("last_issue")
     if last_issue and isinstance(last_issue, dict):
-        return int(last_issue.get("issue_number"))
+        return last_issue.get("issue_number")
     return None
 
 
@@ -215,6 +237,38 @@ def get_similar_comics(publisher_id, current_id, limit=10):
             for item in response["results"]
             if str(item["id"]) != current_id
         ][:limit]
+
+        cache.set(cache_key, data)
+
+    return data
+
+
+def issue(media_id):
+    """Return the metadata for the selected comic issue from Comic Vine."""
+    cache_key = f"comicvine_issue_{media_id}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        params = {
+            "api_key": settings.COMICVINE_API,
+            "format": "json",
+            "field_list": ("cover_date,store_date"),
+        }
+
+        response = services.api_request(
+            "ComicVine",
+            "GET",
+            f"{base_url}/issue/4000-{media_id}/",
+            params=params,
+            headers=headers,
+        )
+
+        response = response.get("results", {})
+
+        data = {
+            "cover_date": response.get("cover_date"),
+            "store_date": response.get("store_date"),
+        }
 
         cache.set(cache_key, data)
 

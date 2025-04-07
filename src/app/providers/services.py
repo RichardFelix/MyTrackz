@@ -48,7 +48,7 @@ session.mount(
 )
 session.mount(
     "https://comicvine.gamespot.com/api",
-    LimiterAdapter(per_hour=200),
+    LimiterAdapter(per_hour=190),
 )
 session.mount(
     "https://openlibrary.org",

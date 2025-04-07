@@ -15,7 +15,7 @@ from django.db.models import (
 from django.utils import timezone
 
 from app.models import Item, Media
-from app.providers import services, tmdb
+from app.providers import comicvine, services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
 
@@ -38,8 +38,12 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
         # anime can later be processed in bulk
         if item.media_type == "anime":
             anime_to_process.append(item)
+        elif item.media_type == "season":
+            process_season(item, events_bulk)
+        elif item.media_type == "comic":
+            process_comic(item, events_bulk)
         else:
-            process_item(item, events_bulk)
+            process_other(item, events_bulk)
 
     # process anime items in bulk
     process_anime_bulk(anime_to_process, events_bulk)
@@ -66,36 +70,6 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
         return f"""The following items have been loaded to the calendar:\n
                     {result_msg}"""
     return "There have been no changes in the calendar"
-
-
-def process_item(item, events_bulk):
-    """Process each item and add events to the event list."""
-    try:
-        logger.info("Fetching releases for %s", item)
-        if item.media_type == "season":
-            tv_with_seasons_metadata = tmdb.tv_with_seasons(
-                item.media_id,
-                [item.season_number],
-            )
-            metadata = tv_with_seasons_metadata[f"season/{item.season_number}"]
-            process_season(item, metadata, events_bulk)
-        else:
-            metadata = services.get_media_metadata(
-                item.media_type,
-                item.media_id,
-                item.source,
-            )
-            process_other(item, metadata, events_bulk)
-    except requests.exceptions.HTTPError as err:
-        # happens for niche media in which the mappings during import are incorrect
-        if err.response.status_code == requests.codes.not_found:
-            logger.warning(
-                "Failed to fetch metadata for %s - %s",
-                item,
-                err.response.json(),
-            )
-        else:
-            raise
 
 
 def process_anime_bulk(items, events_bulk):
@@ -215,8 +189,25 @@ def get_anime_schedule_bulk(media_ids):
     return all_data
 
 
-def process_season(item, metadata, events_bulk):
+def process_season(item, events_bulk):
     """Process season item and add events to the event list."""
+    try:
+        logger.info("Fetching releases for %s", item)
+        tv_with_seasons_metadata = tmdb.tv_with_seasons(
+            item.media_id,
+            [item.season_number],
+        )
+        metadata = tv_with_seasons_metadata[f"season/{item.season_number}"]
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == requests.codes.not_found:
+            logger.warning(
+                "Failed to fetch metadata for %s - %s",
+                item,
+                err.response.json(),
+            )
+            return
+        raise
+
     # Get TVMaze episode data if available
     tvmaze_map = {}
     if metadata["external_ids"].get("tvdb_id"):
@@ -309,29 +300,94 @@ def get_tvmaze_episode_map(tvdb_id):
     return tvmaze_map
 
 
-def process_other(item, metadata, events_bulk):
+def process_comic(item, events_bulk):
+    """Process comic item and add events to the event list."""
+    logger.info("Fetching releases for %s", item)
+    try:
+        metadata = services.get_media_metadata(
+            item.media_type,
+            item.media_id,
+            item.source,
+        )
+    except requests.exceptions.HTTPError as err:
+        # happens for niche media in which the mappings during import are incorrect
+        if err.response.status_code == requests.codes.not_found:
+            logger.warning(
+                "Failed to fetch metadata for %s - %s",
+                item,
+                err.response.json(),
+            )
+            return
+        raise
+
+    # get latest event
+    latest_event = Event.objects.filter(item=item).order_by("-datetime").first()
+    last_issue_event_number = latest_event.episode_number if latest_event else 0
+    last_published_issue_number = metadata["max_progress"]
+    if last_issue_event_number == last_published_issue_number:
+        return
+
+    # add latest issue
+    issue_metadata = comicvine.issue(metadata["last_issue_id"])
+
+    if issue_metadata["store_date"]:
+        issue_datetime = date_parser(issue_metadata["store_date"])
+    elif issue_metadata["cover_date"]:
+        issue_datetime = date_parser(issue_metadata["cover_date"])
+    else:
+        return
+
+    issue_number = comicvine.get_issue_number(metadata["last_issue"]["issue_number"])
+    events_bulk.append(
+        Event(
+            item=item,
+            episode_number=issue_number,
+            datetime=issue_datetime,
+        ),
+    )
+
+
+def process_other(item, events_bulk):
     """Process other types of items and add events to the event list."""
-    # it will have either of these keys
-    date_keys = ["start_date", "release_date", "first_air_date", "publish_date"]
-    for date_key in date_keys:
-        if date_key in metadata["details"] and metadata["details"][date_key]:
-            try:
-                episode_datetime = date_parser(metadata["details"][date_key])
-                if item.media_type == "book" and metadata["details"]["number_of_pages"]:
-                    episode_number = metadata["details"]["number_of_pages"]
-                elif item.media_type == "movie":
-                    episode_number = 1
-                else:
-                    episode_number = None
-                events_bulk.append(
-                    Event(
-                        item=item,
-                        episode_number=episode_number,
-                        datetime=episode_datetime,
-                    ),
-                )
-            except ValueError:
-                pass
+    logger.info("Fetching releases for %s", item)
+    try:
+        metadata = services.get_media_metadata(
+            item.media_type,
+            item.media_id,
+            item.source,
+        )
+    except requests.exceptions.HTTPError as err:
+        # happens for niche media in which the mappings during import are incorrect
+        if err.response.status_code == requests.codes.not_found:
+            logger.warning(
+                "Failed to fetch metadata for %s - %s",
+                item,
+                err.response.json(),
+            )
+            return
+        raise
+
+    date_key = get_date_key(item.media_type)
+
+    if date_key in metadata["details"] and metadata["details"][date_key]:
+        try:
+            episode_datetime = date_parser(metadata["details"][date_key])
+            if item.media_type == "book" and metadata["details"]["number_of_pages"]:
+                episode_number = metadata["details"]["number_of_pages"]
+            elif item.media_type == "movie":
+                episode_number = 1
+            else:
+                episode_number = None
+            events_bulk.append(
+                Event(
+                    item=item,
+                    episode_number=episode_number,
+                    datetime=episode_datetime,
+                ),
+            )
+        except ValueError:
+            pass
+
     if item.media_type == "manga" and metadata["max_progress"]:
         # MyAnimeList manga has an end date when it's completed
         if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
@@ -346,6 +402,20 @@ def process_other(item, metadata, events_bulk):
                 datetime=episode_datetime,
             ),
         )
+
+
+def get_date_key(media_type):
+    """Get the date key for the given media type."""
+    date_key_by_media_type = {
+        "anime": "start_date",
+        "manga": "start_date",
+        "tv": "first_air_date",
+        "season": "first_air_date",
+        "movie": "release_date",
+        "game": "release_date",
+        "book": "publish_date",
+    }
+    return date_key_by_media_type[media_type]
 
 
 def date_parser(date_str):
