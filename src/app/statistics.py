@@ -640,9 +640,9 @@ def get_timeline(user_media):
                     year = current_date.year
                     month = current_date.month
                     month_name = calendar.month_name[month]
-                    key = f"{month_name} {year}"
+                    month_year = f"{month_name} {year}"
 
-                    timeline[key].append(media)
+                    timeline[month_year].append(media)
 
                     # Move to next month
                     current_date += relativedelta(months=1)
@@ -652,25 +652,25 @@ def get_timeline(user_media):
                 year = media.start_date.year
                 month = media.start_date.month
                 month_name = calendar.month_name[month]
-                key = f"{month_name} {year}"
+                month_year = f"{month_name} {year}"
 
-                timeline[key].append(media)
+                timeline[month_year].append(media)
 
     # Convert to sorted dictionary with media sorted by start date
-    # Create a list of (key, media_list) sorted by year and month in reverse order
+    # Create a list sorted by year and month in reverse order
     sorted_items = []
-    for key, media_list in timeline.items():
-        month_name, year_str = key.split()
+    for month_year, media_list in timeline.items():
+        month_name, year_str = month_year.split()
         year = int(year_str)
         month = list(calendar.month_name).index(month_name)
-        sorted_items.append((key, media_list, year, month))
+        sorted_items.append((month_year, media_list, year, month))
 
     # Sort by year and month in reverse chronological order
     sorted_items.sort(key=lambda x: (x[2], x[3]), reverse=True)
 
     # Create the final result dictionary
     result = {}
-    for key, media_list, _, _ in sorted_items:
-        result[key] = sorted(media_list, key=lambda x: x.start_date)
+    for month_year, media_list, _, _ in sorted_items:
+        result[month_year] = sorted(media_list, key=lambda x: x.start_date)
 
     return result
