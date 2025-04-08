@@ -1,13 +1,29 @@
+import logging
+
+import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
 from app.providers import services
 
+logger = logging.getLogger(__name__)
 base_url = "https://comicvine.gamespot.com/api"
 headers = {
     "User-Agent": "Mozilla/5.0",
 }
+
+
+def handle_error(error):
+    """Handle ComicVine-specific API errors."""
+    error_resp = error.response
+    status_code = error_resp.status_code
+    error_json = error_resp.json()
+
+    # Handle invalid API key
+    if status_code == requests.codes.unauthorized:
+        message = error_json["error"]
+        logger.error("ComicVine unauthorized: %s", message)
 
 
 def search(query):

@@ -1,10 +1,44 @@
+import logging
+
+import requests
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
 from app.providers import services
 
+logger = logging.getLogger(__name__)
 base_url = "https://api.igdb.com/v4"
+
+def handle_error(error, provider, method, url, params, data, headers):
+    """Handle IGDB-specific API errors."""
+    error_resp = error.response
+    status_code = error_resp.status_code
+
+    # Invalid access token, expired or revoked
+    if status_code == requests.codes.unauthorized:
+        logger.warning("Invalid IGDB access token, refreshing")
+        cache.delete("igdb_access_token")
+        headers["Authorization"] = f"Bearer {get_access_token()}"
+
+        # Return instructions to retry
+        return {
+            "retry": True,
+            "provider": provider,
+            "method": method,
+            "url": url,
+            "params": params,
+            "data": data,
+            "headers": headers,
+        }
+
+    # Invalid keys
+    if status_code == requests.codes.bad_request:
+        error_json = error_resp.json()
+        message = error_json.get("message", "Unknown error")
+        logger.error("IGDB bad request: %s", message)
+
+    return None
 
 
 def get_access_token():

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -7,8 +8,24 @@ from django.core.cache import cache
 
 from app.providers import services
 
+logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2"
 base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,recommendations"  # noqa: E501
+
+
+def handle_error(error):
+    """Handle MAL-specific API errors."""
+    error_resp = error.response
+    status_code = error_resp.status_code
+    error_json = error_resp.json()
+
+    if status_code == requests.codes.forbidden:
+        logger.error("MAL forbidden: is the API key set?")
+    elif (
+        status_code == requests.codes.bad_request
+        and error_json.get("message") == "Invalid client id"
+    ):
+        logger.error("MAL bad request: Invalid API key")
 
 
 def search(media_type, query):

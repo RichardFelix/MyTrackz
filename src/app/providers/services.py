@@ -4,7 +4,6 @@ from functools import wraps
 
 import requests
 from django.conf import settings
-from django.core.cache import cache
 from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
@@ -68,12 +67,9 @@ def retry_on_error(delay=1):
                 msg = f"Request failed. Retrying in {delay} seconds."
                 logger.warning(msg)
                 time.sleep(delay)
-                try:
-                    return func(*args, **kwargs)
-                except requests.exceptions.RequestException:
-                    msg = "Request failed after retry. Raising error."
-                    logger.error(msg)  # noqa: TRY400
-                    raise
+
+                # Retry the function
+                return func(*args, **kwargs)
 
         return wrapper
 
@@ -103,17 +99,21 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
         json_response = response.json()
 
     except requests.exceptions.HTTPError as error:
-        args = (provider, method, url, params, data, headers)
-        json_response = request_error_handling(error, *args)
+        json_response = request_error_handling(
+            error,
+            provider,
+            method,
+            url,
+            params,
+            data,
+            headers,
+        )
 
     return json_response
 
 
-def request_error_handling(error, *args):  # noqa: C901
+def request_error_handling(error, provider, method, url, params, data, headers):
     """Handle errors when making a request to the API."""
-    # unpack the arguments
-    provider, method, url, params, data, headers = args
-
     error_resp = error.response
     status_code = error_resp.status_code
 
@@ -132,49 +132,17 @@ def request_error_handling(error, *args):  # noqa: C901
             headers=headers,
         )
 
+    # Delegate to provider-specific error handlers
     if provider == "IGDB":
-        # invalid access token, expired or revoked
-        if status_code == requests.codes.unauthorized:
-            logger.warning("Invalid IGDB access token, refreshing")
-            cache.delete("igdb_access_token")
-            headers["Authorization"] = f"Bearer {igdb.get_access_token()}"
-
-            # retry the request with the new access token
-            return api_request(
-                provider,
-                method,
-                url,
-                params=params,
-                data=data,
-                headers=headers,
-            )
-
-        # invalid keys
-        if status_code == requests.codes.bad_request:
-            error_json = error_resp.json()
-            message = error_json["message"]
-            logger.error("IGDB bad request: %s", message)
-
-    elif provider == "TMDB" and status_code == requests.codes.unauthorized:
-        error_json = error_resp.json()
-        message = error_json["status_message"]
-        logger.error("TMDB unauthorized: %s", message)
-
+        result = igdb.handle_error(error, provider, method, url, params, data, headers)
+        if result and result.get("retry"):
+            return api_request(**{k: v for k, v in result.items() if k != "retry"})
+    elif provider == "TMDB":
+        result = tmdb.handle_error(error)
     elif provider == "MAL":
-        error_json = error_resp.json()
-        if status_code == requests.codes.forbidden:
-            logger.error("MAL forbidden: is the API key set?")
-        elif (
-            status_code == requests.codes.bad_request
-            and error_json["message"] == "Invalid client id"
-        ):
-            logger.error("MAL bad request: Invalid API key")
-
+        result = mal.handle_error(error)
     elif provider == "ComicVine":
-        error_json = error_resp.json()
-        if status_code == requests.codes.unauthorized:
-            message = error_json["error"]
-            logger.error("ComicVine unauthorized: %s", message)
+        result = comicvine.handle_error(error)
 
     raise error  # re-raise the error if it's not handled
 

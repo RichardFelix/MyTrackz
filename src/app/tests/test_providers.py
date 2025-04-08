@@ -724,7 +724,7 @@ class ServicesTests(TestCase):
         # Verify the result
         self.assertEqual(result, {"data": "retry_success"})
 
-    @patch("app.providers.services.cache.delete")
+    @patch("app.providers.igdb.cache.delete")
     @patch("app.providers.igdb.get_access_token")
     @patch("app.providers.services.api_request")
     def test_request_error_handling_igdb_unauthorized(
@@ -765,14 +765,14 @@ class ServicesTests(TestCase):
 
         # Verify api_request was called again with new token
         mock_api_request.assert_called_once()
-        args, kwargs = mock_api_request.call_args
-        self.assertEqual(args[0], "IGDB")
+        _, kwargs = mock_api_request.call_args
+        self.assertEqual(kwargs["provider"], "IGDB")
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer new_token")
 
         # Verify the result
         self.assertEqual(result, {"data": "retry_success"})
 
-    @patch("app.providers.services.logger.error")
+    @patch("app.providers.igdb.logger.error")
     def test_request_error_handling_igdb_bad_request(self, mock_logger):
         """Test the request_error_handling function with IGDB bad request error."""
         # Setup mock response for bad request error
@@ -799,7 +799,7 @@ class ServicesTests(TestCase):
         # Verify logger was called
         mock_logger.assert_called_once_with("IGDB bad request: %s", "Invalid query")
 
-    @patch("app.providers.services.logger.error")
+    @patch("app.providers.tmdb.logger.error")
     def test_request_error_handling_tmdb_unauthorized(self, mock_logger):
         """Test the request_error_handling function with TMDB unauthorized error."""
         # Setup mock response for unauthorized error
@@ -826,7 +826,7 @@ class ServicesTests(TestCase):
         # Verify logger was called
         mock_logger.assert_called_once_with("TMDB unauthorized: %s", "Invalid API key")
 
-    @patch("app.providers.services.logger.error")
+    @patch("app.providers.mal.logger.error")
     def test_request_error_handling_mal_forbidden(self, mock_logger):
         """Test the request_error_handling function with MAL forbidden error."""
         # Setup mock response for forbidden error

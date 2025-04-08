@@ -1,14 +1,31 @@
+import logging
+
 import requests
 from django.conf import settings
 from django.core.cache import cache
 
 from app.providers import services
 
+logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
 base_params = {
     "api_key": settings.TMDB_API,
     "language": settings.TMDB_LANG,
 }
+
+
+def handle_error(error):
+    """Handle TMDB-specific API errors."""
+    error_resp = error.response
+    status_code = error_resp.status_code
+
+    error_json = error_resp.json()
+    error_message = error_json.get("status_message", "Unknown error")
+
+    # Handle authentication errors
+    if status_code == requests.codes.unauthorized:
+        logger.error("TMDB unauthorized: %s", error_message)
+
 
 
 def search(media_type, query):
