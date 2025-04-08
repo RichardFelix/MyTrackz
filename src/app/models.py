@@ -580,7 +580,7 @@ class Media(CalendarTriggerMixin, models.Model):
         if self.progress < 0:
             self.progress = 0
         else:
-            max_progress = providers.providers.services.get_media_metadata(
+            max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
                 self.item.source,
