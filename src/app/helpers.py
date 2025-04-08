@@ -7,6 +7,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app import media_type_config
+from app.models import MediaTypes
 
 
 def minutes_to_hhmm(total_minutes):
@@ -118,19 +119,24 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         return f"Changed rating from {old_value} to {new_value}"
 
     if field_name == "progress":
-        if media_type == "game":
-            diff = new_value - old_value
+        diff = new_value - old_value
+
+        if media_type == MediaTypes.GAME.value:
             if diff > 0:
                 return f"Added {minutes_to_hhmm(diff)} of playtime"
             return f"Removed {minutes_to_hhmm(abs(diff))} of playtime"
-        diff = new_value - old_value
-        if media_type == "book":
+        # Handle other media types
+        if media_type == MediaTypes.BOOK.value:
             unit = "pages"
-        elif media_type == "manga":
+        elif media_type == MediaTypes.MANGA.value:
             unit = "chapters"
         else:
             unit = "episodes"
-        verb = "Read" if media_type in ["book", "manga"] else "Watched"
+
+        verb = media_type_config.get_verb(media_type, past_tense=True).title()
+        if diff < 0:
+            verb = "Removed"  # Override with "Removed" for negative changes
+
         return f"{verb} {abs(diff)} {unit}"
 
     if field_name == "repeats":
