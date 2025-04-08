@@ -165,6 +165,16 @@ class AppTagsTests(TestCase):
             self.assertIn(f"media_type={media_type}", result)
             self.assertIn("q=", result)
 
+    def test_media_color(self):
+        """Test the media_color filter."""
+        # Test all media types
+        for media_type in MediaTypes.values:
+
+            result = app_tags.media_color(media_type)
+
+            # Check that it returns a non-empty string
+            self.assertTrue(isinstance(result, str))
+
     def test_natural_day(self):
         """Test the natural_day filter."""
         # Mock current date to March 29, 2025

@@ -149,7 +149,7 @@ def get_sidebar_media_types(user):
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
-    return media_type_config.get_color(media_type)
+    return media_type_config.get_text_color(media_type)
 
 
 @register.filter
