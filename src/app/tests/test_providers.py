@@ -749,7 +749,7 @@ class ServicesTests(TestCase):
         # Call the function
         result = services.request_error_handling(
             error,
-            "IGDB",
+            Sources.IGDB.value,
             "GET",
             "https://example.com/api",
             {"param": "value"},
@@ -766,7 +766,7 @@ class ServicesTests(TestCase):
         # Verify api_request was called again with new token
         mock_api_request.assert_called_once()
         _, kwargs = mock_api_request.call_args
-        self.assertEqual(kwargs["provider"], "IGDB")
+        self.assertEqual(kwargs["provider"], Sources.IGDB.value)
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer new_token")
 
         # Verify the result
@@ -788,7 +788,7 @@ class ServicesTests(TestCase):
         with self.assertRaises(requests.exceptions.HTTPError):
             services.request_error_handling(
                 error,
-                "IGDB",
+                Sources.IGDB.value,
                 "GET",
                 "https://example.com/api",
                 None,
@@ -797,7 +797,11 @@ class ServicesTests(TestCase):
             )
 
         # Verify logger was called
-        mock_logger.assert_called_once_with("IGDB bad request: %s", "Invalid query")
+        mock_logger.assert_called_once_with(
+            "%s bad request: %s",
+            Sources.IGDB.label,
+            "Invalid query",
+        )
 
     @patch("app.providers.tmdb.logger.error")
     def test_request_error_handling_tmdb_unauthorized(self, mock_logger):
@@ -815,7 +819,7 @@ class ServicesTests(TestCase):
         with self.assertRaises(requests.exceptions.HTTPError):
             services.request_error_handling(
                 error,
-                "TMDB",
+                Sources.TMDB.value,
                 "GET",
                 "https://example.com/api",
                 None,
@@ -824,7 +828,11 @@ class ServicesTests(TestCase):
             )
 
         # Verify logger was called
-        mock_logger.assert_called_once_with("TMDB unauthorized: %s", "Invalid API key")
+        mock_logger.assert_called_once_with(
+            "%s unauthorized: %s",
+            Sources.TMDB.label,
+            "Invalid API key",
+        )
 
     @patch("app.providers.mal.logger.error")
     def test_request_error_handling_mal_forbidden(self, mock_logger):
@@ -842,7 +850,7 @@ class ServicesTests(TestCase):
         with self.assertRaises(requests.exceptions.HTTPError):
             services.request_error_handling(
                 error,
-                "MAL",
+                Sources.MAL.value,
                 "GET",
                 "https://example.com/api",
                 None,
@@ -851,7 +859,10 @@ class ServicesTests(TestCase):
             )
 
         # Verify logger was called
-        mock_logger.assert_called_once_with("MAL forbidden: is the API key set?")
+        mock_logger.assert_called_once_with(
+            "%s forbidden: is the API key set?",
+            Sources.MAL.label,
+        )
 
     @patch("app.providers.mal.anime")
     def test_get_media_metadata_anime(self, mock_anime):
@@ -860,7 +871,11 @@ class ServicesTests(TestCase):
         mock_anime.return_value = {"title": "Test Anime"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.ANIME.value, "1", "mal")
+        result = services.get_media_metadata(
+            MediaTypes.ANIME.value,
+            "1",
+            Sources.MAL.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Anime"})
@@ -878,7 +893,7 @@ class ServicesTests(TestCase):
         result = services.get_media_metadata(
             MediaTypes.MANGA.value,
             "1",
-            "mangaupdates",
+            Sources.MANGAUPDATES.value,
         )
 
         # Verify the result
@@ -894,7 +909,11 @@ class ServicesTests(TestCase):
         mock_manga.return_value = {"title": "Test Manga"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.MANGA.value, "1", "mal")
+        result = services.get_media_metadata(
+            MediaTypes.MANGA.value,
+            "1",
+            Sources.MAL.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Manga"})
@@ -909,7 +928,11 @@ class ServicesTests(TestCase):
         mock_tv.return_value = {"title": "Test TV"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.TV.value, "1", "tmdb")
+        result = services.get_media_metadata(
+            MediaTypes.TV.value,
+            "1",
+            Sources.TMDB.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test TV"})
@@ -927,7 +950,7 @@ class ServicesTests(TestCase):
         result = services.get_media_metadata(
             "tv_with_seasons",
             "1",
-            "tmdb",
+            Sources.TMDB.value,
             season_numbers=[1, 2],
         )
 
@@ -946,7 +969,12 @@ class ServicesTests(TestCase):
         }
 
         # Call the function
-        result = services.get_media_metadata("season", "1", "tmdb", season_numbers=[1])
+        result = services.get_media_metadata(
+            "season",
+            "1",
+            Sources.TMDB.value,
+            season_numbers=[1],
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Season"})
@@ -964,7 +992,7 @@ class ServicesTests(TestCase):
         result = services.get_media_metadata(
             "episode",
             "1",
-            "tmdb",
+            Sources.TMDB.value,
             season_numbers=[1],
             episode_number="2",
         )
@@ -982,7 +1010,11 @@ class ServicesTests(TestCase):
         mock_movie.return_value = {"title": "Test Movie"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.MOVIE.value, "1", "tmdb")
+        result = services.get_media_metadata(
+            MediaTypes.MOVIE.value,
+            "1",
+            Sources.TMDB.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Movie"})
@@ -997,7 +1029,11 @@ class ServicesTests(TestCase):
         mock_game.return_value = {"title": "Test Game"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.GAME.value, "1", "igdb")
+        result = services.get_media_metadata(
+            MediaTypes.GAME.value,
+            "1",
+            Sources.IGDB.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Game"})
@@ -1012,7 +1048,11 @@ class ServicesTests(TestCase):
         mock_comic.return_value = {"title": "Test Comic"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.COMIC.value, "1", "comicvine")
+        result = services.get_media_metadata(
+            MediaTypes.COMIC.value,
+            "1",
+            Sources.COMICVINE.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Comic"})
@@ -1027,7 +1067,11 @@ class ServicesTests(TestCase):
         mock_book.return_value = {"title": "Test Book"}
 
         # Call the function
-        result = services.get_media_metadata(MediaTypes.BOOK.value, "1", "openlibrary")
+        result = services.get_media_metadata(
+            MediaTypes.BOOK.value,
+            "1",
+            Sources.OPENLIBRARY.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Book"})
@@ -1117,7 +1161,11 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         # Call the function
-        result = services.search(MediaTypes.MANGA.value, "test", source="mangaupdates")
+        result = services.search(
+            MediaTypes.MANGA.value,
+            "test",
+            source=Sources.MANGAUPDATES.value,
+        )
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Manga"}])

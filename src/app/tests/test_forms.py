@@ -233,7 +233,7 @@ class ManualItemFormTest(TestCase):
         self.tv = TV.objects.create(
             item=self.tv_item,
             user=self.user,
-            status=Media.Status.WATCHING.value,
+            status=Media.Status.IN_PROGRESS.value,
         )
 
         # Create a manual Season

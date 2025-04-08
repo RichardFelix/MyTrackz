@@ -41,7 +41,7 @@ def handle_error(error, provider, method, url, params, data, headers):
     if status_code == requests.codes.bad_request:
         error_json = error_resp.json()
         message = error_json.get("message", "Unknown error")
-        logger.error("% bad request: %s", Sources.IGDB.label, message)
+        logger.error("%s bad request: %s", Sources.IGDB.label, message)
 
     return None
 

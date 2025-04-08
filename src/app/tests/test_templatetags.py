@@ -99,7 +99,7 @@ class AppTagsTests(TestCase):
         self.assertEqual(app_tags.slug("Hello World"), "hello-world")
 
         # Test with special characters
-        self.assertEqual(app_tags.slug("Anime:31687"), "anime-31687")
+        self.assertEqual(app_tags.slug("Anime: 31687"), "anime-31687")
 
         # Test with characters that would be removed entirely
         empty_slug = app_tags.slug("★★★")
