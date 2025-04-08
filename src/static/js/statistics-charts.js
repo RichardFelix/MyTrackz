@@ -350,7 +350,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     scoreChartOptions.plugins.title = {
       display: true,
-      text: `Average Score: ${scoreData.average_score} (${scoreData.total_scored} items)`,
+      text: `Average Score: ${scoreData.average_score} (${
+        scoreData.total_scored
+      } ${scoreData.total_scored === 1 ? "item" : "items"})`,
       color: "#D1D5DB",
       padding: { bottom: 10 },
       font: { size: 14 },
