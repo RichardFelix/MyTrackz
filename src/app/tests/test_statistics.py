@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from app import statistics
-from app.models import TV, Episode, Item, Media, Season
+from app.models import TV, Episode, Item, Media, MediaTypes, Season, Sources
 
 User = get_user_model()
 
@@ -24,16 +24,16 @@ class StatisticsTests(TestCase):
         # Create some test items
         self.tv_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
 
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test TV Show",
             season_number=1,
         )
@@ -41,8 +41,8 @@ class StatisticsTests(TestCase):
         # Create episode items
         self.episode1_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             title="Test TV Show",
             season_number=1,
             episode_number=1,
@@ -50,8 +50,8 @@ class StatisticsTests(TestCase):
 
         self.episode2_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             title="Test TV Show",
             season_number=1,
             episode_number=2,
@@ -59,16 +59,65 @@ class StatisticsTests(TestCase):
 
         self.movie_item = Item.objects.create(
             media_id="238",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
 
         self.anime_item = Item.objects.create(
             media_id="437",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
+        )
+
+        # Create test media
+        self.tv = TV.objects.create(
+            user=self.user,
+            item=self.tv_item,
+            status=Media.Status.IN_PROGRESS.value,
+            score=8.5,
+        )
+
+        self.season = Season.objects.create(
+            user=self.user,
+            item=self.season_item,
+            related_tv=self.tv,
+            status=Media.Status.IN_PROGRESS.value,
+            score=8.0,
+        )
+
+        # Create episodes
+        self.episode1 = Episode.objects.create(
+            item=self.episode1_item,
+            related_season=self.season,
+            end_date=datetime.date(2025, 1, 1),
+        )
+
+        self.episode2 = Episode.objects.create(
+            item=self.episode2_item,
+            related_season=self.season,
+            end_date=datetime.date(2025, 1, 15),
+        )
+
+        # Create a movie with different dates
+        self.movie = apps.get_model("app", "movie").objects.create(
+            user=self.user,
+            item=self.movie_item,
+            status=Media.Status.PLANNING.value,
+            score=7.5,
+            start_date=datetime.date(2025, 2, 1),
+            end_date=datetime.date(2025, 2, 1),
+        )
+
+        # Create an anime with different dates
+        self.anime = apps.get_model("app", "anime").objects.create(
+            user=self.user,
+            item=self.anime_item,
+            status=Media.Status.COMPLETED.value,
+            score=None,
+            start_date=datetime.date(2025, 3, 1),
+            end_date=datetime.date(2025, 3, 31),
         )
 
         # Create test media

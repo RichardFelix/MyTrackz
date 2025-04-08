@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 base_url = "https://openlibrary.org/api"
@@ -26,7 +27,7 @@ def search(query):
         }
 
         response = services.api_request(
-            "OpenLibrary",
+            Sources.OPENLIBRARY.value,
             "GET",
             search_url,
             params=params,
@@ -35,8 +36,8 @@ def search(query):
         data = [
             {
                 "media_id": media_id,
-                "source": "openlibrary",
-                "media_type": "book",
+                "source": Sources.OPENLIBRARY.value,
+                "media_type": MediaTypes.BOOK.value,
                 "title": doc["title"],
                 "image": get_image_url(doc),
             }
@@ -81,13 +82,13 @@ def book(media_id):
 
 async def async_book(media_id):
     """Asynchronous implementation of book metadata retrieval."""
-    data = cache.get(f"book_{media_id}")
+    data = cache.get(f"{MediaTypes.BOOK.value}_{media_id}")
 
     if data is None:
         book_url = f"https://openlibrary.org/books/{media_id}.json"
 
         response_book = services.api_request(
-            "OpenLibrary",
+            Sources.OPENLIBRARY.value,
             "GET",
             book_url,
         )
@@ -99,7 +100,7 @@ async def async_book(media_id):
             work_url = f"https://openlibrary.org/works/{work_id}.json"
 
             response_work = services.api_request(
-                "OpenLibrary",
+                Sources.OPENLIBRARY.value,
                 "GET",
                 work_url,
             )
@@ -116,9 +117,9 @@ async def async_book(media_id):
 
         data = {
             "media_id": media_id,
-            "source": "openlibrary",
+            "source": Sources.OPENLIBRARY.value,
             "source_url": f"https://openlibrary.org/books/{media_id}",
-            "media_type": "book",
+            "media_type": MediaTypes.BOOK.value,
             "title": response_book["title"],
             "max_progress": response_book.get("number_of_pages"),
             "image": get_cover_image_url(response_book),
@@ -137,7 +138,7 @@ async def async_book(media_id):
             },
         }
 
-        cache.set(f"book_{media_id}", data)
+        cache.set(f"{MediaTypes.BOOK.value}_{media_id}", data)
 
     return data
 
@@ -281,10 +282,10 @@ async def get_editions(response_book, response_work):
             data = await response.json()
             return [
                 {
-                    "source": "openlibrary",
+                    "source": Sources.OPENLIBRARY.value,
                     "source_url": f"https://openlibrary.org/books/{extract_openlibrary_id(edition['key'])}",
                     "media_id": extract_openlibrary_id(edition["key"]),
-                    "media_type": "book",
+                    "media_type": MediaTypes.BOOK.value,
                     "title": edition.get("title"),
                     "image": get_cover_image_url(edition),
                 }

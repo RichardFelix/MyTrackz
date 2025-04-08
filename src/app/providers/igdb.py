@@ -5,10 +5,12 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.igdb.com/v4"
+
 
 def handle_error(error, provider, method, url, params, data, headers):
     """Handle IGDB-specific API errors."""
@@ -17,8 +19,11 @@ def handle_error(error, provider, method, url, params, data, headers):
 
     # Invalid access token, expired or revoked
     if status_code == requests.codes.unauthorized:
-        logger.warning("Invalid IGDB access token, refreshing")
-        cache.delete("igdb_access_token")
+        logger.warning(
+            "%s: Invalid access token, refreshing",
+            Sources.IGDB.label,
+        )
+        cache.delete(f"{Sources.IGDB.value}_access_token")
         headers["Authorization"] = f"Bearer {get_access_token()}"
 
         # Return instructions to retry
@@ -36,14 +41,14 @@ def handle_error(error, provider, method, url, params, data, headers):
     if status_code == requests.codes.bad_request:
         error_json = error_resp.json()
         message = error_json.get("message", "Unknown error")
-        logger.error("IGDB bad request: %s", message)
+        logger.error("% bad request: %s", Sources.IGDB.label, message)
 
     return None
 
 
 def get_access_token():
     """Return the access token for the IGDB API."""
-    access_token = cache.get("igdb_access_token")
+    access_token = cache.get(f"{Sources.IGDB.value}_access_token")
     if access_token is None:
         url = "https://id.twitch.tv/oauth2/token"
         json = {
@@ -51,10 +56,10 @@ def get_access_token():
             "client_secret": settings.IGDB_SECRET,
             "grant_type": "client_credentials",
         }
-        response = services.api_request("IGDB", "POST", url, params=json)
+        response = services.api_request(Sources.IGDB.value, "POST", url, params=json)
         access_token = response["access_token"]
         cache.set(
-            "igdb_access_token",
+            f"{Sources.IGDB.value}_access_token",
             access_token,
             response["expires_in"] - 60,
         )  # 1 min buffer to avoid using an expired token
@@ -84,12 +89,18 @@ def search(query):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-        response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
+        response = services.api_request(
+            Sources.IGDB.value,
+            "POST",
+            url,
+            data=data,
+            headers=headers,
+        )
         data = [
             {
                 "media_id": media["id"],
-                "source": "igdb",
-                "media_type": "game",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
                 "title": media["name"],
                 "image": get_image_url(media),
             }
@@ -122,13 +133,19 @@ def game(media_id):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-        response = services.api_request("IGDB", "POST", url, data=data, headers=headers)
+        response = services.api_request(
+            Sources.IGDB.value,
+            "POST",
+            url,
+            data=data,
+            headers=headers,
+        )
         response = response[0]  # response is a list with a single element
         data = {
             "media_id": response["id"],
-            "source": "igdb",
+            "source": Sources.IGDB.value,
             "source_url": response["url"],
-            "media_type": "game",
+            "media_type": MediaTypes.GAME.value,
             "title": response["name"],
             "max_progress": None,
             "image": get_image_url(response),
@@ -240,9 +257,9 @@ def get_parent(parent_game):
     if parent_game:
         return [
             {
-                "source": "igdb",
+                "source": Sources.IGDB.value,
                 "media_id": parent_game["id"],
-                "media_type": "game",
+                "media_type": MediaTypes.GAME.value,
                 "title": parent_game["name"],
                 "image": get_image_url(parent_game),
             },
@@ -255,9 +272,9 @@ def get_related(related_medias):
     if related_medias:
         return [
             {
-                "source": "igdb",
+                "source": Sources.IGDB.value,
                 "media_id": game["id"],
-                "media_type": "game",
+                "media_type": MediaTypes.GAME.value,
                 "title": game["name"],
                 "image": get_image_url(game),
             }

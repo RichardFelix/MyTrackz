@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,7 @@ def handle_error(error):
 
     # Handle authentication errors
     if status_code == requests.codes.unauthorized:
-        logger.error("TMDB unauthorized: %s", error_message)
-
+        logger.error("%s unauthorized: %s", Sources.TMDB.label, error_message)
 
 
 def search(media_type, query):
@@ -43,12 +43,12 @@ def search(media_type, query):
         if settings.TMDB_NSFW:
             params["include_adult"] = "true"
 
-        response = services.api_request("TMDB", "GET", url, params=params)
+        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
         response = response["results"]
         data = [
             {
                 "media_id": media["id"],
-                "source": "tmdb",
+                "source": Sources.TMDB.value,
                 "media_type": media_type,
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
@@ -63,7 +63,7 @@ def search(media_type, query):
 
 def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
-    data = cache.get(f"movie_{media_id}")
+    data = cache.get(f"{MediaTypes.MOVIE.value}_{media_id}")
 
     if data is None:
         url = f"{base_url}/movie/{media_id}"
@@ -71,12 +71,12 @@ def movie(media_id):
             **base_params,
             "append_to_response": "recommendations",
         }
-        response = services.api_request("TMDB", "GET", url, params=params)
+        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
         data = {
             "media_id": media_id,
-            "source": "tmdb",
+            "source": Sources.TMDB.value,
             "source_url": f"https://www.themoviedb.org/movie/{media_id}",
-            "media_type": "movie",
+            "media_type": MediaTypes.MOVIE.value,
             "title": response["title"],
             "max_progress": 1,
             "image": get_image_url(response["poster_path"]),
@@ -95,12 +95,12 @@ def movie(media_id):
             "related": {
                 "recommendations": get_related(
                     response["recommendations"]["results"][:15],
-                    "movie",
+                    MediaTypes.MOVIE.value,
                 ),
             },
         }
 
-        cache.set(f"movie_{media_id}", data)
+        cache.set(f"{MediaTypes.MOVIE.value}_{media_id}", data)
 
     return data
 
@@ -112,11 +112,11 @@ def tv_with_seasons(media_id, season_numbers):
 
     url = f"{base_url}/tv/{media_id}"
     base_append = "recommendations,external_ids"
-    data = cache.get(f"tv_{media_id}", {})
+    data = cache.get(f"{MediaTypes.TV.value}_{media_id}", {})
 
     uncached_seasons = []
     for season_number in season_numbers:
-        season_data = cache.get(f"season_{media_id}_{season_number}")
+        season_data = cache.get(f"{MediaTypes.SEASON.value}_{media_id}_{season_number}")
 
         if season_data:
             data[f"season/{season_number}"] = season_data
@@ -136,11 +136,11 @@ def tv_with_seasons(media_id, season_numbers):
             else base_append,
         }
 
-        response = services.api_request("TMDB", "GET", url, params=params)
+        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
         # tv show metadata is not in the response
         if "media_id" not in data:
             tv_data = process_tv(response)
-            cache.set(f"tv_{media_id}", tv_data)
+            cache.set(f"{MediaTypes.TV.value}_{media_id}", tv_data)
 
             # merge tv show metadata with seasons metadata
             data = tv_data | data
@@ -149,7 +149,10 @@ def tv_with_seasons(media_id, season_numbers):
         for season_number in season_subset:
             season_key = f"season/{season_number}"
             if season_key not in response:
-                msg = f"Season {season_number} not found for TMDB TV show {media_id}"
+                msg = (
+                    f"Season {season_number} not found for "
+                    f"{Sources.TMDB.label} {media_id}"
+                )
                 # Create a new response object with 404 status
                 not_found_response = requests.Response()
                 not_found_response.status_code = 404
@@ -168,7 +171,10 @@ def tv_with_seasons(media_id, season_numbers):
             season_data["backdrop"] = data["backdrop"]
             if season_data["synopsis"] == "No synopsis available.":
                 season_data["synopsis"] = data["synopsis"]
-            cache.set(f"season_{media_id}_{season_number}", season_data)
+            cache.set(
+                f"{MediaTypes.SEASON.value}_{media_id}_{season_number}",
+                season_data,
+            )
             data[season_key] = season_data
 
     return data
@@ -176,7 +182,7 @@ def tv_with_seasons(media_id, season_numbers):
 
 def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
-    data = cache.get(f"tv_{media_id}")
+    data = cache.get(f"{MediaTypes.TV.value}_{media_id}")
 
     if data is None:
         url = f"{base_url}/tv/{media_id}"
@@ -184,9 +190,9 @@ def tv(media_id):
             **base_params,
             "append_to_response": "recommendations,external_ids",
         }
-        response = services.api_request("TMDB", "GET", url, params=params)
+        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
         data = process_tv(response)
-        cache.set(f"tv_{media_id}", data)
+        cache.set(f"{MediaTypes.TV.value}_{media_id}", data)
 
     return data
 
@@ -196,9 +202,9 @@ def process_tv(response):
     num_episodes = response["number_of_episodes"]
     return {
         "media_id": response["id"],
-        "source": "tmdb",
+        "source": Sources.TMDB.value,
         "source_url": f"https://www.themoviedb.org/tv/{response['id']}",
-        "media_type": "tv",
+        "media_type": MediaTypes.TV.value,
         "title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
@@ -218,10 +224,14 @@ def process_tv(response):
             "languages": get_languages(response["spoken_languages"]),
         },
         "related": {
-            "seasons": get_related(response["seasons"], "season", response),
+            "seasons": get_related(
+                response["seasons"],
+                MediaTypes.SEASON.value,
+                response,
+            ),
             "recommendations": get_related(
                 response["recommendations"]["results"][:15],
-                "tv",
+                MediaTypes.TV.value,
             ),
         },
         "external_ids": response["external_ids"],
@@ -232,8 +242,8 @@ def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
     num_episodes = len(response["episodes"])
     return {
-        "source": "tmdb",
-        "media_type": "season",
+        "source": Sources.TMDB.value,
+        "media_type": MediaTypes.SEASON.value,
         "season_title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
@@ -252,7 +262,7 @@ def process_season(response):
 
 def get_format(media_type):
     """Return media_type capitalized."""
-    if media_type == "tv":
+    if media_type == MediaTypes.TV.value:
         return "TV"
     return "Movie"
 
@@ -401,11 +411,11 @@ def get_related(related_medias, media_type, parent_response=None):
     related = []
     for media in related_medias:
         data = {
-            "source": "tmdb",
+            "source": Sources.TMDB.value,
             "media_type": media_type,
             "image": get_image_url(media["poster_path"]),
         }
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             data["media_id"] = parent_response["id"]
             data["title"] = parent_response["name"]
             data["season_number"] = media["season_number"]
@@ -434,8 +444,8 @@ def process_episodes(season_metadata, episodes_in_db):
             {
                 "media_id": season_metadata["media_id"],
                 "season_number": season_metadata["season_number"],
-                "media_type": "episode",
-                "source": "tmdb",
+                "media_type": MediaTypes.EPISODE.value,
+                "source": Sources.TMDB.value,
                 "episode_number": episode_number,
                 "air_date": episode["air_date"],  # when unknown, response returns null
                 "image": get_image_url(episode["still_path"]),

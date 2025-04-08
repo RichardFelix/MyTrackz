@@ -8,6 +8,7 @@ from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
+from app.models import MediaTypes, Sources
 from app.providers import comicvine, igdb, mal, mangaupdates, manual, openlibrary, tmdb
 
 logger = logging.getLogger(__name__)
@@ -133,18 +134,18 @@ def request_error_handling(error, provider, method, url, params, data, headers):
         )
 
     # Delegate to provider-specific error handlers
-    if provider == "IGDB":
+    if provider == Sources.IGDB.value:
         result = igdb.handle_error(error, provider, method, url, params, data, headers)
         if result and result.get("retry"):
             return api_request(**{k: v for k, v in result.items() if k != "retry"})
-    elif provider == "TMDB":
-        result = tmdb.handle_error(error)
-    elif provider == "MAL":
-        result = mal.handle_error(error)
-    elif provider == "ComicVine":
-        result = comicvine.handle_error(error)
+    elif provider == Sources.TMDB.value:
+        tmdb.handle_error(error)
+    elif provider == Sources.MAL.value:
+        mal.handle_error(error)
+    elif provider == Sources.COMICVINE.value:
+        comicvine.handle_error(error)
 
-    raise error  # re-raise the error if it's not handled
+    raise error
 
 
 def get_media_metadata(
@@ -155,50 +156,54 @@ def get_media_metadata(
     episode_number=None,
 ):
     """Return the metadata for the selected media."""
-    if source == "manual":
-        if media_type == "season":
+    if source == Sources.MANUAL.value:
+        if media_type == MediaTypes.SEASON.value:
             return manual.season(media_id, season_numbers[0])
-        if media_type == "episode":
+        if media_type == MediaTypes.EPISODE.value:
             return manual.episode(media_id, season_numbers[0], episode_number)
         if media_type == "tv_with_seasons":
-            media_type = "tv"
+            media_type = MediaTypes.TV.value
         return manual.metadata(media_id, media_type)
 
     metadata_retrievers = {
-        "anime": lambda: mal.anime(media_id),
-        "manga": lambda: mangaupdates.manga(media_id)
-        if source == "mangaupdates"
+        MediaTypes.ANIME.value: lambda: mal.anime(media_id),
+        MediaTypes.MANGA.value: lambda: mangaupdates.manga(media_id)
+        if source == Sources.MANGAUPDATES.value
         else mal.manga(media_id),
-        "tv": lambda: tmdb.tv(media_id),
+        MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
-        "season": lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
+        MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
             f"season/{season_numbers[0]}"
         ],
-        "episode": lambda: tmdb.episode(media_id, season_numbers[0], episode_number),
-        "movie": lambda: tmdb.movie(media_id),
-        "game": lambda: igdb.game(media_id),
-        "book": lambda: openlibrary.book(media_id),
-        "comic": lambda: comicvine.comic(media_id),
+        MediaTypes.EPISODE.value: lambda: tmdb.episode(
+            media_id,
+            season_numbers[0],
+            episode_number,
+        ),
+        MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id),
+        MediaTypes.GAME.value: lambda: igdb.game(media_id),
+        MediaTypes.BOOK.value: lambda: openlibrary.book(media_id),
+        MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
     }
     return metadata_retrievers[media_type]()
 
 
 def search(media_type, query, source=None):
     """Search for media based on the query and return the results."""
-    if media_type == "manga":
-        if source == "mangaupdates":
+    if media_type == MediaTypes.MANGA.value:
+        if source == Sources.MANGAUPDATES.value:
             query_list = mangaupdates.search(query)
         else:
             query_list = mal.search(media_type, query)
-    elif media_type in "anime":
+    elif media_type == MediaTypes.ANIME.value:
         query_list = mal.search(media_type, query)
-    elif media_type in ("tv", "movie"):
+    elif media_type in (MediaTypes.TV.value, MediaTypes.MOVIE.value):
         query_list = tmdb.search(media_type, query)
-    elif media_type == "game":
+    elif media_type == MediaTypes.GAME.value:
         query_list = igdb.search(query)
-    elif media_type == "book":
+    elif media_type == MediaTypes.BOOK.value:
         query_list = openlibrary.search(query)
-    elif media_type == "comic":
+    elif media_type == MediaTypes.COMIC.value:
         query_list = comicvine.search(query)
 
     return query_list

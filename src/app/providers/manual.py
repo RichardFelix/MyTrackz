@@ -1,4 +1,5 @@
 from app import models
+from app.models import MediaTypes, Sources
 
 
 def metadata(media_id, media_type):
@@ -6,11 +7,11 @@ def metadata(media_id, media_type):
     item = models.Item.objects.get(
         media_id=media_id,
         media_type=media_type,
-        source="manual",
+        source=Sources.MANUAL.value,
     )
     response = {
         "media_id": item.media_id,
-        "source": "manual",
+        "source": Sources.MANUAL.value,
         "media_type": item.media_type,
         "title": item.title,
         "max_progress": None,
@@ -32,7 +33,7 @@ def metadata(media_id, media_type):
 
 def season(media_id, season_number):
     """Return the metadata for a manual season."""
-    tv_metadata = metadata(media_id, "tv")
+    tv_metadata = metadata(media_id, MediaTypes.TV.value)
     return tv_metadata[f"season/{season_number}"]
 
 
@@ -40,8 +41,8 @@ def get_season_items(media_id):
     """Get all season items for a media ID."""
     return models.Item.objects.filter(
         media_id=media_id,
-        source="manual",
-        media_type="season",
+        source=Sources.MANUAL.value,
+        media_type=MediaTypes.SEASON.value,
     )
 
 
@@ -73,9 +74,9 @@ def process_seasons(season_items, response):
 def build_season_response(season, episodes_response, season_episodes):
     """Build the season response dictionary."""
     return {
-        "source": "manual",
+        "source": Sources.MANUAL.value,
         "media_id": season.media_id,
-        "media_type": "season",
+        "media_type": MediaTypes.SEASON.value,
         "title": season.title,
         "season_title": f"Season {season.season_number}",
         "image": season.image,
@@ -92,8 +93,8 @@ def get_season_episodes(season):
     """Get all episodes for a season."""
     return models.Item.objects.filter(
         media_id=season.media_id,
-        source="manual",
-        media_type="episode",
+        source=Sources.MANUAL.value,
+        media_type=MediaTypes.EPISODE.value,
         season_number=season.season_number,
     )
 
@@ -104,9 +105,9 @@ def episode(media_id, season_number, episode_number):
     for episode in season_metadata["episodes"]:
         if episode["episode_number"] == int(episode_number):
             return {
-                "source": "manual",
+                "source": Sources.MANUAL.value,
                 "media_id": media_id,
-                "media_type": "episode",
+                "media_type": MediaTypes.EPISODE.value,
                 "title": season_metadata["title"],
                 "season_title": season_metadata["season_title"],
                 "episode_title": episode["title"],
@@ -126,9 +127,9 @@ def process_episodes(season_metadata, episodes_in_db):
         watched = episode_number in tracked_episodes
 
         episode_data = {
-            "source": "manual",
+            "source": Sources.MANUAL.value,
             "media_id": episode["media_id"],
-            "media_type": "episode",
+            "media_type": MediaTypes.EPISODE.value,
             "season_number": season_metadata["season_number"],
             "episode_number": episode_number,
             "air_date": episode["air_date"],
@@ -151,7 +152,7 @@ def build_episodes_response(season_episodes):
     return [
         {
             "media_id": episode.media_id,
-            "source": "manual",
+            "source": Sources.MANUAL.value,
             "title": episode.title,
             "image": episode.image,
             "episode_number": episode.episode_number,
@@ -166,5 +167,5 @@ def set_max_progress(response, num_episodes, media_type):
     if num_episodes > 0:
         response["max_progress"] = num_episodes
         response["details"]["episodes"] = num_episodes
-    elif media_type == "movie":
+    elif media_type == MediaTypes.MOVIE.value:
         response["max_progress"] = 1

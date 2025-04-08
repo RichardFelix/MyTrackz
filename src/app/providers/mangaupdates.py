@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 base_url = "https://api.mangaupdates.com/v1"
@@ -13,7 +14,7 @@ base_url = "https://api.mangaupdates.com/v1"
 
 def search(query):
     """Search for media on MangaUpdates."""
-    data = cache.get(f"search_mangaupdates_{query}")
+    data = cache.get(f"search_{Sources.MANGAUPDATES.value}_{query}")
 
     if data is None:
         url = f"{base_url}/series/search"
@@ -31,7 +32,7 @@ def search(query):
 
         try:
             response = services.api_request(
-                "MANGAUPDATES",
+                Sources.MANGAUPDATES.value,
                 "POST",
                 url,
                 params=params,
@@ -46,15 +47,15 @@ def search(query):
         data = [
             {
                 "media_id": media["record"]["series_id"],
-                "source": "mangaupdates",
-                "media_type": "manga",
+                "source": Sources.MANGAUPDATES.value,
+                "media_type": MediaTypes.MANGA.value,
                 "title": media["record"]["title"],
                 "image": get_image_url(media["record"]),
             }
             for media in response
         ]
 
-        cache.set(f"search_mangaupdates_{query}", data)
+        cache.set(f"search_{Sources.MANGAUPDATES.value}_{query}", data)
 
     return data
 
@@ -66,11 +67,11 @@ def manga(media_id):
 
 async def async_manga(media_id):
     """Asynchronous implementation of manga metadata retrieval."""
-    data = cache.get(f"mangaupdates_manga_{media_id}")
+    data = cache.get(f"{Sources.MANGAUPDATES.value}_manga_{media_id}")
 
     if data is None:
         url = f"{base_url}/series/{media_id}"
-        response = services.api_request("MANGAUPDATES", "GET", url)
+        response = services.api_request(Sources.MANGAUPDATES.value, "GET", url)
 
         # Run related_manga and recommendations concurrently
         related_task = asyncio.create_task(
@@ -82,9 +83,9 @@ async def async_manga(media_id):
 
         data = {
             "media_id": media_id,
-            "source": "mangaupdates",
+            "source": Sources.MANGAUPDATES.value,
             "source_url": response["url"],
-            "media_type": "manga",
+            "media_type": MediaTypes.MANGA.value,
             "title": response["title"],
             "image": get_image_url(response),
             "backdrop": get_image_url(response),
@@ -104,7 +105,7 @@ async def async_manga(media_id):
             },
         }
 
-        cache.set(f"mangaupdates_manga_{media_id}", data)
+        cache.set(f"{Sources.MANGAUPDATES.value}_manga_{media_id}", data)
 
     return data
 
@@ -184,9 +185,9 @@ async def fetch_series_data(session, url, item):
             data = await response.json()
             image = get_image_url(data)
             return {
-                "source": "mangaupdates",
+                "source": Sources.MANGAUPDATES.value,
                 "media_id": item.get("related_series_id") or item.get("series_id"),
-                "media_type": "manga",
+                "media_type": MediaTypes.MANGA.value,
                 "title": item.get("related_series_name") or item.get("series_name"),
                 "image": image,
             }

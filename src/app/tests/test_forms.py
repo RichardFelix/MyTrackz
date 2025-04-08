@@ -10,7 +10,7 @@ from app.forms import (
     SeasonForm,
     TvForm,
 )
-from app.models import TV, Item, Season
+from app.models import TV, Item, Media, MediaTypes, Season, Sources
 
 
 class BasicMediaForm(TestCase):
@@ -23,16 +23,16 @@ class BasicMediaForm(TestCase):
 
         Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
             image="http://example.com/image.jpg",
         )
 
         Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test tv",
             image="http://example.com/image.jpg",
         )
@@ -41,12 +41,12 @@ class BasicMediaForm(TestCase):
         """Test the standard media form with valid data."""
         form_data = {
             "media_id": "1",
-            "source": "mal",
-            "media_type": "anime",
+            "source": Sources.MAL.value,
+            "media_type": MediaTypes.ANIME.value,
             "user": self.user.id,
             "score": 7.5,
             "progress": 25,
-            "status": "Paused",
+            "status": Media.Status.PAUSED.value,
             "repeats": 0,
             "start_date": "2023-02-01",
             "end_date": "2023-06-30",
@@ -59,11 +59,11 @@ class BasicMediaForm(TestCase):
         """Test the TV form with valid data."""
         form_data = {
             "media_id": "1",
-            "source": "tmdb",
-            "media_type": "tv",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.TV.value,
             "user": self.user.id,
             "score": 7.5,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "repeats": 0,
             "notes": "New notes",
         }
@@ -74,11 +74,11 @@ class BasicMediaForm(TestCase):
         """Test the season form with valid data."""
         form_data = {
             "media_id": "1",
-            "source": "tmdb",
-            "media_type": "season",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.SEASON.value,
             "user": self.user.id,
             "score": 7.5,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "repeats": 0,
             "season_number": 1,
             "notes": "New notes",
@@ -90,7 +90,7 @@ class BasicMediaForm(TestCase):
         """Test the episode form with valid data."""
         form_data = {
             "media_id": "1",
-            "source": "tmdb",
+            "source": Sources.TMDB.value,
             "season_number": 1,
             "episode_number": 1,
             "end_date": "2023-06-01",
@@ -109,8 +109,8 @@ class BasicGameForm(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.item = Item.objects.create(
             media_id="1",
-            source="igdb",
-            media_type="game",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
             title="Test Game",
             image="http://example.com/image.jpg",
         )
@@ -119,10 +119,10 @@ class BasicGameForm(TestCase):
         """Test the game form using the default progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "25:00",
             "repeats": 0,
         }
@@ -133,10 +133,10 @@ class BasicGameForm(TestCase):
         """Test the game form using an alternate progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "25h 00min",
             "repeats": 0,
         }
@@ -147,10 +147,10 @@ class BasicGameForm(TestCase):
         """Test the game form using a second alternate progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "30min",
             "repeats": 0,
         }
@@ -161,10 +161,10 @@ class BasicGameForm(TestCase):
         """Test the game form using a second alternate progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "9h",
             "repeats": 0,
         }
@@ -175,10 +175,10 @@ class BasicGameForm(TestCase):
         """Test the game form using a second alternate progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "9h30min",
             "repeats": 0,
         }
@@ -189,10 +189,10 @@ class BasicGameForm(TestCase):
         """Test the game form using an invalid default progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "25:00m",
             "repeats": 0,
         }
@@ -203,10 +203,10 @@ class BasicGameForm(TestCase):
         """Test the game form using an invalid default progress format."""
         form_data = {
             "media_id": "1",
-            "source": "igdb",
-            "media_type": "game",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
             "user": self.user.id,
-            "status": "Completed",
+            "status": Media.Status.COMPLETED.value,
             "progress": "25h61m",
             "repeats": 0,
         }
@@ -225,22 +225,22 @@ class ManualItemFormTest(TestCase):
         # Create a manual TV show
         self.tv_item = Item.objects.create(
             media_id="manual_tv_1",
-            source="manual",
-            media_type="tv",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
             title="Test Manual TV",
             image="http://example.com/tv.jpg",
         )
         self.tv = TV.objects.create(
             item=self.tv_item,
             user=self.user,
-            status="Watching",
+            status=Media.Status.WATCHING.value,
         )
 
         # Create a manual Season
         self.season_item = Item.objects.create(
             media_id="manual_tv_1",
-            source="manual",
-            media_type="season",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test Manual TV",
             season_number=1,
             image="http://example.com/season.jpg",
@@ -248,7 +248,7 @@ class ManualItemFormTest(TestCase):
         self.season = Season.objects.create(
             item=self.season_item,
             user=self.user,
-            status="Watching",
+            status=Media.Status.IN_PROGRESS.value,
         )
 
     def test_init_with_user(self):
@@ -266,7 +266,7 @@ class ManualItemFormTest(TestCase):
     def test_valid_standalone_media(self):
         """Test creating a standalone media item (movie, anime, etc.)."""
         form_data = {
-            "media_type": "movie",
+            "media_type": MediaTypes.MOVIE.value,
             "title": "Test Manual Movie",
             "image": "http://example.com/movie.jpg",
         }
@@ -275,7 +275,7 @@ class ManualItemFormTest(TestCase):
 
         # Save and verify
         item = form.save()
-        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.source, Sources.MANUAL.value)
         self.assertEqual(item.media_id, "1")
         self.assertIsNone(item.season_number)
         self.assertIsNone(item.episode_number)
@@ -283,7 +283,7 @@ class ManualItemFormTest(TestCase):
     def test_valid_season_creation(self):
         """Test creating a season for an existing TV show."""
         form_data = {
-            "media_type": "season",
+            "media_type": MediaTypes.SEASON.value,
             "parent_tv": self.tv.id,
             "season_number": 2,
         }
@@ -292,7 +292,7 @@ class ManualItemFormTest(TestCase):
 
         # Save and verify
         item = form.save()
-        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.source, Sources.MANUAL.value)
         self.assertEqual(item.media_id, self.tv_item.media_id)
         self.assertEqual(item.title, self.tv_item.title)
         self.assertEqual(item.season_number, 2)
@@ -301,7 +301,7 @@ class ManualItemFormTest(TestCase):
     def test_valid_episode_creation(self):
         """Test creating an episode for an existing season."""
         form_data = {
-            "media_type": "episode",
+            "media_type": MediaTypes.EPISODE.value,
             "parent_season": self.season.id,
             "episode_number": 5,
         }
@@ -310,7 +310,7 @@ class ManualItemFormTest(TestCase):
 
         # Save and verify
         item = form.save()
-        self.assertEqual(item.source, "manual")
+        self.assertEqual(item.source, Sources.MANUAL.value)
         self.assertEqual(item.media_id, self.season_item.media_id)
         self.assertEqual(item.title, self.season_item.title)
         self.assertEqual(item.season_number, self.season_item.season_number)
@@ -319,7 +319,7 @@ class ManualItemFormTest(TestCase):
     def test_missing_title_for_standalone(self):
         """Test that title is required for standalone media."""
         form_data = {
-            "media_type": "movie",
+            "media_type": MediaTypes.MOVIE.value,
         }
         form = ManualItemForm(data=form_data, user=self.user)
         self.assertFalse(form.is_valid())
@@ -328,7 +328,7 @@ class ManualItemFormTest(TestCase):
     def test_missing_parent_for_season(self):
         """Test that parent TV is required for seasons."""
         form_data = {
-            "media_type": "season",
+            "media_type": MediaTypes.SEASON.value,
             "season_number": 3,
         }
         form = ManualItemForm(data=form_data, user=self.user)
@@ -337,7 +337,7 @@ class ManualItemFormTest(TestCase):
     def test_missing_parent_for_episode(self):
         """Test that parent season is required for episodes."""
         form_data = {
-            "media_type": "episode",
+            "media_type": MediaTypes.EPISODE.value,
             "episode_number": 2,
         }
         form = ManualItemForm(data=form_data, user=self.user)
@@ -346,7 +346,7 @@ class ManualItemFormTest(TestCase):
     def test_default_image(self):
         """Test that default image is used when none provided."""
         form_data = {
-            "media_type": "book",
+            "media_type": MediaTypes.BOOK.value,
             "title": "Test Manual Book",
         }
         form = ManualItemForm(data=form_data, user=self.user)
@@ -360,7 +360,7 @@ class ManualItemFormTest(TestCase):
         """Test that unique manual IDs are generated."""
         # Create first item
         form1 = ManualItemForm(
-            data={"media_type": "anime", "title": "Test Anime 1"},
+            data={"media_type": MediaTypes.ANIME.value, "title": "Test Anime 1"},
             user=self.user,
         )
         self.assertTrue(form1.is_valid())
@@ -368,7 +368,7 @@ class ManualItemFormTest(TestCase):
 
         # Create second item
         form2 = ManualItemForm(
-            data={"media_type": "anime", "title": "Test Anime 2"},
+            data={"media_type": MediaTypes.ANIME.value, "title": "Test Anime 2"},
             user=self.user,
         )
         self.assertTrue(form2.is_valid())

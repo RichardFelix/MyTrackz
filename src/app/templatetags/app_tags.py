@@ -7,7 +7,8 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import helpers, media_type_config, models
+from app import helpers, media_type_config
+from app.models import Colors, Media, MediaTypes, Sources
 
 register = template.Library()
 
@@ -62,19 +63,19 @@ def is_list(arg1):
 @register.filter
 def source_readable(source):
     """Return the readable source name."""
-    return models.Sources(source).label
+    return Sources(source).label
 
 
 @register.filter
 def media_type_readable(media_type):
     """Return the readable media type."""
-    return models.MediaTypes(media_type).label
+    return MediaTypes(media_type).label
 
 
 @register.filter
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
-    singular = models.MediaTypes(media_type).label
+    singular = MediaTypes(media_type).label
 
     # Special cases that don't change in plural form
     if singular.lower() in ["anime", "manga"]:
@@ -86,7 +87,7 @@ def media_type_readable_plural(media_type):
 @register.filter
 def media_status_readable(media_status):
     """Return the readable media status."""
-    return models.Media.Status(media_status).label
+    return Media.Status(media_status).label
 
 
 @register.filter
@@ -110,12 +111,10 @@ def sample_search(media_type):
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
-    excluded_types = [models.MediaTypes.SEASON.value, models.MediaTypes.EPISODE.value]
+    excluded_types = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
 
     enabled_types = (
-        user.get_enabled_media_types()
-        if user.hide_from_search
-        else models.MediaTypes.values
+        user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
     )
 
     # Filter and format the types for search
@@ -132,7 +131,7 @@ def get_search_media_types(user):
 @register.simple_tag
 def get_sidebar_media_types(user):
     """Return available media types for sidebar navigation based on user preferences."""
-    excluded_types = [models.MediaTypes.EPISODE.value]
+    excluded_types = [MediaTypes.EPISODE.value]
 
     enabled_types = user.get_enabled_media_types()
 
@@ -150,7 +149,7 @@ def get_sidebar_media_types(user):
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
-    return models.Colors[media_type.upper()].value
+    return Colors[media_type.upper()].value
 
 
 @register.filter
@@ -211,7 +210,7 @@ def media_url(media):
     media_id = media["media_id"] if is_dict else media.media_id
     title = media["title"] if is_dict else media.title
 
-    if media_type in ["season", "episode"]:
+    if media_type in [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]:
         season_number = media["season_number"] if is_dict else media.season_number
         return reverse(
             "season_details",
@@ -355,7 +354,7 @@ def icon(name, is_active, extra_classes=None):
         ),
     }
 
-    if name in models.MediaTypes.values:
+    if name in MediaTypes.values:
         content = media_type_config.get_svg_icon(name)
     else:
         content = other_icons[name]

@@ -30,8 +30,8 @@ from simple_history.utils import bulk_create_with_history, bulk_update_with_hist
 
 import events
 import users
+from app import providers
 from app.mixins import CalendarTriggerMixin
-from app.providers import services, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -580,7 +580,7 @@ class Media(CalendarTriggerMixin, models.Model):
         if self.progress < 0:
             self.progress = 0
         else:
-            max_progress = services.get_media_metadata(
+            max_progress = providers.providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
                 self.item.source,
@@ -604,7 +604,7 @@ class Media(CalendarTriggerMixin, models.Model):
             if not self.end_date:
                 self.end_date = now
 
-            max_progress = services.get_media_metadata(
+            max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
                 self.item.source,
@@ -686,7 +686,7 @@ class TV(Media):
 
     def completed(self):
         """Create remaining seasons and episodes for a TV show."""
-        tv_metadata = services.get_media_metadata(
+        tv_metadata = providers.services.get_media_metadata(
             self.item.media_type,
             self.item.media_id,
             self.item.source,
@@ -704,7 +704,7 @@ class TV(Media):
             for season in tv_metadata["related"]["seasons"]
             if season["season_number"] != 0
         ]
-        tv_with_seasons_metadata = services.get_media_metadata(
+        tv_with_seasons_metadata = providers.services.get_media_metadata(
             "tv_with_seasons",
             self.item.media_id,
             self.item.source,
@@ -789,7 +789,7 @@ class Season(Media):
 
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
-                season_metadata = services.get_media_metadata(
+                season_metadata = providers.services.get_media_metadata(
                     "season",
                     self.item.media_id,
                     self.item.source,
@@ -854,7 +854,7 @@ class Season(Media):
 
     def increase_progress(self):
         """Watch the next episode of the season."""
-        season_metadata = services.get_media_metadata(
+        season_metadata = providers.services.get_media_metadata(
             "season",
             self.item.media_id,
             self.item.source,
@@ -866,7 +866,7 @@ class Season(Media):
             # start watching from the first episode
             next_episode_number = episodes[0]["episode_number"]
         else:
-            next_episode_number = tmdb.find_next_episode(
+            next_episode_number = providers.tmdb.find_next_episode(
                 self.progress,
                 episodes,
             )
@@ -955,7 +955,7 @@ class Season(Media):
                 user=self.user,
             )
         except TV.DoesNotExist:
-            tv_metadata = services.get_media_metadata(
+            tv_metadata = providers.services.get_media_metadata(
                 "tv",
                 self.item.media_id,
                 self.item.source,
@@ -1026,7 +1026,7 @@ class Season(Media):
     def get_episode_item(self, episode_number, season_metadata=None):
         """Get the episode item instance, create it if it doesn't exist."""
         if not season_metadata:
-            season_metadata = services.get_media_metadata(
+            season_metadata = providers.services.get_media_metadata(
                 "season",
                 self.item.media_id,
                 self.item.source,
@@ -1106,7 +1106,7 @@ class Episode(models.Model):
             Media.Status.REPEATING.value,
         ):
             season_number = self.item.season_number
-            tv_with_seasons_metadata = services.get_media_metadata(
+            tv_with_seasons_metadata = providers.services.get_media_metadata(
                 "tv_with_seasons",
                 self.item.media_id,
                 self.item.source,

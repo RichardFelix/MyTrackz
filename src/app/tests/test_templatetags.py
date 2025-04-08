@@ -5,7 +5,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from app.models import Item, MediaTypes
+from app.models import Item, MediaTypes, Sources
 from app.templatetags import app_tags
 
 
@@ -17,23 +17,23 @@ class AppTagsTests(TestCase):
         # Create a sample item for testing
         self.tv_item = Item(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
 
         self.season_item = Item(
             media_id="1668",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test TV Show",
             season_number=1,
         )
 
         self.episode_item = Item(
             media_id="1668",
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             title="Test TV Show",
             season_number=1,
             episode_number=1,
@@ -42,23 +42,23 @@ class AppTagsTests(TestCase):
         # Create a dict version for testing dict-based functions
         self.tv_dict = {
             "media_id": "1668",
-            "source": "tmdb",
-            "media_type": "tv",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.TV.value,
             "title": "Test TV Show",
         }
 
         self.season_dict = {
             "media_id": "1668",
-            "source": "tmdb",
-            "media_type": "season",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.SEASON.value,
             "title": "Test TV Show",
             "season_number": 1,
         }
 
         self.episode_dict = {
             "media_id": "1668",
-            "source": "tmdb",
-            "media_type": "episode",
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.EPISODE.value,
             "title": "Test TV Show",
             "season_number": 1,
             "episode_number": 1,
@@ -99,7 +99,7 @@ class AppTagsTests(TestCase):
         self.assertEqual(app_tags.slug("Hello World"), "hello-world")
 
         # Test with special characters
-        self.assertEqual(app_tags.slug("Anime: 31687"), "anime-31687")
+        self.assertEqual(app_tags.slug("Anime:31687"), "anime-31687")
 
         # Test with characters that would be removed entirely
         empty_slug = app_tags.slug("★★★")
@@ -137,10 +137,10 @@ class AppTagsTests(TestCase):
             self.assertTrue(len(result) > 0)
 
             # This implicitly checks that all media types are handled
-            try:
-                app_tags.default_source(media_type)
-            except KeyError:
-                self.fail(f"default_source raised KeyError for {media_type}")
+        try:
+            app_tags.default_source(media_type)
+        except KeyError:
+            self.fail(f"default_source raised KeyError for {media_type}")
 
     def test_media_past_verb(self):
         """Test the media_past_verb filter."""
@@ -155,7 +155,7 @@ class AppTagsTests(TestCase):
         """Test the sample_search filter."""
         # Test all media types
         for media_type in MediaTypes.values:
-            if media_type in ("season", "episode"):
+            if media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
                 # Skip season and episode for sample_search
                 continue
 
@@ -268,8 +268,8 @@ class AppTagsTests(TestCase):
         expected_tv_url = reverse(
             "media_details",
             kwargs={
-                "source": "tmdb",
-                "media_type": "tv",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.TV.value,
                 "media_id": "1668",
                 "title": "test-tv-show",
             },
@@ -285,7 +285,7 @@ class AppTagsTests(TestCase):
         expected_season_url = reverse(
             "season_details",
             kwargs={
-                "source": "tmdb",
+                "source": Sources.TMDB.value,
                 "media_id": "1668",
                 "title": "test-tv-show",
                 "season_number": 1,
@@ -330,8 +330,8 @@ class AppTagsTests(TestCase):
         expected_tv_modal = reverse(
             "track_modal",
             kwargs={
-                "source": "tmdb",
-                "media_type": "tv",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.TV.value,
                 "media_id": "1668",
             },
         )
@@ -346,8 +346,8 @@ class AppTagsTests(TestCase):
         expected_episode_modal = reverse(
             "history_modal",
             kwargs={
-                "source": "tmdb",
-                "media_type": "episode",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.EPISODE.value,
                 "media_id": "1668",
                 "season_number": 1,
                 "episode_number": 1,

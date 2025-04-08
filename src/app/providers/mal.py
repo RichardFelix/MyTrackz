@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 logger = logging.getLogger(__name__)
@@ -20,12 +21,12 @@ def handle_error(error):
     error_json = error_resp.json()
 
     if status_code == requests.codes.forbidden:
-        logger.error("MAL forbidden: is the API key set?")
+        logger.error("%s forbidden: is the API key set?", Sources.MAL.label)
     elif (
         status_code == requests.codes.bad_request
         and error_json.get("message") == "Invalid client id"
     ):
-        logger.error("MAL bad request: Invalid API key")
+        logger.error("%s bad request: Invalid API key", Sources.MAL.label)
 
 
 def search(media_type, query):
@@ -43,7 +44,7 @@ def search(media_type, query):
 
         try:
             response = services.api_request(
-                "MAL",
+                Sources.MAL.value,
                 "GET",
                 url,
                 params=params,
@@ -59,7 +60,7 @@ def search(media_type, query):
         data = [
             {
                 "media_id": media["node"]["id"],
-                "source": "mal",
+                "source": Sources.MAL.value,
                 "media_type": media_type,
                 "title": media["node"]["title"],
                 "image": get_image_url(media["node"]),
@@ -74,7 +75,7 @@ def search(media_type, query):
 
 def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"mal_anime_{media_id}")
+    data = cache.get(f"{Sources.MAL.value}_anime_{media_id}")
 
     if data is None:
         url = f"{base_url}/anime/{media_id}"
@@ -82,7 +83,7 @@ def anime(media_id):
             "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
         }
         response = services.api_request(
-            "MAL",
+            Sources.MAL.value,
             "GET",
             url,
             params=params,
@@ -93,9 +94,9 @@ def anime(media_id):
 
         data = {
             "media_id": media_id,
-            "source": "mal",
+            "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/anime/{media_id}",
-            "media_type": "anime",
+            "media_type": MediaTypes.ANIME.value,
             "title": response["title"],
             "max_progress": num_episodes,
             "image": get_image_url(response),
@@ -115,22 +116,25 @@ def anime(media_id):
                 "source": get_source(response),
             },
             "related": {
-                "related_anime": get_related(response.get("related_anime"), "anime"),
+                "related_anime": get_related(
+                    response.get("related_anime"),
+                    MediaTypes.ANIME.value,
+                ),
                 "recommendations": get_related(
                     response.get("recommendations"),
-                    "anime",
+                    MediaTypes.ANIME.value,
                 ),
             },
         }
 
-        cache.set(f"mal_anime_{media_id}", data)
+        cache.set(f"{Sources.MAL.value}_anime_{media_id}", data)
 
     return data
 
 
 def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"mal_manga_{media_id}")
+    data = cache.get(f"{Sources.MAL.value}_manga_{media_id}")
 
     if data is None:
         url = f"{base_url}/manga/{media_id}"
@@ -138,7 +142,7 @@ def manga(media_id):
             "fields": f"{base_fields},num_chapters,related_manga,recommendations",
         }
         response = services.api_request(
-            "MAL",
+            Sources.MAL.value,
             "GET",
             url,
             params=params,
@@ -149,9 +153,9 @@ def manga(media_id):
 
         data = {
             "media_id": media_id,
-            "source": "mal",
+            "source": Sources.MAL.value,
             "source_url": f"https://myanimelist.net/manga/{media_id}",
-            "media_type": "manga",
+            "media_type": MediaTypes.MANGA.value,
             "title": response["title"],
             "image": get_image_url(response),
             "backdrop": get_image_url(response),
@@ -166,15 +170,18 @@ def manga(media_id):
                 "number_of_chapters": num_chapters,
             },
             "related": {
-                "related_manga": get_related(response.get("related_manga"), "manga"),
+                "related_manga": get_related(
+                    response.get("related_manga"),
+                    MediaTypes.MANGA.value,
+                ),
                 "recommendations": get_related(
                     response.get("recommendations"),
-                    "manga",
+                    MediaTypes.MANGA.value,
                 ),
             },
         }
 
-        cache.set(f"mal_manga_{media_id}", data)
+        cache.set(f"{Sources.MAL.value}_manga_{media_id}", data)
 
     return data
 
@@ -333,7 +340,7 @@ def get_related(related_medias, media_type):
         return [
             {
                 "media_id": media["node"]["id"],
-                "source": "mal",
+                "source": Sources.MAL.value,
                 "title": media["node"]["title"],
                 "media_type": media_type,
                 "image": get_image_url(media["node"]),

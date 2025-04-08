@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
+from app.models import MediaTypes, Sources
 from app.providers import services
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def handle_error(error):
     # Handle invalid API key
     if status_code == requests.codes.unauthorized:
         message = error_json["error"]
-        logger.error("ComicVine unauthorized: %s", message)
+        logger.error("%s unauthorized: %s", Sources.COMICVINE.label, message)
 
 
 def search(query):
@@ -42,7 +43,7 @@ def search(query):
         }
 
         response = services.api_request(
-            "ComicVine",
+            Sources.COMICVINE.value,
             "GET",
             f"{base_url}/search/",
             params=params,
@@ -52,8 +53,8 @@ def search(query):
         data = [
             {
                 "media_id": str(item["id"]),
-                "source": "comicvine",
-                "media_type": "comic",
+                "source": Sources.COMICVINE.value,
+                "media_type": MediaTypes.COMIC.value,
                 "title": item["name"],
                 "image": get_image(item),
             }
@@ -67,7 +68,7 @@ def search(query):
 
 def comic(media_id):
     """Return the metadata for the selected comic volume from Comic Vine."""
-    cache_key = f"comicvine_volume_{media_id}"
+    cache_key = f"{Sources.COMICVINE.value}_volume_{media_id}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -81,7 +82,7 @@ def comic(media_id):
         }
 
         response = services.api_request(
-            "ComicVine",
+            Sources.COMICVINE.value,
             "GET",
             f"{base_url}/volume/4050-{media_id}/",
             params=params,
@@ -96,9 +97,9 @@ def comic(media_id):
 
         data = {
             "media_id": media_id,
-            "source": "comicvine",
+            "source": Sources.COMICVINE.value,
             "source_url": response["site_detail_url"],
-            "media_type": "comic",
+            "media_type": MediaTypes.COMIC.value,
             "title": response["name"],
             "max_progress": get_issue_number(response["last_issue"]["issue_number"]),
             "image": get_image(response),
@@ -221,7 +222,7 @@ def get_people(response):
 
 def get_similar_comics(publisher_id, current_id, limit=10):
     """Get similar comics from the same publisher."""
-    cache_key = f"comicvine_similar_{publisher_id}_{current_id}"
+    cache_key = f"{Sources.COMICVINE.value}_similar_{publisher_id}_{current_id}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -234,7 +235,7 @@ def get_similar_comics(publisher_id, current_id, limit=10):
         }
 
         response = services.api_request(
-            "ComicVine",
+            Sources.COMICVINE.value,
             "GET",
             f"{base_url}/volumes/",
             params=params,
@@ -245,8 +246,8 @@ def get_similar_comics(publisher_id, current_id, limit=10):
         data = [
             {
                 "media_id": str(item["id"]),
-                "source": "comicvine",
-                "media_type": "comic",
+                "source": Sources.COMICVINE.value,
+                "media_type": MediaTypes.COMIC.value,
                 "title": item["name"],
                 "image": get_image(item),
             }
@@ -261,7 +262,7 @@ def get_similar_comics(publisher_id, current_id, limit=10):
 
 def issue(media_id):
     """Return the metadata for the selected comic issue from Comic Vine."""
-    cache_key = f"comicvine_issue_{media_id}"
+    cache_key = f"{Sources.COMICVINE.value}_issue_{media_id}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -272,7 +273,7 @@ def issue(media_id):
         }
 
         response = services.api_request(
-            "ComicVine",
+            Sources.COMICVINE.value,
             "GET",
             f"{base_url}/issue/4000-{media_id}/",
             params=params,

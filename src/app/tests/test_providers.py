@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 from django.test import TestCase
 
-from app.models import Item
+from app.models import Item, MediaTypes, Sources
 from app.providers import (
     comicvine,
     igdb,
@@ -29,7 +29,7 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = mal.search("anime", "Cowboy Bebop")
+        response = mal.search(MediaTypes.ANIME.value, "Cowboy Bebop")
 
         required_keys = {"media_id", "media_type", "title", "image"}
 
@@ -38,7 +38,7 @@ class Search(TestCase):
 
     def test_anime_not_found(self):
         """Test the search method for anime with no results."""
-        response = mal.search("anime", "q")
+        response = mal.search(MediaTypes.ANIME.value, "q")
 
         self.assertEqual(response, [])
 
@@ -64,7 +64,7 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = tmdb.search("tv", "Breaking Bad")
+        response = tmdb.search(MediaTypes.TV.value, "Breaking Bad")
         required_keys = {"media_id", "media_type", "title", "image"}
 
         for tv in response:
@@ -345,8 +345,8 @@ class Metadata(TestCase):
         # Create test data
         Item.objects.create(
             media_id="1",
-            source="manual",
-            media_type="tv",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
             title="Manual TV Show",
             image="http://example.com/manual.jpg",
         )
@@ -354,7 +354,7 @@ class Metadata(TestCase):
         # Create a season
         Item.objects.create(
             media_id="1",
-            source="manual",
+            source=Sources.MANUAL.value,
             media_type="season",
             title="Manual TV Show",
             image="http://example.com/manual_s1.jpg",
@@ -365,7 +365,7 @@ class Metadata(TestCase):
         for i in range(1, 4):
             Item.objects.create(
                 media_id="1",
-                source="manual",
+                source=Sources.MANUAL.value,
                 media_type="episode",
                 title=f"Episode {i}",
                 image=f"http://example.com/manual_s1e{i}.jpg",
@@ -374,13 +374,13 @@ class Metadata(TestCase):
             )
 
         # Test metadata
-        response = manual.metadata("1", "tv")
+        response = manual.metadata("1", MediaTypes.TV.value)
 
         # Check basic fields
         self.assertEqual(response["title"], "Manual TV Show")
         self.assertEqual(response["media_id"], "1")
-        self.assertEqual(response["source"], "manual")
-        self.assertEqual(response["media_type"], "tv")
+        self.assertEqual(response["source"], Sources.MANUAL.value)
+        self.assertEqual(response["media_type"], MediaTypes.TV.value)
         self.assertEqual(response["synopsis"], "No synopsis available.")
 
         # Check season and episode data
@@ -400,20 +400,20 @@ class Metadata(TestCase):
         # Create test data
         Item.objects.create(
             media_id="2",
-            source="manual",
-            media_type="movie",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Manual Movie",
             image="http://example.com/manual_movie.jpg",
         )
 
         # Test metadata
-        response = manual.metadata("2", "movie")
+        response = manual.metadata("2", MediaTypes.MOVIE.value)
 
         # Check basic fields
         self.assertEqual(response["title"], "Manual Movie")
         self.assertEqual(response["media_id"], "2")
-        self.assertEqual(response["source"], "manual")
-        self.assertEqual(response["media_type"], "movie")
+        self.assertEqual(response["source"], Sources.MANUAL.value)
+        self.assertEqual(response["media_type"], MediaTypes.MOVIE.value)
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["max_progress"], 1)
 
@@ -422,15 +422,15 @@ class Metadata(TestCase):
         # Create test data
         Item.objects.create(
             media_id="3",
-            source="manual",
-            media_type="tv",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
             title="Another TV Show",
             image="http://example.com/another.jpg",
         )
 
         Item.objects.create(
             media_id="3",
-            source="manual",
+            source=Sources.MANUAL.value,
             media_type="season",
             title="Another TV Show",
             image="http://example.com/another_s1.jpg",
@@ -441,7 +441,7 @@ class Metadata(TestCase):
         for i in range(1, 3):
             Item.objects.create(
                 media_id="3",
-                source="manual",
+                source=Sources.MANUAL.value,
                 media_type="episode",
                 title=f"Episode {i}",
                 image=f"http://example.com/another_s1e{i}.jpg",
@@ -464,15 +464,15 @@ class Metadata(TestCase):
         # Create test data
         Item.objects.create(
             media_id="4",
-            source="manual",
-            media_type="tv",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
             title="Third TV Show",
             image="http://example.com/third.jpg",
         )
 
         Item.objects.create(
             media_id="4",
-            source="manual",
+            source=Sources.MANUAL.value,
             media_type="season",
             title="Third TV Show",
             image="http://example.com/third_s1.jpg",
@@ -481,7 +481,7 @@ class Metadata(TestCase):
 
         Item.objects.create(
             media_id="4",
-            source="manual",
+            source=Sources.MANUAL.value,
             media_type="episode",
             title="Special Episode",
             image="http://example.com/third_s1e1.jpg",
@@ -503,15 +503,15 @@ class Metadata(TestCase):
         # Create test data
         Item.objects.create(
             media_id="5",
-            source="manual",
-            media_type="tv",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.TV.value,
             title="Process Episodes Test",
             image="http://example.com/process.jpg",
         )
 
         Item.objects.create(
             media_id="5",
-            source="manual",
+            source=Sources.MANUAL.value,
             media_type="season",
             title="Process Episodes Test",
             image="http://example.com/process_s1.jpg",
@@ -522,7 +522,7 @@ class Metadata(TestCase):
         for i in range(1, 4):
             Item.objects.create(
                 media_id="5",
-                source="manual",
+                source=Sources.MANUAL.value,
                 media_type="episode",
                 title=f"Process Episode {i}",
                 image=f"http://example.com/process_s1e{i}.jpg",
@@ -860,7 +860,7 @@ class ServicesTests(TestCase):
         mock_anime.return_value = {"title": "Test Anime"}
 
         # Call the function
-        result = services.get_media_metadata("anime", "1", "mal")
+        result = services.get_media_metadata(MediaTypes.ANIME.value, "1", "mal")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Anime"})
@@ -875,7 +875,11 @@ class ServicesTests(TestCase):
         mock_manga.return_value = {"title": "Test Manga"}
 
         # Call the function
-        result = services.get_media_metadata("manga", "1", "mangaupdates")
+        result = services.get_media_metadata(
+            MediaTypes.MANGA.value,
+            "1",
+            "mangaupdates",
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Manga"})
@@ -890,7 +894,7 @@ class ServicesTests(TestCase):
         mock_manga.return_value = {"title": "Test Manga"}
 
         # Call the function
-        result = services.get_media_metadata("manga", "1", "mal")
+        result = services.get_media_metadata(MediaTypes.MANGA.value, "1", "mal")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Manga"})
@@ -905,7 +909,7 @@ class ServicesTests(TestCase):
         mock_tv.return_value = {"title": "Test TV"}
 
         # Call the function
-        result = services.get_media_metadata("tv", "1", "tmdb")
+        result = services.get_media_metadata(MediaTypes.TV.value, "1", "tmdb")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test TV"})
@@ -978,7 +982,7 @@ class ServicesTests(TestCase):
         mock_movie.return_value = {"title": "Test Movie"}
 
         # Call the function
-        result = services.get_media_metadata("movie", "1", "tmdb")
+        result = services.get_media_metadata(MediaTypes.MOVIE.value, "1", "tmdb")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Movie"})
@@ -993,7 +997,7 @@ class ServicesTests(TestCase):
         mock_game.return_value = {"title": "Test Game"}
 
         # Call the function
-        result = services.get_media_metadata("game", "1", "igdb")
+        result = services.get_media_metadata(MediaTypes.GAME.value, "1", "igdb")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Game"})
@@ -1008,7 +1012,7 @@ class ServicesTests(TestCase):
         mock_comic.return_value = {"title": "Test Comic"}
 
         # Call the function
-        result = services.get_media_metadata("comic", "1", "comicvine")
+        result = services.get_media_metadata(MediaTypes.COMIC.value, "1", "comicvine")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Comic"})
@@ -1023,7 +1027,7 @@ class ServicesTests(TestCase):
         mock_book.return_value = {"title": "Test Book"}
 
         # Call the function
-        result = services.get_media_metadata("book", "1", "openlibrary")
+        result = services.get_media_metadata(MediaTypes.BOOK.value, "1", "openlibrary")
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Book"})
@@ -1038,13 +1042,17 @@ class ServicesTests(TestCase):
         mock_metadata.return_value = {"title": "Test Manual"}
 
         # Call the function
-        result = services.get_media_metadata("movie", "1", "manual")
+        result = services.get_media_metadata(
+            MediaTypes.MOVIE.value,
+            "1",
+            Sources.MANUAL.value,
+        )
 
         # Verify the result
         self.assertEqual(result, {"title": "Test Manual"})
 
         # Verify the correct function was called
-        mock_metadata.assert_called_once_with("1", "movie")
+        mock_metadata.assert_called_once_with("1", MediaTypes.MOVIE.value)
 
     @patch("app.providers.manual.season")
     def test_get_media_metadata_manual_season(self, mock_season):
@@ -1056,7 +1064,7 @@ class ServicesTests(TestCase):
         result = services.get_media_metadata(
             "season",
             "1",
-            "manual",
+            Sources.MANUAL.value,
             season_numbers=[1],
         )
 
@@ -1076,7 +1084,7 @@ class ServicesTests(TestCase):
         result = services.get_media_metadata(
             "episode",
             "1",
-            "manual",
+            Sources.MANUAL.value,
             season_numbers=[1],
             episode_number="2",
         )
@@ -1094,13 +1102,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Anime"}]
 
         # Call the function
-        result = services.search("anime", "test")
+        result = services.search(MediaTypes.ANIME.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Anime"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("anime", "test")
+        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test")
 
     @patch("app.providers.mangaupdates.search")
     def test_search_manga_mangaupdates(self, mock_search):
@@ -1109,7 +1117,7 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         # Call the function
-        result = services.search("manga", "test", source="mangaupdates")
+        result = services.search(MediaTypes.MANGA.value, "test", source="mangaupdates")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Manga"}])
@@ -1124,13 +1132,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         # Call the function
-        result = services.search("manga", "test")
+        result = services.search(MediaTypes.MANGA.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Manga"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("manga", "test")
+        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test")
 
     @patch("app.providers.tmdb.search")
     def test_search_tv(self, mock_search):
@@ -1139,13 +1147,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test TV"}]
 
         # Call the function
-        result = services.search("tv", "test")
+        result = services.search(MediaTypes.TV.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test TV"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("tv", "test")
+        mock_search.assert_called_once_with(MediaTypes.TV.value, "test")
 
     @patch("app.providers.tmdb.search")
     def test_search_movie(self, mock_search):
@@ -1154,13 +1162,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Movie"}]
 
         # Call the function
-        result = services.search("movie", "test")
+        result = services.search(MediaTypes.MOVIE.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Movie"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("movie", "test")
+        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test")
 
     @patch("app.providers.igdb.search")
     def test_search_game(self, mock_search):
@@ -1169,7 +1177,7 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Game"}]
 
         # Call the function
-        result = services.search("game", "test")
+        result = services.search(MediaTypes.GAME.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Game"}])
@@ -1184,7 +1192,7 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Book"}]
 
         # Call the function
-        result = services.search("book", "test")
+        result = services.search(MediaTypes.BOOK.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Book"}])
@@ -1199,7 +1207,7 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Comic"}]
 
         # Call the function
-        result = services.search("comic", "test")
+        result = services.search(MediaTypes.COMIC.value, "test")
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Comic"}])

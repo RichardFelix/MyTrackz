@@ -12,7 +12,7 @@ from app.helpers import (
     redirect_back,
     tailwind_to_hex,
 )
-from app.models import Colors, MediaTypes
+from app.models import Colors, Media, MediaTypes
 
 
 class HelpersTest(TestCase):
@@ -92,23 +92,23 @@ class HelpersTest(TestCase):
         """Test format_description for initial status changes."""
         # Test initial status settings
         self.assertEqual(
-            format_description("status", None, "In progress", "tv"),
+            format_description("status", None, Media.Status.IN_PROGRESS.value, "tv"),
             "Started watching",
         )
         self.assertEqual(
-            format_description("status", None, "Completed", "manga"),
+            format_description("status", None, Media.Status.COMPLETED.value, "manga"),
             "Finished reading",
         )
         self.assertEqual(
-            format_description("status", None, "Planning", "game"),
+            format_description("status", None, Media.Status.PLANNING.value, "game"),
             "Added to playing list",
         )
         self.assertEqual(
-            format_description("status", None, "Dropped", "book"),
+            format_description("status", None, Media.Status.DROPPED.value, "book"),
             "Stopped reading",
         )
         self.assertEqual(
-            format_description("status", None, "Paused", "anime"),
+            format_description("status", None, Media.Status.PAUSED.value, "anime"),
             "Paused watching",
         )
         self.assertEqual(
@@ -120,31 +120,66 @@ class HelpersTest(TestCase):
         """Test format_description for status transitions."""
         # Test status transitions
         self.assertEqual(
-            format_description("status", "Planning", "In progress", "tv"),
+            format_description(
+                "status",
+                Media.Status.PLANNING.value,
+                Media.Status.IN_PROGRESS.value,
+                "tv",
+            ),
             "Started watching",
         )
         self.assertEqual(
-            format_description("status", "In progress", "Completed", "manga"),
+            format_description(
+                "status",
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.COMPLETED.value,
+                "manga",
+            ),
             "Finished reading",
         )
         self.assertEqual(
-            format_description("status", "In progress", "Paused", "game"),
+            format_description(
+                "status",
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.PAUSED.value,
+                "game",
+            ),
             "Paused playing",
         )
         self.assertEqual(
-            format_description("status", "Paused", "In progress", "book"),
+            format_description(
+                "status",
+                Media.Status.PAUSED.value,
+                Media.Status.IN_PROGRESS.value,
+                "book",
+            ),
             "Resumed reading",
         )
         self.assertEqual(
-            format_description("status", "In progress", "Dropped", "anime"),
+            format_description(
+                "status",
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.DROPPED.value,
+                "anime",
+            ),
             "Stopped watching",
         )
         self.assertEqual(
-            format_description("status", "Completed", "Repeating", "movie"),
+            format_description(
+                "status",
+                Media.Status.COMPLETED.value,
+                Media.Status.REPEATING.value,
+                "movie",
+            ),
             "Started rewatching",
         )
         self.assertEqual(
-            format_description("status", "Repeating", "Completed", "manga"),
+            format_description(
+                "status",
+                Media.Status.REPEATING.value,
+                Media.Status.COMPLETED.value,
+                "manga",
+            ),
             "Finished rereading",
         )
         self.assertEqual(
