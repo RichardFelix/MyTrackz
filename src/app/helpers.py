@@ -9,32 +9,6 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from app import media_type_config
 
 
-def tailwind_to_hex(tailwind_color):
-    """Convert a Tailwind color string to HEX format.
-
-    Only includes the specific media type colors used in YamTrack.
-
-    Args:
-        tailwind_color (str): Tailwind color string (e.g., 'emerald-500')
-
-    Returns:
-        str: hex color string in format '#RRGGBB'
-    """
-    tailwind_colors = {
-        "emerald-500": "#10b981",  # tv
-        "purple-500": "#a855f7",  # season
-        "indigo-500": "#6366f1",  # episode
-        "orange-500": "#f97316",  # movie
-        "blue-500": "#3b82f6",  # anime
-        "red-500": "#ef4444",  # manga
-        "yellow-500": "#eab308",  # game
-        "fuchsia-500": "#d946ef",  # book
-        "cyan-500": "#06b6d4",  # comic
-    }
-
-    return tailwind_colors[tailwind_color]
-
-
 def minutes_to_hhmm(total_minutes):
     """Convert total minutes to HH:MM format."""
     hours = int(total_minutes / 60)

@@ -1,23 +1,29 @@
 from django.urls import reverse
 from django.utils.http import urlencode
 
+from app.models import MediaTypes, Sources
+
 # --- Central Configuration Dictionary ---
 MEDIA_TYPE_CONFIG = {
-    "tv": {
-        "default_source": "The Movie Database",
+    MediaTypes.TV.value: {
+        "default_source": Sources.TMDB.label,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
+        "text_color": "text-emerald-400",
+        "stats_color": "#10b981",
         "svg_icon": """
             <rect width="20" height="15" x="2" y="7" rx="2" ry="2"/>
             <polyline points="17 2 12 7 7 2"/>""",
         "date_key": "first_air_date",
     },
-    "season": {
-        "default_source": "The Movie Database",
+    MediaTypes.SEASON.value: {
+        "default_source": Sources.TMDB.label,
         "sample_query": None,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
+        "text_color": "text-purple-400",
+        "stats_color": "#a855f7",
         "svg_icon": """
             <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0
             1.83l8.58 3.91 a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
@@ -25,19 +31,23 @@ MEDIA_TYPE_CONFIG = {
             <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>""",
         "date_key": None,
     },
-    "episode": {
-        "default_source": "The Movie Database",
+    MediaTypes.EPISODE.value: {
+        "default_source": Sources.TMDB.label,
         "sample_query": None,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
+        "text_color": "text-indigo-400",
+        "stats_color": "#6366f1",
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
         "date_key": None,
     },
-    "movie": {
-        "default_source": "The Movie Database",
+    MediaTypes.MOVIE.value: {
+        "default_source": Sources.TMDB.label,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
         "verb": ("watch", "watched"),
+        "text_color": "text-orange-400",
+        "stats_color": "#f97316",
         "svg_icon": """
             <rect width="18" height="18" x="3" y="3" rx="2"/>
             <path d="M7 3v18"/>
@@ -49,21 +59,25 @@ MEDIA_TYPE_CONFIG = {
             <path d="M17 16.5h4"/>""",
         "date_key": "release_date",
     },
-    "anime": {
-        "default_source": "MyAnimeList",
+    MediaTypes.ANIME.value: {
+        "default_source": Sources.MAL.label,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
         "verb": ("watch", "watched"),
+        "text_color": "text-blue-400",
+        "stats_color": "#3b82f6",
         "svg_icon": """
             <circle cx="12" cy="12" r="10"/>
             <polygon points="10 8 16 12 10 16 10 8"/>""",
         "date_key": None,
     },
-    "manga": {
-        "default_source": "MyAnimeList",
+    MediaTypes.MANGA.value: {
+        "default_source": Sources.MAL.label,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
         "verb": ("read", "read"),
+        "text_color": "text-red-400",
+        "stats_color": "#ef4444",
         "svg_icon": """
             <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2
             0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
@@ -73,11 +87,13 @@ MEDIA_TYPE_CONFIG = {
             <path d="M16 17H8"/>""",
         "date_key": "start_date",
     },
-    "game": {
-        "default_source": "The Internet Game Database",
+    MediaTypes.GAME.value: {
+        "default_source": Sources.IGDB.label,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
         "verb": ("play", "played"),
+        "text_color": "text-yellow-400",
+        "stats_color": "#eab308",
         "svg_icon": """
             <line x1="6" x2="10" y1="12" y2="12"/>
             <line x1="8" x2="8" y1="10" y2="14"/>
@@ -86,21 +102,25 @@ MEDIA_TYPE_CONFIG = {
             <rect width="20" height="12" x="2" y="6" rx="2"/>""",
         "date_key": "release_date",
     },
-    "book": {
-        "default_source": "Open Library",
+    MediaTypes.BOOK.value: {
+        "default_source": Sources.OPENLIBRARY.label,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
         "verb": ("read", "read"),
+        "text_color": "text-fuchsia-400",
+        "stats_color": "#d946ef",
         "svg_icon": """
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5
             2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>""",
         "date_key": "publish_date",
     },
-    "comic": {
-        "default_source": "Comic Vine",
+    MediaTypes.COMIC.value: {
+        "default_source": Sources.COMICVINE.label,
         "sample_query": "Batman",
         "unicode_icon": "📕",
         "verb": ("read", "read"),
+        "text_color": "text-cyan-400",
+        "stats_color": "#06b6d4",
         "svg_icon": """
             <rect width="8" height="18" x="3" y="3" rx="1"/>
             <path d="M7 3v18"/>
@@ -150,6 +170,14 @@ def get_verb(media_type, past_tense):
     """Get the verb (present or past tense)."""
     verbs = get_property(media_type, "verb")
     return verbs[1] if past_tense else verbs[0]
+
+def get_text_color(media_type):
+    """Get the text color class."""
+    return get_property(media_type, "text_color")
+
+def get_stats_color(media_type):
+    """Get the stats color."""
+    return get_property(media_type, "stats_color")
 
 
 def get_svg_icon(media_type):

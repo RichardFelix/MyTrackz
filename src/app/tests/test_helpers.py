@@ -10,26 +10,12 @@ from app.helpers import (
     format_description,
     minutes_to_hhmm,
     redirect_back,
-    tailwind_to_hex,
 )
-from app.models import Colors, Media, MediaTypes
+from app.models import Media, MediaTypes
 
 
 class HelpersTest(TestCase):
     """Test helper functions."""
-
-    def test_tailwind_to_hex_covers_all_media_types(self):
-        """Test that tailwind_to_hex covers all media types defined in Colors."""
-        # Get all media types from the Colors enum
-        for media_type in MediaTypes:
-            color_value = Colors[media_type.name].value
-            # Convert from "text-color-400" to "color-500"
-            tailwind_color = color_value.replace("text-", "").replace("-400", "-500")
-            # Ensure the color is defined in tailwind_to_hex
-            self.assertIsNotNone(
-                tailwind_to_hex(tailwind_color),
-                f"Color for {media_type.name} ({tailwind_color}) not defined",
-            )
 
     def test_minutes_to_hhmm(self):
         """Test conversion of minutes to HH:MM format."""

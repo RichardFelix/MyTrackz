@@ -62,20 +62,6 @@ class MediaTypes(models.TextChoices):
     COMIC = "comic", "Comic"
 
 
-class Colors(models.TextChoices):
-    """Colors for different media types."""
-
-    TV = "text-emerald-400", "Emerald"
-    SEASON = "text-purple-400", "Purple"
-    EPISODE = "text-indigo-400", "Indigo"
-    MOVIE = "text-orange-400", "Orange"
-    ANIME = "text-blue-400", "Blue"
-    MANGA = "text-red-400", "Red"
-    GAME = "text-yellow-400", "Yellow"
-    BOOK = "text-fuchsia-400", "Fuchsia"
-    COMIC = "text-cyan-400", "Cyan"
-
-
 class Item(models.Model):
     """Model for items in custom lists."""
 

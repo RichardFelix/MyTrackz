@@ -17,8 +17,8 @@ from django.db.models import (
 )
 from django.db.models.functions import TruncDate
 
-from app import helpers
-from app.models import TV, BasicMedia, Colors, Episode, Media, MediaTypes, Season
+from app import media_type_config
+from app.models import TV, BasicMedia, Episode, Media, MediaTypes, Season
 from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
@@ -357,7 +357,7 @@ def calculate_streaks(date_counts, end_date):
 def get_user_media(user, start_date, end_date):
     """Get all media items and their counts for a user within date range."""
     media_models = [
-        apps.get_model(app_label="app", model_name=media_type.capitalize())
+        apps.get_model(app_label="app", model_name=media_type)
         for media_type in user.get_enabled_media_types()
         if media_type != MediaTypes.EPISODE.value
     ]
@@ -373,7 +373,7 @@ def get_user_media(user, start_date, end_date):
         )
 
     for model in media_models:
-        model_name = model.__name__.lower()
+        media_type = model.__name__.lower()
         queryset = None
 
         if model == TV:
@@ -419,9 +419,9 @@ def get_user_media(user, start_date, end_date):
             )
 
         queryset = queryset.select_related("item")
-        user_media[model_name] = queryset
+        user_media[media_type] = queryset
         count = queryset.count()
-        media_count[model_name] = count
+        media_count[media_type] = count
         media_count["total"] += count
 
     logger.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
@@ -450,11 +450,7 @@ def get_media_type_distribution(media_count):
             chart_data["labels"].append(label)
             chart_data["datasets"][0]["data"].append(count)
             chart_data["datasets"][0]["backgroundColor"].append(
-                helpers.tailwind_to_hex(
-                    Colors[media_type.upper()]
-                    .value.replace("text-", "")
-                    .replace("-400", "-500"),
-                ),
+                media_type_config.get_stats_color(media_type),
             )
     return chart_data
 
@@ -465,7 +461,7 @@ def get_status_distribution(user_media):
     total_completed = 0
     # Define status order to ensure consistent stacking
     status_order = list(Media.Status.values)
-    for model_name, media_list in user_media.items():
+    for media_type, media_list in user_media.items():
         status_counts = dict.fromkeys(status_order, 0)
         counts = media_list.values("status").annotate(count=models.Count("id"))
         for count_data in counts:
@@ -473,7 +469,7 @@ def get_status_distribution(user_media):
             if count_data["status"] == Media.Status.COMPLETED.value:
                 total_completed += count_data["count"]
 
-        distribution[model_name] = status_counts
+        distribution[media_type] = status_counts
 
     # Format the response for charting
     return {
@@ -482,11 +478,11 @@ def get_status_distribution(user_media):
             {
                 "label": status,
                 "data": [
-                    distribution[model_name][status] for model_name in distribution
+                    distribution[media_type][status] for media_type in distribution
                 ],
                 "background_color": get_status_color(status),
                 "total": sum(
-                    distribution[model_name][status] for model_name in distribution
+                    distribution[media_type][status] for media_type in distribution
                 ),
             }
             for status in status_order
@@ -537,7 +533,7 @@ def get_score_distribution(user_media):
     # Define score range (0-10)
     score_range = range(11)
 
-    for model_name, media_list in user_media.items():
+    for media_type, media_list in user_media.items():
         # Initialize score counts for this media type
         score_counts = dict.fromkeys(score_range, 0)
 
@@ -575,7 +571,7 @@ def get_score_distribution(user_media):
             total_scored += 1
             total_score_sum += media.score
 
-        distribution[model_name] = score_counts
+        distribution[media_type] = score_counts
 
     # Calculate average score
     average_score = (
@@ -591,15 +587,11 @@ def get_score_distribution(user_media):
         "labels": [str(score) for score in score_range],  # 0-10 as labels
         "datasets": [
             {
-                "label": app_tags.media_type_readable(model_name),
-                "data": [distribution[model_name][score] for score in score_range],
-                "background_color": helpers.tailwind_to_hex(
-                    Colors[model_name.upper()]
-                    .value.replace("text-", "")
-                    .replace("-400", "-500"),
-                ),
+                "label": app_tags.media_type_readable(media_type),
+                "data": [distribution[media_type][score] for score in score_range],
+                "background_color": media_type_config.get_stats_color(media_type),
             }
-            for model_name in distribution
+            for media_type in distribution
         ],
         "average_score": average_score,
         "total_scored": total_scored,
@@ -610,12 +602,24 @@ def get_score_distribution(user_media):
 def get_status_color(status):
     """Get the color for the status of the media."""
     colors = {
-        Media.Status.IN_PROGRESS.value: helpers.tailwind_to_hex("indigo-500"),
-        Media.Status.COMPLETED.value: helpers.tailwind_to_hex("emerald-500"),
-        Media.Status.REPEATING.value: helpers.tailwind_to_hex("purple-500"),
-        Media.Status.PLANNING.value: helpers.tailwind_to_hex("blue-500"),
-        Media.Status.PAUSED.value: helpers.tailwind_to_hex("orange-500"),
-        Media.Status.DROPPED.value: helpers.tailwind_to_hex("red-500"),
+        Media.Status.IN_PROGRESS.value: media_type_config.get_stats_color(
+            MediaTypes.EPISODE.value,
+        ),
+        Media.Status.COMPLETED.value: media_type_config.get_stats_color(
+            MediaTypes.TV.value,
+        ),
+        Media.Status.REPEATING.value: media_type_config.get_stats_color(
+            MediaTypes.SEASON.value,
+        ),
+        Media.Status.PLANNING.value: media_type_config.get_stats_color(
+            MediaTypes.ANIME.value,
+        ),
+        Media.Status.PAUSED.value: media_type_config.get_stats_color(
+            MediaTypes.MOVIE.value,
+        ),
+        Media.Status.DROPPED.value: media_type_config.get_stats_color(
+            MediaTypes.MANGA.value,
+        ),
     }
     return colors.get(status, "rgba(201, 203, 207)")
 

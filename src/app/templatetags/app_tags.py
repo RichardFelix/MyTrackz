@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from unidecode import unidecode
 
 from app import helpers, media_type_config
-from app.models import Colors, Media, MediaTypes, Sources
+from app.models import Media, MediaTypes, Sources
 
 register = template.Library()
 
@@ -149,7 +149,7 @@ def get_sidebar_media_types(user):
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
-    return Colors[media_type.upper()].value
+    return media_type_config.get_color(media_type)
 
 
 @register.filter
