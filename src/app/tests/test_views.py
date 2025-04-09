@@ -713,7 +713,7 @@ class StatisticsViewTests(TestCase):
         self.assertIn("status_distribution", response.context)
         self.assertIn("status_pie_chart_data", response.context)
         self.assertIn("timeline", response.context)
-        self.assertIn("user_first_interaction_date", response.context)
+        self.assertIn("user_creation_date", response.context)
 
     def test_statistics_view_custom_date_range(self):
         """Test the statistics view with custom date range."""
@@ -744,7 +744,7 @@ class StatisticsViewTests(TestCase):
         self.assertIn("status_distribution", response.context)
         self.assertIn("status_pie_chart_data", response.context)
         self.assertIn("timeline", response.context)
-        self.assertIn("user_first_interaction_date", response.context)
+        self.assertIn("user_creation_date", response.context)
 
     def test_statistics_view_invalid_date_format(self):
         """Test the statistics view with invalid date format."""

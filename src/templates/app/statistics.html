@@ -11,7 +11,7 @@
     <h1 class="text-3xl font-bold mb-2">Statistics</h1>
     <p class="text-gray-400">Track your media consumption habits</p>
   </div>
-  <div x-data="dateRangePicker('{{ user_first_interaction_date|date:'Y-m-d' }}')"
+  <div x-data="dateRangePicker('{{ user_creation_date|date:'Y-m-d' }}')"
        x-init="init()"
        class="relative mb-8">
     <!-- Trigger Button -->

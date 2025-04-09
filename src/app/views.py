@@ -668,8 +668,8 @@ def statistics(request):
     start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
     end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
-    # Get user's first interaction date first - might be used for validation
-    user_first_interaction = stats.get_first_interaction_date(request.user)
+    # Get user's account creation date
+    user_creation_date = request.user.date_joined.date()
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(
@@ -701,7 +701,7 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
-        "user_first_interaction_date": user_first_interaction,
+        "user_creation_date": user_creation_date,
     }
 
     return render(request, "app/statistics.html", context)
