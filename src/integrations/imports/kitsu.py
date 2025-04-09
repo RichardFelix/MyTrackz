@@ -7,7 +7,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Item, Media
+from app.models import Item, Media, MediaTypes, Sources
 from integrations import helpers
 from integrations.helpers import MediaImportError
 
@@ -47,18 +47,18 @@ def importer(kitsu_id, user, mode):
 
     logger.info("Starting Kitsu import for user id %s with mode %s", kitsu_id, mode)
 
-    anime_response = get_media_response(kitsu_id, "anime")
+    anime_response = get_media_response(kitsu_id, MediaTypes.ANIME.value)
     num_anime_imported, anime_warnings = import_media(
         anime_response,
-        "anime",
+        MediaTypes.ANIME.value,
         user,
         mode,
     )
 
-    manga_response = get_media_response(kitsu_id, "manga")
+    manga_response = get_media_response(kitsu_id, MediaTypes.MANGA.value)
     num_manga_imported, manga_warning = import_media(
         manga_response,
-        "manga",
+        MediaTypes.MANGA.value,
         user,
         mode,
     )
@@ -203,8 +203,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
         external_id = mappings[site]
         if site == f"myanimelist/{media_type}":
             media_id = external_id
-            season_number = None
-            source = "mal"
+            source = Sources.MAL.value
             break
 
         if site == "mangaupdates":
@@ -218,9 +217,7 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
 
             # decode the base36 encoded ID
             media_id = str(int(external_id, 36))
-            media_type = "manga"
-            season_number = None
-            source = "mangaupdates"
+            source = Sources.MANGAUPDATES.value
             break
 
     if not media_id:
@@ -234,7 +231,6 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
         media_id=media_id,
         source=source,
         media_type=media_type,
-        season_number=season_number,
         defaults={
             "title": kitsu_metadata["attributes"]["canonicalTitle"],
             "image": image_url,

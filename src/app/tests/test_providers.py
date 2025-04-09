@@ -355,7 +355,7 @@ class Metadata(TestCase):
         Item.objects.create(
             media_id="1",
             source=Sources.MANUAL.value,
-            media_type="season",
+            media_type=MediaTypes.SEASON.value,
             title="Manual TV Show",
             image="http://example.com/manual_s1.jpg",
             season_number=1,
@@ -366,7 +366,7 @@ class Metadata(TestCase):
             Item.objects.create(
                 media_id="1",
                 source=Sources.MANUAL.value,
-                media_type="episode",
+                media_type=MediaTypes.EPISODE.value,
                 title=f"Episode {i}",
                 image=f"http://example.com/manual_s1e{i}.jpg",
                 season_number=1,
@@ -431,7 +431,7 @@ class Metadata(TestCase):
         Item.objects.create(
             media_id="3",
             source=Sources.MANUAL.value,
-            media_type="season",
+            media_type=MediaTypes.SEASON.value,
             title="Another TV Show",
             image="http://example.com/another_s1.jpg",
             season_number=1,
@@ -442,7 +442,7 @@ class Metadata(TestCase):
             Item.objects.create(
                 media_id="3",
                 source=Sources.MANUAL.value,
-                media_type="episode",
+                media_type=MediaTypes.EPISODE.value,
                 title=f"Episode {i}",
                 image=f"http://example.com/another_s1e{i}.jpg",
                 season_number=1,
@@ -473,7 +473,7 @@ class Metadata(TestCase):
         Item.objects.create(
             media_id="4",
             source=Sources.MANUAL.value,
-            media_type="season",
+            media_type=MediaTypes.SEASON.value,
             title="Third TV Show",
             image="http://example.com/third_s1.jpg",
             season_number=1,
@@ -482,7 +482,7 @@ class Metadata(TestCase):
         Item.objects.create(
             media_id="4",
             source=Sources.MANUAL.value,
-            media_type="episode",
+            media_type=MediaTypes.EPISODE.value,
             title="Special Episode",
             image="http://example.com/third_s1e1.jpg",
             season_number=1,
@@ -493,7 +493,7 @@ class Metadata(TestCase):
         response = manual.episode("4", 1, 1)
 
         # Check episode data
-        self.assertEqual(response["media_type"], "episode")
+        self.assertEqual(response["media_type"], MediaTypes.EPISODE.value)
         self.assertEqual(response["title"], "Third TV Show")
         self.assertEqual(response["season_title"], "Season 1")
         self.assertEqual(response["episode_title"], "Special Episode")
@@ -512,7 +512,7 @@ class Metadata(TestCase):
         Item.objects.create(
             media_id="5",
             source=Sources.MANUAL.value,
-            media_type="season",
+            media_type=MediaTypes.SEASON.value,
             title="Process Episodes Test",
             image="http://example.com/process_s1.jpg",
             season_number=1,
@@ -523,7 +523,7 @@ class Metadata(TestCase):
             Item.objects.create(
                 media_id="5",
                 source=Sources.MANUAL.value,
-                media_type="episode",
+                media_type=MediaTypes.EPISODE.value,
                 title=f"Process Episode {i}",
                 image=f"http://example.com/process_s1e{i}.jpg",
                 season_number=1,
@@ -970,7 +970,7 @@ class ServicesTests(TestCase):
 
         # Call the function
         result = services.get_media_metadata(
-            "season",
+            MediaTypes.SEASON.value,
             "1",
             Sources.TMDB.value,
             season_numbers=[1],
@@ -990,7 +990,7 @@ class ServicesTests(TestCase):
 
         # Call the function
         result = services.get_media_metadata(
-            "episode",
+            MediaTypes.EPISODE.value,
             "1",
             Sources.TMDB.value,
             season_numbers=[1],
@@ -1106,7 +1106,7 @@ class ServicesTests(TestCase):
 
         # Call the function
         result = services.get_media_metadata(
-            "season",
+            MediaTypes.SEASON.value,
             "1",
             Sources.MANUAL.value,
             season_numbers=[1],
@@ -1126,7 +1126,7 @@ class ServicesTests(TestCase):
 
         # Call the function
         result = services.get_media_metadata(
-            "episode",
+            MediaTypes.EPISODE.value,
             "1",
             Sources.MANUAL.value,
             season_numbers=[1],

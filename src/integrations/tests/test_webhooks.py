@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Episode, Item, Movie, Season
+from app.models import TV, Anime, Episode, Item, Media, MediaTypes, Movie, Season
 
 
 class JellyfinWebhookTests(TestCase):
@@ -48,17 +48,17 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # Verify objects were created
-        tv_item = Item.objects.get(media_type="tv", media_id="1668")
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value, media_id="1668")
         self.assertEqual(tv_item.title, "Friends")
 
         tv = TV.objects.get(item=tv_item, user=self.user)
-        self.assertEqual(tv.status, "In progress")
+        self.assertEqual(tv.status, Media.Status.IN_PROGRESS.value)
 
         season = Season.objects.get(
             item__media_id="1668",
             item__season_number=1,
         )
-        self.assertEqual(season.status, "In progress")
+        self.assertEqual(season.status, Media.Status.IN_PROGRESS.value)
 
         episode = Episode.objects.get(
             item__media_id="1668",
@@ -92,7 +92,7 @@ class JellyfinWebhookTests(TestCase):
             item__media_id="603",
             user=self.user,
         )
-        self.assertEqual(movie.status, "Completed")
+        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
     def test_anime_movie_mark_played(self):
@@ -120,7 +120,7 @@ class JellyfinWebhookTests(TestCase):
             item__media_id="437",
             user=self.user,
         )
-        self.assertEqual(movie.status, "Completed")
+        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
     def test_ignored_event_types(self):
@@ -195,7 +195,7 @@ class JellyfinWebhookTests(TestCase):
             item__media_id="52991",
             user=self.user,
         )
-        self.assertEqual(anime.status, "In progress")
+        self.assertEqual(anime.status, Media.Status.IN_PROGRESS.value)
         self.assertEqual(anime.progress, 1)
 
     def test_mark_unplayed(self):
@@ -228,7 +228,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         movie = Movie.objects.get(item__media_id="603")
         self.assertEqual(movie.progress, 0)
-        self.assertEqual(movie.status, "In progress")
+        self.assertEqual(movie.status, Media.Status.IN_PROGRESS.value)
 
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
@@ -258,5 +258,5 @@ class JellyfinWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.status, "Repeating")
+        self.assertEqual(movie.status, Media.Status.REPEATING.value)
         self.assertEqual(movie.repeats, 1)

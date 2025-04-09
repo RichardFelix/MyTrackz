@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Item, Movie
+from app.models import TV, Anime, Item, Media, MediaTypes, Movie, Sources
 from lists.models import CustomList, CustomListItem
 
 
@@ -43,14 +43,14 @@ class ListsViewTests(TestCase):
         # Create some items
         self.item1 = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
         self.item2 = Item.objects.create(
             media_id="2",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
 
@@ -197,20 +197,20 @@ class ListDetailViewTests(TestCase):
         # Create some items with different media types
         self.movie_item = Item.objects.create(
             media_id="238",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
         self.tv_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
         self.anime_item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
         )
 
@@ -242,21 +242,21 @@ class ListDetailViewTests(TestCase):
         # Create Movie instance
         Movie.objects.create(
             item=self.movie_item,
-            status="completed",
+            status=Media.Status.COMPLETED.value,
             user=self.user,
         )
 
         # Create TV instance
         TV.objects.create(
             item=self.tv_item,
-            status="watching",
+            status=Media.Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         # Create Anime instance
         Anime.objects.create(
             item=self.anime_item,
-            status="plan_to_watch",
+            status=Media.Status.PLANNING.value,
             user=self.user,
         )
 
@@ -299,31 +299,35 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status="completed",
+            status=Media.Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status="watching",
+            status=Media.Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status="plan_to_watch",
+            status=Media.Status.PLANNING.value,
             user=self.user,
         )
 
         # Test the view with media type filter
         response = self.client.get(
-            reverse("list_detail", args=[self.custom_list.id]) + "?type=movie",
+            reverse("list_detail", args=[self.custom_list.id])
+            + f"?type={MediaTypes.MOVIE.value}",
         )
         self.assertEqual(response.status_code, 200)
 
         # Should only have the movie item
         self.assertEqual(len(response.context["items"]), 1)
-        self.assertEqual(response.context["items"][0].media_type, "movie")
+        self.assertEqual(
+            response.context["items"][0].media_type,
+            MediaTypes.MOVIE.value,
+        )
 
     @patch.object(get_user_model(), "update_preference")
     @patch.object(CustomList, "user_can_view")
@@ -339,19 +343,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status="completed",
+            status=Media.Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status="watching",
+            status=Media.Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status="plan_to_watch",
+            status=Media.Status.PLANNING.value,
             user=self.user,
         )
 
@@ -378,19 +382,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status="completed",
+            status=Media.Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status="watching",
+            status=Media.Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status="plan_to_watch",
+            status=Media.Status.PLANNING.value,
             user=self.user,
         )
 
@@ -424,19 +428,19 @@ class ListDetailViewTests(TestCase):
         # Create model instances
         Movie.objects.create(
             item=self.movie_item,
-            status="completed",
+            status=Media.Status.COMPLETED.value,
             user=self.user,
         )
 
         TV.objects.create(
             item=self.tv_item,
-            status="watching",
+            status=Media.Status.IN_PROGRESS.value,
             user=self.user,
         )
 
         Anime.objects.create(
             item=self.anime_item,
-            status="plan_to_watch",
+            status=Media.Status.PLANNING.value,
             user=self.user,
         )
 
@@ -580,7 +584,7 @@ class ListsModalViewTests(TestCase):
         response = self.client.get(
             reverse(
                 "lists_modal",
-                args=["tmdb", "movie", 10494],
+                args=[Sources.TMDB.value, MediaTypes.MOVIE.value, 10494],
             ),
         )
         self.assertEqual(response.status_code, 200)
@@ -599,8 +603,8 @@ class ListsModalViewTests(TestCase):
         # Create an existing item
         Item.objects.create(
             media_id="123",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Existing Movie",
             image="http://example.com/image.jpg",
         )
@@ -616,7 +620,10 @@ class ListsModalViewTests(TestCase):
 
         # Test the view
         response = self.client.get(
-            reverse("lists_modal", args=["tmdb", "movie", "123"]),
+            reverse(
+                "lists_modal",
+                args=[Sources.TMDB.value, MediaTypes.MOVIE.value, "123"],
+            ),
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "lists/components/fill_lists.html")
@@ -641,13 +648,18 @@ class ListsModalViewTests(TestCase):
 
         # Test the view
         response = self.client.get(
-            reverse("lists_modal", args=["tmdb", "movie", "999"]),
+            reverse(
+                "lists_modal",
+                args=[Sources.TMDB.value, MediaTypes.MOVIE.value, "999"],
+            ),
         )
         self.assertEqual(response.status_code, 200)
 
         # Check that a new item was created
-        self.assertTrue(Item.objects.filter(media_id="999", source="tmdb").exists())
-        new_item = Item.objects.get(media_id="999", source="tmdb")
+        self.assertTrue(
+            Item.objects.filter(media_id="999", source=Sources.TMDB.value).exists(),
+        )
+        new_item = Item.objects.get(media_id="999", source=Sources.TMDB.value)
         self.assertEqual(new_item.title, "New Movie")
         self.assertEqual(new_item.image, "http://example.com/new_image.jpg")
 
@@ -666,7 +678,10 @@ class ListsModalViewTests(TestCase):
 
         # Test the view
         response = self.client.get(
-            reverse("lists_modal", args=["tmdb", "season", "123", "1"]),
+            reverse(
+                "lists_modal",
+                args=[Sources.TMDB.value, MediaTypes.SEASON.value, "123", "1"],
+            ),
         )
         self.assertEqual(response.status_code, 200)
 
@@ -674,8 +689,8 @@ class ListsModalViewTests(TestCase):
         self.assertTrue(
             Item.objects.filter(
                 media_id="123",
-                source="tmdb",
-                media_type="season",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
                 season_number=1,
             ).exists(),
         )
@@ -715,8 +730,8 @@ class ListItemToggleTests(TestCase):
         # Create an item
         self.item = Item.objects.create(
             media_id=1,
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
             image="http://example.com/image.jpg",
         )

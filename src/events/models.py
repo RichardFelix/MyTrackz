@@ -84,7 +84,7 @@ class EventManager(models.Manager):
         one_year_ago = now - timezone.timedelta(days=365)
         recent_comic_events = Event.objects.filter(
             item=OuterRef("pk"),
-            item__media_type=MediaTypes.COMIC,
+            item__media_type=MediaTypes.COMIC.value,
             datetime__gte=one_year_ago,
         ).order_by("-datetime")
 
@@ -98,9 +98,10 @@ class EventManager(models.Manager):
             .filter(
                 Q(Exists(future_events))  # has future events
                 | Q(event__isnull=True)  # no events
-                | (Q(media_type=MediaTypes.MANGA) & Q(event_count__lt=2))
+                | (Q(media_type=MediaTypes.MANGA.value) & Q(event_count__lt=2))
                 | (
-                    Q(media_type=MediaTypes.COMIC) & Q(latest_comic_event__isnull=False)
+                    Q(media_type=MediaTypes.COMIC.value)
+                    & Q(latest_comic_event__isnull=False)
                 ),
             )
             .distinct()
@@ -134,13 +135,16 @@ class Event(models.Model):
 
     def __str__(self):
         """Return event title."""
-        if self.item.media_type == "season":
-            return f"{self.item.title} S{self.item.season_number} - Ep. {self.episode_number}"  # noqa: E501
-        if self.item.media_type == "manga":
+        if self.item.media_type == MediaTypes.SEASON.value:
+            return (
+                f"{self.item.title} S{self.item.season_number} - "
+                f"Ep. {self.episode_number}"
+            )
+        if self.item.media_type == MediaTypes.MANGA.value:
             return f"{self.item.__str__()} - Ch. {self.episode_number}"
-        if self.item.media_type == "anime":
+        if self.item.media_type == MediaTypes.ANIME.value:
             return f"{self.item.__str__()} - Ep. {self.episode_number}"
-        if self.item.media_type == "comic":
+        if self.item.media_type == MediaTypes.COMIC.value:
             return f"{self.item.__str__()} #{self.episode_number}"
         return self.item.__str__()
 
@@ -149,6 +153,6 @@ class Event(models.Model):
         """Return the episode number in a readable format."""
         if self.episode_number is None:
             return ""
-        if self.item.media_type == "manga":
+        if self.item.media_type == MediaTypes.MANGA.value:
             return f"Ch. {self.episode_number}"
         return f"Ep. {self.episode_number}"

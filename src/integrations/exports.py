@@ -33,10 +33,10 @@ def generate_rows(user):
     yield writer.writerow(fields["item"] + fields["track"])
 
     # Yield data rows
-    media_types = MediaTypes.values
-    for media_type in media_types:
+    for media_type in MediaTypes.values:
         model = apps.get_model("app", media_type)
-        if media_type == "episode":
+
+        if media_type == MediaTypes.EPISODE.value:
             queryset = model.objects.filter(related_season__user=user)
         else:
             queryset = model.objects.filter(user=user)
@@ -50,7 +50,7 @@ def generate_rows(user):
                 getattr(media, field, "") for field in fields["track"]
             ]
 
-            if media_type == "game":
+            if media_type == MediaTypes.GAME.value:
                 # calculate index of progress field
                 progress_index = fields["track"].index("progress")
                 row[progress_index + len(fields["item"])] = helpers.minutes_to_hhmm(

@@ -111,31 +111,36 @@ class Item(models.Model):
             # Enforces that season items must have a season number but no episode number
             CheckConstraint(
                 check=Q(
-                    media_type="season",
+                    media_type=MediaTypes.SEASON.value,
                     season_number__isnull=False,
                     episode_number__isnull=True,
                 )
-                | ~Q(media_type="season"),
+                | ~Q(media_type=MediaTypes.SEASON.value),
                 name="season_number_required_for_season",
             ),
             # Enforces that episode items must have both season and episode numbers
             CheckConstraint(
                 check=Q(
-                    media_type="episode",
+                    media_type=MediaTypes.EPISODE.value,
                     season_number__isnull=False,
                     episode_number__isnull=False,
                 )
-                | ~Q(media_type="episode"),
+                | ~Q(media_type=MediaTypes.EPISODE.value),
                 name="season_and_episode_required_for_episode",
             ),
             # Prevents season/episode numbers from being set on non-TV media types
             CheckConstraint(
                 check=Q(
-                    ~Q(media_type__in=["season", "episode"]),
+                    ~Q(
+                        media_type__in=[
+                            MediaTypes.SEASON.value,
+                            MediaTypes.EPISODE.value,
+                        ],
+                    ),
                     season_number__isnull=True,
                     episode_number__isnull=True,
                 )
-                | Q(media_type__in=["season", "episode"]),
+                | Q(media_type__in=[MediaTypes.SEASON.value, MediaTypes.EPISODE.value]),
                 name="no_season_episode_for_other_types",
             ),
             # Validate source choices
@@ -164,7 +169,7 @@ class Item(models.Model):
     def generate_manual_id(cls, media_type):
         """Generate a new ID for manual items."""
         latest_item = (
-            cls.objects.filter(source="manual", media_type=media_type)
+            cls.objects.filter(source=Sources.MANUAL.value, media_type=media_type)
             .annotate(
                 media_id_int=Cast("media_id", IntegerField()),
             )
@@ -205,7 +210,7 @@ class MediaManager(models.Manager):
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
-        if media_type == "tv":
+        if media_type == MediaTypes.TV.value:
             return queryset.prefetch_related(
                 Prefetch(
                     "seasons",
@@ -216,7 +221,7 @@ class MediaManager(models.Manager):
                     queryset=Episode.objects.select_related("item"),
                 ),
             )
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             return queryset.prefetch_related(
                 Prefetch(
                     "episodes",
@@ -236,7 +241,10 @@ class MediaManager(models.Manager):
         sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
 
         # Handle property-based sorting for TV and Season
-        if media_type in ("tv", "season") and sort_is_property:
+        if (
+            media_type in (MediaTypes.TV.value, MediaTypes.SEASON.value)
+            and sort_is_property
+        ):
             return self._sort_by_property(queryset, sort_filter)
 
         # Handle sorting by Item fields
@@ -394,7 +402,7 @@ class MediaManager(models.Manager):
     def _sort_by_completion_or_episodes(self, media_list, sort_by, media_type):
         """Sort media by completion percentage or episodes left."""
         # For Season, we need to evaluate the queryset and sort in Python
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             return self._sort_season_by_completion_or_episodes(
                 list(media_list),
                 sort_by,
@@ -472,10 +480,10 @@ class MediaManager(models.Manager):
             "item__media_id": media_id,
         }
 
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             params["item__season_number"] = season_number
             params["user"] = user
-        elif media_type == "episode":
+        elif media_type == MediaTypes.EPISODE.value:
             params["item__season_number"] = season_number
             params["item__episode_number"] = episode_number
             params["related_season__user"] = user
@@ -702,7 +710,7 @@ class TV(Media):
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
                 source=self.item.source,
-                media_type="season",
+                media_type=MediaTypes.SEASON.value,
                 season_number=season_number,
                 defaults={
                     "title": self.item.title,
@@ -776,7 +784,7 @@ class Season(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 season_metadata = providers.services.get_media_metadata(
-                    "season",
+                    MediaTypes.SEASON.value,
                     self.item.media_id,
                     self.item.source,
                     [self.item.season_number],
@@ -841,7 +849,7 @@ class Season(Media):
     def increase_progress(self):
         """Watch the next episode of the season."""
         season_metadata = providers.services.get_media_metadata(
-            "season",
+            MediaTypes.SEASON.value,
             self.item.media_id,
             self.item.source,
             [self.item.season_number],
@@ -935,14 +943,14 @@ class Season(Media):
         try:
             tv = TV.objects.get(
                 item__media_id=self.item.media_id,
-                item__media_type="tv",
+                item__media_type=MediaTypes.TV.value,
                 item__season_number=None,
                 item__source=self.item.source,
                 user=self.user,
             )
         except TV.DoesNotExist:
             tv_metadata = providers.services.get_media_metadata(
-                "tv",
+                MediaTypes.TV.value,
                 self.item.media_id,
                 self.item.source,
             )
@@ -958,8 +966,8 @@ class Season(Media):
 
             item, _ = Item.objects.get_or_create(
                 media_id=self.item.media_id,
-                source="tmdb",
-                media_type="tv",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.TV.value,
                 defaults={
                     "title": tv_metadata["title"],
                     "image": tv_metadata["image"],
@@ -1013,7 +1021,7 @@ class Season(Media):
         """Get the episode item instance, create it if it doesn't exist."""
         if not season_metadata:
             season_metadata = providers.services.get_media_metadata(
-                "season",
+                MediaTypes.SEASON.value,
                 self.item.media_id,
                 self.item.source,
                 [self.item.season_number],
@@ -1036,7 +1044,7 @@ class Season(Media):
         item, _ = Item.objects.get_or_create(
             media_id=self.item.media_id,
             source=self.item.source,
-            media_type="episode",
+            media_type=MediaTypes.EPISODE.value,
             season_number=self.item.season_number,
             episode_number=episode_number,
             defaults={

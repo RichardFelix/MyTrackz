@@ -4,7 +4,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Media
+from app.models import Media, MediaTypes, Sources
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,8 @@ def importer(username, user, mode):
     """Import anime and manga from MyAnimeList."""
     logger.info("Starting MyAnimeList import for user %s with mode %s", username, mode)
 
-    anime_imported = import_media(username, user, "anime", mode)
-    manga_imported = import_media(username, user, "manga", mode)
+    anime_imported = import_media(username, user, MediaTypes.ANIME.value, mode)
+    manga_imported = import_media(username, user, MediaTypes.MANGA.value, mode)
     return anime_imported, manga_imported
 
 
@@ -75,16 +75,16 @@ def add_media_list(response, media_type, user):
         list_status = content["list_status"]
         status = get_status(list_status["status"])
 
-        if media_type == "anime":
+        if media_type == MediaTypes.ANIME.value:
             progress = list_status["num_episodes_watched"]
             repeats = list_status["num_times_rewatched"]
             if list_status["is_rewatching"]:
-                status = "Repeating"
+                status = Media.Status.REPEATING.value
         else:
             progress = list_status["num_chapters_read"]
             repeats = list_status["num_times_reread"]
             if list_status["is_rereading"]:
-                status = "Repeating"
+                status = Media.Status.REPEATING.value
 
         try:
             image_url = content["node"]["main_picture"]["large"]
@@ -93,7 +93,7 @@ def add_media_list(response, media_type, user):
 
         item, _ = app.models.Item.objects.get_or_create(
             media_id=str(content["node"]["id"]),
-            source="mal",
+            source=Sources.MAL.value,
             media_type=media_type,
             defaults={
                 "title": content["node"]["title"],

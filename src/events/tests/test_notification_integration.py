@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from app.models import Anime, Item, Manga, Media
+from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
 from events.models import Event
 from events.tasks import send_release_notifications
 
@@ -27,8 +27,8 @@ class NotificationIntegrationTests(TestCase):
         # Create items
         self.item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
             image="http://example.com/anime.jpg",
         )
@@ -90,8 +90,8 @@ class NotificationIntegrationTests(TestCase):
         # Create a second item
         item2 = Item.objects.create(
             media_id="52991",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Another Anime",
             image="http://example.com/anime.jpg",
         )
@@ -195,8 +195,8 @@ class NotificationIntegrationTests(TestCase):
         # Create a manga item
         manga_item = Item.objects.create(
             media_id="3",
-            source="mal",
-            media_type="manga",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.MANGA.value,
             title="Test Manga",
             image="http://example.com/manga.jpg",
         )

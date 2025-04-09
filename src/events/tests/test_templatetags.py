@@ -9,10 +9,10 @@ class TemplateFiltersTagsTests(TestCase):
         """Test the get_item filter."""
         # Create a template that uses the get_item filter
         template_str = """
-        {% load events_tags %}
-        {{ my_dict|get_item:"key1" }}
-        {{ my_dict|get_item:"key2" }}
-        {{ my_dict|get_item:"nonexistent_key" }}
+            {% load events_tags %}
+            {{ my_dict|get_item:"key1" }}
+            {{ my_dict|get_item:"key2" }}
+            {{ my_dict|get_item:"nonexistent_key" }}
         """
         template = Template(template_str)
 
@@ -38,8 +38,8 @@ class TemplateFiltersTagsTests(TestCase):
     def test_get_item_filter_with_empty_dict(self):
         """Test the get_item filter with an empty dictionary."""
         template_str = """
-        {% load events_tags %}
-        {{ empty_dict|get_item:"any_key" }}
+            {% load events_tags %}
+            {{ empty_dict|get_item:"any_key" }}
         """
         template = Template(template_str)
         context = Context({"empty_dict": {}})
@@ -50,11 +50,11 @@ class TemplateFiltersTagsTests(TestCase):
         """Test the day_of_week tag."""
         # Create a template that uses the day_of_week tag
         template_str = """
-        {% load events_tags %}
-        {% day_of_week 1 1 2023 %}
-        {% day_of_week 4 7 2023 %}
-        {% day_of_week 25 12 2023 %}
-        {% day_of_week "31" "10" "2023" %}
+            {% load events_tags %}
+            {% day_of_week 1 1 2023 %}
+            {% day_of_week 4 7 2023 %}
+            {% day_of_week 25 12 2023 %}
+            {% day_of_week "31" "10" "2023" %}
         """
         template = Template(template_str)
 
@@ -74,8 +74,8 @@ class TemplateFiltersTagsTests(TestCase):
     def test_day_of_week_tag_with_variables(self):
         """Test the day_of_week tag with variables."""
         template_str = """
-        {% load events_tags %}
-        {% day_of_week day month year %}
+            {% load events_tags %}
+            {% day_of_week day month year %}
         """
         template = Template(template_str)
 
@@ -102,8 +102,8 @@ class TemplateFiltersTagsTests(TestCase):
         """Test the day_of_week tag with edge cases."""
         # Test leap year
         template_str = """
-        {% load events_tags %}
-        {% day_of_week 29 2 2020 %}
+            {% load events_tags %}
+            {% day_of_week 29 2 2020 %}
         """
         template = Template(template_str)
         rendered = template.render(Context({}))
@@ -111,8 +111,8 @@ class TemplateFiltersTagsTests(TestCase):
 
         # Test with future date
         template_str = """
-        {% load events_tags %}
-        {% day_of_week 1 1 2030 %}
+            {% load events_tags %}
+            {% day_of_week 1 1 2030 %}
         """
         template = Template(template_str)
         rendered = template.render(Context({}))
@@ -123,8 +123,8 @@ class TemplateFiltersTagsTests(TestCase):
         """Test the day_of_week tag with invalid input."""
         # Test with invalid date (February 30)
         template_str = """
-        {% load events_tags %}
-        {% day_of_week 30 2 2023 %}
+            {% load events_tags %}
+            {% day_of_week 30 2 2023 %}
         """
         template = Template(template_str)
 
@@ -134,8 +134,8 @@ class TemplateFiltersTagsTests(TestCase):
 
         # Test with non-numeric input
         template_str = """
-        {% load events_tags %}
-        {% day_of_week "day" "month" "year" %}
+            {% load events_tags %}
+            {% day_of_week "day" "month" "year" %}
         """
         template = Template(template_str)
 

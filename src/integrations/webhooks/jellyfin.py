@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 import app
-from app.models import Media
+from app.models import Media, MediaTypes, Sources
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +18,13 @@ def process_payload(payload, user):
         return
 
     if payload["Item"]["Type"] == "Episode":
-        media_type = "tv"
+        media_type = MediaTypes.TV.value
         tmdb_id = payload["Series"]["ProviderIds"].get("Tmdb")
     elif payload["Item"]["Type"] == "Movie":
-        media_type = "movie"
+        media_type = MediaTypes.MOVIE.value
         tmdb_id = payload["Item"]["ProviderIds"].get("Tmdb")
     else:
-        logger.info("Ignoring Jellyfin webhook event: %s", media_type)
+        logger.info("Ignoring Jellyfin webhook event: %s", payload["Item"]["Type"])
         return
 
     if tmdb_id is None:
@@ -36,7 +36,7 @@ def process_payload(payload, user):
     tmdb_id = int(tmdb_id)
     mapping_data = fetch_mapping_data()
 
-    if media_type == "tv":
+    if media_type == MediaTypes.TV.value:
         season_number = payload["Item"]["ParentIndexNumber"]
         episode_number = payload["Item"]["IndexNumber"]
         tvdb_id = payload["Series"]["ProviderIds"].get("Tvdb")
@@ -58,7 +58,7 @@ def process_payload(payload, user):
         logger.info("Detected TV show: %s", title)
         add_tv(tmdb_id, payload, user)
 
-    elif media_type == "movie":
+    elif media_type == MediaTypes.MOVIE.value:
         title = payload["Item"]["Name"]
         mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
         if mal_id and user.anime_enabled:
@@ -76,15 +76,14 @@ def add_anime(media_id, episode_number, payload, user):
 
     anime_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
-        source="mal",
-        media_type="anime",
+        source=Sources.MAL.value,
+        media_type=MediaTypes.ANIME.value,
         defaults={
             "title": anime_metadata["title"],
             "image": anime_metadata["image"],
         },
     )
 
-    # set last episode as watched if current episode is not finished
     if not episode_played:
         episode_number = episode_number - 1
 
@@ -119,8 +118,8 @@ def add_movie(media_id, payload, user):
 
     item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
-        source="tmdb",
-        media_type="movie",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.MOVIE.value,
         defaults={
             "title": movie_metadata["title"],
             "image": movie_metadata["image"],
@@ -162,14 +161,14 @@ def add_tv(media_id, payload, user):
 
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
-        [payload["Item"]["ParentIndexNumber"]],
+        [season_number],
     )
     season_metadata = tv_metadata[f"season/{season_number}"]
 
     tv_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
-        source="tmdb",
-        media_type="tv",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.TV.value,
         defaults={
             "title": tv_metadata["title"],
             "image": tv_metadata["image"],
@@ -186,8 +185,8 @@ def add_tv(media_id, payload, user):
 
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
-        source="tmdb",
-        media_type="season",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.SEASON.value,
         season_number=season_number,
         defaults={
             "title": tv_metadata["title"],
@@ -206,8 +205,8 @@ def add_tv(media_id, payload, user):
 
     episode_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
-        source="tmdb",
-        media_type="episode",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.EPISODE.value,
         season_number=season_number,
         episode_number=episode_number,
         defaults={

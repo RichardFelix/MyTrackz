@@ -150,7 +150,7 @@ def list_detail(request, list_id):
         filter_kwargs = {"item_id__in": item_ids}
 
         # Handle episode type differently
-        if media_type == "episode":
+        if media_type == MediaTypes.EPISODE.value:
             filter_kwargs["related_season__user"] = request.user
         else:
             filter_kwargs["user"] = request.user

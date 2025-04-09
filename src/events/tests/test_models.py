@@ -5,15 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import (
-    TV,
-    Anime,
-    Item,
-    Manga,
-    Media,
-    Movie,
-    Season,
-)
+from app.models import TV, Anime, Item, Manga, Media, MediaTypes, Movie, Season, Sources
 from events.models import Event
 
 
@@ -28,37 +20,37 @@ class EventModelTests(TestCase):
         # Create test items
         self.tv_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
 
         self.season_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test TV Show",
             season_number=1,
         )
 
         self.movie_item = Item.objects.create(
             media_id="238",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
 
         self.anime_item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
         )
 
         self.manga_item = Item.objects.create(
             media_id="66296374554",
-            source="mangaupdates",
-            media_type="manga",
+            source=Sources.MANGAUPDATES.value,
+            media_type=MediaTypes.MANGA.value,
             title="Test Manga",
         )
 
@@ -176,44 +168,44 @@ class EventManagerTests(TestCase):
         # Create test items
         self.tv_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
 
         self.season_item = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test TV Show",
             season_number=1,
         )
 
         self.movie_item = Item.objects.create(
             media_id="238",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
 
         self.paused_movie_item = Item.objects.create(
             media_id="278",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Paused Movie",
         )
 
         self.dropped_movie_item = Item.objects.create(
             media_id="424",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Dropped Movie",
         )
 
         self.manga_item = Item.objects.create(
             media_id="66296374554",
-            source="mangaupdates",
-            media_type="manga",
+            source=Sources.MANGAUPDATES.value,
+            media_type=MediaTypes.MANGA.value,
             title="Test Manga",
         )
 
@@ -373,8 +365,8 @@ class EventManagerTests(TestCase):
         # Create a new item with no events
         new_item = Item.objects.create(
             media_id="680",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="New Movie",
         )
 
@@ -393,8 +385,8 @@ class EventManagerTests(TestCase):
         # Test with a manga that has only one event
         manga_item2 = Item.objects.create(
             media_id="72274276213",
-            source="mangaupdates",
-            media_type="manga",
+            source=Sources.MANGAUPDATES.value,
+            media_type=MediaTypes.MANGA.value,
             title="Manga with one event",
         )
 

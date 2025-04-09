@@ -7,7 +7,17 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import Anime, Book, Item, Manga, Movie, Season
+from app.models import (
+    Anime,
+    Book,
+    Item,
+    Manga,
+    Media,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+)
 from events.models import Event
 from events.tasks import (
     anilist_date_parser,
@@ -34,53 +44,73 @@ class ReloadCalendarTaskTests(TestCase):
         # Create anime item
         self.anime_item = Item.objects.create(
             media_id="437",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Perfect Blue",
             image="http://example.com/image.jpg",
         )
-        Anime.objects.create(item=self.anime_item, user=self.user, status="Planning")
+        Anime.objects.create(
+            item=self.anime_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         # Create movie item
         self.movie_item = Item.objects.create(
             media_id="238",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="The Godfather",
             image="http://example.com/thegodfather.jpg",
         )
-        Movie.objects.create(item=self.movie_item, user=self.user, status="Planning")
+        Movie.objects.create(
+            item=self.movie_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1396",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Breaking Bad",
             image="http://example.com/breakingbad.jpg",
             season_number=1,
         )
-        Season.objects.create(item=self.season_item, user=self.user, status="Planning")
+        Season.objects.create(
+            item=self.season_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         # Create manga item
         self.manga_item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="manga",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.MANGA.value,
             title="Berserk",
             image="http://example.com/berserk.jpg",
         )
-        Manga.objects.create(item=self.manga_item, user=self.user, status="Planning")
+        Manga.objects.create(
+            item=self.manga_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         # Create book item
         self.book_item = Item.objects.create(
             media_id="OL21733390M",
-            source="openlibrary",
-            media_type="book",
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
             title="1984",
             image="http://example.com/1984.jpg",
         )
-        Book.objects.create(item=self.book_item, user=self.user, status="Planning")
+        Book.objects.create(
+            item=self.book_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
     @patch("events.tasks.process_season")
     @patch("events.tasks.process_other")
@@ -715,8 +745,8 @@ class ReloadCalendarTaskTests(TestCase):
         # Create comic item
         comic_item = Item.objects.create(
             media_id="4050-18166",
-            source="comicvine",
-            media_type="comic",
+            source=Sources.COMICVINE.value,
+            media_type=MediaTypes.COMIC.value,
             title="Batman",
             image="http://example.com/batman.jpg",
         )
@@ -760,8 +790,8 @@ class ReloadCalendarTaskTests(TestCase):
         # Create comic item
         comic_item = Item.objects.create(
             media_id="4050-18167",
-            source="comicvine",
-            media_type="comic",
+            source=Sources.COMICVINE.value,
+            media_type=MediaTypes.COMIC.value,
             title="Superman",
             image="http://example.com/superman.jpg",
         )
@@ -798,8 +828,8 @@ class ReloadCalendarTaskTests(TestCase):
         # Create comic item
         comic_item = Item.objects.create(
             media_id="4050-18168",
-            source="comicvine",
-            media_type="comic",
+            source=Sources.COMICVINE.value,
+            media_type=MediaTypes.COMIC.value,
             title="Wonder Woman",
             image="http://example.com/wonderwoman.jpg",
         )

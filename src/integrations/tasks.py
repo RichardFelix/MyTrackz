@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 
 import events
 from app.mixins import disable_all_calendar_triggers
+from app.models import MediaTypes
+from app.templatetags import app_tags
 from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
@@ -24,9 +26,12 @@ def import_trakt(username, user_id, mode):
         events.tasks.reload_calendar.delay()
 
     info_message = (
-        f"Imported {num_tv_imported} TV shows, "
-        f"{num_movie_imported} movies, "
-        f"and {num_anime_imported} anime."
+        f"Imported {num_tv_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.TV.value)}, "
+        f"{num_movie_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.MOVIE.value)}, "
+        f"and {num_anime_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)}."
     )
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
@@ -46,9 +51,12 @@ def import_simkl(username, user_id, mode):
         events.tasks.reload_calendar.delay()
 
     info_message = (
-        f"Imported {num_tv_imported} TV shows, "
-        f"{num_movie_imported} movies, "
-        f"and {num_anime_imported} anime."
+        f"Imported {num_tv_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.TV.value)}, "
+        f"{num_movie_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.MOVIE.value)}, "
+        f"and {num_anime_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)}."
     )
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
@@ -71,7 +79,12 @@ def import_mal(username, user_id, mode):
             raise ValueError(msg) from error
         raise
     else:
-        return f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+        return (
+            f"Imported {num_anime_imported} "
+            f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
+            f"and {num_manga_imported} "
+            f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
+        )
 
 
 @shared_task(name="Import from AniList")
@@ -97,7 +110,10 @@ def import_anilist(username, user_id, mode):
         raise
     else:
         info_message = (
-            f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+            f"Imported {num_anime_imported}"
+            f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
+            f"and {num_manga_imported} "
+            f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
         )
         return (
             f"{info_message} {ERROR_TITLE} {warning_message}"
@@ -119,7 +135,10 @@ def import_kitsu(username, user_id, mode):
         events.tasks.reload_calendar.delay()
 
     info_message = (
-        f"Imported {num_anime_imported} anime and {num_manga_imported} manga."
+        f"Imported {num_anime_imported}"
+        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
+        f"and {num_manga_imported} "
+        f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
     )
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
@@ -144,10 +163,14 @@ def import_yamtrack(file, user_id, mode):
         raise ValueError(msg) from error
     else:
         imported_summary_list = [
-            f"{count} TV shows" if media_type == "tv" else f"{count} {media_type}s"
+            f"{count} {app_tags.media_type_readable_plural(media_type)}"
             for media_type, count in imported_counts.items()
         ]
-        imported_summary = (
-            ", ".join(imported_summary_list[:-1]) + " and " + imported_summary_list[-1]
-        )
+        if len(imported_summary_list) > 1:
+            imported_summary = (
+                f"{', '.join(imported_summary_list[:-1])} and "
+                f"{imported_summary_list[-1]}"
+            )
+        else:
+            imported_summary = imported_summary_list[0]
         return f"Imported {imported_summary}."

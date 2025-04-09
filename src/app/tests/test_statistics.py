@@ -1,14 +1,22 @@
 import datetime
 from unittest.mock import MagicMock, patch
 
-from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 from django.test import TestCase
-from django.utils import timezone
 
 from app import statistics
-from app.models import TV, Episode, Item, Media, MediaTypes, Season, Sources
+from app.models import (
+    TV,
+    Anime,
+    Episode,
+    Item,
+    Media,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+)
 
 User = get_user_model()
 
@@ -101,7 +109,7 @@ class StatisticsTests(TestCase):
         )
 
         # Create a movie with different dates
-        self.movie = apps.get_model("app", "movie").objects.create(
+        self.movie = Movie.objects.create(
             user=self.user,
             item=self.movie_item,
             status=Media.Status.PLANNING.value,
@@ -111,7 +119,7 @@ class StatisticsTests(TestCase):
         )
 
         # Create an anime with different dates
-        self.anime = apps.get_model("app", "anime").objects.create(
+        self.anime = Anime.objects.create(
             user=self.user,
             item=self.anime_item,
             status=Media.Status.COMPLETED.value,
@@ -119,7 +127,6 @@ class StatisticsTests(TestCase):
             start_date=datetime.date(2025, 3, 1),
             end_date=datetime.date(2025, 3, 31),
         )
-
 
     def test_get_level(self):
         """Test the get_level function."""
@@ -373,17 +380,17 @@ class StatisticsTests(TestCase):
         )
 
         # Check that we have the expected media types
-        self.assertIn("tv", user_media)
-        self.assertIn("season", user_media)
-        self.assertIn("movie", user_media)
-        self.assertIn("anime", user_media)
+        self.assertIn(MediaTypes.TV, user_media)
+        self.assertIn(MediaTypes.SEASON, user_media)
+        self.assertIn(MediaTypes.MOVIE, user_media)
+        self.assertIn(MediaTypes.ANIME, user_media)
 
         # Check counts
         self.assertEqual(media_count["total"], 4)  # TV, Season, Movie, Anime
-        self.assertEqual(media_count["tv"], 1)
-        self.assertEqual(media_count["season"], 1)
-        self.assertEqual(media_count["movie"], 1)
-        self.assertEqual(media_count["anime"], 1)
+        self.assertEqual(media_count[MediaTypes.TV], 1)
+        self.assertEqual(media_count[MediaTypes.SEASON], 1)
+        self.assertEqual(media_count[MediaTypes.MOVIE], 1)
+        self.assertEqual(media_count[MediaTypes.ANIME], 1)
 
         # Test with different date range
         start_date = datetime.date(2025, 2, 1)
@@ -397,18 +404,18 @@ class StatisticsTests(TestCase):
 
         # Should only include movie (TV, Season, and episodes are in January)
         self.assertEqual(media_count["total"], 1)
-        self.assertEqual(media_count["movie"], 1)
-        self.assertEqual(media_count["tv"], 0)
-        self.assertEqual(media_count["season"], 0)
+        self.assertEqual(media_count[MediaTypes.MOVIE], 1)
+        self.assertEqual(media_count[MediaTypes.TV], 0)
+        self.assertEqual(media_count[MediaTypes.SEASON], 0)
 
     def test_get_media_type_distribution(self):
         """Test the get_media_type_distribution function."""
         media_count = {
             "total": 3,
-            "tv": 1,
-            "movie": 1,
-            "anime": 1,
-            "book": 0,  # Should be excluded
+            MediaTypes.TV: 1,
+            MediaTypes.MOVIE: 1,
+            MediaTypes.ANIME: 1,
+            MediaTypes.BOOK: 0,  # Should be excluded
         }
 
         chart_data = statistics.get_media_type_distribution(media_count)
@@ -432,9 +439,9 @@ class StatisticsTests(TestCase):
         """Test the get_status_distribution function."""
         # Create user_media dict with our test objects
         user_media = {
-            "tv": TV.objects.filter(user=self.user),
-            "movie": apps.get_model("app", "movie").objects.filter(user=self.user),
-            "anime": apps.get_model("app", "anime").objects.filter(user=self.user),
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
         }
 
         status_distribution = statistics.get_status_distribution(user_media)
@@ -533,9 +540,9 @@ class StatisticsTests(TestCase):
         """Test the get_score_distribution function."""
         # Create user_media dict with our test objects
         user_media = {
-            "tv": TV.objects.filter(user=self.user),
-            "movie": apps.get_model("app", "movie").objects.filter(user=self.user),
-            "anime": apps.get_model("app", "anime").objects.filter(user=self.user),
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
         }
 
         score_distribution = statistics.get_score_distribution(user_media)
@@ -588,12 +595,11 @@ class StatisticsTests(TestCase):
         """Test the get_timeline function."""
         # Create user_media dict with our test objects
         user_media = {
-            "tv": TV.objects.filter(user=self.user),
-            "season": Season.objects.filter(user=self.user),
-            "movie": apps.get_model("app", "movie").objects.filter(user=self.user),
-            "anime": apps.get_model("app", "anime").objects.filter(user=self.user),
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
         }
-
         timeline = statistics.get_timeline(user_media)
 
         # Check structure - should be a dict with month-year keys

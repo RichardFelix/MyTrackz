@@ -78,7 +78,7 @@ def media_type_readable_plural(media_type):
     singular = MediaTypes(media_type).label
 
     # Special cases that don't change in plural form
-    if singular.lower() in ["anime", "manga"]:
+    if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
         return singular
 
     return f"{singular}s"

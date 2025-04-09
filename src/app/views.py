@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers
 from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season
+from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season, Sources
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
@@ -70,7 +70,7 @@ def progress_edit(request):
     )
 
     if media:
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             prefetch_related_objects([media], "episodes")
 
         if operation == "increase":
@@ -78,7 +78,7 @@ def progress_edit(request):
         elif operation == "decrease":
             media.decrease_progress()
 
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             # clear prefetch cache to get the updated episodes
             media.refresh_from_db()
             prefetch_related_objects([media], "episodes")
@@ -219,7 +219,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         related_season__user=request.user,
     ).values("item__episode_number", "end_date", "repeats")
 
-    if source == "manual":
+    if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
             season_metadata,
             episodes_in_db,
@@ -233,7 +233,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     context = {
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
-        "media_type": "season",
+        "media_type": MediaTypes.SEASON.value,
     }
     return render(request, "app/media_details.html", context)
 
@@ -262,7 +262,7 @@ def track_modal(
         "season_number": season_number,
     }
 
-    if media_type == "game" and media:
+    if media_type == MediaTypes.GAME.value and media:
         initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
@@ -384,8 +384,8 @@ def episode_handler(request):
 
         item, _ = Item.objects.get_or_create(
             media_id=media_id,
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             season_number=season_number,
             defaults={
                 "title": tv_with_seasons_metadata["title"],
@@ -462,9 +462,9 @@ def create_entry(request):
     media_form.instance.item = item
 
     # Handle relationships based on media type
-    if item.media_type == "season":
+    if item.media_type == MediaTypes.SEASON.value:
         media_form.instance.related_tv = form.cleaned_data["parent_tv"]
-    elif item.media_type == "episode":
+    elif item.media_type == MediaTypes.EPISODE.value:
         media_form.instance.related_season = form.cleaned_data["parent_season"]
 
     media_form.save()
@@ -493,8 +493,8 @@ def search_parent_tv(request):
 
     parent_tvs = TV.objects.filter(
         user=request.user,
-        item__source="manual",
-        item__media_type="tv",
+        item__source=Sources.MANUAL.value,
+        item__media_type=MediaTypes.TV.value,
         item__title__icontains=query,
     )[:5]
 
@@ -521,8 +521,8 @@ def search_parent_season(request):
 
     parent_seasons = Season.objects.filter(
         user=request.user,
-        item__source="manual",
-        item__media_type="season",
+        item__source=Sources.MANUAL.value,
+        item__media_type=MediaTypes.SEASON.value,
         item__title__icontains=query,
     )[:5]
 

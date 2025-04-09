@@ -6,6 +6,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
+from app.models import Media, MediaTypes, Sources
 from integrations import helpers
 from integrations.helpers import MediaImportError
 
@@ -59,7 +60,13 @@ def importer(token, user, mode):
     if not data:
         return 0, 0, 0, ""
 
-    bulk_media = {"tv": [], "movie": [], "anime": [], "season": [], "episode": []}
+    bulk_media = {
+        MediaTypes.TV.value: [],
+        MediaTypes.MOVIE.value: [],
+        MediaTypes.ANIME.value: [],
+        MediaTypes.SEASON.value: [],
+        MediaTypes.EPISODE.value: [],
+    }
     warnings = []
 
     # Process all media types
@@ -84,9 +91,9 @@ def importer(token, user, mode):
             )
 
     return (
-        imported_counts.get("tv", 0),
-        imported_counts.get("movie", 0),
-        imported_counts.get("anime", 0),
+        imported_counts.get(MediaTypes.TV.value, 0),
+        imported_counts.get(MediaTypes.MOVIE.value, 0),
+        imported_counts.get(MediaTypes.ANIME.value, 0),
         "\n".join(warnings),
     )
 
@@ -142,8 +149,8 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
 
             tv_item, _ = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
-                source="tmdb",
-                media_type="tv",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.TV.value,
                 defaults={
                     "title": metadata["title"],
                     "image": metadata["image"],
@@ -156,7 +163,7 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
                 status=tv_status,
                 score=tv["user_rating"],
             )
-            bulk_media["tv"].append(tv_instance)
+            bulk_media[MediaTypes.TV.value].append(tv_instance)
 
             if season_numbers:
                 # Process seasons and episodes
@@ -179,8 +186,8 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
 
     logger.info("Processed %d tv shows", len(tv_list))
 
-    helpers.update_season_references(bulk_media["season"], user)
-    helpers.update_episode_references(bulk_media["episode"], user)
+    helpers.update_season_references(bulk_media[MediaTypes.SEASON.value], user)
+    helpers.update_episode_references(bulk_media[MediaTypes.EPISODE.value], user)
 
 
 def process_seasons_and_episodes(
@@ -201,8 +208,8 @@ def process_seasons_and_episodes(
 
         season_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             season_number=season_number,
             defaults={
                 "title": metadata["title"],
@@ -212,7 +219,7 @@ def process_seasons_and_episodes(
 
         # Prepare Season instance for bulk creation
         season_status = (
-            app.models.Media.Status.COMPLETED.value
+            Media.Status.COMPLETED.value
             if season_number != season_numbers[-1]
             else tv_instance.status
         )
@@ -223,15 +230,15 @@ def process_seasons_and_episodes(
             related_tv=tv_instance,
             status=season_status,
         )
-        bulk_media["season"].append(season_instance)
+        bulk_media[MediaTypes.SEASON.value].append(season_instance)
 
         # Process episodes
         for episode in episodes:
             ep_img = get_episode_image(episode, season_number, metadata)
             episode_item, _ = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
-                source="tmdb",
-                media_type="episode",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
                 season_number=season_number,
                 episode_number=episode["number"],
                 defaults={
@@ -245,7 +252,7 @@ def process_seasons_and_episodes(
                 related_season=season_instance,
                 end_date=get_date(episode["watched_at"]),
             )
-            bulk_media["episode"].append(episode_instance)
+            bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
 
 
 def get_episode_image(episode, season_number, metadata):
@@ -281,8 +288,8 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
 
             movie_item, _ = app.models.Item.objects.get_or_create(
                 media_id=tmdb_id,
-                source="tmdb",
-                media_type="movie",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
                 defaults={
                     "title": metadata["title"],
                     "image": metadata["image"],
@@ -297,7 +304,7 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
                 start_date=get_date(movie["last_watched_at"]),
                 end_date=get_date(movie["last_watched_at"]),
             )
-            bulk_media["movie"].append(movie_instance)
+            bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
 
         except MediaImportError as error:
             warnings.append(str(error))
@@ -335,8 +342,8 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
 
             anime_item, _ = app.models.Item.objects.get_or_create(
                 media_id=mal_id,
-                source="mal",
-                media_type="anime",
+                source=Sources.MAL.value,
+                media_type=MediaTypes.ANIME.value,
                 defaults={
                     "title": metadata["title"],
                     "image": metadata["image"],
@@ -346,7 +353,7 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
             # Determine end date based on status
             end_date = (
                 get_date(anime["last_watched_at"])
-                if anime_status == app.models.Media.Status.COMPLETED.value
+                if anime_status == Media.Status.COMPLETED.value
                 else None
             )
 
@@ -359,7 +366,7 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
                 start_date=get_date(anime["last_watched_at"]),
                 end_date=end_date,
             )
-            bulk_media["anime"].append(anime_instance)
+            bulk_media[MediaTypes.ANIME.value].append(anime_instance)
 
         except MediaImportError as error:
             warnings.append(str(error))
@@ -375,14 +382,14 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
 def get_status(status):
     """Map SIMKL status to internal status."""
     status_mapping = {
-        "completed": app.models.Media.Status.COMPLETED.value,
-        "watching": app.models.Media.Status.IN_PROGRESS.value,
-        "plantowatch": app.models.Media.Status.PLANNING.value,
-        "hold": app.models.Media.Status.PAUSED.value,
-        "dropped": app.models.Media.Status.DROPPED.value,
+        "completed": Media.Status.COMPLETED.value,
+        "watching": Media.Status.IN_PROGRESS.value,
+        "plantowatch": Media.Status.PLANNING.value,
+        "hold": Media.Status.PAUSED.value,
+        "dropped": Media.Status.DROPPED.value,
     }
 
-    return status_mapping.get(status, app.models.Media.Status.IN_PROGRESS.value)
+    return status_mapping.get(status, Media.Status.IN_PROGRESS.value)
 
 
 def get_date(date):

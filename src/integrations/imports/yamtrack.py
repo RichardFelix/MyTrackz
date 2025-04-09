@@ -6,7 +6,7 @@ from django.conf import settings
 
 import app
 import app.providers
-from app.models import TV, Episode, MediaTypes, Season
+from app.models import TV, Episode, MediaTypes, Season, Sources
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def add_bulk_media(row, user, bulk_media):
     episode_number = row["episode_number"] if row["episode_number"] != "" else None
 
     if row["title"] == "" or row["image"] == "":
-        if row["source"] == "manual" and row["image"] == "":
+        if row["source"] == Sources.MANUAL.value and row["image"] == "":
             row["image"] = settings.IMG_NONE
         else:
             metadata = app.providers.services.get_media_metadata(
@@ -71,7 +71,7 @@ def add_bulk_media(row, user, bulk_media):
 
     model = apps.get_model(app_label="app", model_name=media_type)
     instance = model(item=item)
-    if media_type != "episode":  # episode has no user field
+    if media_type != MediaTypes.EPISODE.value:  # episode has no user field
         instance.user = user
 
     row["item"] = item
@@ -88,9 +88,9 @@ def add_bulk_media(row, user, bulk_media):
 
 def import_media(media_type, bulk_data, user, mode):
     """Import media and return number of imported objects."""
-    if media_type == "season":
+    if media_type == MediaTypes.SEASON.value:
         return import_seasons(bulk_data, user, mode)
-    if media_type == "episode":
+    if media_type == MediaTypes.EPISODE.value:
         return import_episodes(bulk_data, user, mode)
 
     model = apps.get_model(app_label="app", model_name=media_type)

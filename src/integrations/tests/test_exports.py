@@ -7,7 +7,20 @@ from django.db.models import Q
 from django.test import TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Book, Episode, Game, Item, Manga, Movie, Season
+from app.models import (
+    TV,
+    Anime,
+    Book,
+    Episode,
+    Game,
+    Item,
+    Manga,
+    Media,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+)
 
 
 class ExportCSVTest(TestCase):
@@ -21,8 +34,8 @@ class ExportCSVTest(TestCase):
 
         item_tv = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Friends",
             image="https://image.url",
         )
@@ -32,14 +45,14 @@ class ExportCSVTest(TestCase):
             item=item_tv,
             user=self.user,
             score=9,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             notes="Nice",
         )
 
         item_movie = Item.objects.create(
             media_id="10494",
-            source="tmdb",
-            media_type="movie",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
             title="Perfect Blue",
             image="https://image.url",
         )
@@ -47,7 +60,7 @@ class ExportCSVTest(TestCase):
             item=item_movie,
             user=self.user,
             score=9,
-            status="Completed",
+            status=Media.Status.COMPLETED.value,
             notes="Nice",
             start_date=date(2023, 6, 1),
             end_date=date(2023, 6, 1),
@@ -55,8 +68,8 @@ class ExportCSVTest(TestCase):
 
         item_season = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Friends",
             image="https://image.url",
             season_number=1,
@@ -67,14 +80,14 @@ class ExportCSVTest(TestCase):
             related_tv=tv,
             user=self.user,
             score=9,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             notes="Nice",
         )
 
         item_episode = Item.objects.create(
             media_id="1668",
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             title="Friends",
             image="https://image.url",
             season_number=1,
@@ -88,60 +101,60 @@ class ExportCSVTest(TestCase):
 
         item_anime = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Cowboy Bebop",
             image="https://image.url",
         )
         Anime.objects.create(
             item=item_anime,
             user=self.user,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             progress=2,
             start_date=date(2021, 6, 1),
         )
 
         item_manga = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="manga",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.MANGA.value,
             title="Berserk",
             image="https://image.url",
         )
         Manga.objects.create(
             item=item_manga,
             user=self.user,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             progress=2,
             start_date=date(2021, 6, 1),
         )
 
         item_game = Item.objects.create(
             media_id="1",
-            source="igdb",
-            media_type="game",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
             title="The Witcher 3: Wild Hunt",
             image="https://image.url",
         )
         Game.objects.create(
             item=item_game,
             user=self.user,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             progress=120,
             start_date=date(2021, 6, 1),
         )
 
         item_book = Item.objects.create(
             media_id="OL7353617M",
-            source="openlibrary",
-            media_type="book",
+            source=Sources.OPENLIBRARY.value,
+            media_type=MediaTypes.BOOK.value,
             title="Fantastic Mr. Fox",
             image="https://image.url",
         )
         Book.objects.create(
             item=item_book,
             user=self.user,
-            status="In progress",
+            status=Media.Status.IN_PROGRESS.value,
             progress=120,
             start_date=date(2021, 6, 1),
         )

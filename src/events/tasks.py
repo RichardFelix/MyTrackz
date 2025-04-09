@@ -15,7 +15,7 @@ from django.db.models import (
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import Item, Media
+from app.models import Item, Media, MediaTypes
 from app.providers import comicvine, services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
@@ -37,11 +37,11 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     for item in items_to_process:
         # anime can later be processed in bulk
-        if item.media_type == "anime":
+        if item.media_type == MediaTypes.ANIME.value:
             anime_to_process.append(item)
-        elif item.media_type == "season":
+        elif item.media_type == MediaTypes.SEASON.value:
             process_season(item, events_bulk)
-        elif item.media_type == "comic":
+        elif item.media_type == MediaTypes.COMIC.value:
             process_comic(item, events_bulk)
         else:
             process_other(item, events_bulk)
@@ -373,9 +373,12 @@ def process_other(item, events_bulk):
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:
             episode_datetime = date_parser(metadata["details"][date_key])
-            if item.media_type == "book" and metadata["details"]["number_of_pages"]:
+            if (
+                item.media_type == MediaTypes.BOOK.value
+                and metadata["details"]["number_of_pages"]
+            ):
                 episode_number = metadata["details"]["number_of_pages"]
-            elif item.media_type == "movie":
+            elif item.media_type == MediaTypes.MOVIE.value:
                 episode_number = 1
             else:
                 episode_number = None
@@ -389,7 +392,7 @@ def process_other(item, events_bulk):
         except ValueError:
             pass
 
-    if item.media_type == "manga" and metadata["max_progress"]:
+    if item.media_type == MediaTypes.MANGA.value and metadata["max_progress"]:
         # MyAnimeList manga has an end date when it's completed
         if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
             episode_datetime = date_parser(metadata["details"]["end_date"])
@@ -653,7 +656,7 @@ def format_notification_text(releases):
         icon = app_tags.unicode_icon(media_type)
 
         # Add a header for each media type with icon
-        if media_type == "season":
+        if media_type == MediaTypes.SEASON.value:
             notification_body.append(f"{icon}  TV Shows")
         else:
             notification_body.append(f"{icon}  {media_type.upper()}")

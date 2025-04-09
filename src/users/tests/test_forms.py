@@ -27,7 +27,7 @@ class NotificationSettingsFormTests(TestCase):
         form = NotificationSettingsForm()
         self.assertEqual(form.fields["notification_urls"].widget.attrs["rows"], 5)
         self.assertEqual(form.fields["notification_urls"].widget.attrs["wrap"], "off")
-        self.assertTrue("placeholder" in form.fields["notification_urls"].widget.attrs)
+        self.assertIn("placeholder", form.fields["notification_urls"].widget.attrs)
 
     @patch("apprise.Apprise.add")
     def test_valid_single_url(self, mock_add):
@@ -150,7 +150,6 @@ class NotificationSettingsFormTests(TestCase):
         self.assertTrue(form.is_valid())
         form.save()
 
-        # Refresh user from database
         self.user.refresh_from_db()
         self.assertEqual(
             self.user.notification_urls,

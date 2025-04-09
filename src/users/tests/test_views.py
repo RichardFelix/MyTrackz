@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
-from app.models import Item, MediaTypes
+from app.models import Item, MediaTypes, Sources
 
 
 class Profile(TestCase):
@@ -110,16 +110,16 @@ class NotificationTests(TestCase):
         # Create items
         self.item1 = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
             image="http://example.com/anime.jpg",
         )
 
         self.item2 = Item.objects.create(
             media_id="2",
-            source="mal",
-            media_type="manga",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.MANGA.value,
             title="Test Manga",
             image="http://example.com/manga.jpg",
         )
@@ -353,7 +353,7 @@ class SidebarViewTests(TestCase):
         self.assertIn("media_types", response.context)
         self.assertIn(MediaTypes.TV.value, response.context["media_types"])
         self.assertIn(MediaTypes.MOVIE.value, response.context["media_types"])
-        self.assertNotIn("episode", response.context["media_types"])
+        self.assertNotIn(MediaTypes.EPISODE.value, response.context["media_types"])
 
     def test_sidebar_post_update_preferences(self):
         """Test POST request to update sidebar preferences."""

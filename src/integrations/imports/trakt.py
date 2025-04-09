@@ -9,7 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 import app
-from app.models import Media
+from app.models import Media, MediaTypes, Sources
 from integrations import helpers
 from integrations.helpers import MediaImportError
 
@@ -28,19 +28,19 @@ def importer(username, user, mode):
 
     # Initialize bulk media dictionary for all types
     bulk_media = {
-        "tv": [],
-        "movie": [],
-        "anime": [],
-        "season": [],
-        "episode": [],
+        MediaTypes.TV.value: [],
+        MediaTypes.MOVIE.value: [],
+        MediaTypes.ANIME.value: [],
+        MediaTypes.SEASON.value: [],
+        MediaTypes.EPISODE.value: [],
     }
     # Keep track of created instances for watchlist and ratings updates
     media_instances = {
-        "tv": {},
-        "movie": {},
-        "anime": {},
-        "season": {},
-        "episode": {},
+        MediaTypes.TV.value: {},
+        MediaTypes.MOVIE.value: {},
+        MediaTypes.ANIME.value: {},
+        MediaTypes.SEASON.value: {},
+        MediaTypes.EPISODE.value: {},
     }
     warnings = []
 
@@ -101,8 +101,8 @@ def importer(username, user, mode):
     )
 
     # Update references before bulk creation
-    helpers.update_season_references(bulk_media["season"], user)
-    helpers.update_episode_references(bulk_media["episode"], user)
+    helpers.update_season_references(bulk_media[MediaTypes.SEASON.value], user)
+    helpers.update_episode_references(bulk_media[MediaTypes.EPISODE.value], user)
 
     # Bulk create all media types
     imported_counts = {}
@@ -118,9 +118,9 @@ def importer(username, user, mode):
             )
 
     return (
-        imported_counts.get("tv", 0),
-        imported_counts.get("movie", 0),
-        imported_counts.get("anime", 0),
+        imported_counts.get(MediaTypes.TV.value, 0),
+        imported_counts.get(MediaTypes.MOVIE.value, 0),
+        imported_counts.get(MediaTypes.ANIME.value, 0),
         "\n".join(warnings),
     )
 
@@ -182,12 +182,12 @@ def process_watched_shows(
                     tmdb_id = str(tmdb_id)
 
                     # Only create TV and seasons for TMDB content
-                    if tmdb_id not in media_instances["tv"]:
+                    if tmdb_id not in media_instances[MediaTypes.TV.value]:
                         # Get metadata for all seasons at once
                         season_numbers = [s["number"] for s in entry["seasons"]]
                         metadata = get_metadata(
                             app.providers.tmdb.tv_with_seasons,
-                            "TMDB",
+                            Sources.TMDB.label,
                             trakt_title,
                             tmdb_id,
                             season_numbers,
@@ -195,8 +195,8 @@ def process_watched_shows(
 
                         tv_item, _ = app.models.Item.objects.get_or_create(
                             media_id=tmdb_id,
-                            source="tmdb",
-                            media_type="tv",
+                            source=Sources.TMDB.value,
+                            media_type=MediaTypes.TV.value,
                             defaults={
                                 "title": metadata["title"],
                                 "image": metadata["image"],
@@ -217,8 +217,8 @@ def process_watched_shows(
                             user=user,
                             status=status,
                         )
-                        bulk_media["tv"].append(tv_instance)
-                        media_instances["tv"][tmdb_id] = tv_instance
+                        bulk_media[MediaTypes.TV.value].append(tv_instance)
+                        media_instances[MediaTypes.TV.value][tmdb_id] = tv_instance
 
                     prepare_tmdb_season_and_episodes(
                         season,
@@ -242,7 +242,7 @@ def process_watched_shows(
 
 def get_anime_default_fields(title, season, mal_id):
     """Get the defaults tracking fields for watched anime."""
-    metadata = get_metadata(app.providers.mal.anime, "MAL", title, mal_id)
+    metadata = get_metadata(app.providers.mal.anime, Sources.MAL.label, title, mal_id)
 
     start_date = season["episodes"][0]["last_watched_at"]
     end_date = season["episodes"][-1]["last_watched_at"]
@@ -400,10 +400,10 @@ def update_or_prepare_show(
 
     if mal_id and user.anime_enabled:
         mal_id = str(mal_id)
-        if mal_id in media_instances["anime"]:
+        if mal_id in media_instances[MediaTypes.ANIME.value]:
             # Update existing instance
             for attr, value in defaults.items():
-                setattr(media_instances["anime"][mal_id], attr, value)
+                setattr(media_instances[MediaTypes.ANIME.value][mal_id], attr, value)
         else:
             prepare_mal_anime(
                 entry,
@@ -413,10 +413,10 @@ def update_or_prepare_show(
                 bulk_media,
                 media_instances,
             )
-    elif tmdb_id in media_instances["tv"]:
+    elif tmdb_id in media_instances[MediaTypes.TV.value]:
         # Update existing instance
         for attr, value in defaults.items():
-            setattr(media_instances["tv"][tmdb_id], attr, value)
+            setattr(media_instances[MediaTypes.TV.value][tmdb_id], attr, value)
     else:
         prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instances)
 
@@ -439,10 +439,10 @@ def update_or_prepare_movie(
 
     if mal_id and user.anime_enabled:
         mal_id = str(mal_id)
-        if mal_id in media_instances["anime"]:
+        if mal_id in media_instances[MediaTypes.ANIME.value]:
             # Update existing instance
             for attr, value in defaults.items():
-                setattr(media_instances["anime"][mal_id], attr, value)
+                setattr(media_instances[MediaTypes.ANIME.value][mal_id], attr, value)
         else:
             prepare_mal_anime(
                 entry,
@@ -452,10 +452,10 @@ def update_or_prepare_movie(
                 bulk_media,
                 media_instances,
             )
-    elif tmdb_id in media_instances["movie"]:
+    elif tmdb_id in media_instances[MediaTypes.MOVIE.value]:
         # Update existing instance
         for attr, value in defaults.items():
-            setattr(media_instances["movie"][tmdb_id], attr, value)
+            setattr(media_instances[MediaTypes.MOVIE.value][tmdb_id], attr, value)
     else:
         prepare_tmdb_movie(
             entry,
@@ -486,10 +486,10 @@ def update_or_prepare_season(
 
     if mal_id and user.anime_enabled:
         mal_id = str(mal_id)
-        if mal_id in media_instances["anime"]:
+        if mal_id in media_instances[MediaTypes.ANIME.value]:
             # Update existing instance
             for attr, value in defaults.items():
-                setattr(media_instances["anime"][mal_id], attr, value)
+                setattr(media_instances[MediaTypes.ANIME.value][mal_id], attr, value)
         else:
             prepare_mal_anime(
                 entry,
@@ -501,10 +501,14 @@ def update_or_prepare_season(
             )
     else:
         season_key = (tmdb_id, season_number)
-        if season_key in media_instances["season"]:
+        if season_key in media_instances[MediaTypes.SEASON.value]:
             # Update existing instance
             for attr, value in defaults.items():
-                setattr(media_instances["season"][season_key], attr, value)
+                setattr(
+                    media_instances[MediaTypes.SEASON.value][season_key],
+                    attr,
+                    value,
+                )
         else:
             prepare_tmdb_season(
                 entry,
@@ -526,12 +530,17 @@ def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instan
         msg = f"No TMDB ID found for {trakt_title} in {list_type}"
         raise MediaImportError(msg)
 
-    metadata = get_metadata(app.providers.tmdb.tv, "TMDB", trakt_title, tmdb_id)
+    metadata = get_metadata(
+        app.providers.tmdb.tv,
+        Sources.TMDB.label,
+        trakt_title,
+        tmdb_id,
+    )
 
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
-        source="tmdb",
-        media_type="tv",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.TV.value,
         defaults={
             "title": metadata["title"],
             "image": metadata["image"],
@@ -543,8 +552,8 @@ def prepare_tmdb_show(entry, user, defaults, list_type, bulk_media, media_instan
         user=user,
         **defaults,
     )
-    bulk_media["tv"].append(tv_instance)
-    media_instances["tv"][tmdb_id] = tv_instance
+    bulk_media[MediaTypes.TV.value].append(tv_instance)
+    media_instances[MediaTypes.TV.value][tmdb_id] = tv_instance
 
 
 def prepare_tmdb_season_and_episodes(
@@ -562,8 +571,8 @@ def prepare_tmdb_season_and_episodes(
     # Create season item
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
-        source="tmdb",
-        media_type="season",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.SEASON.value,
         season_number=season_number,
         defaults={
             "title": metadata["title"],
@@ -571,14 +580,14 @@ def prepare_tmdb_season_and_episodes(
         },
     )
 
-    tv_instance = media_instances["tv"][tmdb_id]
+    tv_instance = media_instances[MediaTypes.TV.value][tmdb_id]
     season_instance = app.models.Season(
         item=season_item,
         user=user,
         related_tv=tv_instance,
     )
-    bulk_media["season"].append(season_instance)
-    media_instances["season"][(tmdb_id, season_number)] = season_instance
+    bulk_media[MediaTypes.SEASON.value].append(season_instance)
+    media_instances[MediaTypes.SEASON.value][(tmdb_id, season_number)] = season_instance
 
     # Prepare episodes
     total_plays = 0
@@ -589,8 +598,8 @@ def prepare_tmdb_season_and_episodes(
 
         episode_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             season_number=season_number,
             episode_number=episode_number,
             defaults={
@@ -605,10 +614,10 @@ def prepare_tmdb_season_and_episodes(
             end_date=get_date(episode["last_watched_at"]),
             repeats=episode["plays"] - 1,
         )
-        bulk_media["episode"].append(episode_instance)
-        media_instances["episode"][(tmdb_id, season_number, episode_number)] = (
-            episode_instance
-        )
+        bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
+        media_instances[MediaTypes.EPISODE.value][
+            (tmdb_id, season_number, episode_number)
+        ] = episode_instance
 
     season_instance.status = get_status(
         season["episodes"][-1]["number"],
@@ -630,18 +639,18 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
 
     metadata = get_metadata(
         app.providers.tmdb.tv_with_seasons,
-        "TMDB",
+        Sources.TMDB.label,
         trakt_title,
         tmdb_id,
         [season_number],
     )
 
     # Prepare TV show if it doesn't exist
-    if tmdb_id not in media_instances["tv"]:
+    if tmdb_id not in media_instances[MediaTypes.TV.value]:
         tv_item, _ = app.models.Item.objects.get_or_create(
             media_id=tmdb_id,
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             defaults={
                 "title": metadata["title"],
                 "image": metadata["image"],
@@ -652,16 +661,16 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
             user=user,
             status=Media.Status.IN_PROGRESS.value,
         )
-        bulk_media["tv"].append(tv_instance)
-        media_instances["tv"][tmdb_id] = tv_instance
+        bulk_media[MediaTypes.TV.value].append(tv_instance)
+        media_instances[MediaTypes.TV.value][tmdb_id] = tv_instance
     else:
-        tv_instance = media_instances["tv"][tmdb_id]
+        tv_instance = media_instances[MediaTypes.TV.value][tmdb_id]
 
     season_metadata = metadata[f"season/{season_number}"]
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
-        source="tmdb",
-        media_type="season",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.SEASON.value,
         season_number=season_number,
         defaults={
             "title": metadata["title"],
@@ -675,8 +684,8 @@ def prepare_tmdb_season(entry, user, defaults, list_type, bulk_media, media_inst
         related_tv=tv_instance,
         **defaults,
     )
-    bulk_media["season"].append(season_instance)
-    media_instances["season"][(tmdb_id, season_number)] = season_instance
+    bulk_media[MediaTypes.SEASON.value].append(season_instance)
+    media_instances[MediaTypes.SEASON.value][(tmdb_id, season_number)] = season_instance
 
 
 def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_instances):
@@ -689,12 +698,17 @@ def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_insta
         msg = f"No TMDB ID found for {trakt_title} in {list_type}"
         raise MediaImportError(msg)
 
-    metadata = get_metadata(app.providers.tmdb.movie, "TMDB", trakt_title, tmdb_id)
+    metadata = get_metadata(
+        app.providers.tmdb.movie,
+        Sources.TMDB.label,
+        trakt_title,
+        tmdb_id,
+    )
 
     item, _ = app.models.Item.objects.get_or_create(
         media_id=tmdb_id,
-        source="tmdb",
-        media_type="movie",
+        source=Sources.TMDB.value,
+        media_type=MediaTypes.MOVIE.value,
         defaults={
             "title": metadata["title"],
             "image": metadata["image"],
@@ -706,8 +720,8 @@ def prepare_tmdb_movie(entry, user, defaults, list_type, bulk_media, media_insta
         user=user,
         **defaults,
     )
-    bulk_media["movie"].append(movie_instance)
-    media_instances["movie"][tmdb_id] = movie_instance
+    bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
+    media_instances[MediaTypes.MOVIE.value][tmdb_id] = movie_instance
 
 
 def prepare_mal_anime(entry, mal_id, user, defaults, bulk_media, media_instances):
@@ -717,12 +731,12 @@ def prepare_mal_anime(entry, mal_id, user, defaults, bulk_media, media_instances
     except KeyError:
         title = entry["movie"]["title"]
 
-    metadata = get_metadata(app.providers.mal.anime, "MAL", title, mal_id)
+    metadata = get_metadata(app.providers.mal.anime, Sources.MAL.label, title, mal_id)
 
     item, _ = app.models.Item.objects.get_or_create(
         media_id=mal_id,
-        source="mal",
-        media_type="anime",
+        source=Sources.MAL.value,
+        media_type=MediaTypes.ANIME.value,
         defaults={
             "title": metadata["title"],
             "image": metadata["image"],
@@ -734,8 +748,8 @@ def prepare_mal_anime(entry, mal_id, user, defaults, bulk_media, media_instances
         user=user,
         **defaults,
     )
-    bulk_media["anime"].append(anime_instance)
-    media_instances["anime"][mal_id] = anime_instance
+    bulk_media[MediaTypes.ANIME.value].append(anime_instance)
+    media_instances[MediaTypes.ANIME.value][mal_id] = anime_instance
 
 
 def get_episode_image(episode_number, season_metadata):

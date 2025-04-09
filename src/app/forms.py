@@ -2,7 +2,7 @@ from django import forms
 from django.conf import settings
 
 from app import models
-from app.models import Item
+from app.models import Item, MediaTypes, Sources
 
 
 def get_form_class(media_type):
@@ -106,13 +106,13 @@ class ManualItemForm(forms.ModelForm):
         if self.user:
             self.fields["parent_tv"].queryset = models.TV.objects.filter(
                 user=self.user,
-                item__source="manual",
-                item__media_type="tv",
+                item__source=Sources.MANUAL.value,
+                item__media_type=MediaTypes.TV.value,
             )
             self.fields["parent_season"].queryset = models.Season.objects.filter(
                 user=self.user,
-                item__source="manual",
-                item__media_type="season",
+                item__source=Sources.MANUAL.value,
+                item__media_type=MediaTypes.SEASON.value,
             )
         self.fields["image"].required = False
         self.fields["title"].required = False
@@ -127,8 +127,8 @@ class ManualItemForm(forms.ModelForm):
             cleaned_data["image"] = settings.IMG_NONE
 
         # Title not required for season/episode
-        if media_type in ["season", "episode"]:
-            if media_type == "season":
+        if media_type in [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]:
+            if media_type == MediaTypes.SEASON.value:
                 parent = cleaned_data.get("parent_tv")
                 if not parent:
                     self.add_error(
@@ -160,12 +160,12 @@ class ManualItemForm(forms.ModelForm):
     def save(self, commit=True):  # noqa: FBT002
         """Save the form and handle manual media ID generation."""
         instance = super().save(commit=False)
-        instance.source = "manual"
+        instance.source = Sources.MANUAL.value
 
-        if instance.media_type == "season":
+        if instance.media_type == MediaTypes.SEASON.value:
             parent_tv = self.cleaned_data["parent_tv"]
             instance.media_id = parent_tv.item.media_id
-        elif instance.media_type == "episode":
+        elif instance.media_type == MediaTypes.EPISODE.value:
             parent_season = self.cleaned_data["parent_season"]
             instance.media_id = parent_season.item.media_id
             instance.season_number = parent_season.item.season_number
@@ -273,6 +273,7 @@ class BookForm(MediaForm):
             "progress": "Progress (Pages)",
             "repeats": "Number of Rereads",
         }
+
 
 class ComicForm(MediaForm):
     """Form for comics."""

@@ -9,8 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django_celery_beat.models import PeriodicTask
 
-import app
-from app.models import Item
+from app.models import Item, MediaTypes
 from users.forms import (
     NotificationSettingsForm,
     PasswordChangeForm,
@@ -212,8 +211,8 @@ def test_notification(request):
 @require_http_methods(["GET", "POST"])
 def sidebar(request):
     """Render the sidebar settings page."""
-    media_types = app.models.MediaTypes.values
-    media_types.remove("episode")
+    media_types = MediaTypes.values
+    media_types.remove(MediaTypes.EPISODE.value)
 
     if request.method == "GET":
         return render(request, "users/sidebar.html", {"media_types": media_types})

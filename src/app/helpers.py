@@ -7,7 +7,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app import media_type_config
-from app.models import MediaTypes
+from app.models import Media, MediaTypes
 
 
 def minutes_to_hhmm(total_minutes):
@@ -54,15 +54,15 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     if old_value is None:
         if field_name == "status":
             verb = media_type_config.get_verb(media_type, past_tense=False)
-            if new_value == "In progress":
+            if new_value == Media.Status.IN_PROGRESS.value:
                 return f"Started {verb}ing"
-            if new_value == "Completed":
+            if new_value == Media.Status.COMPLETED.value:
                 return f"Finished {verb}ing"
-            if new_value == "Planning":
+            if new_value == Media.Status.PLANNING.value:
                 return f"Added to {verb}ing list"
-            if new_value == "Dropped":
+            if new_value == Media.Status.DROPPED.value:
                 return f"Stopped {verb}ing"
-            if new_value == "Paused":
+            if new_value == Media.Status.PAUSED.value:
                 return f"Paused {verb}ing"
             return f"Status set to {new_value}"
 
@@ -70,11 +70,11 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Rated {new_value}/10"
 
         if field_name == "progress":
-            if media_type == "game":
+            if media_type == MediaTypes.GAME.value:
                 return f"Played for {minutes_to_hhmm(new_value)}"
-            if media_type == "book":
+            if media_type == MediaTypes.BOOK.value:
                 return f"Read {new_value} pages"
-            if media_type == "manga":
+            if media_type == MediaTypes.MANGA.value:
                 return f"Read {new_value} chapters"
             return f"Watched {new_value} episodes"
 
@@ -100,13 +100,34 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         verb = media_type_config.get_verb(media_type, past_tense=False)
         # Status transitions
         transitions = {
-            ("Planning", "In progress"): f"Started {verb}ing",
-            ("In progress", "Completed"): f"Finished {verb}ing",
-            ("In progress", "Paused"): f"Paused {verb}ing",
-            ("Paused", "In progress"): f"Resumed {verb}ing",
-            ("In progress", "Dropped"): f"Stopped {verb}ing",
-            ("Completed", "Repeating"): f"Started re{verb}ing",
-            ("Repeating", "Completed"): f"Finished re{verb}ing",
+            (
+                Media.Status.PLANNING.value,
+                Media.Status.IN_PROGRESS.value,
+            ): f"Started {verb}ing",
+            (
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.COMPLETED.value,
+            ): f"Finished {verb}ing",
+            (
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.PAUSED.value,
+            ): f"Paused {verb}ing",
+            (
+                Media.Status.PAUSED.value,
+                Media.Status.IN_PROGRESS.value,
+            ): f"Resumed {verb}ing",
+            (
+                Media.Status.IN_PROGRESS.value,
+                Media.Status.DROPPED.value,
+            ): f"Stopped {verb}ing",
+            (
+                Media.Status.COMPLETED.value,
+                Media.Status.REPEATING.value,
+            ): f"Started re{verb}ing",
+            (
+                Media.Status.REPEATING.value,
+                Media.Status.COMPLETED.value,
+            ): f"Finished re{verb}ing",
         }
         return transitions.get(
             (old_value, new_value),

@@ -119,7 +119,7 @@ class AppTagsTests(TestCase):
             singular = label
 
             # Special cases that don't change in plural form
-            if singular.lower() in ["anime", "manga"]:
+            if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
                 expected = singular
             else:
                 expected = f"{singular}s"
@@ -169,7 +169,6 @@ class AppTagsTests(TestCase):
         """Test the media_color filter."""
         # Test all media types
         for media_type in MediaTypes.values:
-
             result = app_tags.media_color(media_type)
 
             # Check that it returns a non-empty string

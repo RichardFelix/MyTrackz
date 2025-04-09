@@ -4,7 +4,7 @@ import logging
 from django.apps import apps
 
 import app
-from app.models import Media
+from app.models import Media, MediaTypes, Sources
 from integrations import helpers
 
 logger = logging.getLogger(__name__)
@@ -94,14 +94,14 @@ def importer(username, user, mode):
 
     anime_imported, anime_warnings = import_media(
         response["data"]["anime"],
-        "anime",
+        MediaTypes.ANIME.value,
         user,
         mode,
     )
 
     manga_imported, manga_warnings = import_media(
         response["data"]["manga"],
-        "manga",
+        MediaTypes.MANGA.value,
         user,
         mode,
     )
@@ -150,7 +150,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warnings):
 
             item, _ = app.models.Item.objects.get_or_create(
                 media_id=str(content["media"]["idMal"]),
-                source="mal",
+                source=Sources.MAL.value,
                 media_type=media_type,
                 defaults={
                     "title": content["media"]["title"]["userPreferred"],

@@ -9,7 +9,18 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
-from app.models import TV, Anime, Episode, Item, Manga, Movie, Season
+from app.models import (
+    TV,
+    Anime,
+    Episode,
+    Item,
+    Manga,
+    Media,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+)
 from integrations import helpers
 from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
 
@@ -53,7 +64,7 @@ class ImportMAL(TestCase):
         )
         self.assertEqual(
             Anime.objects.get(user=self.user, item__title="FLCL").status,
-            "Paused",
+            Media.Status.PAUSED.value,
         )
         self.assertEqual(
             Manga.objects.get(user=self.user, item__title="Fire Punch").score,
@@ -91,7 +102,7 @@ class ImportAniList(TestCase):
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
         self.assertEqual(
             Anime.objects.get(user=self.user, item__title="FLCL").status,
-            "Paused",
+            Media.Status.PAUSED.value,
         )
         self.assertEqual(
             Manga.objects.get(user=self.user, item__title="One Punch-Man").score,
@@ -191,10 +202,10 @@ class ImportKitsu(TestCase):
 
     def test_get_status(self):
         """Test getting status from Kitsu."""
-        self.assertEqual(kitsu.get_status("completed"), "Completed")
-        self.assertEqual(kitsu.get_status("current"), "In progress")
-        self.assertEqual(kitsu.get_status("planned"), "Planning")
-        self.assertEqual(kitsu.get_status("on_hold"), "Paused")
+        self.assertEqual(kitsu.get_status("completed"), Media.Status.COMPLETED.value)
+        self.assertEqual(kitsu.get_status("current"), Media.Status.IN_PROGRESS.value)
+        self.assertEqual(kitsu.get_status("planned"), Media.Status.PLANNING.value)
+        self.assertEqual(kitsu.get_status("on_hold"), Media.Status.PAUSED.value)
 
     def test_process_entry(self):
         """Test processing an entry from Kitsu."""
@@ -212,7 +223,7 @@ class ImportKitsu(TestCase):
 
         instance = kitsu.process_entry(
             entry,
-            "anime",
+            MediaTypes.ANIME.value,
             media_lookup,
             mapping_lookup,
             None,
@@ -223,7 +234,7 @@ class ImportKitsu(TestCase):
         self.assertIsInstance(instance, Anime)
         self.assertEqual(instance.score, 9)
         self.assertEqual(instance.progress, 26)
-        self.assertEqual(instance.status, "Completed")
+        self.assertEqual(instance.status, Media.Status.COMPLETED.value)
         self.assertEqual(instance.repeats, 1)
         self.assertEqual(instance.start_date, date(2023, 8, 1))
         self.assertEqual(instance.end_date, date(2023, 9, 1))
@@ -315,19 +326,19 @@ class ImportTrakt(TestCase):
             watched = json.load(file)
 
         bulk_media = {
-            "tv": [],
-            "movie": [],
-            "anime": [],
-            "season": [],
-            "episode": [],
+            MediaTypes.TV.value: [],
+            MediaTypes.MOVIE.value: [],
+            MediaTypes.ANIME.value: [],
+            MediaTypes.SEASON.value: [],
+            MediaTypes.EPISODE.value: [],
         }
         # Keep track of created instances for watchlist and ratings updates
         media_instances = {
-            "tv": {},
-            "movie": {},
-            "anime": {},
-            "season": {},
-            "episode": {},
+            MediaTypes.TV.value: {},
+            MediaTypes.MOVIE.value: {},
+            MediaTypes.ANIME.value: {},
+            MediaTypes.SEASON.value: {},
+            MediaTypes.EPISODE.value: {},
         }
         trakt.process_watched_shows(
             watched,
@@ -339,28 +350,28 @@ class ImportTrakt(TestCase):
         )
 
         self.assertEqual(Item.objects.count(), 15)
-        self.assertEqual(len(bulk_media["tv"]), 1)
-        self.assertEqual(len(bulk_media["season"]), 1)
-        self.assertEqual(len(bulk_media["episode"]), 13)
+        self.assertEqual(len(bulk_media[MediaTypes.TV.value]), 1)
+        self.assertEqual(len(bulk_media[MediaTypes.SEASON.value]), 1)
+        self.assertEqual(len(bulk_media[MediaTypes.EPISODE.value]), 13)
 
     def test_process_ratings(self):
         """Test processing watched shows from Trakt."""
         with Path(mock_path / "import_trakt_ratings.json").open() as file:
             ratings = json.load(file)
         bulk_media = {
-            "tv": [],
-            "movie": [],
-            "anime": [],
-            "season": [],
-            "episode": [],
+            MediaTypes.TV.value: [],
+            MediaTypes.MOVIE.value: [],
+            MediaTypes.ANIME.value: [],
+            MediaTypes.SEASON.value: [],
+            MediaTypes.EPISODE.value: [],
         }
         # Keep track of created instances for watchlist and ratings updates
         media_instances = {
-            "tv": {},
-            "movie": {},
-            "anime": {},
-            "season": {},
-            "episode": {},
+            MediaTypes.TV.value: {},
+            MediaTypes.MOVIE.value: {},
+            MediaTypes.ANIME.value: {},
+            MediaTypes.SEASON.value: {},
+            MediaTypes.EPISODE.value: {},
         }
         trakt.process_list(
             ratings,
@@ -447,34 +458,37 @@ class ImportSimkl(TestCase):
         self.assertEqual(warnings, "")
 
         # Check TV show
-        tv_item = Item.objects.get(media_type="tv")
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value)
         self.assertEqual(tv_item.title, "Breaking Bad")
         tv_obj = TV.objects.get(item=tv_item)
-        self.assertEqual(tv_obj.status, "In progress")
+        self.assertEqual(tv_obj.status, Media.Status.IN_PROGRESS.value)
         self.assertEqual(tv_obj.score, 8)
 
         # Check Movie
-        movie_item = Item.objects.get(media_type="movie")
+        movie_item = Item.objects.get(media_type=MediaTypes.MOVIE.value)
         self.assertEqual(movie_item.title, "Perfect Blue")
         movie_obj = Movie.objects.get(item=movie_item)
-        self.assertEqual(movie_obj.status, "Completed")
+        self.assertEqual(movie_obj.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie_obj.score, 9)
 
         # Check Anime
-        anime_item = Item.objects.get(media_type="anime")
+        anime_item = Item.objects.get(media_type=MediaTypes.ANIME.value)
         self.assertEqual(anime_item.title, "Cowboy Bebop")
         anime_obj = Anime.objects.get(item=anime_item)
-        self.assertEqual(anime_obj.status, "Planning")
+        self.assertEqual(anime_obj.status, Media.Status.PLANNING.value)
         self.assertEqual(anime_obj.score, 7)
 
     def test_get_status(self):
         """Test mapping SIMKL status to internal status."""
-        self.assertEqual(simkl.get_status("completed"), "Completed")
-        self.assertEqual(simkl.get_status("watching"), "In progress")
-        self.assertEqual(simkl.get_status("plantowatch"), "Planning")
-        self.assertEqual(simkl.get_status("hold"), "Paused")
-        self.assertEqual(simkl.get_status("dropped"), "Dropped")
-        self.assertEqual(simkl.get_status("unknown"), "In progress")  # Default case
+        self.assertEqual(simkl.get_status("completed"), Media.Status.COMPLETED.value)
+        self.assertEqual(simkl.get_status("watching"), Media.Status.IN_PROGRESS.value)
+        self.assertEqual(simkl.get_status("plantowatch"), Media.Status.PLANNING.value)
+        self.assertEqual(simkl.get_status("hold"), Media.Status.PAUSED.value)
+        self.assertEqual(simkl.get_status("dropped"), Media.Status.DROPPED.value)
+        self.assertEqual(
+            simkl.get_status("unknown"),
+            Media.Status.IN_PROGRESS.value,
+        )  # Default case
 
     def test_get_date(self):
         """Test getting date from SIMKL."""
@@ -495,11 +509,15 @@ class HelpersTest(TestCase):
         # Create test data
         item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test Show",
         )
-        tv = TV.objects.create(item=item, user=self.user, status="Planning")
+        tv = TV.objects.create(
+            item=item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         # Create season with unsaved TV reference
         new_season = Season(
@@ -518,16 +536,20 @@ class HelpersTest(TestCase):
         """Test updating episode references with actual Season instances."""
         tv_item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test Show",
         )
-        tv = TV.objects.create(item=tv_item, user=self.user, status="Planning")
+        tv = TV.objects.create(
+            item=tv_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
 
         season_item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="season",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
             title="Test Show",
             season_number=1,
         )
@@ -535,13 +557,13 @@ class HelpersTest(TestCase):
             item=season_item,
             user=self.user,
             related_tv=tv,
-            status="Planning",
+            status=Media.Status.PLANNING.value,
         )
 
         episode_item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="episode",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
             title="Test Show",
             season_number=1,
             episode_number=1,
@@ -564,23 +586,23 @@ class HelpersTest(TestCase):
         # Create test data
         item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test Show",
         )
 
         # Create bulk media list
         bulk_media = [
-            TV(item=item, user=self.user, status="Planning"),
+            TV(item=item, user=self.user, status=Media.Status.PLANNING.value),
             TV(
                 item=Item.objects.create(
                     media_id="2",
-                    source="tmdb",
-                    media_type="tv",
+                    source=Sources.TMDB.value,
+                    media_type=MediaTypes.TV.value,
                     title="Test Show 2",
                 ),
                 user=self.user,
-                status="Completed",
+                status=Media.Status.COMPLETED.value,
             ),
         ]
 
@@ -596,15 +618,15 @@ class HelpersTest(TestCase):
         # Create existing record
         item = Item.objects.create(
             media_id="1",
-            source="tmdb",
-            media_type="tv",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
             title="Test Show",
         )
-        TV.objects.create(item=item, user=self.user, status="Planning")
+        TV.objects.create(item=item, user=self.user, status=Media.Status.PLANNING.value)
 
         # Create bulk media list with updated status
         bulk_media = [
-            TV(item=item, user=self.user, status="Completed"),
+            TV(item=item, user=self.user, status=Media.Status.COMPLETED.value),
         ]
 
         # Test import
@@ -612,7 +634,7 @@ class HelpersTest(TestCase):
 
         # Check results
         self.assertEqual(num_imported, 1)
-        self.assertEqual(TV.objects.get(item=item).status, "Completed")
+        self.assertEqual(TV.objects.get(item=item).status, Media.Status.COMPLETED.value)
 
     @patch("django.contrib.messages.error")
     def test_create_import_schedule(self, mock_messages):

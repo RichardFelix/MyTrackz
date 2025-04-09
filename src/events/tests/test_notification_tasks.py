@@ -6,7 +6,7 @@ from django.db import models
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import Anime, Item, Manga, Media
+from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
 from events.models import Event
 from events.tasks import (
     format_notification_text,
@@ -45,16 +45,16 @@ class NotificationTaskTests(TestCase):
         # Create items
         self.anime_item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="anime",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Anime",
             image="http://example.com/anime.jpg",
         )
 
         self.manga_item = Item.objects.create(
             media_id="1",
-            source="mal",
-            media_type="manga",
+            source=Sources.MAL.value,
+            media_type=MediaTypes.MANGA.value,
             title="Test Manga",
             image="http://example.com/manga.jpg",
         )
@@ -127,7 +127,7 @@ class NotificationTaskTests(TestCase):
         mock_send_notifications.assert_called_once()
 
         # Extract the arguments
-        user_releases, users = mock_send_notifications.call_args[0]
+        user_releases, _ = mock_send_notifications.call_args[0]
 
         # Verify user_releases contains expected data
         self.assertIn(self.user1.id, user_releases)

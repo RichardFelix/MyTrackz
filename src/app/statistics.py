@@ -480,7 +480,7 @@ def get_timeline(user_media):
 
     # Process each media type
     for media_type, queryset in user_media.items():
-        if media_type == "tv":
+        if media_type == MediaTypes.TV.value:
             continue
         for media in queryset:
             # If there's an end date, add media to all months between start and end

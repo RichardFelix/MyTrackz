@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
 
-from app.models import Item
+from app.models import Item, MediaTypes, Sources
 from lists.models import CustomList, CustomListItem
 
 
@@ -32,8 +32,8 @@ class CustomListModelTest(TestCase):
         self.item = Item.objects.create(
             title="Test Item",
             media_id="123",
-            media_type="tv",
-            source="tmdb",
+            media_type=MediaTypes.TV.value,
+            source=Sources.TMDB.value,
         )
 
         self.non_member_credentials = {
