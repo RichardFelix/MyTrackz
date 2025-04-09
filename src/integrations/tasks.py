@@ -110,7 +110,7 @@ def import_anilist(username, user_id, mode):
         raise
     else:
         info_message = (
-            f"Imported {num_anime_imported}"
+            f"Imported {num_anime_imported} "
             f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
             f"and {num_manga_imported} "
             f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
@@ -135,7 +135,7 @@ def import_kitsu(username, user_id, mode):
         events.tasks.reload_calendar.delay()
 
     info_message = (
-        f"Imported {num_anime_imported}"
+        f"Imported {num_anime_imported} "
         f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
         f"and {num_manga_imported} "
         f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
