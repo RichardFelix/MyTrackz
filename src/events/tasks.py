@@ -338,11 +338,10 @@ def process_comic(item, events_bulk):
     else:
         return
 
-    issue_number = comicvine.get_issue_number(metadata["last_issue"]["issue_number"])
     events_bulk.append(
         Event(
             item=item,
-            episode_number=issue_number,
+            episode_number=last_published_issue_number,
             datetime=issue_datetime,
         ),
     )
