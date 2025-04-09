@@ -126,17 +126,6 @@ def comic(media_id):
     return data
 
 
-def get_readable_status(status):
-    """Convert API status to readable format."""
-    status_map = {
-        None: "Unknown",
-        "": "Unknown",
-        "Completed": "Completed",
-        "Ongoing": "Ongoing",
-    }
-    return status_map.get(status, "Unknown")
-
-
 def get_image(response):
     """Return the image URL."""
     if "image" in response:
