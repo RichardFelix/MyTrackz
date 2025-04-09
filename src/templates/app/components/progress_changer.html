@@ -28,13 +28,13 @@
     {% else %}
       {{ media.progress }}
       {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
-      {% if media.item.media_type == "book" %}
+      {% if media.item.media_type == MediaTypes.BOOK.value %}
         Pages
-      {% elif media.item.media_type == "manga" %}
+      {% elif media.item.media_type == MediaTypes.MANGA.value %}
         Chapters
-      {% elif media.item.media_type == "comic" %}
+      {% elif media.item.media_type == MediaTypes.COMIC.value %}
         Issues
-      {% elif media.item.media_type == "movie" %}
+      {% elif media.item.media_type == MediaTypes.MOVIE.value %}
       {% else %}
         Episodes
       {% endif %}

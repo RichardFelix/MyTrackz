@@ -31,7 +31,7 @@
       <a href="{{ item|media_url }}" class="absolute inset-0"></a>
 
       <div class="relative flex items-center justify-center space-x-2.5">
-        {% if item.media_type == "episode" %}
+        {% if item.media_type == MediaTypes.EPISODE.value %}
           <button @click="trackOpen = true"
                   class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
             {% if media %}
@@ -145,7 +145,7 @@
        title="{{ title }}">{{ title }}</a>
   </div>
 
-  {% if item.media_type == "episode" %}
+  {% if item.media_type == MediaTypes.EPISODE.value %}
     {# Track Episode Modal #}
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"

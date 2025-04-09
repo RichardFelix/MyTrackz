@@ -10,3 +10,14 @@ def export_vars(request):  # noqa: ARG001
         "REDIRECT_LOGIN_TO_SSO": settings.REDIRECT_LOGIN_TO_SSO,
         "IMG_NONE": settings.IMG_NONE,
     }
+
+
+def media_enums(request): # noqa: ARG001
+    """Export media enums to templates."""
+    from app.models import Media, MediaTypes, Sources
+
+    return {
+        "MediaTypes": MediaTypes,
+        "Sources": Sources,
+        "Status": Media.Status,
+    }
