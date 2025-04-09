@@ -63,7 +63,7 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     reloaded_count = len(reloaded_items)
     result_msg = "\n".join(
-        f"{item} ({app_tags.media_type_readable_plural(item.media_type)})"
+        f"{item} ({item.get_media_type_display()})"
         for item in reloaded_items
     )
 
