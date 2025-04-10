@@ -518,11 +518,11 @@ def send_release_notifications():
 
     user_releases, events_to_mark = process_events(recent_events, user_exclusions)
 
+    send_notifications(user_releases, users_with_notifications)
+
     if events_to_mark:
         Event.objects.filter(id__in=events_to_mark).update(notification_sent=True)
         logger.info("Marked %s events as notified", len(events_to_mark))
-
-    send_notifications(user_releases, users_with_notifications)
 
     return f"{event_count} recent releases processed"
 
