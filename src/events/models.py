@@ -88,7 +88,7 @@ class EventManager(models.Manager):
             datetime__gte=one_year_ago,
         ).order_by("-datetime")
 
-        # manga with less than two events means we don't have total chapters count
+        # manga with no events means we don't have total chapters count
         # comics with events in the last year should also be processed
         return (
             items_with_active_media.annotate(
@@ -98,7 +98,7 @@ class EventManager(models.Manager):
             .filter(
                 Q(Exists(future_events))  # has future events
                 | Q(event__isnull=True)  # no events
-                | (Q(media_type=MediaTypes.MANGA.value) & Q(event_count__lt=2))
+                | (Q(media_type=MediaTypes.MANGA.value) & Q(event_count=0))
                 | (
                     Q(media_type=MediaTypes.COMIC.value)
                     & Q(latest_comic_event__isnull=False)

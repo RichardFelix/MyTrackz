@@ -15,7 +15,7 @@ from django.db.models import (
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import Item, Media, MediaTypes
+from app.models import Item, Media, MediaTypes, Sources
 from app.providers import comicvine, services, tmdb
 from app.templatetags import app_tags
 from events.models import Event
@@ -372,15 +372,7 @@ def process_other(item, events_bulk):
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:
             episode_datetime = date_parser(metadata["details"][date_key])
-            if (
-                item.media_type == MediaTypes.BOOK.value
-                and metadata["details"]["number_of_pages"]
-            ):
-                episode_number = metadata["details"]["number_of_pages"]
-            elif item.media_type == MediaTypes.MOVIE.value:
-                episode_number = 1
-            else:
-                episode_number = None
+            episode_number = metadata["max_progress"]
             events_bulk.append(
                 Event(
                     item=item,
@@ -391,13 +383,9 @@ def process_other(item, events_bulk):
         except ValueError:
             pass
 
-    if item.media_type == MediaTypes.MANGA.value and metadata["max_progress"]:
-        # MyAnimeList manga has an end date when it's completed
-        if "end_date" in metadata["details"] and metadata["details"]["end_date"]:
-            episode_datetime = date_parser(metadata["details"]["end_date"])
+    elif item.source == Sources.MANGAUPDATES.value and metadata["max_progress"]:
         # MangaUpdates doesn't have an end date, so use a placeholder
-        else:
-            episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+        episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
         events_bulk.append(
             Event(
                 item=item,

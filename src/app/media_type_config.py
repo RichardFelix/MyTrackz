@@ -85,7 +85,7 @@ MEDIA_TYPE_CONFIG = {
             <path d="M10 9H8"/>
             <path d="M16 13H8"/>
             <path d="M16 17H8"/>""",
-        "date_key": "start_date",
+        "date_key": "end_date",
     },
     MediaTypes.GAME.value: {
         "default_source": Sources.IGDB.label,
