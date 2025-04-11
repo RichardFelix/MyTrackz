@@ -429,10 +429,7 @@ class User(AbstractUser):
         enabled_types = []
 
         for media_type in MediaTypes.values:
-            # Special case for episode which doesn't have its own enabled field
             if media_type == MediaTypes.EPISODE.value:
-                if self.season_enabled:  # Consider episode enabled if season is enabled
-                    enabled_types.append(media_type)
                 continue
 
             enabled_field = f"{media_type}_enabled"

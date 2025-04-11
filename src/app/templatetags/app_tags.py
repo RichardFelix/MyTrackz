@@ -111,8 +111,6 @@ def sample_search(media_type):
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
-    excluded_types = [MediaTypes.SEASON.value, MediaTypes.EPISODE.value]
-
     enabled_types = (
         user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
     )
@@ -124,15 +122,13 @@ def get_search_media_types(user):
             "value": media_type,
         }
         for media_type in enabled_types
-        if media_type not in excluded_types
+        if media_type != MediaTypes.SEASON.value
     ]
 
 
 @register.simple_tag
 def get_sidebar_media_types(user):
     """Return available media types for sidebar navigation based on user preferences."""
-    excluded_types = [MediaTypes.EPISODE.value]
-
     enabled_types = user.get_enabled_media_types()
 
     # Format the types for sidebar
@@ -142,7 +138,6 @@ def get_sidebar_media_types(user):
             "display_name": media_type_readable_plural(media_type),
         }
         for media_type in enabled_types
-        if media_type not in excluded_types
     ]
 
 

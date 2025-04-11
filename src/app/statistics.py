@@ -209,7 +209,6 @@ def get_user_media(user, start_date, end_date):
     media_models = [
         apps.get_model(app_label="app", model_name=media_type)
         for media_type in user.get_enabled_media_types()
-        if media_type != MediaTypes.EPISODE.value
     ]
     user_media = {}
     media_count = {"total": 0}
