@@ -438,6 +438,19 @@ class User(AbstractUser):
 
         return enabled_types
 
+    def get_active_media_types(self):
+        """Return a list of active media type values based on user preferences."""
+        enabled_types = self.get_enabled_media_types()
+
+        # Add season if TV is enabled (and season isn't already in the list)
+        if (
+            MediaTypes.TV.value in enabled_types
+            and MediaTypes.SEASON.value not in enabled_types
+        ):
+            enabled_types.insert(0, MediaTypes.SEASON.value)
+
+        return enabled_types
+
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
         import_tasks = {

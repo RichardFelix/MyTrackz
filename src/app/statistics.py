@@ -208,7 +208,7 @@ def get_user_media(user, start_date, end_date):
     """Get all media items and their counts for a user within date range."""
     media_models = [
         apps.get_model(app_label="app", model_name=media_type)
-        for media_type in user.get_enabled_media_types()
+        for media_type in user.get_active_media_types()
     ]
     user_media = {}
     media_count = {"total": 0}

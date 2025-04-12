@@ -63,8 +63,7 @@ def reload_calendar(user=None, items_to_process=None):  # used for metadata
 
     reloaded_count = len(reloaded_items)
     result_msg = "\n".join(
-        f"{item} ({item.get_media_type_display()})"
-        for item in reloaded_items
+        f"{item} ({item.get_media_type_display()})" for item in reloaded_items
     )
 
     if reloaded_count > 0:
@@ -593,6 +592,18 @@ def send_notifications(user_releases, users_with_notifications):
             logger.error("User %s not found", user_id)
             continue
 
+        # Filter releases based on user's active media types
+        active_media_types = user.get_active_media_types()
+        filtered_releases = [
+            release
+            for release in releases
+            if release.item.media_type in active_media_types
+        ]
+
+        # Skip if no releases match active media types
+        if not filtered_releases:
+            continue
+
         apobj = apprise.Apprise()
         notification_urls = [
             url.strip() for url in user.notification_urls.splitlines() if url.strip()
@@ -600,7 +611,7 @@ def send_notifications(user_releases, users_with_notifications):
         for url in notification_urls:
             apobj.add(url)
 
-        notification_body = format_notification_text(releases)
+        notification_body = format_notification_text(filtered_releases)
 
         try:
             result = apobj.notify(
@@ -612,13 +623,13 @@ def send_notifications(user_releases, users_with_notifications):
                 logger.info(
                     "Notification sent to %s for %s releases",
                     user.username,
-                    len(releases),
+                    len(filtered_releases),
                 )
             else:
                 logger.error(
                     "Failed to send notification to %s for %s releases",
                     user.username,
-                    len(releases),
+                    len(filtered_releases),
                 )
         except Exception:
             logger.exception("Error sending notification to %s", user.username)

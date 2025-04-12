@@ -20,25 +20,21 @@ class EventManager(models.Manager):
     def get_user_events(self, user, first_day, last_day):
         """Get all upcoming media events of the specified user."""
         # Convert date objects to datetime objects with timezone awareness
-        first_datetime = timezone.make_aware(
+        start_datetime = timezone.make_aware(
             datetime.combine(first_day, datetime.min.time()),
         )
-        last_datetime = timezone.make_aware(
+        end_datetime = timezone.make_aware(
             datetime.combine(last_day, datetime.max.time()),
         )
 
-        media_types_with_user = [
-            choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
-        ]
+        active_types = user.get_active_media_types()
 
-        # Build query for user ownership
         user_query = Q()
-        for media_type in media_types_with_user:
+        active_status_query = Q()
+
+        for media_type in active_types:
             user_query |= Q(**{f"item__{media_type}__user": user})
 
-        # Build query to exclude inactive tracking statuses
-        active_status_query = Q()
-        for media_type in media_types_with_user:
             active_status_query &= ~Q(
                 **{f"item__{media_type}__status__in": INACTIVE_TRACKING_STATUSES},
             )
@@ -46,8 +42,8 @@ class EventManager(models.Manager):
         return self.filter(
             user_query,
             active_status_query,
-            datetime__gte=first_datetime,
-            datetime__lte=last_datetime,
+            datetime__gte=start_datetime,
+            datetime__lte=end_datetime,
         ).select_related("item")
 
     def get_items_to_process(self):

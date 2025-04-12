@@ -363,23 +363,14 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        enabled_types = user.get_enabled_media_types()
+        active_types = user.get_active_media_types()
 
         # Filter out TV
-        media_types = [
+        return [
             media_type
-            for media_type in enabled_types
+            for media_type in active_types
             if media_type != MediaTypes.TV.value
         ]
-
-        # Add season if TV is enabled (and season isn't already in the list)
-        if (
-            MediaTypes.TV.value in enabled_types
-            and MediaTypes.SEASON.value not in media_types
-        ):
-            media_types.insert(0, MediaTypes.SEASON.value)
-
-        return media_types
 
     def _sort_in_progress_media(self, media_list, sort_by, media_type):
         """Sort in-progress media based on the sort criteria."""
