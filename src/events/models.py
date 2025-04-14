@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.db import models
-from django.db.models import Count, Exists, OuterRef, Q, Subquery, UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 from app.models import Item, Media, MediaTypes
@@ -45,63 +45,6 @@ class EventManager(models.Manager):
             datetime__gte=start_datetime,
             datetime__lte=end_datetime,
         ).select_related("item")
-
-    def get_items_to_process(self):
-        """Get items to process for the calendar."""
-        media_types_with_status = [
-            choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
-        ]
-
-        # Build a query to find items with at least one active media
-        active_query = Q()
-        for media_type in media_types_with_status:
-            active_query |= Q(
-                **{f"{media_type}__isnull": False},
-                **{
-                    f"{media_type}__status__in": [
-                        status
-                        for status in Media.Status.values
-                        if status not in INACTIVE_TRACKING_STATUSES
-                    ],
-                },
-            )
-
-        # Get all items with at least one active media
-        items_with_active_media = Item.objects.filter(active_query).distinct()
-
-        # Subquery to check if an item has any future events
-        now = timezone.now()
-        future_events = Event.objects.filter(
-            item=OuterRef("pk"),
-            datetime__gte=now,
-        )
-
-        # Subquery to check if a comic has events in the last year
-        one_year_ago = now - timezone.timedelta(days=365)
-        recent_comic_events = Event.objects.filter(
-            item=OuterRef("pk"),
-            item__media_type=MediaTypes.COMIC.value,
-            datetime__gte=one_year_ago,
-        ).order_by("-datetime")
-
-        # manga with no events means we don't have total chapters count
-        # comics with events in the last year should also be processed
-        return (
-            items_with_active_media.annotate(
-                event_count=Count("event"),
-                latest_comic_event=Subquery(recent_comic_events.values("datetime")[:1]),
-            )
-            .filter(
-                Q(Exists(future_events))  # has future events
-                | Q(event__isnull=True)  # no events
-                | (Q(media_type=MediaTypes.MANGA.value) & Q(event_count=0))
-                | (
-                    Q(media_type=MediaTypes.COMIC.value)
-                    & Q(latest_comic_event__isnull=False)
-                ),
-            )
-            .distinct()
-        )
 
 
 class Event(models.Model):
@@ -151,4 +94,6 @@ class Event(models.Model):
             return ""
         if self.item.media_type == MediaTypes.MANGA.value:
             return f"Ch. {self.episode_number}"
+        if self.item.media_type == MediaTypes.COMIC.value:
+            return f"#{self.episode_number}"
         return f"Ep. {self.episode_number}"
