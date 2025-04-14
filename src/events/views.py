@@ -1,6 +1,6 @@
 import calendar
 import logging
-from datetime import date, timedelta
+from datetime import UTC, date, timedelta
 
 import icalendar
 from django.contrib import messages
@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from events import tasks
 from events.models import Event
@@ -106,7 +106,7 @@ def reload_calendar(request):
 
 @login_not_required
 @csrf_exempt
-@require_GET
+@require_http_methods(["GET", "HEAD", "PROPFIND"])
 def download_calendar(_, token: str):
     """Download the calendar as a iCalendar file."""
     try:
@@ -134,8 +134,9 @@ def download_calendar(_, token: str):
         cal_event = icalendar.Event()
         cal_event.add("uid", release.id)
         cal_event.add("summary", str(release))
-        cal_event.add("dtstart", release.datetime.date())
-        cal_event.add("dtend", release.datetime.date() + timedelta(days=1))
+        dt_tz_aware = release.datetime.replace(tzinfo=UTC)
+        cal_event.add("dtstart", dt_tz_aware)
+        cal_event.add("dtend", dt_tz_aware)
         cal.add_component(cal_event)
 
     # Return the iCal file
