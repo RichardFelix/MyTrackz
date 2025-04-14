@@ -26,8 +26,11 @@ def fetch_releases(user=None, items_to_process=None):
 
     events_bulk = []
     anime_to_process = []
+    processed_items = {}
 
     for item in items_to_process:
+        processed_items[item.id] = set()
+
         # anime can later be processed in bulk
         if item.media_type == MediaTypes.ANIME.value:
             anime_to_process.append(item)
@@ -38,9 +41,7 @@ def fetch_releases(user=None, items_to_process=None):
         else:
             process_other(item, events_bulk)
 
-    # process anime items in bulk
-    if anime_to_process:
-        process_anime_bulk(anime_to_process, events_bulk)
+    process_anime_bulk(anime_to_process, events_bulk)
 
     for event in events_bulk:
         Event.objects.update_or_create(
@@ -49,15 +50,51 @@ def fetch_releases(user=None, items_to_process=None):
             defaults={"datetime": event.datetime},
         )
 
-    fetched_items = {event.item for event in events_bulk}
+    cleanup_invalid_events(processed_items, events_bulk)
+
     result_msg = "\n".join(
-        f"{item} ({item.get_media_type_display()})" for item in fetched_items
+        f"{item} ({item.get_media_type_display()})" for item in items_to_process
     )
 
-    if len(fetched_items) > 0:
+    if len(items_to_process) > 0:
         return f"""Releases have been fetched for the following items:
                     {result_msg}"""
     return "No releases have been fetched for any items."
+
+
+def cleanup_invalid_events(processed_items, events_bulk):
+    """Remove events that are no longer valid based on updated episode counts."""
+    if not processed_items:
+        return
+
+    # Record all episode numbers being processed for each item
+    for event in events_bulk:
+        if event.episode_number is not None:
+            processed_items[event.item.id].add(event.episode_number)
+
+    all_events = Event.objects.filter(
+        item_id__in=processed_items.keys(),
+    ).select_related("item")
+
+    events_to_delete = []
+
+    for event in all_events:
+        if (
+            event.episode_number is not None
+            and event.item_id in processed_items
+            and event.episode_number not in processed_items[event.item_id]
+        ):
+            logger.info(
+                "Invalid event detected: %s - Episode %s (scheduled for %s)",
+                event.item,
+                event.episode_number,
+                event.datetime,
+            )
+            events_to_delete.append(event.id)
+
+    if events_to_delete:
+        deleted_count = Event.objects.filter(id__in=events_to_delete).delete()[0]
+        logger.info("Deleted %s invalid events for updated items", deleted_count)
 
 
 def get_items_to_process(user=None):
@@ -123,6 +160,9 @@ def get_items_to_process(user=None):
 
 def process_anime_bulk(items, events_bulk):
     """Process multiple anime items and add events to the event list."""
+    if not items:
+        return
+
     anime_data = get_anime_schedule_bulk([item.media_id for item in items])
 
     for item in items:
