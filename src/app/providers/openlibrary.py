@@ -71,8 +71,12 @@ def get_media_id(doc):
     if "cover_edition_key" in doc:
         return doc["cover_edition_key"]
 
-    # Fallback to top ranked edition key
-    return extract_openlibrary_id(doc["editions"]["docs"][0]["key"])
+    try:
+        # Fallback to top ranked edition key
+        extract_openlibrary_id(doc["editions"]["docs"][0]["key"])
+    except (IndexError):
+        # editions docs is empty
+        return None
 
 
 def book(media_id):
