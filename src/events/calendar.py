@@ -49,20 +49,18 @@ def fetch_releases(user=None, items_to_process=None):
             defaults={"datetime": event.datetime},
         )
 
-    reloaded_items = {event.item for event in events_bulk}
-    reloaded_count = len(reloaded_items)
+    fetched_items = {event.item for event in events_bulk}
     result_msg = "\n".join(
-        f"{item} ({item.get_media_type_display()})"
-        for item in reloaded_items
+        f"{item} ({item.get_media_type_display()})" for item in fetched_items
     )
 
-    if reloaded_count > 0:
-        return f"""The following items have been loaded to the calendar:\n
+    if len(fetched_items) > 0:
+        return f"""Releases have been fetched for the following items:
                     {result_msg}"""
-    return "There have been no changes in the calendar"
+    return "No releases have been fetched for any items."
 
 
-def get_items_to_process():
+def get_items_to_process(user=None):
     """Get items to process for the calendar."""
     media_types_with_status = [
         choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
@@ -71,7 +69,7 @@ def get_items_to_process():
     active_query = Q()
 
     for media_type in media_types_with_status:
-        active_query |= Q(
+        base_media_query = Q(
             **{f"{media_type}__isnull": False},
             **{
                 f"{media_type}__status__in": [
@@ -82,6 +80,10 @@ def get_items_to_process():
             },
         )
 
+        if user:
+            base_media_query &= Q(**{f"{media_type}__user": user})
+
+        active_query |= base_media_query
 
     # Get all items with at least one active media
     items_with_active_media = Item.objects.filter(active_query).distinct()
