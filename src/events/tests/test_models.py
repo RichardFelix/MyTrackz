@@ -1,5 +1,4 @@
 import datetime
-from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -342,77 +341,3 @@ class EventManagerTests(TestCase):
         self.assertIn(self.season_event, limited_events)
         self.assertIn(self.manga_event1, limited_events)
         self.assertNotIn(self.movie_event, limited_events)  # Next week, outside range
-
-    @patch("django.utils.timezone.now")
-    def test_get_items_to_process(self, mock_now):
-        """Test the get_items_to_process method."""
-        # Mock current time to be consistent
-        mock_now.return_value = self.base_date
-
-        # Get items to process
-        items = Event.objects.get_items_to_process()
-
-        # Should include items with future events and active statuses
-        self.assertIn(self.tv_item, items)
-        self.assertIn(self.season_item, items)
-        self.assertIn(self.movie_item, items)
-        self.assertIn(self.manga_item, items)  # Manga should always be included
-
-        # Should not include items with inactive statuses
-        self.assertNotIn(self.paused_movie_item, items)
-        self.assertNotIn(self.dropped_movie_item, items)
-
-        # Create a new item with no events
-        new_item = Item.objects.create(
-            media_id="680",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.MOVIE.value,
-            title="New Movie",
-        )
-
-        Movie.objects.create(
-            user=self.user,
-            item=new_item,
-            status=Media.Status.PLANNING.value,
-        )
-
-        # Get items to process again
-        items = Event.objects.get_items_to_process()
-
-        # Should include the new item with no events
-        self.assertIn(new_item, items)
-
-        # Test with a manga that has only one event
-        manga_item2 = Item.objects.create(
-            media_id="72274276213",
-            source=Sources.MANGAUPDATES.value,
-            media_type=MediaTypes.MANGA.value,
-            title="Manga with one event",
-        )
-
-        Manga.objects.create(
-            user=self.user,
-            item=manga_item2,
-            status=Media.Status.IN_PROGRESS.value,
-        )
-
-        Event.objects.create(
-            item=manga_item2,
-            episode_number=1,
-            datetime=self.tomorrow,
-        )
-
-        # Get items to process again
-        items = Event.objects.get_items_to_process()
-
-        # Should include the manga with only one event
-        self.assertIn(manga_item2, items)
-
-        # Test with a manga that has two events
-        # Our existing manga_item already has two events
-
-        # Get items to process again
-        items = Event.objects.get_items_to_process()
-
-        # Should include the manga with two events
-        self.assertIn(self.manga_item, items)

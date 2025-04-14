@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
 from events.models import Event
-from events.tasks import send_release_notifications
+from events.notifications import send_releases
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -40,7 +40,7 @@ class NotificationIntegrationTests(TestCase):
             status=Media.Status.IN_PROGRESS.value,
         )
 
-    @patch("events.tasks.send_notifications")
+    @patch("events.notifications.send_notifications")
     def test_end_to_end_notification(self, mock_send_notifications):
         """Test the entire notification flow."""
         # Setup mock
@@ -58,7 +58,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Verify event was marked as notified
         event.refresh_from_db()
@@ -77,7 +77,7 @@ class NotificationIntegrationTests(TestCase):
         self.assertEqual(user_releases[self.user.id][0].item.title, "Test Anime")
         self.assertEqual(user_releases[self.user.id][0].episode_number, 5)
 
-    @patch("events.tasks.send_notifications")
+    @patch("events.notifications.send_notifications")
     def test_exclude_then_notify(self, mock_send_notifications):
         """Test excluding an item then verifying it's not in notifications."""
         # Setup mock
@@ -122,7 +122,7 @@ class NotificationIntegrationTests(TestCase):
         self.user.notification_excluded_items.add(self.item)
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Verify both events were marked as notified
         event1.refresh_from_db()
@@ -148,7 +148,7 @@ class NotificationIntegrationTests(TestCase):
             for event in events:
                 self.assertNotEqual(event.id, event1.id)
 
-    @patch("events.tasks.send_notifications")
+    @patch("events.notifications.send_notifications")
     def test_no_users_with_notifications(self, mock_send_notifications):
         """Test behavior when no users have notification URLs configured."""
         # Setup mock
@@ -170,7 +170,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Verify event was still marked as notified
         event.refresh_from_db()
@@ -186,7 +186,7 @@ class NotificationIntegrationTests(TestCase):
         self.assertEqual(len(users), 0)
         self.assertEqual(user_releases, {})
 
-    @patch("events.tasks.send_notifications")
+    @patch("events.notifications.send_notifications")
     def test_multiple_media_types(self, mock_send_notifications):
         """Test notifications with multiple media types."""
         # Setup mock
@@ -227,7 +227,7 @@ class NotificationIntegrationTests(TestCase):
         )
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Verify both events were marked as notified
         anime_event.refresh_from_db()

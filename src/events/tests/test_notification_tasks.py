@@ -8,11 +8,11 @@ from django.utils import timezone
 
 from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
 from events.models import Event
-from events.tasks import (
+from events.notifications import (
     format_notification_text,
     process_events,
     send_notifications,
-    send_release_notifications,
+    send_releases,
 )
 
 
@@ -111,11 +111,11 @@ class NotificationTaskTests(TestCase):
         # User1 excludes manga_item
         self.user1.notification_excluded_items.add(self.manga_item)
 
-    @patch("events.tasks.send_notifications")
-    def test_send_release_notifications(self, mock_send_notifications):
-        """Test the send_release_notifications task."""
+    @patch("events.notifications.send_notifications")
+    def test_send_releases(self, mock_send_notifications):
+        """Test the send_releases task."""
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Check that events were marked as notified
         self.anime_event.refresh_from_db()
@@ -240,14 +240,14 @@ class NotificationTaskTests(TestCase):
         self.assertNotIn("MANGA", notification_text)
         self.assertNotIn("Test Manga", notification_text)
 
-    @patch("events.tasks.process_events")
+    @patch("events.notifications.process_events")
     def test_no_recent_events(self, mock_process_events):
         """Test behavior when no recent events are found."""
         # Mark all events as notified
         Event.objects.all().update(notification_sent=True)
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Verify process_events was not called
         mock_process_events.assert_not_called()
@@ -323,7 +323,7 @@ class NotificationTaskTests(TestCase):
         )
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Future event should not be marked as notified
         future_event.refresh_from_db()
@@ -343,7 +343,7 @@ class NotificationTaskTests(TestCase):
         )
 
         # Run the task
-        send_release_notifications()
+        send_releases()
 
         # Old event should not be marked as notified
         old_event.refresh_from_db()
