@@ -359,7 +359,17 @@ def get_tvmaze_episode_map(tvdb_id):
 
     # First, lookup the TVMaze ID using the TVDB ID
     lookup_url = f"https://api.tvmaze.com/lookup/shows?thetvdb={tvdb_id}"
-    lookup_response = services.api_request("TVMaze", "GET", lookup_url)
+    try:
+        lookup_response = services.api_request("TVMaze", "GET", lookup_url)
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == requests.codes.not_found:
+            logger.warning(
+                "TVMaze lookup failed for TVDB ID %s - %s",
+                tvdb_id,
+                err.response.json(),
+            )
+            return {}
+        raise
 
     if not lookup_response:
         logger.warning("%s - No TVMaze lookup response for TVDB ID", tvdb_id)
