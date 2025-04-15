@@ -108,6 +108,18 @@ def sample_search(media_type):
     return media_type_config.get_sample_search_url(media_type)
 
 
+@register.filter
+def short_unit(media_type):
+    """Return the short unit for the media type."""
+    return media_type_config.get_unit(media_type, short=True)
+
+
+@register.filter
+def long_unit(media_type):
+    """Return the long unit for the media type."""
+    return media_type_config.get_unit(media_type, short=False)
+
+
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""

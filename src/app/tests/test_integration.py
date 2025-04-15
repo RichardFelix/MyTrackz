@@ -56,8 +56,8 @@ class IntegrationTest(StaticLiveServerTestCase):
             "Last watched: 2008-01-20",
         )
         self.page.get_by_role("link", name="Home").click()
-        expect(self.page.get_by_text("Breaking Bad S1 1 Episodes")).to_be_visible()
-        self.page.get_by_text("Breaking Bad S1 1 Episodes").get_by_role("button").nth(
+        expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
+        self.page.get_by_text("Breaking Bad S1 1 Episode").get_by_role("button").nth(
             1,
         ).click()
         self.page.get_by_role("link", name="Breaking Bad S1").click()

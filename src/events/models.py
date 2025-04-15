@@ -4,7 +4,8 @@ from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from app.models import Item, Media, MediaTypes
+from app import media_type_config
+from app.models import Item, Media
 
 # Statuses that represent inactive tracking
 # will be ignored when creating events
@@ -74,17 +75,13 @@ class Event(models.Model):
 
     def __str__(self):
         """Return event title."""
-        if self.item.media_type == MediaTypes.SEASON.value:
+        if self.episode_number:
             return (
-                f"{self.item.title} S{self.item.season_number} - "
-                f"Ep. {self.episode_number}"
+                f"{self.item.__str__()} "
+                f"{media_type_config.get_unit(self.item.media_type, short=True)}"
+                f"{self.episode_number}"
             )
-        if self.item.media_type == MediaTypes.MANGA.value:
-            return f"{self.item.__str__()} - Ch. {self.episode_number}"
-        if self.item.media_type == MediaTypes.ANIME.value:
-            return f"{self.item.__str__()} - Ep. {self.episode_number}"
-        if self.item.media_type == MediaTypes.COMIC.value:
-            return f"{self.item.__str__()} #{self.episode_number}"
+
         return self.item.__str__()
 
     @property
@@ -92,8 +89,8 @@ class Event(models.Model):
         """Return the episode number in a readable format."""
         if self.episode_number is None:
             return ""
-        if self.item.media_type == MediaTypes.MANGA.value:
-            return f"Ch. {self.episode_number}"
-        if self.item.media_type == MediaTypes.COMIC.value:
-            return f"#{self.episode_number}"
-        return f"Ep. {self.episode_number}"
+
+        return (
+            f"{media_type_config.get_unit(self.item.media_type, short=True)}"
+            f"{self.episode_number}"
+        )

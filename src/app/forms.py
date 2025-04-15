@@ -1,8 +1,21 @@
 from django import forms
 from django.conf import settings
 
-from app import models
-from app.models import Item, MediaTypes, Sources
+from app import media_type_config
+from app.models import (
+    TV,
+    Anime,
+    Book,
+    Comic,
+    Episode,
+    Game,
+    Item,
+    Manga,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+)
 
 
 def get_form_class(media_type):
@@ -75,14 +88,14 @@ class ManualItemForm(forms.ModelForm):
 
     parent_tv = forms.ModelChoiceField(
         required=False,
-        queryset=models.TV.objects.none(),
+        queryset=TV.objects.none(),
         empty_label="Select",
         label="Parent TV Show",
     )
 
     parent_season = forms.ModelChoiceField(
         required=False,
-        queryset=models.Season.objects.none(),
+        queryset=Season.objects.none(),
         empty_label="Select",
         label="Parent Season",
     )
@@ -90,7 +103,7 @@ class ManualItemForm(forms.ModelForm):
     class Meta:
         """Bind form to model."""
 
-        model = models.Item
+        model = Item
         fields = [
             "media_type",
             "title",
@@ -104,12 +117,12 @@ class ManualItemForm(forms.ModelForm):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         if self.user:
-            self.fields["parent_tv"].queryset = models.TV.objects.filter(
+            self.fields["parent_tv"].queryset = TV.objects.filter(
                 user=self.user,
                 item__source=Sources.MANUAL.value,
                 item__media_type=MediaTypes.TV.value,
             )
-            self.fields["parent_season"].queryset = models.Season.objects.filter(
+            self.fields["parent_season"].queryset = Season.objects.filter(
                 user=self.user,
                 item__source=Sources.MANUAL.value,
                 item__media_type=MediaTypes.SEASON.value,
@@ -219,9 +232,12 @@ class MangaForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Manga
+        model = Manga
         labels = {
-            "progress": "Progress (Chapters)",
+            "progress": (
+                f"Progress "
+                f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
+            ),
             "repeats": "Number of Rereads",
         }
 
@@ -232,7 +248,7 @@ class AnimeForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Anime
+        model = Anime
 
 
 class MovieForm(MediaForm):
@@ -241,7 +257,7 @@ class MovieForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Movie
+        model = Movie
 
 
 class GameForm(MediaForm):
@@ -256,7 +272,7 @@ class GameForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Game
+        model = Game
         labels = {
             "repeats": "Number of Replays",
         }
@@ -268,9 +284,12 @@ class BookForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Book
+        model = Book
         labels = {
-            "progress": "Progress (Pages)",
+            "progress": (
+                f"Progress "
+                f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
+            ),
             "repeats": "Number of Rereads",
         }
 
@@ -281,9 +300,12 @@ class ComicForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Comic
+        model = Comic
         labels = {
-            "progress": "Progress (Issues)",
+            "progress": (
+                f"Progress "
+                f"({media_type_config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
+            ),
             "repeats": "Number of Rereads",
         }
 
@@ -294,7 +316,7 @@ class TvForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.TV
+        model = TV
         fields = ["score", "status", "notes"]
 
 
@@ -306,7 +328,7 @@ class SeasonForm(MediaForm):
     class Meta(MediaForm.Meta):
         """Bind form to model."""
 
-        model = models.Season
+        model = Season
         fields = [
             "score",
             "status",
@@ -320,7 +342,7 @@ class EpisodeForm(forms.ModelForm):
     class Meta:
         """Bind form to model."""
 
-        model = models.Episode
+        model = Episode
         fields = ("end_date", "repeats")
         widgets = {
             "item": forms.HiddenInput(),

@@ -3,6 +3,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
+from django.template.defaultfilters import pluralize
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -69,14 +70,12 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         if field_name == "score":
             return f"Rated {new_value}/10"
 
-        if field_name == "progress":
+        if field_name == "progress" and media_type != MediaTypes.MOVIE.value:
+            verb = media_type_config.get_verb(media_type, past_tense=True).title()
             if media_type == MediaTypes.GAME.value:
-                return f"Played for {minutes_to_hhmm(new_value)}"
-            if media_type == MediaTypes.BOOK.value:
-                return f"Read {new_value} pages"
-            if media_type == MediaTypes.MANGA.value:
-                return f"Read {new_value} chapters"
-            return f"Watched {new_value} episodes"
+                return f"{verb} for {minutes_to_hhmm(new_value)}"
+            unit = media_type_config.get_unit(media_type, short=False).lower()
+            return f"{verb} {new_value} {unit}{pluralize(new_value)}"
 
         if field_name == "repeats":
             verb = media_type_config.get_verb(media_type, past_tense=True)
@@ -139,20 +138,18 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Rated {new_value}/10"
         return f"Changed rating from {old_value} to {new_value}"
 
-    if field_name == "progress":
+    if field_name == "progress" and media_type != MediaTypes.MOVIE.value:
         diff = new_value - old_value
 
         if media_type == MediaTypes.GAME.value:
             if diff > 0:
                 return f"Added {minutes_to_hhmm(diff)} of playtime"
             return f"Removed {minutes_to_hhmm(abs(diff))} of playtime"
-        # Handle other media types
-        if media_type == MediaTypes.BOOK.value:
-            unit = "pages"
-        elif media_type == MediaTypes.MANGA.value:
-            unit = "chapters"
-        else:
-            unit = "episodes"
+
+        unit = (
+            f"{media_type_config.get_unit(media_type, short=False).lower()}"
+            f"{pluralize(diff)}"
+        )
 
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if diff < 0:

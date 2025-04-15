@@ -15,11 +15,9 @@ MEDIA_TYPE_CONFIG = {
         "svg_icon": """
             <rect width="20" height="15" x="2" y="7" rx="2" ry="2"/>
             <polyline points="17 2 12 7 7 2"/>""",
-        "date_key": "first_air_date",
     },
     MediaTypes.SEASON.value: {
         "default_source": Sources.TMDB.label,
-        "sample_query": None,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
         "text_color": "text-purple-400",
@@ -29,17 +27,15 @@ MEDIA_TYPE_CONFIG = {
             1.83l8.58 3.91 a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
             <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
             <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>""",
-        "date_key": None,
+        "unit": ("E", "Episode"),
     },
     MediaTypes.EPISODE.value: {
         "default_source": Sources.TMDB.label,
-        "sample_query": None,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
         "text_color": "text-indigo-400",
         "stats_color": "#6366f1",
         "svg_icon": """<polygon points="6 3 20 12 6 21 6 3"/>""",
-        "date_key": None,
     },
     MediaTypes.MOVIE.value: {
         "default_source": Sources.TMDB.label,
@@ -69,7 +65,7 @@ MEDIA_TYPE_CONFIG = {
         "svg_icon": """
             <circle cx="12" cy="12" r="10"/>
             <polygon points="10 8 16 12 10 16 10 8"/>""",
-        "date_key": None,
+        "unit": ("E", "Episode"),
     },
     MediaTypes.MANGA.value: {
         "default_source": Sources.MAL.label,
@@ -86,6 +82,7 @@ MEDIA_TYPE_CONFIG = {
             <path d="M16 13H8"/>
             <path d="M16 17H8"/>""",
         "date_key": "end_date",
+        "unit": ("#", "Chapter"),
     },
     MediaTypes.GAME.value: {
         "default_source": Sources.IGDB.label,
@@ -113,6 +110,7 @@ MEDIA_TYPE_CONFIG = {
             <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5
             2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>""",
         "date_key": "publish_date",
+        "unit": ("P", "Page"),
     },
     MediaTypes.COMIC.value: {
         "default_source": Sources.COMICVINE.label,
@@ -126,7 +124,7 @@ MEDIA_TYPE_CONFIG = {
             <path d="M7 3v18"/>
             <path d="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
-        "date_key": None,
+        "unit": ("#", "Issue"),
     },
 }
 
@@ -171,9 +169,11 @@ def get_verb(media_type, past_tense):
     verbs = get_property(media_type, "verb")
     return verbs[1] if past_tense else verbs[0]
 
+
 def get_text_color(media_type):
     """Get the text color class."""
     return get_property(media_type, "text_color")
+
 
 def get_stats_color(media_type):
     """Get the stats color."""
@@ -188,3 +188,9 @@ def get_svg_icon(media_type):
 def get_date_key(media_type):
     """Get the primary date key used for fetching release/start dates."""
     return get_property(media_type, "date_key")
+
+
+def get_unit(media_type, short):
+    """Get the unit of measurement (e.g., episode, chapter)."""
+    unit = get_property(media_type, "unit")
+    return unit[0] if short else unit[1] if unit else None

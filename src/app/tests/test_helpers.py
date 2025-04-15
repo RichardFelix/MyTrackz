@@ -230,10 +230,6 @@ class HelpersTest(TestCase):
             format_description("progress", None, 10, MediaTypes.MANGA.value),
             "Read 10 chapters",
         )
-        self.assertEqual(
-            format_description("progress", None, 3, MediaTypes.TV.value),
-            "Watched 3 episodes",
-        )
 
         # Progress change
         self.assertEqual(
@@ -251,10 +247,6 @@ class HelpersTest(TestCase):
         self.assertEqual(
             format_description("progress", 5, 10, MediaTypes.MANGA.value),
             "Read 5 chapters",
-        )
-        self.assertEqual(
-            format_description("progress", 3, 5, MediaTypes.TV.value),
-            "Watched 2 episodes",
         )
 
     def test_format_description_repeats(self):

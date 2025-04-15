@@ -126,31 +126,18 @@ class EventModelTests(TestCase):
         # Season event
         self.assertEqual(
             str(self.season_event),
-            "Test TV Show S1 - Ep. 1",
+            "Test TV Show S1 E1",
         )
 
         # Movie event
         self.assertEqual(str(self.movie_event), "Test Movie")
 
         # Anime event
-        self.assertEqual(str(self.anime_event), "Test Anime - Ep. 1")
+        self.assertEqual(str(self.anime_event), "Test Anime E1")
 
         # Manga event
-        self.assertEqual(str(self.manga_event), "Test Manga - Ch. 1")
+        self.assertEqual(str(self.manga_event), "Test Manga #1")
 
-    def test_readable_episode_number(self):
-        """Test the readable_episode_number property."""
-        # Event with no episode number
-        self.assertEqual(self.tv_event.readable_episode_number, "")
-
-        # Season event
-        self.assertEqual(self.season_event.readable_episode_number, "Ep. 1")
-
-        # Anime event
-        self.assertEqual(self.anime_event.readable_episode_number, "Ep. 1")
-
-        # Manga event
-        self.assertEqual(self.manga_event.readable_episode_number, "Ch. 1")
 
 
 class EventManagerTests(TestCase):

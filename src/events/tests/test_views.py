@@ -212,7 +212,7 @@ class ReleaseCalendarViewTests(TestCase):
             id=1,
             media_id="123",
             source=Sources.MANUAL.value,
-            media_type=MediaTypes.TV.value,
+            media_type=MediaTypes.ANIME.value,
             title="Test Show 1",
             image="https://example.com/image1.jpg",
         )

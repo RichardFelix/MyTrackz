@@ -226,8 +226,8 @@ class NotificationTaskTests(TestCase):
         self.assertIn("MANGA", notification_text)
         self.assertIn("Test Anime", notification_text)
         self.assertIn("Test Manga", notification_text)
-        self.assertIn("Ep. 5", notification_text)
-        self.assertIn("Ch. 10", notification_text)
+        self.assertIn("E5", notification_text)
+        self.assertIn("#10", notification_text)
 
         # Test with single media type
         releases = [self.anime_event]
@@ -236,7 +236,7 @@ class NotificationTaskTests(TestCase):
         # Verify text contains expected content
         self.assertIn("ANIME", notification_text)
         self.assertIn("Test Anime", notification_text)
-        self.assertIn("Ep. 5", notification_text)
+        self.assertIn("E5", notification_text)
         self.assertNotIn("MANGA", notification_text)
         self.assertNotIn("Test Manga", notification_text)
 
