@@ -331,9 +331,9 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Reload calendar",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
-    "send-recent-release-notifications": {
+    "send_release_notifications": {
         "task": "Send release notifications",
-        "schedule": 60 * 30,  # every 30 minutes
+        "schedule": 60 * 10,  # every 10 minutes
     },
 }
 
