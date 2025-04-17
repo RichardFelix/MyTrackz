@@ -129,6 +129,42 @@ class UserUpdatePreferenceTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.last_search_type, MediaTypes.TV.value)
 
+    def test_update_preference_daily_digest_enabled(self):
+        """Test update_preference with daily_digest_enabled field."""
+        # Set initial value
+        self.user.daily_digest_enabled = True
+        self.user.save()
+
+        # Call update_preference with new value
+        result = self.user.update_preference(
+            field_name="daily_digest_enabled",
+            new_value=False,
+        )
+
+        # Should return new value
+        self.assertEqual(result, False)
+        # Should change the value
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.daily_digest_enabled, False)
+
+    def test_update_preference_release_notifications_enabled(self):
+        """Test update_preference with release_notifications_enabled field."""
+        # Set initial value
+        self.user.release_notifications_enabled = True
+        self.user.save()
+
+        # Call update_preference with new value
+        result = self.user.update_preference(
+            field_name="release_notifications_enabled",
+            new_value=False,
+        )
+
+        # Should return new value
+        self.assertEqual(result, False)
+        # Should change the value
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.release_notifications_enabled, False)
+
 
 class UserGetImportTasksTests(TestCase):
     """Tests for the User.get_import_tasks method."""

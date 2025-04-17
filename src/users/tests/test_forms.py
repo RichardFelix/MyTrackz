@@ -20,7 +20,14 @@ class NotificationSettingsFormTests(TestCase):
     def test_form_fields(self):
         """Test that the form has the correct fields."""
         form = NotificationSettingsForm()
-        self.assertEqual(list(form.fields.keys()), ["notification_urls"])
+        self.assertEqual(
+            list(form.fields.keys()),
+            [
+                "notification_urls",
+                "daily_digest_enabled",
+                "release_notifications_enabled",
+            ],
+        )
 
     def test_form_widget(self):
         """Test that the form uses the correct widget."""
@@ -36,6 +43,8 @@ class NotificationSettingsFormTests(TestCase):
 
         form_data = {
             "notification_urls": self.valid_discord_url,
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -49,6 +58,8 @@ class NotificationSettingsFormTests(TestCase):
 
         form_data = {
             "notification_urls": f"{self.valid_discord_url}\n{self.valid_telegram_url}",
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -62,6 +73,8 @@ class NotificationSettingsFormTests(TestCase):
         """Test form with empty URLs."""
         form_data = {
             "notification_urls": "",
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -73,6 +86,8 @@ class NotificationSettingsFormTests(TestCase):
         """Test form with whitespace-only URLs."""
         form_data = {
             "notification_urls": "   \n  \t  ",
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -86,6 +101,8 @@ class NotificationSettingsFormTests(TestCase):
 
         form_data = {
             "notification_urls": self.invalid_url,
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -109,6 +126,8 @@ class NotificationSettingsFormTests(TestCase):
 
         form_data = {
             "notification_urls": f"{self.valid_discord_url}\n{self.invalid_url}",
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -129,6 +148,8 @@ class NotificationSettingsFormTests(TestCase):
             "notification_urls": (
                 f"  {self.valid_discord_url}  \n\t{self.valid_telegram_url}\n"
             ),
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -144,6 +165,8 @@ class NotificationSettingsFormTests(TestCase):
 
         form_data = {
             "notification_urls": f"{self.valid_discord_url}\n{self.valid_telegram_url}",
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -155,6 +178,8 @@ class NotificationSettingsFormTests(TestCase):
             self.user.notification_urls,
             f"{self.valid_discord_url}\n{self.valid_telegram_url}",
         )
+        self.assertTrue(self.user.daily_digest_enabled)
+        self.assertTrue(self.user.release_notifications_enabled)
 
     @patch("apprise.Apprise.add")
     def test_empty_lines_are_ignored(self, mock_add):
@@ -165,6 +190,8 @@ class NotificationSettingsFormTests(TestCase):
             "notification_urls": (
                 f"{self.valid_discord_url}\n\n{self.valid_telegram_url}\n\n"
             ),
+            "daily_digest_enabled": True,
+            "release_notifications_enabled": True,
         }
         form = NotificationSettingsForm(data=form_data, instance=self.user)
 
@@ -172,3 +199,20 @@ class NotificationSettingsFormTests(TestCase):
         self.assertEqual(mock_add.call_count, 2)
         mock_add.assert_any_call(self.valid_discord_url)
         mock_add.assert_any_call(self.valid_telegram_url)
+
+    def test_notification_preferences_save_correctly(self):
+        """Test that notification preferences are saved correctly."""
+        form_data = {
+            "notification_urls": self.valid_discord_url,
+            "daily_digest_enabled": False,
+            "release_notifications_enabled": True,
+        }
+
+        with patch("apprise.Apprise.add", return_value=True):
+            form = NotificationSettingsForm(data=form_data, instance=self.user)
+            self.assertTrue(form.is_valid())
+            form.save()
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.daily_digest_enabled)
+        self.assertTrue(self.user.release_notifications_enabled)
