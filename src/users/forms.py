@@ -80,10 +80,14 @@ class NotificationSettingsForm(forms.ModelForm):
     """Form for notification settings."""
 
     class Meta:
-        """Only allow updating notification urls."""
+        """Form fields for notification settings."""
 
         model = User
-        fields = ["notification_urls"]
+        fields = [
+            "notification_urls",
+            "daily_digest_enabled",
+            "release_notifications_enabled",
+        ]
         widgets = {
             "notification_urls": forms.Textarea(
                 attrs={

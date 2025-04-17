@@ -267,11 +267,21 @@ class User(AbstractUser):
         help_text="Items excluded from notifications",
     )
 
+    release_notifications_enabled = models.BooleanField(
+        default=True,
+        help_text="Receive notifications for recently released media",
+    )
+
+    daily_digest_enabled = models.BooleanField(
+        default=True,
+        help_text="Receive a daily digest of upcoming releases",
+    )
+
     token = models.CharField(
         max_length=32,
         unique=True,
         default=generate_token,
-        help_text="Token for external webhooks",
+        help_text="Token for external integrations",
     )
 
     class Meta:

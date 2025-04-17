@@ -6,6 +6,7 @@ import zoneinfo
 from pathlib import Path
 from urllib.parse import urlparse
 
+from celery.schedules import crontab
 from decouple import Csv, config
 from django.core.cache import CacheKeyWarning
 
@@ -326,6 +327,12 @@ CELERY_TASK_SERIALIZER = "pickle"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#std-setting-accept_content
 CELERY_ACCEPT_CONTENT = ["application/json", "application/x-python-serialize"]
 
+
+DAILY_DIGEST_HOUR = config(
+    "DAILY_DIGEST_HOUR",
+    default=8,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -334,6 +341,10 @@ CELERY_BEAT_SCHEDULE = {
     "send_release_notifications": {
         "task": "Send release notifications",
         "schedule": 60 * 10,  # every 10 minutes
+    },
+    "send_daily_digest": {
+        "task": "Send daily digest",
+        "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
 }
 

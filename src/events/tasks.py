@@ -27,3 +27,11 @@ def send_release_notifications():
     logger.info("Starting recent release notification task")
 
     return notifications.send_releases()
+
+
+@shared_task(name="Send daily digest")
+def send_daily_digest_notifications():
+    """Send daily digest of today's releases."""
+    logger.info("Starting daily digest task")
+
+    return notifications.send_daily_digest()
