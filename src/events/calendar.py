@@ -99,7 +99,9 @@ def cleanup_invalid_events(processed_items, events_bulk):
 def get_items_to_process(user=None):
     """Get items to process for the calendar."""
     media_types_with_status = [
-        choice.value for choice in MediaTypes if choice != MediaTypes.EPISODE
+        choice.value
+        for choice in MediaTypes
+        if choice not in [MediaTypes.TV, MediaTypes.EPISODE]
     ]
 
     active_query = Q()

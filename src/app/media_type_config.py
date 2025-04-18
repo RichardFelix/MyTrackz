@@ -137,7 +137,11 @@ def get_config(media_type):
 def get_property(media_type, prop_name):
     """Get a specific property for a media type."""
     config = get_config(media_type)
-    return config[prop_name]
+    try:
+        return config[prop_name]
+    except KeyError:
+        msg = f"Property '{prop_name}' not found for media type '{media_type}'."
+        raise KeyError(msg) from None
 
 
 def get_default_source_name(media_type):
