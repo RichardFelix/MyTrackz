@@ -234,15 +234,24 @@ def match_users_to_releases(event_data, user_data):
         model_name = media_type.capitalize()
         model = apps.get_model("app", model_name)
 
+        # Get all unique item IDs from the events
         item_ids = [event.item.id for event in media_events]
+        unique_item_ids = set(item_ids)
 
-        # Create a mapping of item IDs to events for quick lookup
-        item_to_event = {event.item.id: event for event in media_events}
+        # Create a mapping of item IDs to LISTS of events for that item
+        item_to_events = {}
+        for event in media_events:
+            item_id = event.item.id
+            if item_id not in item_to_events:
+                item_to_events[item_id] = []
+            item_to_events[item_id].append(event)
+
+        logger.info("Item to events mapping: %s", item_to_events)
 
         # Get tracking records for these items
         tracking_records = (
             model.objects.filter(
-                item_id__in=item_ids,
+                item_id__in=unique_item_ids,
             )
             .exclude(
                 Q(status__in=INACTIVE_TRACKING_STATUSES)
@@ -266,19 +275,20 @@ def match_users_to_releases(event_data, user_data):
                 )
                 continue
 
-            # Get the event for this item
-            event = item_to_event.get(item_id)
-            if not event:
+            # Get all events for this item
+            item_events = item_to_events.get(item_id, [])
+            if not item_events:
                 continue
 
             # Skip if media type not in user's active types
-            if event.item.media_type not in user_media_types.get(user_id, []):
+            if media_type not in user_media_types.get(user_id, []):
                 continue
 
-            # Add event to user's releases
+            # Add all events to user's releases
             if user_id not in user_releases:
                 user_releases[user_id] = []
-            user_releases[user_id].append(event)
+
+            user_releases[user_id].extend(item_events)
 
     return user_releases
 
