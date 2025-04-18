@@ -1,6 +1,4 @@
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from django.apps import apps
 from django.contrib import messages
@@ -39,7 +37,6 @@ def home(request):
         )
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
-            "max_datetime": datetime.max.replace(tzinfo=ZoneInfo("UTC")),
         }
         return render(request, "app/components/home_grid.html", context)
 
@@ -49,7 +46,6 @@ def home(request):
         "list_by_type": list_by_type,
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
-        "max_datetime": datetime.max.replace(tzinfo=ZoneInfo("UTC")),
     }
     return render(request, "app/home.html", context)
 

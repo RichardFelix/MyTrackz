@@ -9,7 +9,7 @@
            data-src="{{ media.item.image }}"
            src="{{ IMG_NONE }}">
 
-      {% if media.next_episode_datetime and media.next_episode_datetime != max_datetime %}
+      {% if media.next_event and not media.next_event.is_max_datetime %}
         <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2 py-1.5 rounded-md shadow-md whitespace-nowrap max-w-[98%]">
           <svg xmlns="http://www.w3.org/2000/svg"
                width="24"
@@ -24,7 +24,7 @@
             <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
           </svg>
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
-            {{ media.item.media_type|short_unit }}{{ media.next_episode_number }} • {{ media.next_episode_datetime|natural_day }} {{ media.next_episode_datetime|format_time }}
+            {{ media.item.media_type|short_unit }}{{ media.next_event.episode_number }} • {{ media.next_event.datetime|natural_day }} {{ media.next_event.display_time }}
           </span>
         </div>
       {% endif %}

@@ -15,6 +15,18 @@ INACTIVE_TRACKING_STATUSES = [
 ]
 
 
+class SentinelDatetime:
+    """Sentinel time for event without a specific time."""
+
+    YEAR = 9999
+    MONTH = 12
+    DAY = 31
+    HOUR = 11
+    MINUTE = 59
+    SECOND = 59
+    MICROSECOND = 999999
+
+
 class EventManager(models.Manager):
     """Custom manager for the Event model."""
 
@@ -94,3 +106,35 @@ class Event(models.Model):
             f"{media_type_config.get_unit(self.item.media_type, short=True)}"
             f"{self.episode_number}"
         )
+
+    @property
+    def is_sentinel_time(self):
+        """Check if the event time is sentinel time."""
+        return (
+            self.datetime.hour == SentinelDatetime.HOUR
+            and self.datetime.minute == SentinelDatetime.MINUTE
+            and self.datetime.second == SentinelDatetime.SECOND
+            and self.datetime.microsecond == SentinelDatetime.MICROSECOND
+        )
+
+    @property
+    def is_max_datetime(self):
+        """Check if the event datetime is sentinel datetime."""
+        max_hour = 23
+        return (
+            self.datetime.year == SentinelDatetime.YEAR
+            and self.datetime.month == SentinelDatetime.MONTH
+            and self.datetime.day == SentinelDatetime.DAY
+            and self.datetime.hour == max_hour
+            and self.datetime.minute == SentinelDatetime.MINUTE
+            and self.datetime.second == SentinelDatetime.SECOND
+        )
+
+    @property
+    def display_time(self):
+        """Return the display time of the event."""
+        if self.is_sentinel_time:
+            return ""
+
+        localized_value = timezone.localtime(self.datetime)
+        return f"at {localized_value.strftime('%H:%M')}"

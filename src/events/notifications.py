@@ -394,8 +394,14 @@ def format_notification(releases):
         sorted_events = sorted(media_events, key=lambda e: e.datetime)
 
         for event in sorted_events:
-            time_str = event.datetime.strftime("%H:%M")
-            notification_body.append(f"  • {event} ({time_str})")
+            if event.is_sentinel_time:
+                # Don't show time for sentinel times
+                notification_body.append(f"  • {event}")
+            else:
+                # Convert to local timezone and format
+                local_dt = timezone.localtime(event.datetime)
+                time_str = local_dt.strftime("%H:%M")
+                notification_body.append(f"  • {event} ({time_str})")
 
         # Add a blank line between media types
         notification_body.append("")

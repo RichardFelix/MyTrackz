@@ -15,7 +15,6 @@ from django.db.models import (
     FloatField,
     IntegerField,
     Max,
-    Min,
     Prefetch,
     Q,
     Sum,
@@ -320,15 +319,24 @@ class MediaManager(models.Manager):
             # Add common annotations for all media types
             media_list = media_list.annotate(
                 max_progress=Max("item__event__episode_number"),
-                next_episode_number=Min(
-                    "item__event__episode_number",
-                    filter=Q(item__event__datetime__gt=now),
-                ),
-                next_episode_datetime=Min(
-                    "item__event__datetime",
-                    filter=Q(item__event__datetime__gt=now),
+            )
+
+            # Prefetch the next event for each media item
+            media_list = media_list.prefetch_related(
+                Prefetch(
+                    "item__event_set",
+                    queryset=events.models.Event.objects.filter(
+                        datetime__gt=now,
+                    ).order_by("datetime"),
+                    to_attr="next_events",
                 ),
             )
+
+            # Process each media item to attach the next event
+            for media in media_list:
+                media.next_event = (
+                    media.item.next_events[0] if media.item.next_events else None
+                )
 
             # Apply sorting based on the requested sort criteria
             media_list = self._sort_in_progress_media(media_list, sort_by, media_type)
@@ -375,16 +383,25 @@ class MediaManager(models.Manager):
     def _sort_in_progress_media(self, media_list, sort_by, media_type):
         """Sort in-progress media based on the sort criteria."""
         if sort_by == "upcoming":
-            return media_list.order_by(
-                Case(
-                    When(next_episode_datetime__isnull=True, then=1),
-                    default=0,
+            # Convert queryset to list if it's not already
+            if not isinstance(media_list, list):
+                media_list = list(media_list)
+
+            # Sort by next_event datetime
+            return sorted(
+                media_list,
+                key=lambda x: (
+                    x.next_event is None,  # Items without events come last
+                    x.next_event.datetime if x.next_event else None,
+                    x.item.title,
                 ),
-                "next_episode_datetime",
-                "item__title",
             )
         if sort_by == "title":
-            return media_list.order_by("item__title")
+            return (
+                media_list.order_by("item__title")
+                if not isinstance(media_list, list)
+                else sorted(media_list, key=lambda x: x.item.title)
+            )
         if sort_by in ["completion", "episodes_left"]:
             return self._sort_by_completion_or_episodes(media_list, sort_by, media_type)
 

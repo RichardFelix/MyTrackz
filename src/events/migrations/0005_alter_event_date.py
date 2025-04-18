@@ -8,13 +8,11 @@ def convert_dates_to_datetimes(apps, schema_editor):
     """Convert existing date values to datetime with max time in UTC."""
     Event = apps.get_model('events', 'Event')
 
-    # Create a custom sentinel time from settings
-    from django.conf import settings
     sentinel_time = time(
-        settings.SENTINEL_TIME_HOUR,
-        settings.SENTINEL_TIME_MINUTE, 
-        settings.SENTINEL_TIME_SECOND,
-        settings.SENTINEL_TIME_MICROSECOND
+        11,
+        59,
+        59,
+        999999,
     )
 
     for event in Event.objects.all():

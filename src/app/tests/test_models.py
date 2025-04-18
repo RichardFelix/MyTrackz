@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db.models import Max, Min, Q
+from django.db.models import Max, Min, Prefetch, Q
 from django.test import TestCase
 from django.utils import timezone
 
@@ -538,15 +538,23 @@ class MediaManagerTests(TestCase):
         now = timezone.now()
         queryset = queryset.annotate(
             max_progress=Max("item__event__episode_number"),
-            next_episode_number=Min(
-                "item__event__episode_number",
-                filter=Q(item__event__datetime__gt=now),
-            ),
-            next_episode_datetime=Min(
-                "item__event__datetime",
-                filter=Q(item__event__datetime__gt=now),
+        )
+
+        # Prefetch the next event for each media item
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                "item__event_set",
+                queryset=Event.objects.filter(
+                    datetime__gt=now,
+                ).order_by("datetime"),
+                to_attr="next_events",
             ),
         )
+
+        for media in queryset:
+            media.next_event = (
+                media.item.next_events[0] if media.item.next_events else None
+            )
 
         # Test sort by upcoming
         sorted_queryset = manager._sort_in_progress_media(
@@ -554,7 +562,7 @@ class MediaManagerTests(TestCase):
             "upcoming",
             MediaTypes.ANIME.value,
         )
-        self.assertEqual(sorted_queryset.first(), self.anime)
+        self.assertEqual(sorted_queryset[0], self.anime)
 
         # Test sort by title
         sorted_queryset = manager._sort_in_progress_media(
@@ -562,7 +570,7 @@ class MediaManagerTests(TestCase):
             "title",
             MediaTypes.ANIME.value,
         )
-        self.assertEqual(sorted_queryset.first(), self.anime)
+        self.assertEqual(sorted_queryset[0], self.anime)
 
         # Create another anime for testing completion and episodes_left
         anime_item2 = Item.objects.create(
@@ -665,7 +673,7 @@ class MediaManagerTests(TestCase):
 
         # Anime should be included because it has upcoming episodes
         self.assertIn(MediaTypes.ANIME.value, in_progress)
-        self.assertEqual(in_progress[MediaTypes.ANIME.value]["items"].count(), 1)
+        self.assertEqual(len(in_progress[MediaTypes.ANIME.value]["items"]), 1)
 
     @patch("app.providers.services.get_media_metadata")
     def test_get_in_progress_sort_by_completion(self, mock_get_media_metadata):

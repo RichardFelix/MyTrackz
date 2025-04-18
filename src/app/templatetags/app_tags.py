@@ -185,28 +185,6 @@ def natural_day(value):
 
 
 @register.filter
-def format_time(value):
-    """Format time component if not a sentinel value (time.max)."""
-    # Check if this is a sentinel value (time.max)
-    is_sentinel = (
-        value.hour == settings.SENTINEL_TIME_HOUR
-        and value.minute == settings.SENTINEL_TIME_MINUTE
-        and value.second == settings.SENTINEL_TIME_SECOND
-        and value.microsecond == settings.SENTINEL_TIME_MICROSECOND
-    )
-
-    # Don't show time for sentinel values
-    if is_sentinel:
-        return ""
-
-    # Convert to local timezone for display
-    localized_value = timezone.localtime(value)
-
-    # Return formatted time
-    return f"at {localized_value.strftime('%H:%M')}"
-
-
-@register.filter
 def media_url(media):
     """Return the media URL for both metadata and model object cases."""
     is_dict = isinstance(media, dict)

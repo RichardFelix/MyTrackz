@@ -3,7 +3,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
-from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count, Exists, OuterRef, Q, Subquery
 from django.utils import timezone
@@ -11,7 +10,7 @@ from django.utils import timezone
 from app import media_type_config
 from app.models import Item, Media, MediaTypes, Sources
 from app.providers import comicvine, services, tmdb
-from events.models import INACTIVE_TRACKING_STATUSES, Event
+from events.models import INACTIVE_TRACKING_STATUSES, Event, SentinelDatetime
 
 logger = logging.getLogger(__name__)
 
@@ -519,10 +518,10 @@ def date_parser(date_str):
     dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ZoneInfo("UTC"))
     # Set to max time and add UTC timezone
     return dt.replace(
-        hour=settings.SENTINEL_TIME_HOUR,
-        minute=settings.SENTINEL_TIME_MINUTE,
-        second=settings.SENTINEL_TIME_SECOND,
-        microsecond=settings.SENTINEL_TIME_MICROSECOND,
+        hour=SentinelDatetime.HOUR,
+        minute=SentinelDatetime.MINUTE,
+        second=SentinelDatetime.SECOND,
+        microsecond=SentinelDatetime.MICROSECOND,
         tzinfo=ZoneInfo("UTC"),
     )
 
@@ -540,10 +539,10 @@ def anilist_date_parser(start_date):
         start_date["year"],
         month,
         day,
-        hour=settings.SENTINEL_TIME_HOUR,
-        minute=settings.SENTINEL_TIME_MINUTE,
-        second=settings.SENTINEL_TIME_SECOND,
-        microsecond=settings.SENTINEL_TIME_MICROSECOND,
+        hour=SentinelDatetime.HOUR,
+        minute=SentinelDatetime.MINUTE,
+        second=SentinelDatetime.SECOND,
+        microsecond=SentinelDatetime.MICROSECOND,
         tzinfo=ZoneInfo("UTC"),
     )
 

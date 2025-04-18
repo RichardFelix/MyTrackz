@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from django.conf import settings
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -236,39 +235,6 @@ class AppTagsTests(TestCase):
                 tzinfo=timezone.get_current_timezone(),
             )
             self.assertEqual(app_tags.natural_day(further), "Apr 10")
-
-    @override_settings(
-        SENTINEL_TIME_HOUR=23,
-        SENTINEL_TIME_MINUTE=59,
-        SENTINEL_TIME_SECOND=59,
-        SENTINEL_TIME_MICROSECOND=999999,
-    )
-    def test_format_time(self):
-        """Test the format_time filter."""
-        # Test normal time
-        normal_time = timezone.datetime(
-            2025,
-            3,
-            29,
-            15,
-            30,
-            0,
-            tzinfo=timezone.get_current_timezone(),
-        )
-        self.assertEqual(app_tags.format_time(normal_time), "at 15:30")
-
-        # Test sentinel time (should return empty string)
-        sentinel_time = timezone.datetime(
-            2025,
-            3,
-            29,
-            settings.SENTINEL_TIME_HOUR,
-            settings.SENTINEL_TIME_MINUTE,
-            settings.SENTINEL_TIME_SECOND,
-            settings.SENTINEL_TIME_MICROSECOND,
-            tzinfo=timezone.get_current_timezone(),
-        )
-        self.assertEqual(app_tags.format_time(sentinel_time), "")
 
     def test_media_url(self):
         """Test the media_url filter."""
