@@ -166,7 +166,7 @@ def tv_with_seasons(media_id, season_numbers):
                 f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
             )
             season_data["title"] = data["title"]
-            season_data["external_ids"] = data["external_ids"]
+            season_data["tvdb_id"] = data["tvdb_id"]
             season_data["genres"] = data["genres"]
             season_data["backdrop"] = data["backdrop"]
             if season_data["synopsis"] == "No synopsis available.":
@@ -200,6 +200,7 @@ def tv(media_id):
 def process_tv(response):
     """Process the metadata for the selected tv show from The Movie Database."""
     num_episodes = response["number_of_episodes"]
+    next_episode = response.get("next_episode_to_air")
     return {
         "media_id": response["id"],
         "source": Sources.TMDB.value,
@@ -234,7 +235,8 @@ def process_tv(response):
                 MediaTypes.TV.value,
             ),
         },
-        "external_ids": response["external_ids"],
+        "tvdb_id": response["external_ids"]["tvdb_id"],
+        "next_episode_season": next_episode["season_number"] if next_episode else None,
     }
 
 

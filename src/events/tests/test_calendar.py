@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from app.models import (
+    TV,
     Anime,
     Book,
     Comic,
@@ -29,7 +30,7 @@ from events.calendar import (
     process_anime_bulk,
     process_comic,
     process_other,
-    process_season,
+    process_tv,
 )
 from events.models import Event
 
@@ -70,6 +71,19 @@ class ReloadCalendarTaskTests(TestCase):
             status=Media.Status.PLANNING.value,
         )
 
+        self.tv_item = Item.objects.create(
+            media_id="1396",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Breaking Bad",
+            image="http://example.com/breakingbad.jpg",
+        )
+        tv_object = TV.objects.create(
+            item=self.tv_item,
+            user=self.user,
+            status=Media.Status.PLANNING.value,
+        )
+
         # Create season item
         self.season_item = Item.objects.create(
             media_id="1396",
@@ -81,6 +95,7 @@ class ReloadCalendarTaskTests(TestCase):
         )
         Season.objects.create(
             item=self.season_item,
+            related_tv=tv_object,
             user=self.user,
             status=Media.Status.PLANNING.value,
         )
@@ -126,20 +141,20 @@ class ReloadCalendarTaskTests(TestCase):
             status=Media.Status.PLANNING.value,
         )
 
-    @patch("events.calendar.process_season")
+    @patch("events.calendar.process_tv")
     @patch("events.calendar.process_other")
     @patch("events.calendar.process_anime_bulk")
     def test_fetch_releases_all_types(
         self,
         mock_process_anime_bulk,
         mock_process_other,
-        mock_process_season,
+        mock_process_tv,
     ):
         """Test fetch_releases with all media types."""
         # Setup mocks
-        mock_process_season.side_effect = lambda item, events_bulk: events_bulk.append(
+        mock_process_tv.side_effect = lambda _, events_bulk: events_bulk.append(
             Event(
-                item=item,
+                item=self.season_item,
                 episode_number=1,
                 datetime=timezone.now(),
             ),
@@ -172,12 +187,12 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(len(anime_items), 1)
         self.assertEqual(anime_items[0].id, self.anime_item.id)
 
-        # Verify process_season was called for season items
+        # Verify process_tv was called for season items
         self.assertTrue(Event.objects.filter(item=self.season_item).exists())
 
         # Verify process_other was called for non-anime items
-        #  items: movie, tv, manga, book
-        self.assertEqual(mock_process_other.call_count, 4)
+        #  items: movie, manga, book
+        self.assertEqual(mock_process_other.call_count, 3)
 
         # Verify events were created
         self.assertTrue(Event.objects.filter(item=self.anime_item).exists())
@@ -307,7 +322,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Verify items with future events are included
         self.assertIn(self.anime_item, items)
-        self.assertIn(self.season_item, items)
+        self.assertIn(self.tv_item, items)
 
         # Verify comic with recent events is included
         self.assertIn(self.comic_item, items)
@@ -336,6 +351,80 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Should still exclude inactive items
         self.assertNotIn(inactive_item, all_items)
+
+    @patch("events.calendar.tmdb.tv")
+    @patch("events.calendar.tmdb.tv_with_seasons")
+    @patch("events.calendar.get_tvmaze_episode_map")
+    def test_process_tv_season(
+        self,
+        mock_get_tvmaze_episode_map,
+        mock_tv_with_seasons,
+        mock_tv,
+    ):
+        """Test processing for a TV season."""
+        # Setup mocks
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "episodes": [1, 2, 3]},
+                    {"season_number": 2, "episodes": [1, 2]},
+                    {"season_number": 3, "episodes": [1]},
+                ],
+            },
+            "next_episode_season": 2,
+        }
+
+        mock_tv_with_seasons.return_value = {
+            "season/1": {
+                "image": "http://example.com/season1.jpg",
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2008-01-20"},
+                    {"episode_number": 2, "air_date": "2008-01-27"},
+                    {"episode_number": 3, "air_date": "2008-02-03"},
+                ],
+                "tvdb_id": "81189",
+            },
+            "season/2": {
+                "image": "http://example.com/season2.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2009-01-20"},
+                    {"episode_number": 2, "air_date": "2009-01-27"},
+                ],
+                "tvdb_id": "81189",
+            },
+            "season/3": {
+                "image": "http://example.com/season3.jpg",
+                "season_number": 3,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2010-01-20"},
+                ],
+                "tvdb_id": "81189",
+            },
+        }
+
+        # TVMaze data with more precise timestamps
+        mock_get_tvmaze_episode_map.return_value = {
+            "1_1": {"airstamp": "2008-01-20T22:00:00+00:00", "airtime": "22:00"},
+            "1_2": {"airstamp": "2008-01-27T22:00:00+00:00", "airtime": "22:00"},
+            "1_3": {"airstamp": "2008-02-03T22:00:00+00:00", "airtime": "22:00"},
+        }
+
+        # Process the item
+        events_bulk = []
+        process_tv(self.tv_item, events_bulk)
+
+        # Verify events were added
+        self.assertEqual(len(events_bulk), 6)
+
+        # Verify the first episode
+        self.assertEqual(events_bulk[0].item, self.season_item)
+        self.assertEqual(events_bulk[0].episode_number, 1)
+
+        # Verify TVMaze data was used (more precise timestamp)
+        expected_date = datetime.datetime.fromisoformat("2008-01-20T22:00:00+00:00")
+        self.assertEqual(events_bulk[0].datetime, expected_date)
 
     @patch("events.calendar.services.get_media_metadata")
     def test_process_other_movie(self, mock_get_media_metadata):
@@ -386,49 +475,6 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Verify the date was parsed correctly
         expected_date = date_parser("1949-06-08")
-        self.assertEqual(events_bulk[0].datetime, expected_date)
-
-    @patch("events.calendar.tmdb.tv_with_seasons")
-    @patch("events.calendar.get_tvmaze_episode_map")
-    def test_process_other_season(
-        self,
-        mock_get_tvmaze_episode_map,
-        mock_tv_with_seasons,
-    ):
-        """Test process_other for a TV season."""
-        # Setup mocks
-        mock_tv_with_seasons.return_value = {
-            "season/1": {
-                "season_number": 1,
-                "episodes": [
-                    {"episode_number": 1, "air_date": "2008-01-20"},
-                    {"episode_number": 2, "air_date": "2008-01-27"},
-                    {"episode_number": 3, "air_date": "2008-02-03"},
-                ],
-                "external_ids": {"tvdb_id": "81189"},
-            },
-        }
-
-        # TVMaze data with more precise timestamps
-        mock_get_tvmaze_episode_map.return_value = {
-            "1_1": {"airstamp": "2008-01-20T22:00:00+00:00", "airtime": "22:00"},
-            "1_2": {"airstamp": "2008-01-27T22:00:00+00:00", "airtime": "22:00"},
-            "1_3": {"airstamp": "2008-02-03T22:00:00+00:00", "airtime": "22:00"},
-        }
-
-        # Process the item
-        events_bulk = []
-        process_season(self.season_item, events_bulk)
-
-        # Verify events were added
-        self.assertEqual(len(events_bulk), 3)
-
-        # Verify the first episode
-        self.assertEqual(events_bulk[0].item, self.season_item)
-        self.assertEqual(events_bulk[0].episode_number, 1)
-
-        # Verify TVMaze data was used (more precise timestamp)
-        expected_date = datetime.datetime.fromisoformat("2008-01-20T22:00:00+00:00")
         self.assertEqual(events_bulk[0].datetime, expected_date)
 
     @patch("events.calendar.services.get_media_metadata")

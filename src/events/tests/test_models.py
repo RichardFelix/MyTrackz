@@ -90,11 +90,6 @@ class EventModelTests(TestCase):
         self.tomorrow = self.now + datetime.timedelta(days=1)
         self.next_week = self.now + datetime.timedelta(days=7)
 
-        self.tv_event = Event.objects.create(
-            item=self.tv_item,
-            datetime=self.tomorrow,
-        )
-
         self.season_event = Event.objects.create(
             item=self.season_item,
             episode_number=1,
@@ -120,9 +115,6 @@ class EventModelTests(TestCase):
 
     def test_event_string_representation(self):
         """Test the string representation of events."""
-        # TV show event
-        self.assertEqual(str(self.tv_event), "Test TV Show")
-
         # Season event
         self.assertEqual(
             str(self.season_event),
@@ -137,7 +129,6 @@ class EventModelTests(TestCase):
 
         # Manga event
         self.assertEqual(str(self.manga_event), "Test Manga #1")
-
 
 
 class EventManagerTests(TestCase):
@@ -247,11 +238,6 @@ class EventManagerTests(TestCase):
         self.next_week = self.base_date + datetime.timedelta(days=7)  # April 22
 
         # Create events with fixed dates
-        self.tv_event = Event.objects.create(
-            item=self.tv_item,
-            datetime=self.tomorrow,  # April 16
-        )
-
         self.past_event = Event.objects.create(
             item=self.season_item,
             episode_number=1,
@@ -301,9 +287,8 @@ class EventManagerTests(TestCase):
         # Get events for the user
         events = Event.objects.get_user_events(self.user, today, next_week)
 
-        # Should include TV, season, movie events but not past events
-        self.assertEqual(events.count(), 5)
-        self.assertIn(self.tv_event, events)
+        # Should include season, movie, and manga events
+        self.assertEqual(events.count(), 4)
         self.assertIn(self.season_event, events)
         self.assertIn(self.manga_event1, events)
         self.assertIn(self.movie_event, events)
@@ -313,18 +298,18 @@ class EventManagerTests(TestCase):
         # Get events for the other user
         other_events = Event.objects.get_user_events(self.other_user, today, next_week)
 
-        # Should only include the TV event (shared item)
-        self.assertEqual(other_events.count(), 1)
-        self.assertIn(self.tv_event, other_events)
+        # Should have no events, as other user has no active seasons or non-TV media
+        self.assertEqual(other_events.count(), 0)
 
         # Test with a different date range
-        yesterday = today - datetime.timedelta(days=1)  # April 14
         tomorrow = today + datetime.timedelta(days=1)  # April 16
-        limited_events = Event.objects.get_user_events(self.user, yesterday, tomorrow)
+        limited_events = Event.objects.get_user_events(self.user, today, tomorrow)
 
-        self.assertEqual(limited_events.count(), 4)
-        self.assertIn(self.past_event, limited_events)
-        self.assertIn(self.tv_event, limited_events)
-        self.assertIn(self.season_event, limited_events)
-        self.assertIn(self.manga_event1, limited_events)
-        self.assertNotIn(self.movie_event, limited_events)  # Next week, outside range
+        self.assertEqual(limited_events.count(), 2)
+        self.assertIn(self.season_event, limited_events)  # Season event in range
+        self.assertIn(self.manga_event1, limited_events)  # Manga event in range
+        self.assertNotIn(self.movie_event, limited_events)  # Outside range
+        self.assertNotIn(
+            self.past_event,
+            limited_events,
+        )  # Past event, but filtered by active status

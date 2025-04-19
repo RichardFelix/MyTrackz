@@ -656,7 +656,7 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            elif (
+            if (
                 self.status not in events.models.INACTIVE_TRACKING_STATUSES
                 and not self._disable_calendar_triggers
             ):
@@ -801,11 +801,13 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            elif (
+            if (
                 self.status not in events.models.INACTIVE_TRACKING_STATUSES
                 and not self._disable_calendar_triggers
             ):
-                events.tasks.reload_calendar.delay(items_to_process=[self.item])
+                events.tasks.reload_calendar.delay(
+                    items_to_process=[self.related_tv.item],
+                )
 
     @property
     def progress(self):
