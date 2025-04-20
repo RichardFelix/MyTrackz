@@ -660,12 +660,13 @@ def statistics(request):
     start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
     end_date_str = request.GET.get("end-date") or today.strftime(timeformat)
 
-    # Convert strings directly to datetime.date objects
-    start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
-    end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
-
-    # Get user's account creation date
-    user_creation_date = request.user.date_joined.date()
+    if start_date_str == "all" and end_date_str == "all":
+        start_date = None
+        end_date = None
+    else:
+        # Convert strings directly to datetime.date objects
+        start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
+        end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(
@@ -697,7 +698,6 @@ def statistics(request):
         "status_distribution": status_distribution,
         "status_pie_chart_data": status_pie_chart_data,
         "timeline": timeline,
-        "user_creation_date": user_creation_date,
     }
 
     return render(request, "app/statistics.html", context)

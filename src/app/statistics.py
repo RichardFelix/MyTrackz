@@ -14,194 +14,13 @@ from django.db.models import (
     Q,
 )
 from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 from app import media_type_config
 from app.models import TV, BasicMedia, Episode, Media, MediaTypes, Season
 from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
-
-
-def get_activity_data(user, start_date, end_date):
-    """Get daily activity counts for the last year."""
-    # Get the Monday of the week containing start_date (for grid alignment)
-    start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())
-
-    combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
-
-    # Aggregate counts by date
-    date_counts = {}
-    for item in combined_data:
-        date = item["date"]
-        date_counts[date] = date_counts.get(date, 0) + item["count"]
-
-    date_range = [
-        start_date_aligned + datetime.timedelta(days=x)
-        for x in range((end_date - start_date_aligned).days + 1)
-    ]
-
-    # Calculate activity statistics
-    most_active_day, day_percentage = calculate_day_of_week_stats(
-        date_counts,
-        start_date,
-    )
-    current_streak, longest_streak = calculate_streaks(
-        date_counts,
-        end_date,
-    )
-
-    # Create complete date range including padding days
-    activity_data = [
-        {
-            "date": current_date.strftime("%Y-%m-%d"),
-            "count": date_counts.get(current_date, 0),
-            "level": get_level(date_counts.get(current_date, 0)),
-        }
-        for current_date in date_range
-    ]
-
-    # Format data into calendar weeks
-    calendar_weeks = [activity_data[i : i + 7] for i in range(0, len(activity_data), 7)]
-
-    # Generate months list with their Monday counts
-    months = []
-    mondays_per_month = []
-    current_month = date_range[0].strftime("%b")
-    monday_count = 0
-
-    for current_date in date_range:
-        if current_date.weekday() == 0:  # Monday
-            month = current_date.strftime("%b")
-
-            if current_month != month:
-                if current_month is not None:
-                    if monday_count > 1:
-                        months.append(current_month)
-                        mondays_per_month.append(monday_count)
-                    else:
-                        months.append("")
-                        mondays_per_month.append(monday_count)
-                current_month = month
-                monday_count = 0
-
-            monday_count += 1
-    # For the last month
-    if monday_count > 1:
-        months.append(current_month)
-        mondays_per_month.append(monday_count)
-
-    return {
-        "calendar_weeks": calendar_weeks,
-        "months": list(zip(months, mondays_per_month, strict=False)),
-        "stats": {
-            "most_active_day": most_active_day,
-            "most_active_day_percentage": day_percentage,
-            "current_streak": current_streak,
-            "longest_streak": longest_streak,
-        },
-    }
-
-
-def get_level(count):
-    """Calculate intensity level (0-4) based on count."""
-    thresholds = [0, 3, 6, 9]
-    for i, threshold in enumerate(thresholds):
-        if count <= threshold:
-            return i
-    return 4
-
-
-def get_filtered_historical_data(start_date, end_date, user):
-    """Get historical data filtered by date range."""
-    historical_models = BasicMedia.objects.get_historical_models()
-    combined_data = []
-
-    for model_name in historical_models:
-        historical_model = apps.get_model("app", model_name)
-
-        # Filter historical records
-        data = (
-            historical_model.objects.filter(
-                history_user_id=user,
-                history_date__date__gte=start_date,
-                history_date__date__lte=end_date,
-            )
-            .annotate(date=TruncDate("history_date"))
-            .values("date")
-            .annotate(count=Count("id"))
-        )
-
-        combined_data.extend(data)
-
-    return combined_data
-
-
-def calculate_day_of_week_stats(date_counts, start_date):
-    """Calculate the most active day of the week based on activity frequency.
-
-    Returns the day name and its percentage of total activity.
-    """
-    # Initialize counters for each day of the week
-    day_counts = defaultdict(int)
-    total_active_days = 0
-
-    # Count occurrences of each day of the week where activity happened
-    for date in date_counts:
-        if date < start_date:
-            continue
-        if date_counts[date] > 0:
-            day_name = date.strftime("%A")  # Get full day name
-            day_counts[day_name] += 1
-            total_active_days += 1
-
-    if not total_active_days:
-        return None, 0
-
-    # Find the most active day
-    most_active_day = max(day_counts.items(), key=lambda x: x[1])
-    percentage = (most_active_day[1] / total_active_days) * 100
-
-    return most_active_day[0], round(percentage)
-
-
-def calculate_streaks(date_counts, end_date):
-    """Calculate current and longest activity streaks."""
-    # Get active dates and sort them in descending order (newest first)
-    active_dates = sorted(
-        [date for date, count in date_counts.items() if count > 0],
-        reverse=True,
-    )
-
-    if not active_dates:
-        return 0, 0
-
-    longest_streak = 1
-    streak_count = 1
-
-    # Check if the most recent active date is today/end_date
-    is_current = active_dates[0] == end_date
-
-    current_streak = 1 if is_current else 0
-
-    for i in range(1, len(active_dates)):
-        # Check if this date is consecutive with the previous one
-        if (active_dates[i - 1] - active_dates[i]).days == 1:
-            streak_count += 1
-
-            if is_current:
-                current_streak += 1
-        else:
-            longest_streak = max(longest_streak, streak_count)
-            streak_count = 1
-
-            if is_current:
-                is_current = False
-
-    # Check final streak for longest calculation
-    # needed if the last date is today/end_date
-    longest_streak = max(longest_streak, streak_count)
-
-    return current_streak, longest_streak
 
 
 def get_user_media(user, start_date, end_date):
@@ -216,10 +35,16 @@ def get_user_media(user, start_date, end_date):
     # Cache the base episodes query
     base_episodes = None
     if TV in media_models or Season in media_models:
-        base_episodes = Episode.objects.filter(
-            related_season__user=user,
-            end_date__range=(start_date, end_date),
-        )
+        if start_date is None and end_date is None:
+            # No date filtering for "All Time"
+            base_episodes = Episode.objects.filter(
+                related_season__user=user,
+            )
+        else:
+            base_episodes = Episode.objects.filter(
+                related_season__user=user,
+                end_date__range=(start_date, end_date),
+            )
 
     for model in media_models:
         media_type = model.__name__.lower()
@@ -255,16 +80,38 @@ def get_user_media(user, start_date, end_date):
             ).prefetch_related(
                 Prefetch("episodes", queryset=base_episodes),
             )
+        # For other models, apply date filtering conditionally
+        elif start_date is None and end_date is None:
+            # No date filtering for "All Time"
+            queryset = model.objects.filter(user=user)
         else:
-            queryset = model.objects.filter(
-                user=user,
-                start_date__isnull=False,  # Exclude records with null start_date
-                start_date__gte=start_date,
-                start_date__lte=end_date,  # Ensure start_date is within range
-            ).filter(
-                # Either end_date is null OR end_date is within range
-                Q(end_date__isnull=True)
-                | Q(end_date__gte=start_date, end_date__lte=end_date),
+            queryset = model.objects.filter(user=user).filter(
+                # Case 1: Media has both start_date and end_date
+                # Include if ranges overlap
+                # (exclude if media ends before filter start or starts after filter end)
+                (
+                    Q(start_date__isnull=False)
+                    & Q(end_date__isnull=False)
+                    & ~(Q(end_date__lt=start_date) | Q(start_date__gt=end_date))
+                )
+                |
+                # Case 2: Media only has start_date (end_date is null)
+                # Include if start_date is within filter range
+                (
+                    Q(start_date__isnull=False)
+                    & Q(end_date__isnull=True)
+                    & Q(start_date__gte=start_date)
+                    & Q(start_date__lte=end_date)
+                )
+                |
+                # Case 3: Media only has end_date (start_date is null)
+                # Include if end_date is within filter range
+                (
+                    Q(start_date__isnull=True)
+                    & Q(end_date__isnull=False)
+                    & Q(end_date__gte=start_date)
+                    & Q(end_date__lte=end_date)
+                ),
             )
 
         queryset = queryset.select_related("item")
@@ -273,7 +120,11 @@ def get_user_media(user, start_date, end_date):
         media_count[media_type] = count
         media_count["total"] += count
 
-    logger.info("%s - Retrieved media from %s to %s", user, start_date, end_date)
+    logger.info(
+        "%s - Retrieved media %s",
+        user,
+        "for all time" if start_date is None else f"from {start_date} to {end_date}",
+    )
     return user_media, media_count
 
 
@@ -482,8 +333,8 @@ def get_timeline(user_media):
         if media_type == MediaTypes.TV.value:
             continue
         for media in queryset:
-            # If there's an end date, add media to all months between start and end
-            if media.end_date:
+            if media.start_date and media.end_date:
+                # add media to all months between start and end
                 current_date = media.start_date
                 while current_date <= media.end_date:
                     year = current_date.year
@@ -496,10 +347,18 @@ def get_timeline(user_media):
                     # Move to next month
                     current_date += relativedelta(months=1)
                     current_date = current_date.replace(day=1)
-            else:
-                # If no end date, only add to the start month
+            elif media.start_date:
+                # If only start date, add to the start month
                 year = media.start_date.year
                 month = media.start_date.month
+                month_name = calendar.month_name[month]
+                month_year = f"{month_name} {year}"
+
+                timeline[month_year].append(media)
+            elif media.end_date:
+                # If only end date, add to the end month
+                year = media.end_date.year
+                month = media.end_date.month
                 month_name = calendar.month_name[month]
                 month_year = f"{month_name} {year}"
 
@@ -520,6 +379,201 @@ def get_timeline(user_media):
     # Create the final result dictionary
     result = {}
     for month_year, media_list, _, _ in sorted_items:
-        result[month_year] = sorted(media_list, key=lambda x: x.start_date)
+        # Sort the media list using our custom sort key
+        result[month_year] = sorted(media_list, key=time_line_sort_key)
 
     return result
+
+
+def time_line_sort_key(media):
+    """Sort media items in the timeline."""
+    if media.start_date is not None:
+        return media.start_date
+    return media.end_date
+
+
+def get_activity_data(user, start_date, end_date):
+    """Get daily activity counts for the last year."""
+    if start_date is None:
+        start_date = user.date_joined.date()
+    if end_date is None:
+        end_date = timezone.now().date()
+
+    # Get the Monday of the week containing start_date (for grid alignment)
+    start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())
+
+    combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
+
+    # Aggregate counts by date
+    date_counts = {}
+    for item in combined_data:
+        date = item["date"]
+        date_counts[date] = date_counts.get(date, 0) + item["count"]
+
+    date_range = [
+        start_date_aligned + datetime.timedelta(days=x)
+        for x in range((end_date - start_date_aligned).days + 1)
+    ]
+
+    # Calculate activity statistics
+    most_active_day, day_percentage = calculate_day_of_week_stats(
+        date_counts,
+        start_date,
+    )
+    current_streak, longest_streak = calculate_streaks(
+        date_counts,
+        end_date,
+    )
+
+    # Create complete date range including padding days
+    activity_data = [
+        {
+            "date": current_date.strftime("%Y-%m-%d"),
+            "count": date_counts.get(current_date, 0),
+            "level": get_level(date_counts.get(current_date, 0)),
+        }
+        for current_date in date_range
+    ]
+
+    # Format data into calendar weeks
+    calendar_weeks = [activity_data[i : i + 7] for i in range(0, len(activity_data), 7)]
+
+    # Generate months list with their Monday counts
+    months = []
+    mondays_per_month = []
+    current_month = date_range[0].strftime("%b")
+    monday_count = 0
+
+    for current_date in date_range:
+        if current_date.weekday() == 0:  # Monday
+            month = current_date.strftime("%b")
+
+            if current_month != month:
+                if current_month is not None:
+                    if monday_count > 1:
+                        months.append(current_month)
+                        mondays_per_month.append(monday_count)
+                    else:
+                        months.append("")
+                        mondays_per_month.append(monday_count)
+                current_month = month
+                monday_count = 0
+
+            monday_count += 1
+    # For the last month
+    if monday_count > 1:
+        months.append(current_month)
+        mondays_per_month.append(monday_count)
+
+    return {
+        "calendar_weeks": calendar_weeks,
+        "months": list(zip(months, mondays_per_month, strict=False)),
+        "stats": {
+            "most_active_day": most_active_day,
+            "most_active_day_percentage": day_percentage,
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+        },
+    }
+
+
+def get_level(count):
+    """Calculate intensity level (0-4) based on count."""
+    thresholds = [0, 3, 6, 9]
+    for i, threshold in enumerate(thresholds):
+        if count <= threshold:
+            return i
+    return 4
+
+
+def get_filtered_historical_data(start_date, end_date, user):
+    """Get historical data filtered by date range."""
+    historical_models = BasicMedia.objects.get_historical_models()
+    combined_data = []
+
+    for model_name in historical_models:
+        historical_model = apps.get_model("app", model_name)
+
+        # Filter historical records
+        data = (
+            historical_model.objects.filter(
+                history_user_id=user,
+                history_date__date__gte=start_date,
+                history_date__date__lte=end_date,
+            )
+            .annotate(date=TruncDate("history_date"))
+            .values("date")
+            .annotate(count=Count("id"))
+        )
+
+        combined_data.extend(data)
+
+    return combined_data
+
+
+def calculate_day_of_week_stats(date_counts, start_date):
+    """Calculate the most active day of the week based on activity frequency.
+
+    Returns the day name and its percentage of total activity.
+    """
+    # Initialize counters for each day of the week
+    day_counts = defaultdict(int)
+    total_active_days = 0
+
+    # Count occurrences of each day of the week where activity happened
+    for date in date_counts:
+        if date < start_date:
+            continue
+        if date_counts[date] > 0:
+            day_name = date.strftime("%A")  # Get full day name
+            day_counts[day_name] += 1
+            total_active_days += 1
+
+    if not total_active_days:
+        return None, 0
+
+    # Find the most active day
+    most_active_day = max(day_counts.items(), key=lambda x: x[1])
+    percentage = (most_active_day[1] / total_active_days) * 100
+
+    return most_active_day[0], round(percentage)
+
+
+def calculate_streaks(date_counts, end_date):
+    """Calculate current and longest activity streaks."""
+    # Get active dates and sort them in descending order (newest first)
+    active_dates = sorted(
+        [date for date, count in date_counts.items() if count > 0],
+        reverse=True,
+    )
+
+    if not active_dates:
+        return 0, 0
+
+    longest_streak = 1
+    streak_count = 1
+
+    # Check if the most recent active date is today/end_date
+    is_current = active_dates[0] == end_date
+
+    current_streak = 1 if is_current else 0
+
+    for i in range(1, len(active_dates)):
+        # Check if this date is consecutive with the previous one
+        if (active_dates[i - 1] - active_dates[i]).days == 1:
+            streak_count += 1
+
+            if is_current:
+                current_streak += 1
+        else:
+            longest_streak = max(longest_streak, streak_count)
+            streak_count = 1
+
+            if is_current:
+                is_current = False
+
+    # Check final streak for longest calculation
+    # needed if the last date is today/end_date
+    longest_streak = max(longest_streak, streak_count)
+
+    return current_streak, longest_streak

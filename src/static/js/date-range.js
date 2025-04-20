@@ -1,4 +1,4 @@
-function dateRangePicker(earliestInteractionDate) {
+function dateRangePicker() {
   return {
     isOpen: false,
     activeTab: "predefined",
@@ -8,7 +8,6 @@ function dateRangePicker(earliestInteractionDate) {
       .split("T")[0],
     endDate: new Date().toISOString().split("T")[0],
     customRangeLabel: "",
-    earliestDate: earliestInteractionDate,
 
     predefinedRanges: [
       { name: "Today" },
@@ -56,6 +55,8 @@ function dateRangePicker(earliestInteractionDate) {
       today.setHours(0, 0, 0, 0);
       let start = new Date(today);
       let end = new Date(today);
+
+      let shouldFormatDates = true;
 
       switch (rangeName) {
         case "Today":
@@ -133,14 +134,17 @@ function dateRangePicker(earliestInteractionDate) {
           break;
 
         case "All Time":
-          start = new Date(this.earliestDate);
-          end = new Date(today);
+          this.startDate = "all";
+          this.endDate = "all";
+          shouldFormatDates = false;
           break;
       }
 
-      // Format dates as YYYY-MM-DD strings
-      this.startDate = this.formatDateForInput(start);
-      this.endDate = this.formatDateForInput(end);
+      // Format dates as YYYY-MM-DD strings only if not "All Time"
+      if (shouldFormatDates) {
+        this.startDate = this.formatDateForInput(start);
+        this.endDate = this.formatDateForInput(end);
+      }
     },
 
     formatDateForInput(date) {
@@ -188,6 +192,11 @@ function dateRangePicker(earliestInteractionDate) {
     },
 
     detectRangeFromDates() {
+      // Check for All Time (arbitrary start date)
+      if (this.startDate === "all" && this.endDate === "all") {
+        this.selectedRange = "All Time";
+        return;
+      }
       // Parse the current start and end dates
       const startDate = new Date(this.startDate);
       const endDate = new Date(this.endDate);
@@ -304,13 +313,6 @@ function dateRangePicker(earliestInteractionDate) {
         isSameDay(endDate, today)
       ) {
         this.selectedRange = "Last 12 Months";
-        return;
-      }
-
-      // Check for All Time (arbitrary start date)
-      const allTimeStart = new Date(this.earliestDate);
-      if (isSameDay(startDate, allTimeStart) && isSameDay(endDate, today)) {
-        this.selectedRange = "All Time";
         return;
       }
 

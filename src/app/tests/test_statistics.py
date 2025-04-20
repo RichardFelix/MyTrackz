@@ -21,6 +21,456 @@ from app.models import (
 User = get_user_model()
 
 
+class StatisticsDateFilteringTests(TestCase):
+    """Test the date filtering functionality in the statistics module."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.credentials = {"username": "testuser", "password": "testpassword"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+
+        # Create some test items
+        self.tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Test TV Show",
+        )
+
+        # Create season item
+        self.season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test TV Show",
+            season_number=1,
+        )
+
+        # Create episode items
+        self.episode1_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test TV Show",
+            season_number=1,
+            episode_number=1,
+        )
+
+        self.episode2_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test TV Show",
+            season_number=1,
+            episode_number=2,
+        )
+
+        # Create items for different date scenarios
+        self.movie1_item = Item.objects.create(
+            media_id="238",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with start and end dates",
+        )
+
+        self.movie2_item = Item.objects.create(
+            media_id="239",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with only start date",
+        )
+
+        self.movie3_item = Item.objects.create(
+            media_id="240",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with only end date",
+        )
+
+        self.movie4_item = Item.objects.create(
+            media_id="241",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with no dates",
+        )
+
+        self.movie5_item = Item.objects.create(
+            media_id="242",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie outside date range (before)",
+        )
+
+        self.movie6_item = Item.objects.create(
+            media_id="243",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie outside date range (after)",
+        )
+
+        self.movie7_item = Item.objects.create(
+            media_id="244",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie partially in range (starts before, ends in range)",
+        )
+
+        self.movie8_item = Item.objects.create(
+            media_id="245",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie partially in range (starts in range, ends after)",
+        )
+
+        # Create test media
+        self.tv = TV.objects.create(
+            user=self.user,
+            item=self.tv_item,
+            status=Media.Status.IN_PROGRESS.value,
+            score=8.5,
+        )
+
+        self.season = Season.objects.create(
+            user=self.user,
+            item=self.season_item,
+            related_tv=self.tv,
+            status=Media.Status.IN_PROGRESS.value,
+            score=8.0,
+        )
+
+        # Create episodes
+        self.episode1 = Episode.objects.create(
+            item=self.episode1_item,
+            related_season=self.season,
+            end_date=datetime.date(2025, 1, 1),
+        )
+
+        self.episode2 = Episode.objects.create(
+            item=self.episode2_item,
+            related_season=self.season,
+            end_date=datetime.date(2025, 1, 15),
+        )
+
+        # Create movies for different date scenarios
+        # Case 1: Movie with both start and end dates within range
+        self.movie1 = Movie.objects.create(
+            user=self.user,
+            item=self.movie1_item,
+            status=Media.Status.COMPLETED.value,
+            score=7.5,
+            start_date=datetime.date(2025, 2, 10),
+            end_date=datetime.date(2025, 2, 10),
+        )
+
+        # Case 2: Movie with only start date within range
+        self.movie2 = Movie.objects.create(
+            user=self.user,
+            item=self.movie2_item,
+            status=Media.Status.IN_PROGRESS.value,
+            score=8.0,
+            start_date=datetime.date(2025, 2, 15),
+            end_date=None,
+        )
+
+        # Case 3: Movie with only end date within range
+        self.movie3 = Movie.objects.create(
+            user=self.user,
+            item=self.movie3_item,
+            status=Media.Status.COMPLETED.value,
+            score=6.5,
+            start_date=None,
+            end_date=datetime.date(2025, 2, 20),
+        )
+
+        # Case 4: Movie with no dates
+        self.movie4 = Movie.objects.create(
+            user=self.user,
+            item=self.movie4_item,
+            status=Media.Status.PLANNING.value,
+            score=None,
+            start_date=None,
+            end_date=None,
+        )
+
+        # Case 5: Movie with dates before range
+        self.movie5 = Movie.objects.create(
+            user=self.user,
+            item=self.movie5_item,
+            status=Media.Status.COMPLETED.value,
+            score=9.0,
+            start_date=datetime.date(2025, 1, 10),
+            end_date=datetime.date(2025, 1, 15),
+        )
+
+        # Case 6: Movie with dates after range
+        self.movie6 = Movie.objects.create(
+            user=self.user,
+            item=self.movie6_item,
+            status=Media.Status.PLANNING.value,
+            score=None,
+            start_date=datetime.date(2025, 3, 10),
+            end_date=datetime.date(2025, 3, 15),
+        )
+
+        # Case 7: Movie that starts before range but ends within range
+        self.movie7 = Movie.objects.create(
+            user=self.user,
+            item=self.movie7_item,
+            status=Media.Status.COMPLETED.value,
+            score=7.0,
+            start_date=datetime.date(2025, 1, 25),
+            end_date=datetime.date(2025, 2, 5),
+        )
+
+        # Case 8: Movie that starts within range but ends after range
+        self.movie8 = Movie.objects.create(
+            user=self.user,
+            item=self.movie8_item,
+            status=Media.Status.COMPLETED.value,
+            score=8.5,
+            start_date=datetime.date(2025, 2, 25),
+            end_date=datetime.date(2025, 3, 5),
+        )
+
+    def test_all_time_filtering(self):
+        """Test when no date filtering is applied (All Time)."""
+        user_media, media_count = statistics.get_user_media(
+            self.user,
+            None,
+            None,
+        )
+
+        # Should include all media
+        self.assertEqual(media_count["total"], 10)  # TV, Season, and 8 Movies
+        self.assertEqual(media_count[MediaTypes.TV.value], 1)
+        self.assertEqual(media_count[MediaTypes.SEASON.value], 1)
+        self.assertEqual(media_count[MediaTypes.MOVIE.value], 8)
+
+    def test_date_range_filtering(self):
+        """Test filtering with a specific date range."""
+        start_date = datetime.date(2025, 2, 1)
+        end_date = datetime.date(2025, 2, 28)
+
+        user_media, media_count = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        # Should include:
+        # - movie1 (both dates in range)
+        # - movie2 (start date in range)
+        # - movie3 (end date in range)
+        # - movie7 (overlaps with range - starts before, ends in range)
+        # - movie8 (overlaps with range - starts in range, ends after)
+        # Should exclude:
+        # - TV and Season (January episodes)
+        # - movie4 (no dates)
+        # - movie5 (both dates before range)
+        # - movie6 (both dates after range)
+
+        self.assertEqual(media_count[MediaTypes.TV.value], 0)
+        self.assertEqual(media_count[MediaTypes.SEASON.value], 0)
+        self.assertEqual(media_count[MediaTypes.MOVIE.value], 5)
+        self.assertEqual(media_count["total"], 5)
+
+        # Verify the specific movies included
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+        self.assertIn(self.movie1_item.id, movie_ids)
+        self.assertIn(self.movie2_item.id, movie_ids)
+        self.assertIn(self.movie3_item.id, movie_ids)
+        self.assertIn(self.movie7_item.id, movie_ids)
+        self.assertIn(self.movie8_item.id, movie_ids)
+
+        # Verify the excluded movies
+        self.assertNotIn(self.movie4_item.id, movie_ids)
+        self.assertNotIn(self.movie5_item.id, movie_ids)
+        self.assertNotIn(self.movie6_item.id, movie_ids)
+
+    def test_both_dates_filtering(self):
+        """Test filtering for media with both start and end dates."""
+        # Test case where media has both dates within range
+        start_date = datetime.date(2025, 2, 5)
+        end_date = datetime.date(2025, 2, 15)
+
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should include movie1 (dates in range) and movie7 (overlaps)
+        self.assertIn(self.movie1_item.id, movie_ids)
+        self.assertIn(self.movie7_item.id, movie_ids)
+
+        # Should exclude movie5 (before range) and movie6 (after range)
+        self.assertNotIn(self.movie5_item.id, movie_ids)
+        self.assertNotIn(self.movie6_item.id, movie_ids)
+
+    def test_start_date_only_filtering(self):
+        """Test filtering for media with only start date."""
+        start_date = datetime.date(2025, 2, 10)
+        end_date = datetime.date(2025, 2, 20)
+
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should include movie2 (start date in range)
+        self.assertIn(self.movie2_item.id, movie_ids)
+
+        # Create a movie with start date outside range
+        outside_item = Item.objects.create(
+            media_id="246",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with start date outside range",
+        )
+
+        Movie.objects.create(
+            user=self.user,
+            item=outside_item,
+            status=Media.Status.IN_PROGRESS.value,
+            start_date=datetime.date(2025, 3, 1),
+            end_date=None,
+        )
+
+        # Re-run the query
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should not include the movie with start date outside range
+        self.assertNotIn(outside_item.id, movie_ids)
+
+    def test_end_date_only_filtering(self):
+        """Test filtering for media with only end date."""
+        start_date = datetime.date(2025, 2, 10)
+        end_date = datetime.date(2025, 2, 20)
+
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should include movie3 (end date in range)
+        self.assertIn(self.movie3_item.id, movie_ids)
+
+        # Create a movie with end date outside range
+        outside_item = Item.objects.create(
+            media_id="247",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie with end date outside range",
+        )
+
+        Movie.objects.create(
+            user=self.user,
+            item=outside_item,
+            status=Media.Status.COMPLETED.value,
+            start_date=None,
+            end_date=datetime.date(2025, 3, 1),
+        )
+
+        # Re-run the query
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should not include the movie with end date outside range
+        self.assertNotIn(outside_item.id, movie_ids)
+
+    def test_no_dates_filtering(self):
+        """Test that media with no dates is excluded from date-filtered results."""
+        start_date = datetime.date(2025, 2, 1)
+        end_date = datetime.date(2025, 2, 28)
+
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should exclude movie4 (no dates)
+        self.assertNotIn(self.movie4_item.id, movie_ids)
+
+        # But should be included in "All Time" results
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            None,
+            None,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+        self.assertIn(self.movie4_item.id, movie_ids)
+
+    def test_overlapping_ranges(self):
+        """Test media with date ranges that overlap with the filter range."""
+        start_date = datetime.date(2025, 2, 1)
+        end_date = datetime.date(2025, 2, 28)
+
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should include movie7 (starts before range, ends in range)
+        self.assertIn(self.movie7_item.id, movie_ids)
+
+        # Should include movie8 (starts in range, ends after range)
+        self.assertIn(self.movie8_item.id, movie_ids)
+
+        # Create a movie that completely spans the range
+        spanning_item = Item.objects.create(
+            media_id="248",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Movie that spans the entire range",
+        )
+
+        Movie.objects.create(
+            user=self.user,
+            item=spanning_item,
+            status=Media.Status.COMPLETED.value,
+            start_date=datetime.date(2025, 1, 15),
+            end_date=datetime.date(2025, 3, 15),
+        )
+
+        # Re-run the query
+        user_media, _ = statistics.get_user_media(
+            self.user,
+            start_date,
+            end_date,
+        )
+
+        movie_ids = [m.item.id for m in user_media[MediaTypes.MOVIE.value]]
+
+        # Should include the spanning movie
+        self.assertIn(spanning_item.id, movie_ids)
+
+
 class StatisticsTests(TestCase):
     """Test the statistics module functions."""
 
@@ -127,6 +577,219 @@ class StatisticsTests(TestCase):
             start_date=datetime.date(2025, 3, 1),
             end_date=datetime.date(2025, 3, 31),
         )
+
+    def test_get_media_type_distribution(self):
+        """Test the get_media_type_distribution function."""
+        media_count = {
+            "total": 3,
+            MediaTypes.TV: 1,
+            MediaTypes.MOVIE: 1,
+            MediaTypes.ANIME: 1,
+            MediaTypes.BOOK: 0,  # Should be excluded
+        }
+
+        chart_data = statistics.get_media_type_distribution(media_count)
+
+        # Check structure
+        self.assertIn("labels", chart_data)
+        self.assertIn("datasets", chart_data)
+        self.assertEqual(len(chart_data["datasets"]), 1)
+        self.assertIn("data", chart_data["datasets"][0])
+        self.assertIn("backgroundColor", chart_data["datasets"][0])
+
+        # Check content
+        self.assertEqual(len(chart_data["labels"]), 3)  # 3 media types with count > 0
+        self.assertEqual(len(chart_data["datasets"][0]["data"]), 3)
+        self.assertEqual(len(chart_data["datasets"][0]["backgroundColor"]), 3)
+
+        # Book should be excluded (count = 0)
+        self.assertNotIn("Book", chart_data["labels"])
+
+    def test_get_status_distribution(self):
+        """Test the get_status_distribution function."""
+        # Create user_media dict with our test objects
+        user_media = {
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
+        }
+
+        status_distribution = statistics.get_status_distribution(user_media)
+
+        # Check structure
+        self.assertIn("labels", status_distribution)
+        self.assertIn("datasets", status_distribution)
+        self.assertIn("total_completed", status_distribution)
+
+        # Check content
+        self.assertEqual(len(status_distribution["labels"]), 3)  # 3 media types
+        self.assertEqual(
+            len(status_distribution["datasets"]),
+            len(Media.Status.values),
+        )  # All statuses
+
+        # Check total completed count
+        self.assertEqual(
+            status_distribution["total_completed"],
+            1,
+        )  # Only anime is completed
+
+        # Check individual status counts
+        completed_dataset = next(
+            d
+            for d in status_distribution["datasets"]
+            if d["label"] == Media.Status.COMPLETED.value
+        )
+        in_progress_dataset = next(
+            d
+            for d in status_distribution["datasets"]
+            if d["label"] == Media.Status.IN_PROGRESS.value
+        )
+        planning_dataset = next(
+            d
+            for d in status_distribution["datasets"]
+            if d["label"] == Media.Status.PLANNING.value
+        )
+
+        self.assertEqual(completed_dataset["total"], 1)  # Anime
+        self.assertEqual(in_progress_dataset["total"], 1)  # TV
+        self.assertEqual(planning_dataset["total"], 1)  # Movie
+
+    def test_get_status_pie_chart_data(self):
+        """Test the get_status_pie_chart_data function."""
+        # Create sample status distribution
+        status_distribution = {
+            "labels": ["TV", "Movie", "Anime"],
+            "datasets": [
+                {
+                    "label": Media.Status.COMPLETED.value,
+                    "data": [1, 0, 0],
+                    "background_color": "#10b981",
+                    "total": 1,
+                },
+                {
+                    "label": Media.Status.IN_PROGRESS.value,
+                    "data": [0, 1, 0],
+                    "background_color": "#6366f1",
+                    "total": 1,
+                },
+                {
+                    "label": Media.Status.PLANNING.value,
+                    "data": [0, 0, 1],
+                    "background_color": "#3b82f6",
+                    "total": 1,
+                },
+                {
+                    "label": Media.Status.PAUSED.value,
+                    "data": [0, 0, 0],
+                    "background_color": "#f97316",
+                    "total": 0,
+                },
+            ],
+            "total_completed": 1,
+        }
+
+        chart_data = statistics.get_status_pie_chart_data(status_distribution)
+
+        # Check structure
+        self.assertIn("labels", chart_data)
+        self.assertIn("datasets", chart_data)
+        self.assertEqual(len(chart_data["datasets"]), 1)
+        self.assertIn("data", chart_data["datasets"][0])
+        self.assertIn("backgroundColor", chart_data["datasets"][0])
+
+        # Check content - should only include statuses with count > 0
+        self.assertEqual(len(chart_data["labels"]), 3)
+        self.assertEqual(len(chart_data["datasets"][0]["data"]), 3)
+        self.assertEqual(len(chart_data["datasets"][0]["backgroundColor"]), 3)
+
+        # PAUSED status should be excluded (total = 0)
+        self.assertNotIn(Media.Status.PAUSED.value, chart_data["labels"])
+
+    def test_get_score_distribution(self):
+        """Test the get_score_distribution function."""
+        # Create user_media dict with our test objects
+        user_media = {
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
+        }
+
+        score_distribution = statistics.get_score_distribution(user_media)
+
+        # Check structure
+        self.assertIn("labels", score_distribution)
+        self.assertIn("datasets", score_distribution)
+        self.assertIn("average_score", score_distribution)
+        self.assertIn("total_scored", score_distribution)
+        self.assertIn("top_rated", score_distribution)
+
+        # Check content
+        self.assertEqual(len(score_distribution["labels"]), 11)  # Scores 0-10
+        self.assertEqual(len(score_distribution["datasets"]), 3)  # 3 media types
+
+        # Check average score and total scored
+        self.assertEqual(
+            score_distribution["total_scored"],
+            2,
+        )  # TV and Movie have scores
+        self.assertEqual(score_distribution["average_score"], 8.0)  # (8.5 + 7.5) / 2
+
+        # Check top rated
+        self.assertEqual(
+            len(score_distribution["top_rated"]),
+            2,
+        )  # Only 2 items have scores
+        self.assertEqual(
+            score_distribution["top_rated"][0]["score"],
+            8.5,
+        )  # TV should be first
+        self.assertEqual(
+            score_distribution["top_rated"][1]["score"],
+            7.5,
+        )  # Movie should be second
+
+    def test_get_status_color(self):
+        """Test the get_status_color function."""
+        # Test all status colors
+        for status in Media.Status.values:
+            color = statistics.get_status_color(status)
+            self.assertIsNotNone(color)
+            self.assertTrue(color.startswith("#"))
+
+        # Test unknown status
+        unknown_color = statistics.get_status_color("unknown")
+        self.assertEqual(unknown_color, "rgba(201, 203, 207)")
+
+    def test_get_timeline(self):
+        """Test the get_timeline function."""
+        # Create user_media dict with our test objects
+        user_media = {
+            MediaTypes.TV.value: TV.objects.filter(user=self.user),
+            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
+            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
+            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
+        }
+        timeline = statistics.get_timeline(user_media)
+
+        # Check structure - should be a dict with month-year keys
+        self.assertIsInstance(timeline, dict)
+
+        # Check content
+        self.assertIn("January 2025", timeline)  # Season spans Jan 1-15
+        self.assertIn("February 2025", timeline)  # Movie on Feb 1
+        self.assertIn("March 2025", timeline)  # Anime starts on Mar 1
+
+        # Check items in each month
+        self.assertEqual(len(timeline["January 2025"]), 1)  # Season
+        self.assertEqual(len(timeline["February 2025"]), 1)  # Movie
+        self.assertEqual(len(timeline["March 2025"]), 1)  # Anime
+
+        # Check sorting - should be in chronological order
+        months = list(timeline.keys())
+        self.assertEqual(months[0], "March 2025")  # Most recent first
+        self.assertEqual(months[1], "February 2025")
+        self.assertEqual(months[2], "January 2025")
 
     def test_get_level(self):
         """Test the get_level function."""
@@ -367,256 +1030,3 @@ class StatisticsTests(TestCase):
         )
         self.assertEqual(current_streak, 0)
         self.assertEqual(longest_streak, 0)
-
-    def test_get_user_media(self):
-        """Test the get_user_media function."""
-        start_date = datetime.date(2025, 1, 1)
-        end_date = datetime.date(2025, 3, 31)
-
-        user_media, media_count = statistics.get_user_media(
-            self.user,
-            start_date,
-            end_date,
-        )
-
-        # Check that we have the expected media types
-        self.assertIn(MediaTypes.TV, user_media)
-        self.assertIn(MediaTypes.SEASON, user_media)
-        self.assertIn(MediaTypes.MOVIE, user_media)
-        self.assertIn(MediaTypes.ANIME, user_media)
-
-        # Check counts
-        self.assertEqual(media_count["total"], 4)  # TV, Season, Movie, Anime
-        self.assertEqual(media_count[MediaTypes.TV], 1)
-        self.assertEqual(media_count[MediaTypes.SEASON], 1)
-        self.assertEqual(media_count[MediaTypes.MOVIE], 1)
-        self.assertEqual(media_count[MediaTypes.ANIME], 1)
-
-        # Test with different date range
-        start_date = datetime.date(2025, 2, 1)
-        end_date = datetime.date(2025, 2, 28)
-
-        user_media, media_count = statistics.get_user_media(
-            self.user,
-            start_date,
-            end_date,
-        )
-
-        # Should only include movie (TV, Season, and episodes are in January)
-        self.assertEqual(media_count["total"], 1)
-        self.assertEqual(media_count[MediaTypes.MOVIE], 1)
-        self.assertEqual(media_count[MediaTypes.TV], 0)
-        self.assertEqual(media_count[MediaTypes.SEASON], 0)
-
-    def test_get_media_type_distribution(self):
-        """Test the get_media_type_distribution function."""
-        media_count = {
-            "total": 3,
-            MediaTypes.TV: 1,
-            MediaTypes.MOVIE: 1,
-            MediaTypes.ANIME: 1,
-            MediaTypes.BOOK: 0,  # Should be excluded
-        }
-
-        chart_data = statistics.get_media_type_distribution(media_count)
-
-        # Check structure
-        self.assertIn("labels", chart_data)
-        self.assertIn("datasets", chart_data)
-        self.assertEqual(len(chart_data["datasets"]), 1)
-        self.assertIn("data", chart_data["datasets"][0])
-        self.assertIn("backgroundColor", chart_data["datasets"][0])
-
-        # Check content
-        self.assertEqual(len(chart_data["labels"]), 3)  # 3 media types with count > 0
-        self.assertEqual(len(chart_data["datasets"][0]["data"]), 3)
-        self.assertEqual(len(chart_data["datasets"][0]["backgroundColor"]), 3)
-
-        # Book should be excluded (count = 0)
-        self.assertNotIn("Book", chart_data["labels"])
-
-    def test_get_status_distribution(self):
-        """Test the get_status_distribution function."""
-        # Create user_media dict with our test objects
-        user_media = {
-            MediaTypes.TV.value: TV.objects.filter(user=self.user),
-            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
-            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
-        }
-
-        status_distribution = statistics.get_status_distribution(user_media)
-
-        # Check structure
-        self.assertIn("labels", status_distribution)
-        self.assertIn("datasets", status_distribution)
-        self.assertIn("total_completed", status_distribution)
-
-        # Check content
-        self.assertEqual(len(status_distribution["labels"]), 3)  # 3 media types
-        self.assertEqual(
-            len(status_distribution["datasets"]),
-            len(Media.Status.values),
-        )  # All statuses
-
-        # Check total completed count
-        self.assertEqual(
-            status_distribution["total_completed"],
-            1,
-        )  # Only anime is completed
-
-        # Check individual status counts
-        completed_dataset = next(
-            d
-            for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.COMPLETED.value
-        )
-        in_progress_dataset = next(
-            d
-            for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.IN_PROGRESS.value
-        )
-        planning_dataset = next(
-            d
-            for d in status_distribution["datasets"]
-            if d["label"] == Media.Status.PLANNING.value
-        )
-
-        self.assertEqual(completed_dataset["total"], 1)  # Anime
-        self.assertEqual(in_progress_dataset["total"], 1)  # TV
-        self.assertEqual(planning_dataset["total"], 1)  # Movie
-
-    def test_get_status_pie_chart_data(self):
-        """Test the get_status_pie_chart_data function."""
-        # Create sample status distribution
-        status_distribution = {
-            "labels": ["TV", "Movie", "Anime"],
-            "datasets": [
-                {
-                    "label": Media.Status.COMPLETED.value,
-                    "data": [1, 0, 0],
-                    "background_color": "#10b981",
-                    "total": 1,
-                },
-                {
-                    "label": Media.Status.IN_PROGRESS.value,
-                    "data": [0, 1, 0],
-                    "background_color": "#6366f1",
-                    "total": 1,
-                },
-                {
-                    "label": Media.Status.PLANNING.value,
-                    "data": [0, 0, 1],
-                    "background_color": "#3b82f6",
-                    "total": 1,
-                },
-                {
-                    "label": Media.Status.PAUSED.value,
-                    "data": [0, 0, 0],
-                    "background_color": "#f97316",
-                    "total": 0,
-                },
-            ],
-            "total_completed": 1,
-        }
-
-        chart_data = statistics.get_status_pie_chart_data(status_distribution)
-
-        # Check structure
-        self.assertIn("labels", chart_data)
-        self.assertIn("datasets", chart_data)
-        self.assertEqual(len(chart_data["datasets"]), 1)
-        self.assertIn("data", chart_data["datasets"][0])
-        self.assertIn("backgroundColor", chart_data["datasets"][0])
-
-        # Check content - should only include statuses with count > 0
-        self.assertEqual(len(chart_data["labels"]), 3)
-        self.assertEqual(len(chart_data["datasets"][0]["data"]), 3)
-        self.assertEqual(len(chart_data["datasets"][0]["backgroundColor"]), 3)
-
-        # PAUSED status should be excluded (total = 0)
-        self.assertNotIn(Media.Status.PAUSED.value, chart_data["labels"])
-
-    def test_get_score_distribution(self):
-        """Test the get_score_distribution function."""
-        # Create user_media dict with our test objects
-        user_media = {
-            MediaTypes.TV.value: TV.objects.filter(user=self.user),
-            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
-            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
-        }
-
-        score_distribution = statistics.get_score_distribution(user_media)
-
-        # Check structure
-        self.assertIn("labels", score_distribution)
-        self.assertIn("datasets", score_distribution)
-        self.assertIn("average_score", score_distribution)
-        self.assertIn("total_scored", score_distribution)
-        self.assertIn("top_rated", score_distribution)
-
-        # Check content
-        self.assertEqual(len(score_distribution["labels"]), 11)  # Scores 0-10
-        self.assertEqual(len(score_distribution["datasets"]), 3)  # 3 media types
-
-        # Check average score and total scored
-        self.assertEqual(
-            score_distribution["total_scored"],
-            2,
-        )  # TV and Movie have scores
-        self.assertEqual(score_distribution["average_score"], 8.0)  # (8.5 + 7.5) / 2
-
-        # Check top rated
-        self.assertEqual(
-            len(score_distribution["top_rated"]),
-            2,
-        )  # Only 2 items have scores
-        self.assertEqual(
-            score_distribution["top_rated"][0]["score"],
-            8.5,
-        )  # TV should be first
-        self.assertEqual(
-            score_distribution["top_rated"][1]["score"],
-            7.5,
-        )  # Movie should be second
-
-    def test_get_status_color(self):
-        """Test the get_status_color function."""
-        # Test all status colors
-        for status in Media.Status.values:
-            color = statistics.get_status_color(status)
-            self.assertIsNotNone(color)
-            self.assertTrue(color.startswith("#"))
-
-        # Test unknown status
-        unknown_color = statistics.get_status_color("unknown")
-        self.assertEqual(unknown_color, "rgba(201, 203, 207)")
-
-    def test_get_timeline(self):
-        """Test the get_timeline function."""
-        # Create user_media dict with our test objects
-        user_media = {
-            MediaTypes.TV.value: TV.objects.filter(user=self.user),
-            MediaTypes.SEASON.value: Season.objects.filter(user=self.user),
-            MediaTypes.MOVIE.value: Movie.objects.filter(user=self.user),
-            MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
-        }
-        timeline = statistics.get_timeline(user_media)
-
-        # Check structure - should be a dict with month-year keys
-        self.assertIsInstance(timeline, dict)
-
-        # Check content
-        self.assertIn("January 2025", timeline)  # Season spans Jan 1-15
-        self.assertIn("February 2025", timeline)  # Movie on Feb 1
-        self.assertIn("March 2025", timeline)  # Anime starts on Mar 1
-
-        # Check items in each month
-        self.assertEqual(len(timeline["January 2025"]), 1)  # Season
-        self.assertEqual(len(timeline["February 2025"]), 1)  # Movie
-        self.assertEqual(len(timeline["March 2025"]), 1)  # Anime
-
-        # Check sorting - should be in chronological order
-        months = list(timeline.keys())
-        self.assertEqual(months[0], "March 2025")  # Most recent first
-        self.assertEqual(months[1], "February 2025")
-        self.assertEqual(months[2], "January 2025")
