@@ -631,8 +631,8 @@
 {% block js %}
   <script src="{% static 'js/date-range.js' %}"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="{% static 'js/libraries/chartjs-4.4.9.min.js' %}"></script>
+  <script src="{% static 'js/libraries/chartjs-datalabels-2.0.0.min.js' %}"></script>
 
   <!-- JSON data for charts -->
   {{ media_type_distribution|json_script:"media_type_distribution" }}

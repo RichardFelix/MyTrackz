@@ -279,19 +279,18 @@ DEBUG_TOOLBAR_CONFIG = {
     "SKIP_TEMPLATE_PREFIXES": (
         "django/forms/widgets/",
         "admin/widgets/",
-        "app/components/",
     ),
     "ROOT_TAG_EXTRA_ATTRS": "hx-preserve",
 }
 
 SELECT2_CACHE_BACKEND = "default"
 SELECT2_JS = [
-    "https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js",
-    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js",
+    "js/libraries/jquery-3.7.1.min.js",
+    "js/libraries/select2-4.1.0.min.js",
 ]
 SELECT2_I18N_PATH = "js/i18n"
 SELECT2_CSS = [
-    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css",
+    "css/libraries/select2-4.1.0.min.css",
 ]
 SELECT2_THEME = "tailwindcss-4"
 
