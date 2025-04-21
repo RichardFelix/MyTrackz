@@ -9,22 +9,19 @@
 {% block content %}
   <h1 class="text-3xl font-bold mb-6">{{ media_type|media_type_readable_plural }}</h1>
 
-  <div x-data="{
-    sort: '{{ current_sort }}',
-    status: '{{ current_status }}',
-    layout: '{{ current_layout }}',
-    search: '{{ request.GET.search|default:'' }}',
-    statusLabels: {
-      {% for value, label in status_choices %}
-        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    },
-    sortLabels: {
-      {% for value, label in sort_choices %}
-        '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    }
-  }">
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', statusLabels: {
+    {% for value, label in status_choices %}
+      '{{ value }}': '{{ label }}'
+      {% if not forloop.last %},{% endif %}
+
+    {% endfor %}
+    }, sortLabels: {
+    {% for value, label in sort_choices %}
+      '{{ value }}': '{{ label }}'
+      {% if not forloop.last %},{% endif %}
+
+    {% endfor %}
+    } }">
 
     <!-- Form to manage state -->
     <form id="filter-form" class="hidden">
@@ -265,6 +262,7 @@
               <th class="p-2 w-2/5">Title</th>
               <th class="p-2 text-center">Score</th>
               <th class="p-2 text-center">Progress</th>
+              {% if media_type == MediaTypes.TV.value %}<th class="p-2 text-center">Last Watched</th>{% endif %}
               <th class="p-2 text-center">Status</th>
               <th class="p-2 text-center">Start Date</th>
               <th class="p-2 text-center">End Date</th>

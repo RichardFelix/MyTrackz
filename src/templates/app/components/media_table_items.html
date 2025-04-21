@@ -79,8 +79,16 @@
         </div>
       </td>
     {% endif %}
-    <td class="p-2 text-center">{{ media.progress }}</td>
+
+    {% if media_type == MediaTypes.TV.value %}
+      <td class="p-2 text-center">{{ media.progress }}</td>
+      <td class="p-2 text-center">{{ media.formatted_progress }}</td>
+    {% else %}
+      <td class="p-2 text-center">{{ media.formatted_progress }}</td>
+    {% endif %}
+
     <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
+  
     {% if media.start_date %}
       <td class="p-2 text-center">{{ media.start_date|date:"Y-m-d" }}</td>
     {% else %}
@@ -88,6 +96,7 @@
         <span class="text-gray-500">-</span>
       </td>
     {% endif %}
+  
     {% if media.end_date %}
       <td class="p-2 text-center">{{ media.end_date|date:"Y-m-d" }}</td>
     {% else %}

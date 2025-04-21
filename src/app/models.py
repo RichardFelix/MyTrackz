@@ -27,6 +27,7 @@ from model_utils import FieldTracker
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
+import app
 import events
 import users
 from app import providers
@@ -624,6 +625,11 @@ class Media(CalendarTriggerMixin, models.Model):
         ):
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
+    @property
+    def formatted_progress(self):
+        """Return the progress of the media in a formatted string."""
+        return str(self.progress)
+
     def increase_progress(self):
         """Increase the progress of the media by one."""
         self.progress += 1
@@ -666,6 +672,33 @@ class TV(Media):
     def progress(self):
         """Return the total episodes watched for the TV show."""
         return sum(season.progress for season in self.seasons.all())
+
+    @property
+    def formatted_progress(self):
+        """Return the latest watched episode in SxxExx format."""
+        if not hasattr(self, "seasons"):
+            return ""
+
+        watched_episodes = [
+            {
+                "season": season.item.season_number,
+                "episode": episode.item.episode_number,
+            }
+            for season in self.seasons.all()
+            if hasattr(season, "episodes")
+            for episode in season.episodes.all()
+        ]
+
+        if not watched_episodes:
+            return ""
+
+        # Find the episode with highest season and episode numbers
+        latest_episode = max(
+            watched_episodes,
+            key=lambda x: (x["season"], x["episode"]),
+        )
+
+        return f"S{latest_episode['season']:02d}E{latest_episode['episode']:02d}"
 
     @property
     def repeats(self):
@@ -1162,6 +1195,11 @@ class Game(Media):
     """Model for games."""
 
     tracker = FieldTracker()
+
+    @property
+    def formatted_progress(self):
+        """Return progress in hours:minutes format."""
+        return app.helpers.minutes_to_hhmm(self.progress)
 
     def increase_progress(self):
         """Increase the progress of the media by 30 minutes."""
