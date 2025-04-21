@@ -3,7 +3,7 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, models
 from django.db.models import prefetch_related_objects
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -17,6 +17,7 @@ from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season, Sources
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
+from events.models import Event
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
@@ -28,20 +29,20 @@ def home(request):
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
 
+    list_by_type = BasicMedia.objects.get_in_progress(request.user, sort_by)
+    for media_type, media_data in list_by_type.items():
+        media_data["items"] = BasicMedia.objects.annotate_max_progress(
+            media_data["items"],
+            media_type,
+        )
+
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
-        list_by_type = BasicMedia.objects.get_in_progress(
-            request.user,
-            sort_by,
-            media_type_to_load,
-        )
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
         }
         return render(request, "app/components/home_grid.html", context)
 
-    # Regular page load
-    list_by_type = BasicMedia.objects.get_in_progress(request.user, sort_by)
     context = {
         "list_by_type": list_by_type,
         "current_sort": sort_by,
@@ -79,18 +80,13 @@ def progress_edit(request):
             media.refresh_from_db()
             prefetch_related_objects([media], "episodes")
 
-            season_numbers = [item.season_number]
-        else:
-            season_numbers = None
+        current_datetime = timezone.now()
+        max_episode = Event.objects.filter(
+            item__id=item.id,
+            datetime__lte=current_datetime,
+        ).aggregate(max_ep=models.Max("episode_number"))["max_ep"]
 
-        media_metadata = services.get_media_metadata(
-            item.media_type,
-            item.media_id,
-            item.source,
-            season_numbers=season_numbers,
-        )
-        max_progress = media_metadata["max_progress"]
-        media.max_progress = max_progress
+        media.max_progress = max_episode or None
         context = {
             "media": media,
         }
@@ -144,6 +140,11 @@ def media_list(request, media_type):
     items_per_page = 32
     paginator = Paginator(media_queryset, items_per_page)
     media_page = paginator.get_page(page)
+
+    media_page.object_list = BasicMedia.objects.annotate_max_progress(
+        media_page.object_list,
+        media_type,
+    )
 
     context = {
         "media_type": media_type,

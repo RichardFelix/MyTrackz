@@ -220,6 +220,11 @@ class MediaManager(models.Manager):
                     "seasons__episodes",
                     queryset=Episode.objects.select_related("item"),
                 ),
+                Prefetch(
+                    "seasons__item__event_set",
+                    queryset=events.models.Event.objects.all(),
+                    to_attr="prefetched_events",
+                ),
             )
         if media_type == MediaTypes.SEASON.value:
             return queryset.prefetch_related(
@@ -236,11 +241,6 @@ class MediaManager(models.Manager):
         sort_is_property = sort_filter in [
             name for name in dir(model) if isinstance(getattr(model, name), property)
         ]
-
-        # Check if sort_filter is a field on the Item model
-        sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
-
-        # Handle property-based sorting for TV and Season
         if (
             media_type in (MediaTypes.TV.value, MediaTypes.SEASON.value)
             and sort_is_property
@@ -248,6 +248,7 @@ class MediaManager(models.Manager):
             return self._sort_by_property(queryset, sort_filter)
 
         # Handle sorting by Item fields
+        sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
         if sort_is_item_field:
             sort_field = f"item__{sort_filter}"
             return queryset.order_by(
@@ -316,11 +317,6 @@ class MediaManager(models.Manager):
 
             if not media_list.exists():
                 continue
-
-            # Add common annotations for all media types
-            media_list = media_list.annotate(
-                max_progress=Max("item__event__episode_number"),
-            )
 
             # Prefetch the next event for each media item
             media_list = media_list.prefetch_related(
@@ -471,6 +467,70 @@ class MediaManager(models.Manager):
                 ),
             )
         return media_list
+
+    def annotate_max_progress(self, queryset, media_type):
+        """Annotate max_progress only for the current page items."""
+        current_datetime = timezone.now()
+        if media_type == MediaTypes.TV.value:
+            return self._annotate_tv_released_episodes(queryset, current_datetime)
+
+        if isinstance(queryset, list):
+            return self.annotate_list_max_progress(queryset, current_datetime)
+
+        return queryset.annotate(
+            max_progress=models.Max(
+                "item__event__episode_number",
+                filter=models.Q(item__event__datetime__lte=current_datetime),
+            ),
+        )
+
+    def annotate_list_max_progress(self, queryset, current_datetime):
+        """Annotate max_progress for a list of media items."""
+        item_ids = [media.item_id for media in queryset]
+        max_progress_map = (
+            events.models.Event.objects.filter(
+                item_id__in=item_ids,
+                datetime__lte=current_datetime,
+            )
+            .values("item_id")
+            .annotate(max_ep=models.Max("episode_number"))
+        )
+
+        max_progress_dict = {
+            item["item_id"]: item["max_ep"] for item in max_progress_map
+        }
+
+        for media in queryset:
+            media.max_progress = max_progress_dict.get(media.item_id)
+
+        return queryset
+
+    def _annotate_tv_released_episodes(self, queryset, current_datetime):
+        """Annotate TV shows with the number of released episodes."""
+        for tv in queryset:
+            total_released_episodes = 0
+            if hasattr(tv, "seasons"):
+                for season in tv.seasons.all():
+                    if (
+                        hasattr(season.item, "prefetched_events")
+                        and season.item.season_number != 0
+                    ):
+                        # Filter events by datetime and find max episode number
+                        released_events = [
+                            event
+                            for event in season.item.prefetched_events
+                            if event.datetime <= current_datetime
+                            and event.episode_number is not None
+                        ]
+                        max_episode = max(
+                            [event.episode_number for event in released_events],
+                            default=0,
+                        )
+
+                        total_released_episodes += max_episode
+            tv.max_progress = total_released_episodes
+
+        return queryset
 
     def get_media(
         self,
@@ -671,7 +731,11 @@ class TV(Media):
     @property
     def progress(self):
         """Return the total episodes watched for the TV show."""
-        return sum(season.progress for season in self.seasons.all())
+        return sum(
+            season.progress
+            for season in self.seasons.all()
+            if season.item.season_number != 0
+        )
 
     @property
     def formatted_progress(self):
