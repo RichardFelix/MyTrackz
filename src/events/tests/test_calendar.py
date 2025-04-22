@@ -446,8 +446,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(events_bulk[0].item, self.movie_item)
         self.assertEqual(
             events_bulk[0].episode_number,
-            1,
-        )  # Movies have episode_number=1
+            None,
+        )
 
         # Verify the date was parsed correctly
         expected_date = date_parser("1999-10-15")

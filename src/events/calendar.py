@@ -162,19 +162,15 @@ def filter_items_needing_events(items):
     ).order_by("-datetime")
 
     # Apply filters to identify items needing events
-    return (
-        items.annotate(
-            event_count=Count("event"),
-            latest_comic_event=Subquery(recent_comic_events.values("datetime")[:1]),
-        )
-        .filter(
-            Q(Exists(future_events))  # has future events
-            | Q(event__isnull=True)  # no events
-            | (
-                Q(media_type=MediaTypes.COMIC.value)
-                & Q(latest_comic_event__isnull=False)
-            ),  # comics with recent events
-        )
+    return items.annotate(
+        event_count=Count("event"),
+        latest_comic_event=Subquery(recent_comic_events.values("datetime")[:1]),
+    ).filter(
+        Q(Exists(future_events))  # has future events
+        | Q(event__isnull=True)  # no events
+        | (
+            Q(media_type=MediaTypes.COMIC.value) & Q(latest_comic_event__isnull=False)
+        ),  # comics with recent events
     )
 
 
@@ -200,7 +196,7 @@ def replace_seasons_with_tv_shows(items):
     non_season_items = items.exclude(media_type=MediaTypes.SEASON.value)
 
     # Combine non-season items with TV shows
-    return (non_season_items | tv_items)
+    return non_season_items | tv_items
 
 
 def process_anime_bulk(items, events_bulk):
@@ -650,7 +646,14 @@ def process_other(item, events_bulk):
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:
             episode_datetime = date_parser(metadata["details"][date_key])
-            episode_number = metadata["max_progress"]
+        except ValueError:
+            pass
+        else:
+            episode_number = (
+                None
+                if item.media_type == MediaTypes.MOVIE.value
+                else metadata["max_progress"]
+            )
             events_bulk.append(
                 Event(
                     item=item,
@@ -658,8 +661,6 @@ def process_other(item, events_bulk):
                     datetime=episode_datetime,
                 ),
             )
-        except ValueError:
-            pass
 
     elif item.source == Sources.MANGAUPDATES.value and metadata["max_progress"]:
         # MangaUpdates doesn't have an end date, so use a placeholder
