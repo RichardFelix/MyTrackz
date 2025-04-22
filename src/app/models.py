@@ -295,7 +295,6 @@ class MediaManager(models.Manager):
 
     def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
         """Get a media list of in progress media by type."""
-        now = timezone.now()
         list_by_type = {}
 
         media_types_to_process = self._get_media_types_to_process(
@@ -318,22 +317,9 @@ class MediaManager(models.Manager):
             if not media_list.exists():
                 continue
 
-            # Prefetch the next event for each media item
-            media_list = media_list.prefetch_related(
-                Prefetch(
-                    "item__event_set",
-                    queryset=events.models.Event.objects.filter(
-                        datetime__gt=now,
-                    ).order_by("datetime"),
-                    to_attr="next_events",
-                ),
-            )
-
-            # Process each media item to attach the next event
-            for media in media_list:
-                media.next_event = (
-                    media.item.next_events[0] if media.item.next_events else None
-                )
+            # Annotate both max_progress and next_event
+            media_list = self.annotate_max_progress(media_list, media_type)
+            media_list = self._annotate_next_event(media_list)
 
             # Apply sorting based on the requested sort criteria
             media_list = self._sort_in_progress_media(media_list, sort_by, media_type)
@@ -376,6 +362,27 @@ class MediaManager(models.Manager):
             for media_type in active_types
             if media_type != MediaTypes.TV.value
         ]
+
+    def _annotate_next_event(self, media_list):
+        """Annotate next_event for media items."""
+        # Prefetch the next event for each media item
+        media_list = media_list.prefetch_related(
+            Prefetch(
+                "item__event_set",
+                queryset=events.models.Event.objects.filter(
+                    datetime__gt=timezone.now(),
+                ).order_by("datetime"),
+                to_attr="next_events",
+            ),
+        )
+
+        # Process each media item to attach the next event
+        for media in media_list:
+            media.next_event = (
+                media.item.next_events[0] if media.item.next_events else None
+            )
+
+        return media_list
 
     def _sort_in_progress_media(self, media_list, sort_by, media_type):
         """Sort in-progress media based on the sort criteria."""
@@ -452,7 +459,7 @@ class MediaManager(models.Manager):
         if sort_by == "completion":
             media_list.sort(
                 key=lambda x: (
-                    x.max_progress is not None,
+                    x.max_progress is not None,  # Items with max_progress first
                     (x.progress / x.max_progress * 100 if x.max_progress else 0),
                     x.item.title,
                 ),
@@ -461,7 +468,7 @@ class MediaManager(models.Manager):
         else:  # episodes_left
             media_list.sort(
                 key=lambda x: (
-                    x.max_progress is not None,
+                    not x.max_progress,  # Items without max_progress last
                     (x.max_progress - x.progress if x.max_progress else 0),
                     x.item.title,
                 ),
