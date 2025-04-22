@@ -297,7 +297,7 @@ class MediaManagerTests(TestCase):
         # Verify prefetch_related was applied
         self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
         prefetch_lookups = prefetched_queryset._prefetch_related_lookups
-        self.assertEqual(len(prefetch_lookups), 2)
+        self.assertEqual(len(prefetch_lookups), 3)
 
         # Test with Season media type
         queryset = Season.objects.filter(user=self.user.id)
@@ -706,15 +706,19 @@ class MediaManagerTests(TestCase):
             progress=20,  # Higher progress
         )
 
-        # Add events for max_progress
-        for i in range(1, 25):
-            # Create the actual Event object
-            Event.objects.create(
-                item=anime_item2,
-                episode_number=i,
-                datetime=timezone.now() - timedelta(days=i),
-                notification_sent=True,
-            )
+        Event.objects.create(
+            item=self.anime_item,
+            episode_number=20,
+            datetime=timezone.now() - timedelta(days=1),
+            notification_sent=True,
+        )
+
+        Event.objects.create(
+            item=anime_item2,
+            episode_number=24,
+            datetime=timezone.now() - timedelta(days=1),
+            notification_sent=True,
+        )
 
         # Test with sort_by='completion'
         in_progress = manager.get_in_progress(
