@@ -644,6 +644,7 @@ class MediaManagerTests(TestCase):
         in_progress = manager.get_in_progress(
             user=self.user,
             sort_by="title",
+            items_limit=14,
         )
 
         # Should include anime, game, and manga (in progress or repeating)
@@ -669,6 +670,7 @@ class MediaManagerTests(TestCase):
         in_progress = manager.get_in_progress(
             user=self.user,
             sort_by="upcoming",
+            items_limit=14,
         )
 
         # Anime should be included because it has upcoming episodes
@@ -718,6 +720,7 @@ class MediaManagerTests(TestCase):
         in_progress = manager.get_in_progress(
             user=self.user,
             sort_by="completion",
+            items_limit=14,
         )
 
         # Anime with higher completion rate should come first
@@ -769,6 +772,7 @@ class MediaManagerTests(TestCase):
         in_progress = manager.get_in_progress(
             user=self.user,
             sort_by="episodes_left",
+            items_limit=14,
         )
 
         # Anime with fewer episodes left should come first

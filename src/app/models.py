@@ -293,7 +293,7 @@ class MediaManager(models.Manager):
         # For non-date properties, sort in descending order
         return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
 
-    def get_in_progress(self, user, sort_by, specific_media_type=None):
+    def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
         """Get a media list of in progress media by type."""
         now = timezone.now()
         list_by_type = {}
@@ -344,8 +344,8 @@ class MediaManager(models.Manager):
             )
 
             # Apply limit based on whether this is a specific type request or dashboard
-            limit = None if specific_media_type else 14
-            offset = 14 if specific_media_type else 0
+            limit = None if specific_media_type else items_limit
+            offset = items_limit if specific_media_type else 0
 
             if isinstance(media_list, list):
                 media_list = (

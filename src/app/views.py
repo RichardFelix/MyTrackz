@@ -28,25 +28,32 @@ def home(request):
     """Home page with media items in progress and repeating."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
-
-    list_by_type = BasicMedia.objects.get_in_progress(request.user, sort_by)
-    for media_type, media_data in list_by_type.items():
-        media_data["items"] = BasicMedia.objects.annotate_max_progress(
-            media_data["items"],
-            media_type,
-        )
+    items_limit = 14
 
     # If this is an HTMX request to load more items for a specific media type
     if request.headers.get("HX-Request") and media_type_to_load:
+        list_by_type = BasicMedia.objects.get_in_progress(
+            request.user,
+            sort_by,
+            items_limit,
+            media_type_to_load,
+        )
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
         }
         return render(request, "app/components/home_grid.html", context)
 
+    # Regular page load
+    list_by_type = BasicMedia.objects.get_in_progress(
+        request.user,
+        sort_by,
+        items_limit,
+    )
     context = {
         "list_by_type": list_by_type,
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
+        "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
 
