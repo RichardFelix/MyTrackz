@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import helpers, media_type_config
+from app import media_type_config
 from app.models import Media, MediaTypes, Sources
 
 register = template.Library()
@@ -46,12 +46,6 @@ def slug(arg1):
             template.defaultfilters.urlencode(unidecode(arg1)),
         )
     return cleaned
-
-
-@register.filter
-def format_minutes(total_minutes):
-    """Convert total minutes to HH:MM format."""
-    return helpers.minutes_to_hhmm(total_minutes)
 
 
 @register.filter

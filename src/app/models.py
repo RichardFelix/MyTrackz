@@ -738,7 +738,7 @@ class TV(Media):
         )
 
     @property
-    def formatted_progress(self):
+    def last_watched(self):
         """Return the latest watched episode in SxxExx format."""
         if not hasattr(self, "seasons"):
             return ""
@@ -747,19 +747,20 @@ class TV(Media):
             {
                 "season": season.item.season_number,
                 "episode": episode.item.episode_number,
+                "end_date": episode.end_date,
             }
             for season in self.seasons.all()
-            if hasattr(season, "episodes")
+            if hasattr(season, "episodes") and season.item.season_number != 0
             for episode in season.episodes.all()
+            if episode.end_date is not None
         ]
 
         if not watched_episodes:
             return ""
 
-        # Find the episode with highest season and episode numbers
         latest_episode = max(
             watched_episodes,
-            key=lambda x: (x["season"], x["episode"]),
+            key=lambda x: (x["end_date"], x["season"], x["episode"]),
         )
 
         return f"S{latest_episode['season']:02d}E{latest_episode['episode']:02d}"

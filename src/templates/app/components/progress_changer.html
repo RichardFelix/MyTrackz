@@ -23,10 +23,9 @@
   </button>
 
   <div class="text-xs text-indigo-400 font-medium min-w-[4ch] text-center">
-    {% if media.item.media_type == "game" %}
-      {{ media.progress|format_minutes }}
-    {% else %}
-      {{ media.progress }}
+    {{ media.formatted_progress }}
+
+    {% if media.item.media_type != MediaTypes.GAME.value %}
       {% if media.max_progress %}
         / {{ media.max_progress }} {{ media.item.media_type|long_unit }}{{ media.max_progress|pluralize }}
       {% else %}
