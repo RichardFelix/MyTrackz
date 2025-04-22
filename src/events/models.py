@@ -126,7 +126,7 @@ class Event(models.Model):
     class Meta:
         """Meta class for Event model."""
 
-        ordering = ["datetime"]
+        ordering = ["-datetime"]
         constraints = [
             UniqueConstraint(
                 fields=["item", "episode_number"],
