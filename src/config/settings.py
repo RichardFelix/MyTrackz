@@ -238,6 +238,10 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
+ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
+if ADMIN_ENABLED:
+    INSTALLED_APPS += ["django.contrib.admin"]
+
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"

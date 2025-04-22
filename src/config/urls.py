@@ -10,6 +10,7 @@ from allauth.socialaccount import views as allauth_social_account_views
 from allauth.urls import build_provider_urlpatterns
 from decorator_include import decorator_include
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth.decorators import login_not_required
 from django.urls import include, path
 
@@ -80,6 +81,9 @@ if not settings.SOCIALACCOUNT_ONLY:
 
 # Add the accounts URLs to the main urlpatterns
 urlpatterns.append(path("accounts/", include(account_patterns)))
+
+if settings.ADMIN_ENABLED:
+    urlpatterns.append(path("admin/", admin.site.urls))
 
 # Add debug toolbar if in DEBUG mode
 if settings.DEBUG:
