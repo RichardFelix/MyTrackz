@@ -1286,13 +1286,13 @@ class Game(Media):
         """Increase the progress of the media by 30 minutes."""
         self.progress += 30
         self.save()
-        logger.info("Watched %s E%s", self, self.progress)
+        logger.info("Changed playtime of %s to %s", self, self.formatted_progress)
 
     def decrease_progress(self):
         """Decrease the progress of the media by 30 minutes."""
         self.progress -= 30
         self.save()
-        logger.info("Unwatched %s E%s", self, self.progress + 1)
+        logger.info("Changed playtime of %s to %s", self, self.formatted_progress)
 
 
 class Book(Media):
