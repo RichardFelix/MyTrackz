@@ -59,7 +59,7 @@ def fetch_releases(user=None, items_to_process=None):
 
 
 def cleanup_invalid_events(events_bulk):
-    """Remove events that are no longer valid based on updated episode counts."""
+    """Remove events that are no longer valid based on updated items."""
     processed_items = {}
 
     for event in events_bulk:
@@ -82,7 +82,7 @@ def cleanup_invalid_events(events_bulk):
             and event.content_number not in processed_items[event.item_id]
         ):
             logger.info(
-                "Invalid event detected: %s - Episode %s (scheduled for %s)",
+                "Invalid event detected: %s - Number %s (scheduled for %s)",
                 event.item,
                 event.content_number,
                 event.datetime,
@@ -645,7 +645,7 @@ def process_other(item, events_bulk):
 
     if date_key in metadata["details"] and metadata["details"][date_key]:
         try:
-            episode_datetime = date_parser(metadata["details"][date_key])
+            content_datetime = date_parser(metadata["details"][date_key])
         except ValueError:
             pass
         else:
@@ -658,18 +658,18 @@ def process_other(item, events_bulk):
                 Event(
                     item=item,
                     content_number=content_number,
-                    datetime=episode_datetime,
+                    datetime=content_datetime,
                 ),
             )
 
     elif item.source == Sources.MANGAUPDATES.value and metadata["max_progress"]:
         # MangaUpdates doesn't have an end date, so use a placeholder
-        episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+        content_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
         events_bulk.append(
             Event(
                 item=item,
                 content_number=metadata["max_progress"],
-                datetime=episode_datetime,
+                datetime=content_datetime,
             ),
         )
 
