@@ -68,5 +68,5 @@ class Migration(migrations.Migration):
             model_name='event',
             constraint=models.UniqueConstraint(condition=models.Q(('content_number__isnull', True)), fields=('item',), name='unique_item_null_episode'),
         ),
-        migrations.RunPython(fix_movie_events),
+        migrations.RunPython(fix_movie_events, reverse_code=migrations.RunPython.noop),
     ]
