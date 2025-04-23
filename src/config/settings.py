@@ -265,6 +265,11 @@ COMICVINE_API = config(
     default="cdab0706269e4bca03a096fbc39920dadf7e4992",
 )
 
+
+TRAKT_API = config(
+    "TRAKT_API",
+    default="b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
+)
 SIMKL_ID = config(
     "SIMKL_ID",
     default="f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",

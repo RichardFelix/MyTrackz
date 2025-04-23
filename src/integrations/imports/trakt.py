@@ -127,11 +127,10 @@ def importer(username, user, mode):
 
 def get_response(url):
     """Get the response from the Trakt API."""
-    trakt_api = "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe"
     headers = {
         "Content-Type": "application/json",
         "trakt-api-version": "2",
-        "trakt-api-key": trakt_api,
+        "trakt-api-key": settings.TRAKT_API,
     }
     return app.providers.services.api_request(
         "TRAKT",
