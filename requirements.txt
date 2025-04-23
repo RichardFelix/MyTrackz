@@ -3,7 +3,7 @@ apprise==1.9.3
 beautifulsoup4==4.13.4
 celery==5.5.1
 croniter==6.0.0
-Django==5.1.7
+Django==5.2
 django-allauth[socialaccount,mfa]==65.7.0
 django-celery-beat==2.8.0
 django-celery-results==2.6.0
