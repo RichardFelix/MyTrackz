@@ -24,7 +24,13 @@
             <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
           </svg>
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
-            {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} • {{ media.next_event.datetime|natural_day }} {{ media.next_event.display_time }}
+            {% if media.next_event.content_number %}
+              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} 
+            {% else %}
+              Release
+            {% endif %}
+              
+            • {{ media.next_event.datetime|natural_day }} {{ media.next_event.display_time }}
           </span>
         </div>
       {% endif %}
