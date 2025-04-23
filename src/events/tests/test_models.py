@@ -92,7 +92,7 @@ class EventModelTests(TestCase):
 
         self.season_event = Event.objects.create(
             item=self.season_item,
-            episode_number=1,
+            content_number=1,
             datetime=self.tomorrow,
         )
 
@@ -103,13 +103,13 @@ class EventModelTests(TestCase):
 
         self.anime_event = Event.objects.create(
             item=self.anime_item,
-            episode_number=1,
+            content_number=1,
             datetime=self.tomorrow,
         )
 
         self.manga_event = Event.objects.create(
             item=self.manga_item,
-            episode_number=1,
+            content_number=1,
             datetime=self.tomorrow,
         )
 
@@ -240,7 +240,7 @@ class EventManagerTests(TestCase):
         # Create events with fixed dates
         self.past_event = Event.objects.create(
             item=self.season_item,
-            episode_number=1,
+            content_number=1,
             datetime=self.yesterday,  # April 14
         )
 
@@ -261,20 +261,20 @@ class EventManagerTests(TestCase):
 
         self.season_event = Event.objects.create(
             item=self.season_item,
-            episode_number=2,
+            content_number=2,
             datetime=self.tomorrow,  # April 16
         )
 
         # Manga with multiple events
         self.manga_event1 = Event.objects.create(
             item=self.manga_item,
-            episode_number=1,
+            content_number=1,
             datetime=self.tomorrow,  # April 16
         )
 
         self.manga_event2 = Event.objects.create(
             item=self.manga_item,
-            episode_number=2,
+            content_number=2,
             datetime=self.next_week,  # April 22
         )
 

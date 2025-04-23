@@ -486,7 +486,7 @@ class MediaManager(models.Manager):
 
         return queryset.annotate(
             max_progress=models.Max(
-                "item__event__episode_number",
+                "item__event__content_number",
                 filter=models.Q(item__event__datetime__lte=current_datetime),
             ),
         )
@@ -500,7 +500,7 @@ class MediaManager(models.Manager):
                 datetime__lte=current_datetime,
             )
             .values("item_id")
-            .annotate(max_ep=models.Max("episode_number"))
+            .annotate(max_ep=models.Max("content_number"))
         )
 
         max_progress_dict = {
@@ -527,10 +527,10 @@ class MediaManager(models.Manager):
                             event
                             for event in season.item.prefetched_events
                             if event.datetime <= current_datetime
-                            and event.episode_number is not None
+                            and event.content_number is not None
                         ]
                         max_episode = max(
-                            [event.episode_number for event in released_events],
+                            [event.content_number for event in released_events],
                             default=0,
                         )
 

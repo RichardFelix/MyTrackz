@@ -11,7 +11,7 @@ class EventAdmin(admin.ModelAdmin):
     list_display = [
         "__str__",
         "formatted_datetime",
-        "episode_number",
+        "content_number",
         "notification_sent",
     ]
     list_filter = [

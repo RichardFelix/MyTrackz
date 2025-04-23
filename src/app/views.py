@@ -83,12 +83,11 @@ def progress_edit(request):
             prefetch_related_objects([media], "episodes")
 
         current_datetime = timezone.now()
-        max_episode = Event.objects.filter(
+        media.max_progress = Event.objects.filter(
             item__id=item.id,
             datetime__lte=current_datetime,
-        ).aggregate(max_ep=models.Max("episode_number"))["max_ep"]
+        ).aggregate(max_ep=models.Max("content_number"))["max_ep"]
 
-        media.max_progress = max_episode or None
         context = {
             "media": media,
         }

@@ -236,7 +236,7 @@ class ReleaseCalendarViewTests(TestCase):
         )
         event2 = Event(
             item=item1,
-            episode_number=2,
+            content_number=2,
             datetime=timezone.make_aware(
                 timezone.datetime(today.year, today.month, 15, 18, 0),
             ),

@@ -155,14 +155,14 @@ class ReloadCalendarTaskTests(TestCase):
         mock_process_tv.side_effect = lambda _, events_bulk: events_bulk.append(
             Event(
                 item=self.season_item,
-                episode_number=1,
+                content_number=1,
                 datetime=timezone.now(),
             ),
         )
         mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
             Event(
                 item=item,
-                episode_number=1,
+                content_number=1,
                 datetime=timezone.now(),
             ),
         )
@@ -171,7 +171,7 @@ class ReloadCalendarTaskTests(TestCase):
             events_bulk.append(
                 Event(
                     item=item,
-                    episode_number=1,
+                    content_number=1,
                     datetime=timezone.now(),
                 ),
             )
@@ -214,7 +214,7 @@ class ReloadCalendarTaskTests(TestCase):
         mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
             Event(
                 item=item,
-                episode_number=1,
+                content_number=1,
                 datetime=timezone.now(),
             ),
         )
@@ -252,14 +252,14 @@ class ReloadCalendarTaskTests(TestCase):
         # Create an event for anime item (future)
         Event.objects.create(
             item=self.anime_item,
-            episode_number=1,
+            content_number=1,
             datetime=future_date,
         )
 
         # Create an event for season item (future)
         Event.objects.create(
             item=self.season_item,
-            episode_number=1,
+            content_number=1,
             datetime=future_date,
         )
 
@@ -267,7 +267,7 @@ class ReloadCalendarTaskTests(TestCase):
         past_date = timezone.now() - timezone.timedelta(days=30)
         Event.objects.create(
             item=self.manga_item,
-            episode_number=1,
+            content_number=1,
             datetime=past_date,
         )
 
@@ -277,7 +277,7 @@ class ReloadCalendarTaskTests(TestCase):
         )  # More than a year ago
         Event.objects.create(
             item=self.book_item,
-            episode_number=1,
+            content_number=1,
             datetime=old_past_date,
         )
 
@@ -285,7 +285,7 @@ class ReloadCalendarTaskTests(TestCase):
         comic_recent_date = timezone.now() - timezone.timedelta(days=180)
         Event.objects.create(
             item=self.comic_item,
-            episode_number=1,
+            content_number=1,
             datetime=comic_recent_date,
         )
 
@@ -420,7 +420,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Verify the first episode
         self.assertEqual(events_bulk[0].item, self.season_item)
-        self.assertEqual(events_bulk[0].episode_number, 1)
+        self.assertEqual(events_bulk[0].content_number, 1)
 
         # Verify TVMaze data was used (more precise timestamp)
         expected_date = datetime.datetime.fromisoformat("2008-01-20T22:00:00+00:00")
@@ -445,7 +445,7 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, self.movie_item)
         self.assertEqual(
-            events_bulk[0].episode_number,
+            events_bulk[0].content_number,
             None,
         )
 
@@ -471,7 +471,7 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, self.book_item)
-        self.assertEqual(events_bulk[0].episode_number, 328)  # Books use page count
+        self.assertEqual(events_bulk[0].content_number, 328)  # Books use page count
 
         # Verify the date was parsed correctly
         expected_date = date_parser("1949-06-08")
@@ -497,7 +497,7 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Second event should be for the final chapter
         self.assertEqual(events_bulk[0].item, self.manga_item)
-        self.assertEqual(events_bulk[0].episode_number, 375)
+        self.assertEqual(events_bulk[0].content_number, 375)
         expected_end_date = date_parser("2023-12-22")
         self.assertEqual(events_bulk[0].datetime, expected_end_date)
 
@@ -779,7 +779,7 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify events were added
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, self.anime_item)
-        self.assertEqual(events_bulk[0].episode_number, 1)
+        self.assertEqual(events_bulk[0].content_number, 1)
 
         # Convert timestamp to datetime for verification
         expected_date = datetime.datetime.fromtimestamp(870739200, tz=ZoneInfo("UTC"))
@@ -868,7 +868,7 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, comic_item)
-        self.assertEqual(events_bulk[0].episode_number, 10)
+        self.assertEqual(events_bulk[0].content_number, 10)
 
         # Verify the date was parsed correctly (should use store_date)
         expected_date = date_parser("2023-04-15")
@@ -913,7 +913,7 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify event was added
         self.assertEqual(len(events_bulk), 1)
         self.assertEqual(events_bulk[0].item, comic_item)
-        self.assertEqual(events_bulk[0].episode_number, 5)
+        self.assertEqual(events_bulk[0].content_number, 5)
 
         # Verify the date was parsed correctly (should use cover_date)
         expected_date = date_parser("2023-05-01")

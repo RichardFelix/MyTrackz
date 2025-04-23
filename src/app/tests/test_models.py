@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db.models import Max, Min, Prefetch, Q
+from django.db.models import Max, Prefetch
 from django.test import TestCase
 from django.utils import timezone
 
@@ -217,7 +217,7 @@ class MediaManagerTests(TestCase):
             # Create the actual Event object using the anime item
             Event.objects.create(
                 item=self.anime_item,
-                episode_number=i + 13,
+                content_number=i + 13,
                 datetime=timezone.now() + timedelta(days=i),
                 notification_sent=False,
             )
@@ -537,7 +537,7 @@ class MediaManagerTests(TestCase):
         # Add annotations
         now = timezone.now()
         queryset = queryset.annotate(
-            max_progress=Max("item__event__episode_number"),
+            max_progress=Max("item__event__content_number"),
         )
 
         # Prefetch the next event for each media item
@@ -593,7 +593,7 @@ class MediaManagerTests(TestCase):
         for i in range(1, 25):
             Event.objects.create(
                 item=anime_item2,
-                episode_number=i,
+                content_number=i,
                 datetime=timezone.now() - timedelta(days=i),
                 notification_sent=True,
             )
@@ -601,15 +601,7 @@ class MediaManagerTests(TestCase):
         # Update queryset to include the new anime
         queryset = Anime.objects.filter(user=self.user.id)
         queryset = queryset.annotate(
-            max_progress=Max("item__event__episode_number"),
-            next_episode_number=Min(
-                "item__event__episode_number",
-                filter=Q(item__event__datetime__gt=now),
-            ),
-            next_episode_datetime=Min(
-                "item__event__datetime",
-                filter=Q(item__event__datetime__gt=now),
-            ),
+            max_progress=Max("item__event__content_number"),
         )
 
         # Test sort by completion
@@ -708,14 +700,14 @@ class MediaManagerTests(TestCase):
 
         Event.objects.create(
             item=self.anime_item,
-            episode_number=20,
+            content_number=20,
             datetime=timezone.now() - timedelta(days=1),
             notification_sent=True,
         )
 
         Event.objects.create(
             item=anime_item2,
-            episode_number=24,
+            content_number=24,
             datetime=timezone.now() - timedelta(days=1),
             notification_sent=True,
         )
@@ -767,7 +759,7 @@ class MediaManagerTests(TestCase):
             # Create the actual Event object
             Event.objects.create(
                 item=anime_item2,
-                episode_number=i,
+                content_number=i,
                 datetime=timezone.now() - timedelta(days=i),
                 notification_sent=True,
             )

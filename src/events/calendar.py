@@ -42,7 +42,7 @@ def fetch_releases(user=None, items_to_process=None):
     for event in events_bulk:
         Event.objects.update_or_create(
             item=event.item,
-            episode_number=event.episode_number,
+            content_number=event.content_number,
             defaults={"datetime": event.datetime},
         )
 
@@ -63,11 +63,11 @@ def cleanup_invalid_events(events_bulk):
     processed_items = {}
 
     for event in events_bulk:
-        if event.episode_number is not None:
+        if event.content_number is not None:
             try:
-                processed_items[event.item.id].add(event.episode_number)
+                processed_items[event.item.id].add(event.content_number)
             except KeyError:
-                processed_items[event.item.id] = {event.episode_number}
+                processed_items[event.item.id] = {event.content_number}
 
     all_events = Event.objects.filter(
         item_id__in=processed_items.keys(),
@@ -77,14 +77,14 @@ def cleanup_invalid_events(events_bulk):
 
     for event in all_events:
         if (
-            event.episode_number is not None
+            event.content_number is not None
             and event.item_id in processed_items
-            and event.episode_number not in processed_items[event.item_id]
+            and event.content_number not in processed_items[event.item_id]
         ):
             logger.info(
                 "Invalid event detected: %s - Episode %s (scheduled for %s)",
                 event.item,
-                event.episode_number,
+                event.content_number,
                 event.datetime,
             )
             events_to_delete.append(event.id)
@@ -219,7 +219,7 @@ def process_anime_bulk(items, events_bulk):
                 events_bulk.append(
                     Event(
                         item=item,
-                        episode_number=episode["episode"],
+                        content_number=episode["episode"],
                         datetime=episode_datetime,
                     ),
                 )
@@ -482,7 +482,7 @@ def process_season_episodes(item, metadata, events_bulk):
         events_bulk.append(
             Event(
                 item=item,
-                episode_number=episode_number,
+                content_number=episode_number,
                 datetime=episode_datetime,
             ),
         )
@@ -597,7 +597,7 @@ def process_comic(item, events_bulk):
 
     # get latest event
     latest_event = Event.objects.filter(item=item).order_by("-datetime").first()
-    last_issue_event_number = latest_event.episode_number if latest_event else 0
+    last_issue_event_number = latest_event.content_number if latest_event else 0
     last_published_issue_number = metadata["max_progress"]
     if last_issue_event_number == last_published_issue_number:
         return
@@ -615,7 +615,7 @@ def process_comic(item, events_bulk):
     events_bulk.append(
         Event(
             item=item,
-            episode_number=last_published_issue_number,
+            content_number=last_published_issue_number,
             datetime=issue_datetime,
         ),
     )
@@ -649,7 +649,7 @@ def process_other(item, events_bulk):
         except ValueError:
             pass
         else:
-            episode_number = (
+            content_number = (
                 None
                 if item.media_type == MediaTypes.MOVIE.value
                 else metadata["max_progress"]
@@ -657,7 +657,7 @@ def process_other(item, events_bulk):
             events_bulk.append(
                 Event(
                     item=item,
-                    episode_number=episode_number,
+                    content_number=content_number,
                     datetime=episode_datetime,
                 ),
             )
@@ -668,7 +668,7 @@ def process_other(item, events_bulk):
         events_bulk.append(
             Event(
                 item=item,
-                episode_number=metadata["max_progress"],
+                content_number=metadata["max_progress"],
                 datetime=episode_datetime,
             ),
         )

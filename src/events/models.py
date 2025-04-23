@@ -118,7 +118,7 @@ class Event(models.Model):
     """Calendar event model."""
 
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    episode_number = models.IntegerField(null=True)
+    content_number = models.IntegerField(null=True)
     datetime = models.DateTimeField()
     notification_sent = models.BooleanField(default=False)
     objects = EventManager()
@@ -129,36 +129,36 @@ class Event(models.Model):
         ordering = ["-datetime"]
         constraints = [
             UniqueConstraint(
-                fields=["item", "episode_number"],
+                fields=["item", "content_number"],
                 name="unique_item_episode",
             ),
             UniqueConstraint(
                 fields=["item"],
-                condition=Q(episode_number__isnull=True),
+                condition=Q(content_number__isnull=True),
                 name="unique_item_null_episode",
             ),
         ]
 
     def __str__(self):
         """Return event title."""
-        if self.episode_number:
+        if self.content_number:
             return (
                 f"{self.item.__str__()} "
                 f"{media_type_config.get_unit(self.item.media_type, short=True)}"
-                f"{self.episode_number}"
+                f"{self.content_number}"
             )
 
         return self.item.__str__()
 
     @property
-    def readable_episode_number(self):
+    def readable_content_number(self):
         """Return the episode number in a readable format."""
-        if self.episode_number is None:
+        if self.content_number is None:
             return ""
 
         return (
             f"{media_type_config.get_unit(self.item.media_type, short=True)}"
-            f"{self.episode_number}"
+            f"{self.content_number}"
         )
 
     @property

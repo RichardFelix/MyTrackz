@@ -97,14 +97,14 @@ class NotificationTests(TestCase):
 
         self.anime_event = Event.objects.create(
             item=self.anime_item,
-            episode_number=5,
+            content_number=5,
             datetime=ten_mins_ago,
             notification_sent=False,
         )
 
         self.manga_event = Event.objects.create(
             item=self.manga_item,
-            episode_number=10,
+            content_number=10,
             datetime=ten_mins_ago,
             notification_sent=False,
         )
@@ -158,7 +158,7 @@ class NotificationTests(TestCase):
 
         event2 = Event.objects.create(
             item=item2,
-            episode_number=3,
+            content_number=3,
             datetime=ten_mins_ago,
             notification_sent=False,
         )
@@ -454,7 +454,7 @@ class NotificationTests(TestCase):
 
         future_event = Event.objects.create(
             item=self.anime_item,
-            episode_number=6,
+            content_number=6,
             datetime=one_hour_ahead,
             notification_sent=False,
         )
