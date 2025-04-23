@@ -481,6 +481,15 @@ class MediaManager(models.Manager):
         if media_type == MediaTypes.TV.value:
             return self._annotate_tv_released_episodes(queryset, current_datetime)
 
+        if media_type == MediaTypes.MOVIE.value:
+            if isinstance(queryset, list):
+                for media in queryset:
+                    media.max_progress = 1
+                return queryset
+            return queryset.annotate(
+                max_progress=models.Value(1, output_field=models.IntegerField()),
+            )
+
         if isinstance(queryset, list):
             return self.annotate_list_max_progress(queryset, current_datetime)
 
