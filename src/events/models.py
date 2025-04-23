@@ -130,12 +130,12 @@ class Event(models.Model):
         constraints = [
             UniqueConstraint(
                 fields=["item", "content_number"],
-                name="unique_item_episode",
+                name="unique_item_content_number",
             ),
             UniqueConstraint(
                 fields=["item"],
                 condition=Q(content_number__isnull=True),
-                name="unique_item_null_episode",
+                name="unique_item_null_content_number",
             ),
         ]
 

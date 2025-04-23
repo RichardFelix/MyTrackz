@@ -2,17 +2,6 @@
 
 from django.db import migrations
 
-def fix_movie_events(apps, schema_editor):
-    Event = apps.get_model('events', 'Event')
-
-    # Get all movie events with episode_number
-    movie_events = Event.objects.filter(
-        item__media_type='movie',
-        episode_number__isnull=False
-    )
-
-    # Update episode_number to None
-    movie_events.update(episode_number=None)
 
 class Migration(migrations.Migration):
 
@@ -21,5 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(fix_movie_events),
     ]
