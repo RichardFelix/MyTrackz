@@ -5,7 +5,7 @@ celery==5.5.1
 croniter==6.0.0
 Django==5.1.7
 django-allauth[socialaccount,mfa]==65.7.0
-django-celery-beat==2.7.0
+django-celery-beat==2.8.0
 django-celery-results==2.5.1
 django_debug_toolbar==5.1.0
 django-decorator-include==3.3
