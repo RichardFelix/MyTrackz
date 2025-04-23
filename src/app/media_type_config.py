@@ -156,6 +156,9 @@ def get_sample_query(media_type):
 
 def get_sample_search_url(media_type):
     """Get the full sample search URL."""
+    if media_type == MediaTypes.SEASON.value:
+        media_type = MediaTypes.TV.value
+
     query = get_sample_query(media_type)
 
     base_url = reverse("search")
