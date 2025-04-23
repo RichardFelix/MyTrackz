@@ -48,6 +48,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
     "django.contrib.auth",
+    "django.contrib.admin",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -239,8 +240,6 @@ AUTH_USER_MODEL = "users.User"
 # Yamtrack settings
 
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
-if ADMIN_ENABLED:
-    INSTALLED_APPS += ["django.contrib.admin"]
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 
