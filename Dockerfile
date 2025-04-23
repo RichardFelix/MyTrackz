@@ -3,6 +3,11 @@ FROM python:3.12-alpine3.21
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
 
+# Define build argument with default value
+ARG VERSION=dev
+# Set it as an environment variable
+ENV VERSION=$VERSION
+
 COPY ./requirements.txt /requirements.txt
 COPY ./entrypoint.sh /entrypoint.sh
 COPY ./supervisord.conf /etc/supervisord.conf
