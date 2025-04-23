@@ -277,6 +277,12 @@ SIMKL_SECRET = config(
 
 TESTING = False
 
+HEALTHCHECK_CELERY_PING_TIMEOUT = config(
+    "HEALTHCHECK_CELERY_PING_TIMEOUT",
+    default=1,
+    cast=int,
+)
+
 # Third party settings
 
 DEBUG_TOOLBAR_CONFIG = {
