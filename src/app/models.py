@@ -20,6 +20,7 @@ from django.db.models import (
 from django.db.models.functions import Cast
 from django.utils import timezone
 from model_utils import FieldTracker
+from model_utils.fields import MonitorField
 from simple_history.models import HistoricalRecords
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
@@ -200,7 +201,9 @@ class MediaManager(models.Manager):
         queryset = queryset.select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
 
-        return self._sort_media_list(queryset, sort_filter)
+        if sort_filter:
+            return self._sort_media_list(queryset, sort_filter)
+        return queryset
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
@@ -301,7 +304,7 @@ class MediaManager(models.Manager):
                     Media.Status.IN_PROGRESS.value,
                     Media.Status.REPEATING.value,
                 ],
-                sort_filter="score",
+                sort_filter=None,
             )
 
             if not media_list:
@@ -359,11 +362,11 @@ class MediaManager(models.Manager):
 
     def _sort_in_progress_media(self, media_list, sort_by):
         """Sort in-progress media based on the sort criteria."""
-        sort_functions = {
+        # Define primary sort functions based on sort_by
+        primary_sort_functions = {
             "upcoming": lambda x: (
                 x.next_event is None,
                 x.next_event.datetime if x.next_event else None,
-                x.item.title.lower(),
             ),
             "title": lambda x: x.item.title.lower(),
             "completion": lambda x: (
@@ -373,21 +376,23 @@ class MediaManager(models.Manager):
                     if x.max_progress and x.max_progress > 0
                     else 0
                 ),
-                x.item.title.lower(),
             ),
             "episodes_left": lambda x: (
                 x.max_progress is None,
                 (x.max_progress - x.progress if x.max_progress else 0),
-                x.item.title.lower(),
             ),
         }
 
-        # Use the appropriate sort function or default to no sorting
-        sort_function = sort_functions.get(sort_by)
-        if sort_function:
-            return sorted(media_list, key=sort_function)
+        primary_sort_function = primary_sort_functions[sort_by]
 
-        return media_list
+        return sorted(
+            media_list,
+            key=lambda x: (
+                primary_sort_function(x),
+                -timezone.datetime.timestamp(x.progress_changed),
+                x.item.title.lower(),
+            ),
+        )
 
     def annotate_max_progress(self, media_list, media_type):
         """Annotate max_progress for all media items."""
@@ -521,6 +526,7 @@ class Media(CalendarTriggerMixin, models.Model):
         ],
     )
     progress = models.PositiveIntegerField(default=0)
+    progress_changed = MonitorField(monitor="progress")
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -632,6 +638,7 @@ class TV(Media):
     """Model for TV shows."""
 
     tracker = FieldTracker()
+    progress_changed = models.DateTimeField(default=timezone.now)
 
     @tracker  # postpone field reset until after the save
     def save(self, *args, **kwargs):
@@ -779,6 +786,7 @@ class Season(Media):
     )
 
     tracker = FieldTracker()
+    progress_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         """Limit the uniqueness of seasons.
@@ -1121,6 +1129,12 @@ class Episode(models.Model):
     def save(self, *args, **kwargs):
         """Save the episode instance."""
         super().save(*args, **kwargs)
+
+        now = timezone.now()
+        self.related_season.progress_changed = now
+        self.related_season.save(update_fields=["progress_changed"])
+        self.related_season.related_tv.progress_changed = now
+        self.related_season.related_tv.save(update_fields=["progress_changed"])
 
         if self.related_season.status in (
             Media.Status.IN_PROGRESS.value,

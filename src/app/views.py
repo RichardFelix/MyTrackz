@@ -394,7 +394,7 @@ def episode_handler(request):
                 "image": season_metadata["image"],
             },
         )
-        related_season = Season(
+        related_season = Season.objects.create(
             item=item,
             user=request.user,
             score=None,
@@ -402,7 +402,6 @@ def episode_handler(request):
             notes="",
         )
 
-        related_season.save()
         logger.info("%s did not exist, it was created successfully.", related_season)
 
     if "unwatch" in request.POST:
