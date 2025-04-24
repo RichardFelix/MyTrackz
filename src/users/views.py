@@ -1,6 +1,7 @@
 import logging
 
 import apprise
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.db import IntegrityError
@@ -258,6 +259,12 @@ def import_data(request):
 def export_data(request):
     """Render the export data settings page."""
     return render(request, "users/export_data.html")
+
+
+@require_GET
+def about(request):
+    """Render the about page."""
+    return render(request, "users/about.html", {"version": settings.VERSION})
 
 
 @require_POST

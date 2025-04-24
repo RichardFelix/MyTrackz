@@ -239,6 +239,8 @@ AUTH_USER_MODEL = "users.User"
 
 # Yamtrack settings
 
+VERSION = config("VERSION", default="dev")
+
 ADMIN_ENABLED = config("ADMIN_ENABLED", default=False, cast=bool)
 
 TZ = zoneinfo.ZoneInfo(TIME_ZONE)

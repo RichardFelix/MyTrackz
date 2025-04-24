@@ -21,6 +21,7 @@ urlpatterns = [
     path("settings/integrations", views.integrations, name="integrations"),
     path("settings/import", views.import_data, name="import_data"),
     path("settings/export", views.export_data, name="export_data"),
+    path("settings/about", views.about, name="about"),
     path(
         "delete_import_schedule",
         views.delete_import_schedule,
