@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 def fetch_releases(user=None, items_to_process=None):
     """Fetch and process releases for the calendar."""
+    if items_to_process and items_to_process[0].source == Sources.MANUAL.value:
+        return "Manual sources are not processed"
+
     if not items_to_process:
         items_to_process = get_items_to_process(user)
 
@@ -111,7 +114,7 @@ def get_items_to_process(user=None):
 
 
 def get_active_items(user=None):
-    """Get items with active status."""
+    """Get items with active status, excluding manual sources."""
     media_types = [
         choice.value
         for choice in MediaTypes
@@ -138,6 +141,9 @@ def get_active_items(user=None):
             media_query &= Q(**{f"{media_type}__user": user})
 
         active_query |= media_query
+
+    # Add exclusion for manual sources
+    active_query &= ~Q(source=Sources.MANUAL.value)
 
     # Return distinct items with active status
     return Item.objects.filter(active_query)
