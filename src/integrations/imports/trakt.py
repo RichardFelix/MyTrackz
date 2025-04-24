@@ -107,8 +107,6 @@ def importer(username, user, mode):
     # Bulk create all media types
     imported_counts = {}
     for media_type, bulk_list in bulk_media.items():
-        logger.info("Bulk creating %d %s", len(bulk_list), media_type)
-
         if bulk_list:  # Only process non-empty lists
             imported_counts[media_type] = helpers.bulk_chunk_import(
                 bulk_list,

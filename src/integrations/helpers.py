@@ -39,7 +39,11 @@ def update_season_references(seasons, user):
         media_id = season.item.media_id
         if media_id in existing_tv:
             season.related_tv = existing_tv[media_id]
-            logger.debug("Updated season %s with TV %s", season, existing_tv[media_id])
+            logger.debug(
+                "Updated new season %s with existing TV %s",
+                season,
+                existing_tv[media_id],
+            )
 
 
 def update_episode_references(episodes, user):
@@ -68,7 +72,7 @@ def update_episode_references(episodes, user):
         if season_key in existing_seasons:
             episode.related_season = existing_seasons[season_key]
             logger.debug(
-                "Updated episode %s with season %s",
+                "Updated new episode %s with existing season %s",
                 episode,
                 existing_seasons[season_key],
             )
@@ -91,19 +95,29 @@ def bulk_chunk_import(bulk_media, model, user, mode):
 
 def bulk_create_new_with_history(bulk_media, model, user):
     """Filter out existing records and bulk create only new ones."""
+    logger.info(
+        "Bulk creating new records %s %s with user %s",
+        len(bulk_media),
+        model.__name__,
+        user,
+    )
+
     # Get existing records' unique IDs since bulk_create_with_history
     # returns all objects even if they weren't created due to conflicts
     unique_fields = get_unique_constraint_fields(model)
     existing_combos = set(
         model.objects.values_list(*unique_fields),
     )
-
-    new_records = [
-        record
-        for record in bulk_media
-        if tuple(getattr(record, field + "_id") for field in unique_fields)
-        not in existing_combos
-    ]
+    new_records = []
+    for record in bulk_media:
+        combo = tuple(getattr(record, field + "_id") for field in unique_fields)
+        if combo in existing_combos:
+            msg = f"{record} already exists in the database. Skipping."
+            logger.debug(msg)
+        else:
+            msg = f"{record} is new. Adding to the list."
+            logger.debug(msg)
+            new_records.append(record)
 
     bulk_create_with_history(
         new_records,
@@ -121,6 +135,13 @@ def bulk_create_update_with_history(
     user,
 ):
     """Bulk create new records and update existing ones with history tracking."""
+    logger.info(
+        "Bulk creating and updating records %s %s with user %s",
+        len(bulk_media),
+        model.__name__,
+        user,
+    )
+
     unique_fields = get_unique_constraint_fields(model)
     model_fields = [f.name for f in model._meta.fields]  # noqa: SLF001
     update_fields = [
@@ -147,10 +168,14 @@ def bulk_create_update_with_history(
     for record in bulk_media:
         record_key = tuple(getattr(record, field + "_id") for field in unique_fields)
         if record_key in existing_lookup:
+            msg = f"{record} already exists. Updating."
+            logger.debug(msg)
             # Set the primary key for update
             record.id = existing_lookup[record_key]
             update_objs.append(record)
         else:
+            msg = f"{record} is new. Adding to the list."
+            logger.debug(msg)
             create_objs.append(record)
 
     # Bulk create new records

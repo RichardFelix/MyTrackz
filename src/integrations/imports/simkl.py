@@ -80,8 +80,6 @@ def importer(token, user, mode):
     # Import using bulk operations
     imported_counts = {}
     for media_type, bulk_list in bulk_media.items():
-        logger.info("Bulk creating %d %s", len(bulk_list), media_type)
-
         if bulk_list:
             imported_counts[media_type] = helpers.bulk_chunk_import(
                 bulk_list,
@@ -122,15 +120,22 @@ def get_user_list(token):
 def process_tv_list(tv_list, user, bulk_media, warnings):
     """Process TV list from SIMKL and prepare for bulk creation."""
     logger.info("Processing tv shows")
+    existing_tv_ids = set()
 
     for tv in tv_list:
         try:
             title = tv["show"]["title"]
+            logger.debug("Processing %s", title)
+
             try:
                 tmdb_id = tv["show"]["ids"]["tmdb"]
             except KeyError as error:
                 msg = f"{title}: No TMDB ID found"
                 raise MediaImportError(msg) from error
+
+            if tmdb_id in existing_tv_ids:
+                msg = f"{title} ({tmdb_id}) already present in the import list"
+                raise MediaImportError(msg)  # noqa: TRY301
 
             tv_status = get_status(tv["status"])
 
@@ -164,6 +169,7 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
                 score=tv["user_rating"],
             )
             bulk_media[MediaTypes.TV.value].append(tv_instance)
+            existing_tv_ids.add(tmdb_id)
 
             if season_numbers:
                 # Process seasons and episodes
@@ -266,15 +272,22 @@ def get_episode_image(episode, season_number, metadata):
 def process_movie_list(movie_list, user, bulk_media, warnings):
     """Process movie list from SIMKL and prepare for bulk creation."""
     logger.info("Processing movies")
+    existing_movie_ids = set()
 
     for movie in movie_list:
         try:
             title = movie["movie"]["title"]
+            logger.debug("Processing %s", title)
+
             try:
                 tmdb_id = movie["movie"]["ids"]["tmdb"]
             except KeyError as error:
                 msg = f"{title}: No TMDB ID found"
                 raise MediaImportError(msg) from error
+
+            if tmdb_id in existing_movie_ids:
+                msg = f"{title} ({tmdb_id}) already present in the import list"
+                raise MediaImportError(msg)  # noqa: TRY301
 
             movie_status = get_status(movie["status"])
 
@@ -305,6 +318,7 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
                 end_date=get_date(movie["last_watched_at"]),
             )
             bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
+            existing_movie_ids.add(tmdb_id)
 
         except MediaImportError as error:
             warnings.append(str(error))
@@ -320,15 +334,22 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
 def process_anime_list(anime_list, user, bulk_media, warnings):
     """Process anime list from SIMKL and prepare for bulk creation."""
     logger.info("Processing anime")
+    existing_anime_ids = set()
 
     for anime in anime_list:
         try:
             title = anime["show"]["title"]
+            logger.debug("Processing %s", title)
+
             try:
                 mal_id = anime["show"]["ids"]["mal"]
             except KeyError as error:
                 msg = f"{title}: No MyAnimeList ID found"
                 raise MediaImportError(msg) from error
+
+            if mal_id in existing_anime_ids:
+                msg = f"{title} ({mal_id}) already present in the import list"
+                raise MediaImportError(msg)  # noqa: TRY301
 
             anime_status = get_status(anime["status"])
 
@@ -367,6 +388,7 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
                 end_date=end_date,
             )
             bulk_media[MediaTypes.ANIME.value].append(anime_instance)
+            existing_anime_ids.add(mal_id)
 
         except MediaImportError as error:
             warnings.append(str(error))
