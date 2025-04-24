@@ -40,7 +40,7 @@
                x-model="search"
                hx-get="{% url 'medialist' media_type %}"
                hx-trigger="keyup changed delay:300ms, search"
-               {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
+               {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
         <svg xmlns="http://www.w3.org/2000/svg"
@@ -107,7 +107,7 @@
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in status_choices %}
               <button hx-get="{% url 'medialist' media_type %}"
-                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -165,7 +165,7 @@
                x-transition:leave-end="transform opacity-0 scale-95">
             {% for value, label in sort_choices %}
               <button hx-get="{% url 'medialist' media_type %}"
-                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="this" hx-swap="none" {% endif %}
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
@@ -222,7 +222,8 @@
     </div>
 
     {% if not media_list %}
-      <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
+      <div id="empty_list"
+           class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
         <div class="text-center max-w-md mx-auto p-6">
           <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg"

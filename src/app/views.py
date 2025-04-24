@@ -166,6 +166,11 @@ def media_list(request, media_type):
 
     # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
+        # Changing from empty list to a status with items
+        if request.headers.get("HX-Target") == "empty_list":
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("medialist", args=[media_type])
+            return response
         if layout == "grid":
             template_name = "app/components/media_grid_items.html"
         else:
