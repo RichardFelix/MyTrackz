@@ -9,17 +9,13 @@ from django.core.validators import (
 )
 from django.db import models
 from django.db.models import (
-    Case,
     CheckConstraint,
-    F,
-    FloatField,
     IntegerField,
     Max,
     Prefetch,
     Q,
     Sum,
     UniqueConstraint,
-    When,
 )
 from django.db.models.functions import Cast
 from django.utils import timezone
@@ -202,14 +198,13 @@ class MediaManager(models.Manager):
             queryset = queryset.filter(item__title__icontains=search)
 
         queryset = queryset.select_related("item")
-
-        # Apply media-specific prefetches
         queryset = self._apply_prefetch_related(queryset, media_type)
 
-        return self._apply_sorting(queryset, model, media_type, sort_filter)
+        return self._sort_media_list(queryset, sort_filter)
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
+        # Apply media-specific prefetches
         if media_type == MediaTypes.TV.value:
             return queryset.prefetch_related(
                 Prefetch(
@@ -226,50 +221,35 @@ class MediaManager(models.Manager):
                     to_attr="prefetched_events",
                 ),
             )
+
+        base_queryset = queryset.prefetch_related(
+            Prefetch(
+                "item__event_set",
+                queryset=events.models.Event.objects.all(),
+                to_attr="prefetched_events",
+            ),
+        )
+
         if media_type == MediaTypes.SEASON.value:
-            return queryset.prefetch_related(
+            return base_queryset.prefetch_related(
                 Prefetch(
                     "episodes",
                     queryset=Episode.objects.select_related("item"),
                 ),
             )
-        return queryset
 
-    def _apply_sorting(self, queryset, model, media_type, sort_filter):
-        """Apply sorting based on the sort filter and media type."""
-        # Check if sort_filter is a property on the model
-        sort_is_property = sort_filter in [
-            name for name in dir(model) if isinstance(getattr(model, name), property)
-        ]
-        if (
-            media_type in (MediaTypes.TV.value, MediaTypes.SEASON.value)
-            and sort_is_property
-        ):
-            return self._sort_by_property(queryset, sort_filter)
+        return base_queryset
 
-        # Handle sorting by Item fields
-        sort_is_item_field = sort_filter in [f.name for f in Item._meta.fields]  # noqa: SLF001
-        if sort_is_item_field:
-            sort_field = f"item__{sort_filter}"
-            return queryset.order_by(
-                F(sort_field).asc() if sort_filter == "title" else F(sort_field).desc(),
-            )
-
-        # Default sorting
-        return queryset.order_by(F(sort_filter).desc(nulls_last=True))
-
-    def _sort_by_property(self, queryset, sort_filter):
-        """Sort queryset by a property field."""
+    def _sort_media_list(self, media_list, sort_filter):
+        """Sort media list using Python sorting."""
         # Special handling for date fields
         if sort_filter in ("start_date", "end_date"):
-            result_list = list(queryset)
-
             # Split items with and without dates
             with_dates = [
-                item for item in result_list if getattr(item, sort_filter) is not None
+                item for item in media_list if getattr(item, sort_filter) is not None
             ]
             without_dates = [
-                item for item in result_list if getattr(item, sort_filter) is None
+                item for item in media_list if getattr(item, sort_filter) is None
             ]
 
             # Sort items with dates
@@ -290,20 +270,30 @@ class MediaManager(models.Manager):
             # Combine lists - items with dates first, then items without dates
             return sorted_with_dates + without_dates
 
-        # For non-date properties, sort in descending order
-        return sorted(queryset, key=lambda x: getattr(x, sort_filter), reverse=True)
+        # Handle sorting by Item fields
+        if sort_filter in [f.name for f in Item._meta.fields]:  # noqa: SLF001
+            if sort_filter == "title":
+                return sorted(media_list, key=lambda x: x.item.title.lower())
+            return sorted(
+                media_list,
+                key=lambda x: getattr(x.item, sort_filter) or 0,
+                reverse=True,
+            )
+
+        # Default sorting by media field or property
+        return sorted(
+            media_list,
+            key=lambda x: getattr(x, sort_filter) or 0,
+            reverse=True,
+        )
 
     def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
         """Get a media list of in progress media by type."""
         list_by_type = {}
+        media_types = self._get_media_types_to_process(user, specific_media_type)
 
-        media_types_to_process = self._get_media_types_to_process(
-            user,
-            specific_media_type,
-        )
-
-        for media_type in media_types_to_process:
-            # Get base queryset for in-progress media
+        for media_type in media_types:
+            # Get base media list for in-progress media
             media_list = self.get_media_list(
                 user=user,
                 media_type=media_type,
@@ -314,36 +304,25 @@ class MediaManager(models.Manager):
                 sort_filter="score",
             )
 
-            if not media_list.exists():
+            if not media_list:
                 continue
 
-            # Annotate both max_progress and next_event
-            media_list = self.annotate_max_progress(media_list, media_type)
-            media_list = self._annotate_next_event(media_list)
+            # Annotate with max_progress and next_event
+            self.annotate_max_progress(media_list, media_type)
+            self._annotate_next_event(media_list)
 
-            # Apply sorting based on the requested sort criteria
-            media_list = self._sort_in_progress_media(media_list, sort_by, media_type)
+            # Sort the media list
+            sorted_list = self._sort_in_progress_media(media_list, sort_by)
 
-            # Store results with pagination
-            total_count = (
-                len(media_list) if isinstance(media_list, list) else media_list.count()
-            )
-
-            # Apply limit based on whether this is a specific type request or dashboard
-            limit = None if specific_media_type else items_limit
-            offset = items_limit if specific_media_type else 0
-
-            if isinstance(media_list, list):
-                media_list = (
-                    media_list[offset:] if specific_media_type else media_list[:limit]
-                )
+            # Apply pagination
+            total_count = len(sorted_list)
+            if specific_media_type:
+                paginated_list = sorted_list[items_limit:]
             else:
-                media_list = (
-                    media_list[offset:] if specific_media_type else media_list[:limit]
-                )
+                paginated_list = sorted_list[:items_limit]
 
             list_by_type[media_type] = {
-                "items": media_list,
+                "items": paginated_list,
                 "total": total_count,
             }
 
@@ -354,199 +333,123 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        active_types = user.get_active_media_types()
-
-        # Filter out TV
+        # Get active types excluding TV
         return [
             media_type
-            for media_type in active_types
+            for media_type in user.get_active_media_types()
             if media_type != MediaTypes.TV.value
         ]
 
     def _annotate_next_event(self, media_list):
         """Annotate next_event for media items."""
-        # Prefetch the next event for each media item
-        media_list = media_list.prefetch_related(
-            Prefetch(
-                "item__event_set",
-                queryset=events.models.Event.objects.filter(
-                    datetime__gt=timezone.now(),
-                ).order_by("datetime"),
-                to_attr="next_events",
-            ),
-        )
+        current_time = timezone.now()
 
-        # Process each media item to attach the next event
         for media in media_list:
-            media.next_event = (
-                media.item.next_events[0] if media.item.next_events else None
+            # Get future events sorted by datetime
+            future_events = sorted(
+                [
+                    event
+                    for event in getattr(media.item, "prefetched_events", [])
+                    if event.datetime > current_time
+                ],
+                key=lambda e: e.datetime,
             )
 
-        return media_list
+            media.next_event = future_events[0] if future_events else None
 
-    def _sort_in_progress_media(self, media_list, sort_by, media_type):
+    def _sort_in_progress_media(self, media_list, sort_by):
         """Sort in-progress media based on the sort criteria."""
-        if sort_by == "upcoming":
-            # Convert queryset to list if it's not already
-            if not isinstance(media_list, list):
-                media_list = list(media_list)
-
-            # Sort by next_event datetime
-            return sorted(
-                media_list,
-                key=lambda x: (
-                    x.next_event is None,  # Items without events come last
-                    x.next_event.datetime if x.next_event else None,
-                    x.item.title,
-                ),
-            )
-        if sort_by == "title":
-            return (
-                media_list.order_by("item__title")
-                if not isinstance(media_list, list)
-                else sorted(media_list, key=lambda x: x.item.title)
-            )
-        if sort_by in ["completion", "episodes_left"]:
-            return self._sort_by_completion_or_episodes(media_list, sort_by, media_type)
-
-        return media_list
-
-    def _sort_by_completion_or_episodes(self, media_list, sort_by, media_type):
-        """Sort media by completion percentage or episodes left."""
-        # For Season, we need to evaluate the queryset and sort in Python
-        if media_type == MediaTypes.SEASON.value:
-            return self._sort_season_by_completion_or_episodes(
-                list(media_list),
-                sort_by,
-            )
-
-        # For other media types, use database annotations
-        media_list = media_list.annotate(
-            completion_rate=Case(
-                When(
-                    max_progress__isnull=False,
-                    then=(Cast("progress", FloatField()) * 100.0)
-                    / Cast("max_progress", FloatField()),
-                ),
-                default=0.0,
-                output_field=FloatField(),
+        sort_functions = {
+            "upcoming": lambda x: (
+                x.next_event is None,
+                x.next_event.datetime if x.next_event else None,
+                x.item.title.lower(),
             ),
-            episodes_remaining=Case(
-                When(
-                    max_progress__isnull=False,
-                    then=F("max_progress") - F("progress"),
+            "title": lambda x: x.item.title.lower(),
+            "completion": lambda x: (
+                x.max_progress is None,
+                -(
+                    x.progress / x.max_progress * 100
+                    if x.max_progress and x.max_progress > 0
+                    else 0
                 ),
-                default=0,
-                output_field=IntegerField(),
+                x.item.title.lower(),
             ),
-        )
-
-        if sort_by == "completion":
-            return media_list.order_by(
-                Case(When(max_progress__isnull=True, then=0), default=1),
-                "-completion_rate",
-                "item__title",
-            )
-        # episodes_left
-        return media_list.order_by(
-            Case(When(max_progress__isnull=True, then=1), default=0),
-            "episodes_remaining",
-            "item__title",
-        )
-
-    def _sort_season_by_completion_or_episodes(self, media_list, sort_by):
-        """Sort season media by completion percentage or episodes left."""
-        if sort_by == "completion":
-            media_list.sort(
-                key=lambda x: (
-                    x.max_progress is not None,  # Items with max_progress first
-                    (x.progress / x.max_progress * 100 if x.max_progress else 0),
-                    x.item.title,
-                ),
-                reverse=True,
-            )
-        else:  # episodes_left
-            media_list.sort(
-                key=lambda x: (
-                    not x.max_progress,  # Items without max_progress last
-                    (x.max_progress - x.progress if x.max_progress else 0),
-                    x.item.title,
-                ),
-            )
-        return media_list
-
-    def annotate_max_progress(self, queryset, media_type):
-        """Annotate max_progress only for the current page items."""
-        current_datetime = timezone.now()
-        if media_type == MediaTypes.TV.value:
-            return self._annotate_tv_released_episodes(queryset, current_datetime)
-
-        if media_type == MediaTypes.MOVIE.value:
-            if isinstance(queryset, list):
-                for media in queryset:
-                    media.max_progress = 1
-                return queryset
-            return queryset.annotate(
-                max_progress=models.Value(1, output_field=models.IntegerField()),
-            )
-
-        if isinstance(queryset, list):
-            return self.annotate_list_max_progress(queryset, current_datetime)
-
-        return queryset.annotate(
-            max_progress=models.Max(
-                "item__event__content_number",
-                filter=models.Q(item__event__datetime__lte=current_datetime),
+            "episodes_left": lambda x: (
+                x.max_progress is None,
+                (x.max_progress - x.progress if x.max_progress else 0),
+                x.item.title.lower(),
             ),
-        )
-
-    def annotate_list_max_progress(self, queryset, current_datetime):
-        """Annotate max_progress for a list of media items."""
-        item_ids = [media.item_id for media in queryset]
-        max_progress_map = (
-            events.models.Event.objects.filter(
-                item_id__in=item_ids,
-                datetime__lte=current_datetime,
-            )
-            .values("item_id")
-            .annotate(max_ep=models.Max("content_number"))
-        )
-
-        max_progress_dict = {
-            item["item_id"]: item["max_ep"] for item in max_progress_map
         }
 
-        for media in queryset:
-            media.max_progress = max_progress_dict.get(media.item_id)
+        # Use the appropriate sort function or default to no sorting
+        sort_function = sort_functions.get(sort_by)
+        if sort_function:
+            return sorted(media_list, key=sort_function)
 
-        return queryset
+        return media_list
 
-    def _annotate_tv_released_episodes(self, queryset, current_datetime):
+    def annotate_max_progress(self, media_list, media_type):
+        """Annotate max_progress for all media items."""
+        current_datetime = timezone.now()
+
+        if media_type == MediaTypes.MOVIE.value:
+            for media in media_list:
+                media.max_progress = 1
+            return
+
+        if media_type == MediaTypes.TV.value:
+            self._annotate_tv_released_episodes(media_list, current_datetime)
+            return
+
+        # For other media types, calculate max_progress from events
+        # Create a dictionary mapping item_id to max content_number
+        max_progress_dict = {}
+
+        item_ids = [media.item.id for media in media_list]
+
+        # Fetch all relevant events in a single query
+        events_data = events.models.Event.objects.filter(
+            item_id__in=item_ids,
+            datetime__lte=current_datetime,
+        ).values("item_id", "content_number")
+
+        # Process events to find max content number per item
+        for event in events_data:
+            item_id = event["item_id"]
+            content_number = event["content_number"]
+            if content_number is not None:
+                current_max = max_progress_dict.get(item_id, 0)
+                max_progress_dict[item_id] = max(current_max, content_number)
+
+        for media in media_list:
+            media.max_progress = max_progress_dict.get(media.item.id)
+
+    def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
-        for tv in queryset:
+        for tv in tv_list:
             total_released_episodes = 0
-            if hasattr(tv, "seasons"):
-                for season in tv.seasons.all():
-                    if (
-                        hasattr(season.item, "prefetched_events")
-                        and season.item.season_number != 0
-                    ):
-                        # Filter events by datetime and find max episode number
-                        released_events = [
-                            event
-                            for event in season.item.prefetched_events
-                            if event.datetime <= current_datetime
-                            and event.content_number is not None
-                        ]
-                        max_episode = max(
-                            [event.content_number for event in released_events],
-                            default=0,
-                        )
 
-                        total_released_episodes += max_episode
+            for season in tv.seasons.all():
+                # Skip special seasons (season 0)
+                if (
+                    not hasattr(season.item, "prefetched_events")
+                    or season.item.season_number == 0
+                ):
+                    continue
+
+                # Find max episode number from released events
+                released_episode_numbers = [
+                    event.content_number
+                    for event in season.item.prefetched_events
+                    if event.datetime <= current_datetime
+                    and event.content_number is not None
+                ]
+
+                if released_episode_numbers:
+                    total_released_episodes += max(released_episode_numbers)
+
             tv.max_progress = total_released_episodes
-
-        return queryset
 
     def get_media(
         self,
