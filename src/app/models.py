@@ -653,10 +653,7 @@ class Media(CalendarTriggerMixin, models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        if (
-            not self._disable_calendar_triggers
-            and self.status not in events.models.INACTIVE_TRACKING_STATUSES
-        ):
+        if not self._disable_calendar_triggers:
             events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     @property
@@ -697,10 +694,7 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            if (
-                self.status not in events.models.INACTIVE_TRACKING_STATUSES
-                and not self._disable_calendar_triggers
-            ):
+            if not self._disable_calendar_triggers:
                 events.tasks.reload_calendar.delay(items_to_process=[self.item])
 
     @property
@@ -875,10 +869,7 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            if (
-                self.status not in events.models.INACTIVE_TRACKING_STATUSES
-                and not self._disable_calendar_triggers
-            ):
+            if not self._disable_calendar_triggers:
                 events.tasks.reload_calendar.delay(
                     items_to_process=[self.related_tv.item],
                 )

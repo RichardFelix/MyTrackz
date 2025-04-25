@@ -8,9 +8,9 @@ from django.db.models import Count, Exists, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import Item, Media, MediaTypes, Sources
+from app.models import Item, MediaTypes, Sources
 from app.providers import comicvine, services, tmdb
-from events.models import INACTIVE_TRACKING_STATUSES, Event, SentinelDatetime
+from events.models import Event, SentinelDatetime
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def get_items_to_process(user=None):
 
 
 def get_active_items(user=None):
-    """Get items with active status, excluding manual sources."""
+    """Get all items, excluding manual sources."""
     media_types = [
         choice.value
         for choice in MediaTypes
@@ -125,16 +125,7 @@ def get_active_items(user=None):
 
     for media_type in media_types:
         # Build query for this media type
-        media_query = Q(
-            **{f"{media_type}__isnull": False},
-            **{
-                f"{media_type}__status__in": [
-                    status
-                    for status in Media.Status.values
-                    if status not in INACTIVE_TRACKING_STATUSES
-                ],
-            },
-        )
+        media_query = Q(**{f"{media_type}__isnull": False})
 
         # Add user filter if specified
         if user:
@@ -145,7 +136,7 @@ def get_active_items(user=None):
     # Add exclusion for manual sources
     active_query &= ~Q(source=Sources.MANUAL.value)
 
-    # Return distinct items with active status
+    # Return distinct items
     return Item.objects.filter(active_query)
 
 
@@ -244,11 +235,6 @@ def get_anime_schedule_bulk(media_ids):
         }
         media(idMal_in: $ids, type: ANIME) {
           idMal
-          startDate {
-            year
-            month
-            day
-          }
           endDate {
             year
             month
@@ -299,18 +285,10 @@ def get_anime_schedule_bulk(media_ids):
                             total_episodes,
                         )
                 elif not airing_schedule:
-                    # No airing schedule but we know episode count, create from dates
-                    start_date_timestamp = anilist_date_parser(media["startDate"])
-
-                    # Add first episode
-                    if start_date_timestamp:
-                        airing_schedule.append(
-                            {"episode": 1, "airingAt": start_date_timestamp},
-                        )
-
+                    # No airing schedule but we know episode count, create from date
                     end_date_timestamp = anilist_date_parser(media["endDate"])
                     # Add last episode
-                    if end_date_timestamp and total_episodes > 1:
+                    if end_date_timestamp:
                         airing_schedule.append(
                             {"episode": total_episodes, "airingAt": end_date_timestamp},
                         )
