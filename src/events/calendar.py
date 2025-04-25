@@ -284,10 +284,13 @@ def get_anime_schedule_bulk(media_ids):
                             mal_id,
                             total_episodes,
                         )
-                elif not airing_schedule:
-                    # No airing schedule but we know episode count, create from date
+
+                # Add final episode if schedule is missing or incomplete
+                if (
+                    not airing_schedule
+                    or airing_schedule[-1]["episode"] < total_episodes
+                ):
                     end_date_timestamp = anilist_date_parser(media["endDate"])
-                    # Add last episode
                     if end_date_timestamp:
                         airing_schedule.append(
                             {"episode": total_episodes, "airingAt": end_date_timestamp},
