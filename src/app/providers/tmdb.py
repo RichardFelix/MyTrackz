@@ -443,7 +443,7 @@ def process_episodes(season_metadata, episodes_in_db):
     episodes_metadata = []
 
     # Convert the queryset to a dictionary for efficient lookups
-    tracked_episodes = {ep.item.episode_number: ep for ep in episodes_in_db}
+    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
 
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
@@ -462,10 +462,10 @@ def process_episodes(season_metadata, episodes_in_db):
                 "overview": episode["overview"],
                 "watched": watched,
                 "end_date": (
-                    tracked_episodes[episode_number].end_date if watched else None
+                    tracked_episodes[episode_number]["end_date"] if watched else None
                 ),
                 "repeats": (
-                    tracked_episodes[episode_number].repeats if watched else None
+                    tracked_episodes[episode_number]["repeats"] if watched else None
                 ),
             },
         )
