@@ -74,7 +74,7 @@ def get_media_id(doc):
     try:
         # Fallback to top ranked edition key
         extract_openlibrary_id(doc["editions"]["docs"][0]["key"])
-    except (IndexError):
+    except IndexError:
         # editions docs is empty
         return None
 
@@ -111,13 +111,17 @@ async def async_book(media_id):
         else:
             response_work = {}
 
-        # Run authors and editions concurrently
+        # Run authors, editions, and ratings concurrently
         authors_task = asyncio.create_task(
             get_authors(response_work),
         )
         editions_task = asyncio.create_task(
             get_editions(response_book, response_work),
         )
+        ratings_task = asyncio.create_task(
+            get_ratings(response_work),
+        )
+        score, score_count = await ratings_task
 
         data = {
             "media_id": media_id,
@@ -129,6 +133,8 @@ async def async_book(media_id):
             "image": get_cover_image_url(response_book),
             "synopsis": get_description(response_book, response_work),
             "genres": get_subjects(response_work),
+            "score": score,
+            "score_count": score_count,
             "details": {
                 "physical_format": get_physical_format(response_book),
                 "number_of_pages": response_book.get("number_of_pages"),
@@ -298,3 +304,26 @@ async def get_editions(response_book, response_work):
                 and edition.get("title")
             ]
     return []
+
+
+async def get_ratings(response_work):
+    """Get ratings data for a book asynchronously."""
+    work_id = extract_openlibrary_id(response_work.get("key", ""))
+
+    if not work_id:
+        return None, None
+
+    url = f"https://openlibrary.org/works/{work_id}/ratings.json"
+
+    async with aiohttp.ClientSession() as session, session.get(url) as response:
+        if response.status == requests.codes.ok:
+            data = await response.json()
+            summary = data.get("summary", {})
+
+            if "average" in summary and "count" in summary:
+                # Convert to 10-point scale (multiply by 2) and round to 1 decimal place
+                score = round(summary["average"] * 2, 1)
+                score_count = summary["count"]
+                return score, score_count
+
+    return None, None

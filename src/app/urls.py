@@ -20,6 +20,7 @@ urlpatterns = [
         views.season_details,
         name="season_details",
     ),
+    path("update-score/", views.update_media_score, name="update_media_score"),
     path(
         "track_modal/<source:source>/<media_type:media_type>/<str:media_id>",
         views.track_modal,

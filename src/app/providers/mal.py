@@ -11,7 +11,7 @@ from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.myanimelist.net/v2"
-base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,recommendations"  # noqa: E501
+base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status,genres,mean,num_scoring_users,recommendations"  # noqa: E501
 
 
 def handle_error(error):
@@ -103,6 +103,8 @@ def anime(media_id):
             "backdrop": get_image_url(response),
             "synopsis": get_synopsis(response),
             "genres": get_genres(response),
+            "score": get_score(response),
+            "score_count": get_score_count(response),
             "details": {
                 "format": get_format(response),
                 "start_date": response.get("start_date"),
@@ -162,6 +164,8 @@ def manga(media_id):
             "synopsis": get_synopsis(response),
             "max_progress": num_chapters,
             "genres": get_genres(response),
+            "score": get_score(response),
+            "score_count": get_score_count(response),
             "details": {
                 "format": get_format(response),
                 "start_date": response.get("start_date"),
@@ -332,6 +336,22 @@ def get_source(response):
         return response["source"].replace("_", " ").title()
     except KeyError:
         return None
+
+
+def get_score(response):
+    """Return the score for the media."""
+    # when num_scoring_users is small, the response does not include this field.
+    try:
+        return round(response["mean"], 1)
+    except KeyError:
+        return None
+
+
+def get_score_count(response):
+    """Return the score count for the media."""
+    if get_score(response):
+        return response["num_scoring_users"]
+    return None
 
 
 def get_related(related_medias, media_type):

@@ -118,7 +118,7 @@ def game(media_id):
         url = f"{base_url}/games"
         data = (
             "fields name,cover.image_id,artworks.image_id,"
-            "url,summary,game_type,first_release_date,"
+            "url,summary,game_type,first_release_date,total_rating,total_rating_count,"
             "genres.name,themes.name,platforms.name,involved_companies.company.name,"
             "parent_game.name,parent_game.cover.image_id,"
             "remasters.name,remasters.cover.image_id,"
@@ -152,6 +152,8 @@ def game(media_id):
             "backdrop": get_backdrop(response),
             "synopsis": response["summary"],
             "genres": get_list(response, "genres"),
+            "score": get_score(response),
+            "score_count": response.get("total_rating_count"),
             "details": {
                 "format": get_game_type(response["game_type"]),
                 "release_date": get_start_date(response),
@@ -248,6 +250,16 @@ def get_companies(response):
         return ", ".join(
             company["company"]["name"] for company in response["involved_companies"]
         )
+    except KeyError:
+        return None
+
+
+def get_score(response):
+    """Return the score of the game."""
+    # when no score, total_rating is not present in the response
+    try:
+        score = response["total_rating"]  # returns e.g 92.70730625238252
+        return round(score / 10, 1)
     except KeyError:
         return None
 

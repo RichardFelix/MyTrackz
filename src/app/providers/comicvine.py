@@ -105,6 +105,8 @@ def comic(media_id):
             "image": get_image(response),
             "synopsis": get_synopsis(response),
             "genres": get_genres(response),
+            "score": None,
+            "score_count": None,
             "details": {
                 "start_date": get_start_year(response),
                 "publisher": get_publisher_name(response),

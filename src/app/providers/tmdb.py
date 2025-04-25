@@ -83,6 +83,8 @@ def movie(media_id):
             "backdrop": get_backdrop_url(response),
             "synopsis": get_synopsis(response["overview"]),
             "genres": get_genres(response["genres"]),
+            "score": get_score(response["vote_average"]),
+            "score_count": response["vote_count"],
             "details": {
                 "format": "Movie",
                 "release_date": get_start_date(response["release_date"]),
@@ -212,6 +214,8 @@ def process_tv(response):
         "backdrop": get_backdrop_url(response),
         "synopsis": get_synopsis(response["overview"]),
         "genres": get_genres(response["genres"]),
+        "score": get_score(response["vote_average"]),
+        "score_count": response["vote_count"],
         "details": {
             "format": "TV",
             "first_air_date": get_start_date(response["first_air_date"]),
@@ -242,7 +246,24 @@ def process_tv(response):
 
 def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
-    num_episodes = len(response["episodes"])
+    episodes = response["episodes"]
+    num_episodes = len(episodes)
+
+    runtimes = []
+    total_runtime = 0
+    score_count = 0
+
+    for episode in episodes:
+        if episode["runtime"] is not None:
+            runtimes.append(episode["runtime"])
+            total_runtime += episode["runtime"]
+        score_count += episode["vote_count"]
+
+    avg_runtime = (
+        get_readable_duration(sum(runtimes) / len(runtimes)) if runtimes else None
+    )
+    total_runtime = get_readable_duration(total_runtime) if total_runtime else None
+
     return {
         "source": Sources.TMDB.value,
         "media_type": MediaTypes.SEASON.value,
@@ -251,12 +272,14 @@ def process_season(response):
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
+        "score": get_score(response["vote_average"]),
+        "score_count": score_count,
         "details": {
             "first_air_date": get_start_date(response["air_date"]),
             "last_air_date": get_end_date(response),
             "episodes": num_episodes,
-            "runtime": average_season_runtime(response),
-            "total_runtime": total_season_runtime(response),
+            "runtime": avg_runtime,
+            "total_runtime": total_runtime,
         },
         "episodes": response["episodes"],
     }
@@ -344,32 +367,9 @@ def get_runtime_tv(runtime):
     return None
 
 
-def average_season_runtime(response):
-    """Return the average runtime for the season."""
-    # when unknown runtime, value from response is null
-    episodes_with_runtime = [
-        episode for episode in response["episodes"] if episode["runtime"] is not None
-    ]
-
-    if not episodes_with_runtime:
-        return None
-
-    return get_readable_duration(
-        sum(episode["runtime"] for episode in episodes_with_runtime)
-        / len(episodes_with_runtime),
-    )
-
-
-def total_season_runtime(response):
-    """Return the total runtime for the season."""
-    # when unknown runtime, value from response is null
-    return get_readable_duration(
-        sum(
-            episode["runtime"]
-            for episode in response["episodes"]
-            if episode["runtime"] is not None
-        ),
-    )
+def season_scores_count(response):
+    """Return the scores count for the season."""
+    return sum(episode["vote_count"] for episode in response["episodes"])
 
 
 def get_genres(genres):
@@ -408,6 +408,13 @@ def get_companies(companies):
     return None
 
 
+def get_score(score):
+    """Return the score for the media with one decimal place."""
+    # when unknown score, value from response is 0.0
+
+    return round(score, 1)
+
+
 def get_related(related_medias, media_type, parent_response=None):
     """Return list of related media for the selected media."""
     related = []
@@ -436,7 +443,7 @@ def process_episodes(season_metadata, episodes_in_db):
     episodes_metadata = []
 
     # Convert the queryset to a dictionary for efficient lookups
-    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
+    tracked_episodes = {ep.item.episode_number: ep for ep in episodes_in_db}
 
     for episode in season_metadata["episodes"]:
         episode_number = episode["episode_number"]
@@ -455,10 +462,10 @@ def process_episodes(season_metadata, episodes_in_db):
                 "overview": episode["overview"],
                 "watched": watched,
                 "end_date": (
-                    tracked_episodes[episode_number]["end_date"] if watched else None
+                    tracked_episodes[episode_number].end_date if watched else None
                 ),
                 "repeats": (
-                    tracked_episodes[episode_number]["repeats"] if watched else None
+                    tracked_episodes[episode_number].repeats if watched else None
                 ),
             },
         )

@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "django.contrib.humanize",
 ]
 
 MIDDLEWARE = [
@@ -153,7 +154,7 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": 18000,  # 5 hours,
-        "VERSION": 6,
+        "VERSION": 7,
     },
 }
 

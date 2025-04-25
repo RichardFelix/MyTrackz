@@ -92,6 +92,8 @@ async def async_manga(media_id):
             "synopsis": response["description"],
             "max_progress": get_max_progress(response),
             "genres": get_genres(response["genres"]),
+            "score": get_score(response["bayesian_rating"]),
+            "score_count": response["rating_votes"],
             "details": {
                 "format": response["type"],
                 "authors": get_authors(response["authors"]),
@@ -148,6 +150,14 @@ def get_status(status):
         if match:
             return match.group(1)
     return status
+
+
+def get_score(score):
+    """Return the score for the media."""
+    # can be null 29732162445
+    if score:
+        return round(score, 1)
+    return None
 
 
 async def get_related_series(related):

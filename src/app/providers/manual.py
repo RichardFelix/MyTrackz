@@ -17,6 +17,8 @@ def metadata(media_id, media_type):
         "max_progress": None,
         "image": item.image,
         "synopsis": "No synopsis available.",
+        "score": None,
+        "score_count": None,
         "details": {},
         "related": {},
     }
@@ -83,6 +85,8 @@ def build_season_response(season, episodes_response, season_episodes):
         "season_number": season.season_number,
         "episodes": episodes_response,
         "max_progress": season_episodes.count(),
+        "score": None,
+        "score_count": None,
         "details": {
             "episodes": season_episodes.count(),
         },
@@ -119,7 +123,7 @@ def episode(media_id, season_number, episode_number):
 
 def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
-    tracked_episodes = {ep["item__episode_number"]: ep for ep in episodes_in_db}
+    tracked_episodes = {ep.item.episode_number: ep for ep in episodes_in_db}
     episodes_metadata = []
 
     for episode in season_metadata["episodes"]:
@@ -137,10 +141,10 @@ def process_episodes(season_metadata, episodes_in_db):
             "title": episode["title"],
             "overview": "No synopsis available.",
             "watched": watched,
-            "end_date": tracked_episodes[episode_number]["end_date"]
+            "end_date": tracked_episodes[episode_number].end_date
             if watched
             else None,
-            "repeats": tracked_episodes[episode_number]["repeats"] if watched else 0,
+            "repeats": tracked_episodes[episode_number].repeats if watched else 0,
         }
         episodes_metadata.append(episode_data)
 

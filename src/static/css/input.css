@@ -17,6 +17,10 @@
   object-fit: none;
 }
 
+.clip-half {
+  clip-path: inset(0 50% 0 0);
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
 @custom-variant parent-hover-tap (.hover-tap:hover &);

@@ -3,9 +3,9 @@ import logging
 from django.apps import apps
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db import IntegrityError, models
+from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -14,10 +14,9 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers
 from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Episode, Item, Media, MediaTypes, Season, Sources
+from app.models import TV, BasicMedia, Item, Media, MediaTypes, Season, Sources
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
-from events.models import Event
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ def progress_edit(request):
     media_type = item.media_type
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.get_media(
+    media = BasicMedia.objects.get_media_prefetch(
         request.user,
         item.media_id,
         item.media_type,
@@ -69,9 +68,6 @@ def progress_edit(request):
     )
 
     if media:
-        if media_type == MediaTypes.SEASON.value:
-            prefetch_related_objects([media], "episodes")
-
         if operation == "increase":
             media.increase_progress()
         elif operation == "decrease":
@@ -81,17 +77,6 @@ def progress_edit(request):
             # clear prefetch cache to get the updated episodes
             media.refresh_from_db()
             prefetch_related_objects([media], "episodes")
-
-        current_datetime = timezone.now()
-
-        if media_type == MediaTypes.MOVIE.value:
-            media.max_progress = 1
-        else:
-            # For other media types, get the max content number
-            media.max_progress = Event.objects.filter(
-                item__id=item.id,
-                datetime__lte=current_datetime,
-            ).aggregate(max_number=models.Max("content_number"))["max_number"]
 
         context = {
             "media": media,
@@ -204,8 +189,18 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
+    user_media = BasicMedia.objects.get_media_prefetch(
+        request.user,
+        media_id,
+        media_type,
+        source,
+    )
 
-    context = {"media": media_metadata, "media_type": media_type}
+    context = {
+        "media": media_metadata,
+        "media_type": media_type,
+        "user_media": user_media,
+    }
     return render(request, "app/media_details.html", context)
 
 
@@ -219,12 +214,16 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         [season_number],
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-    episodes_in_db = Episode.objects.filter(
-        item__media_id=media_id,
-        item__source=source,
-        item__season_number=season_number,
-        related_season__user=request.user,
-    ).values("item__episode_number", "end_date", "repeats")
+
+    user_media = BasicMedia.objects.get_media_prefetch(
+        request.user,
+        media_id,
+        MediaTypes.SEASON.value,
+        source,
+        season_number=season_number,
+    )
+
+    episodes_in_db = user_media.episodes.all() if user_media else []
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
@@ -241,8 +240,47 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
         "media_type": MediaTypes.SEASON.value,
+        "user_media": user_media,
     }
     return render(request, "app/media_details.html", context)
+
+
+@require_POST
+def update_media_score(request):
+    """Update the user's score for a media item."""
+    score = float(request.POST.get("score"))
+    item_id = request.POST.get("item_id")
+
+    item = Item.objects.get(id=item_id)
+
+    # Get the media model based on type
+    model = apps.get_model(app_label="app", model_name=item.media_type)
+
+    # Get the user's media instance through the Item relationship
+    user_media = model.objects.filter(
+        user=request.user,
+        item_id=item_id,
+    ).first()
+
+    if not user_media:
+        msg = f"Media not found for user {request.user.username} with item ID {item_id}"
+        raise ValueError(msg)
+
+    # Update the score
+    user_media.score = score
+    user_media.save()
+    logger.info(
+        "%s score updated to %s",
+        user_media,
+        score,
+    )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "score": score,
+        },
+    )
 
 
 @require_GET

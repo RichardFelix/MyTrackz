@@ -467,6 +467,58 @@ class MediaManager(models.Manager):
     ):
         """Get user media object given the media type and item."""
         model = apps.get_model(app_label="app", model_name=media_type)
+        params = self._get_media_params(
+            media_type,
+            media_id,
+            source,
+            user,
+            season_number,
+            episode_number,
+        )
+
+        try:
+            return model.objects.get(**params)
+        except model.DoesNotExist:
+            return None
+
+    def get_media_prefetch(
+        self,
+        user,
+        media_id,
+        media_type,
+        source,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Get user media object with prefetch_related applied."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        params = self._get_media_params(
+            media_type,
+            media_id,
+            source,
+            user,
+            season_number,
+            episode_number,
+        )
+
+        queryset = model.objects.filter(**params)
+        queryset = self._apply_prefetch_related(queryset, media_type)
+        self.annotate_max_progress(queryset, media_type)
+
+        if queryset:
+            return queryset[0]
+        return None
+
+    def _get_media_params(
+        self,
+        media_type,
+        media_id,
+        source,
+        user,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Get the common filter parameters for media queries."""
         params = {
             "item__media_type": media_type,
             "item__source": source,
@@ -483,10 +535,7 @@ class MediaManager(models.Manager):
         else:
             params["user"] = user
 
-        try:
-            return model.objects.get(**params)
-        except model.DoesNotExist:
-            return None
+        return params
 
 
 class Media(CalendarTriggerMixin, models.Model):

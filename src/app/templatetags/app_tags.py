@@ -354,3 +354,9 @@ def icon(name, is_active, extra_classes=None):
 def str_equals(value, arg):
     """Return True if the string value is equal to the argument."""
     return str(value) == str(arg)
+
+
+@register.filter
+def get_range(value):
+    """Return a range from 1 to the given value."""
+    return range(1, int(value) + 1)
