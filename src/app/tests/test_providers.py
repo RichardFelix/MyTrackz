@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -184,9 +185,6 @@ class Metadata(TestCase):
                 },
             ],
         }
-
-        # Create a sample episodes_in_db structure (simulating watched episodes)
-        from datetime import date
 
         episodes_in_db = [
             {
@@ -557,9 +555,6 @@ class Metadata(TestCase):
                 },
             ],
         }
-
-        # Create episodes_in_db structure (simulating watched episodes)
-        from datetime import date
 
         episodes_in_db = [
             {

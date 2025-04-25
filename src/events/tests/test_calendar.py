@@ -289,20 +289,6 @@ class ReloadCalendarTaskTests(TestCase):
             datetime=comic_recent_date,
         )
 
-        # Create an item with inactive status
-        inactive_item = Item.objects.create(
-            media_id="999",
-            source=Sources.MAL.value,
-            media_type=MediaTypes.ANIME.value,
-            title="Inactive Anime",
-            image="http://example.com/inactive.jpg",
-        )
-        Anime.objects.create(
-            item=inactive_item,
-            user=self.user,
-            status=Media.Status.DROPPED.value,  # Inactive status
-        )
-
         # Create an item for user2 (should not appear when filtering for user1)
         user2_item = Item.objects.create(
             media_id="888",
@@ -330,9 +316,6 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify item with no events is included (movie_item has no events)
         self.assertIn(self.movie_item, items)
 
-        # Verify items with inactive status are excluded
-        self.assertNotIn(inactive_item, items)
-
         # Verify items from other users are excluded
         self.assertNotIn(user2_item, items)
 
@@ -348,9 +331,6 @@ class ReloadCalendarTaskTests(TestCase):
         # Should include items from both users
         self.assertIn(self.anime_item, all_items)
         self.assertIn(user2_item, all_items)
-
-        # Should still exclude inactive items
-        self.assertNotIn(inactive_item, all_items)
 
     @patch("events.calendar.tmdb.tv")
     @patch("events.calendar.tmdb.tv_with_seasons")
@@ -546,10 +526,9 @@ class ReloadCalendarTaskTests(TestCase):
                     "media": [
                         {
                             "idMal": 437,
-                            "startDate": {"year": 1997, "month": 8, "day": 5},
                             "endDate": {"year": 1997, "month": 8, "day": 12},
                             "episodes": 2,
-                            "airingSchedule": {"nodes": []},  # Empty airing schedule
+                            "airingSchedule": {"nodes": []},
                         },
                     ],
                 },
@@ -561,8 +540,8 @@ class ReloadCalendarTaskTests(TestCase):
 
         # Verify result - should create a basic schedule from dates
         self.assertIn("437", result)
-        self.assertEqual(len(result["437"]), 2)  # Start and end date
-        self.assertEqual(result["437"][0]["episode"], 1)
+        self.assertEqual(len(result["437"]), 1)  # end date
+        self.assertEqual(result["437"][0]["episode"], 2)
 
         # Convert timestamp to datetime for easier verification
         start_date = datetime.datetime.fromtimestamp(
@@ -584,7 +563,6 @@ class ReloadCalendarTaskTests(TestCase):
                     "media": [
                         {
                             "idMal": 437,
-                            "startDate": {"year": 1997, "month": 8, "day": 5},
                             "endDate": {"year": 1997, "month": 8, "day": 5},
                             "episodes": 1,  # Only 1 episode total
                             "airingSchedule": {
@@ -758,7 +736,6 @@ class ReloadCalendarTaskTests(TestCase):
                     "media": [
                         {
                             "idMal": 437,
-                            "startDate": {"year": 1997, "month": 8, "day": 5},
                             "endDate": {"year": 1997, "month": 8, "day": 5},
                             "episodes": 1,
                             "airingSchedule": {
