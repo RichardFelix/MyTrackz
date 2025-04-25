@@ -574,6 +574,8 @@ def history_modal(
                 delta = new_record.diff_against(old_record)
 
                 for change in delta.changes:
+                    if change.field == "progress_changed":
+                        continue
                     entry["changes"].append(
                         {
                             "description": helpers.format_description(
@@ -594,7 +596,7 @@ def history_modal(
                 for field in history_model._meta.get_fields():  # noqa: SLF001
                     if (
                         field.name.startswith("history_")
-                        or field.name in ["id", "modified"]
+                        or field.name in ["id", "progress_changed"]
                         or not getattr(new_record, field.attname)
                     ):
                         continue

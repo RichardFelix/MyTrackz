@@ -140,22 +140,23 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     if field_name == "progress" and media_type != MediaTypes.MOVIE.value:
         diff = new_value - old_value
+        diff_abs = abs(diff)
 
         if media_type == MediaTypes.GAME.value:
             if diff > 0:
-                return f"Added {minutes_to_hhmm(diff)} of playtime"
-            return f"Removed {minutes_to_hhmm(abs(diff))} of playtime"
+                return f"Added {minutes_to_hhmm(diff_abs)} of playtime"
+            return f"Removed {minutes_to_hhmm(diff_abs)} of playtime"
 
         unit = (
             f"{media_type_config.get_unit(media_type, short=False).lower()}"
-            f"{pluralize(diff)}"
+            f"{pluralize(diff_abs)}"
         )
 
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if diff < 0:
             verb = "Removed"  # Override with "Removed" for negative changes
 
-        return f"{verb} {abs(diff)} {unit}"
+        return f"{verb} {diff_abs} {unit}"
 
     if field_name == "repeats":
         verb = media_type_config.get_verb(media_type, past_tense=True)
