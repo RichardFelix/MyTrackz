@@ -550,7 +550,7 @@ class ReloadCalendarTaskTests(TestCase):
         )
         self.assertEqual(start_date.year, 1997)
         self.assertEqual(start_date.month, 8)
-        self.assertEqual(start_date.day, 5)
+        self.assertEqual(start_date.day, 12)
 
     @patch("events.calendar.services.api_request")
     def test_get_anime_schedule_bulk_filter_episodes(self, mock_api_request):

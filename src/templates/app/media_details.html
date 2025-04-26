@@ -14,35 +14,36 @@
            class="w-full rounded-lg shadow-lg bg-[#2a2f35] object-cover"
            src="{{ media.image }}">
 
-      <div x-data="{ trackOpen: false }"
-           class="mt-4 p-3 rounded-lg flex items-center text-white transition duration-300 cursor-pointer {% if user_media.status %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
-           hx-get="{% modal_url 'track' media %}"
-           hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
-           hx-target="#{% component_id 'track' media %}"
-           hx-trigger="click"
-           @click="trackOpen = true">
-        <div class="flex-1 text-center font-medium">
-          {% if user_media %}
-            {{ user_media.status|media_status_readable }}
-          {% else %}
-            Not tracked
-          {% endif %}
-        </div>
+      <div x-data="{ trackOpen: false }">
+        <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_media.status %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
+                hx-get="{% modal_url 'track' media %}"
+                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                hx-target="#{% component_id 'track' media %}"
+                hx-trigger="click"
+                @click="trackOpen = true">
+          <div class="flex-1 text-center font-medium">
+            {% if user_media %}
+              {{ user_media.status|media_status_readable }}
+            {% else %}
+              Not tracked
+            {% endif %}
+          </div>
 
-        <div class="h-5 mx-2 border-l border-white/30"></div>
-        <svg xmlns="http://www.w3.org/2000/svg"
-             width="24"
-             height="24"
-             viewBox="0 0 24 24"
-             fill="none"
-             stroke="currentColor"
-             stroke-width="2"
-             stroke-linecap="round"
-             stroke-linejoin="round"
-             class="w-5 h-5 flex-shrink-0">
-          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
-        </svg>
+          <div class="h-5 mx-2 border-l border-white/30"></div>
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-5 h-5 flex-shrink-0">
+            <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
+          </svg>
+        </button>
 
         {# Track Modal #}
         <div x-show="trackOpen"
@@ -108,7 +109,7 @@
                     <div class="flex-1 text-left">
                       <div class="text-sm font-medium">{{ tv_season.season_title }}</div>
                       <div class="text-xs text-gray-400">
-                        {{ tv_season.max_progress }} Episodes
+                        {{ tv_season.max_progress }} Episode{{ tv_season.max_progress|pluralize }}
                         {% if tv_season.first_air_date %}• {{ tv_season.first_air_date }}{% endif %}
                       </div>
                     </div>
@@ -131,7 +132,9 @@
 
       {# Description #}
       <div class="mb-6">
-        <p class="text-gray-300 line-clamp-6 text-justify text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
+        <p class="text-gray-300 text-justify text-pretty {% if media.media_type == MediaTypes.SEASON.value %}line-clamp-4{% else %}line-clamp-5{% endif %}">
+          {{ media.synopsis|linebreaksbr|safe }}
+        </p>
 
         {% if user_media.notes %}
           <div class="my-3 border-t border-gray-700"></div>
@@ -153,13 +156,12 @@
             <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
           </div>
 
-          <p class="text-gray-300 italic">"{{ user_media.notes|linebreaksbr }}"</p>
+          <p class="text-gray-300 italic line-clamp-2">"{{ user_media.notes|linebreaksbr }}"</p>
         {% endif %}
       </div>
 
       {# Source score #}
-      <div class="flex flex-wrap gap-4 {% if media.score_count is not None or user_media %}mb-6{% endif %}">
-
+      <div class="flex flex-wrap gap-4">
         {% if media.score_count is not None %}
           <div class="bg-[#2a2f35] p-3 rounded-lg w-[120px]">
             <h3 class="text-xs font-semibold text-gray-400 mb-1 text-center">{{ media.source|upper }} SCORE</h3>
@@ -260,13 +262,75 @@
             </div>
           </div>
         {% endif %}
-
       </div>
+    </div>
+  </div>
 
-      <div class="flex items-center space-x-4">
+  <div class="flex flex-col md:flex-row gap-12 md:gap-10">
+    {# Details Column #}
+
+    <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
+      {# Your History #}
+      {% if user_media %}
+        <h2 class="text-xl font-bold mb-4">Your History</h2>
+        <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
+          <div class="flex flex-col gap-y-1">
+            {% if user_media.start_date %}
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Started:</span>
+                <span class="text-gray-200">{{ user_media.start_date }}</span>
+              </div>
+            {% endif %}
+
+            {% if user_media.end_date %}
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Finished:</span>
+                <span class="text-gray-200">{{ user_media.end_date }}</span>
+              </div>
+            {% endif %}
+
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-400">Progress:</span>
+              <span class="text-gray-200">
+                {{ user_media.progress }}
+                {% if user_media.max_progress %}/ {{ user_media.max_progress }}{% endif %}
+              </span>
+            </div>
+
+            {% if user_media.repeats and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Repeats:</span>
+                <div class="flex items-center text-gray-200">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       width="24"
+                       height="24"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round"
+                       class="w-4 h-4 mr-1">
+                    <path d="m17 2 4 4-4 4"></path>
+                    <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+                    <path d="m7 22-4-4 4-4"></path>
+                    <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+                  </svg>
+                  <span>{{ user_media.repeats }}x</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# Actions #}
+      <h2 class="text-xl font-bold mb-4">Actions</h2>
+      <div class="bg-[#2a2f35] p-4 rounded-lg flex items-center justify-center gap-x-5 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
-          <button class="inline-flex items-center justify-center px-4 py-2 space-x-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
+          <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
+                  title="Add to custom lists"
                   hx-get="{% modal_url 'lists' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
@@ -286,7 +350,6 @@
               <path d="M9 13h6" />
               <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
             </svg>
-            <span>Lists</span>
           </button>
 
           <div x-show="listsOpen"
@@ -299,9 +362,10 @@
           </div>
         </div>
 
-        {# History #}
+        {# Activity History #}
         <div x-data="{ historyOpen: false }">
-          <button class="inline-flex items-center justify-center px-4 py-2 space-x-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
+          <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
+                  title="View your activity history"
                   hx-get="{% modal_url 'history' media %}"
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
@@ -324,7 +388,6 @@
               <path d="M17.5 17.5 16 16.3V14"></path>
               <circle cx="16" cy="16" r="6"></circle>
             </svg>
-            <span>Activity</span>
           </button>
 
           <div x-show="historyOpen"
@@ -336,66 +399,30 @@
             </div>
           </div>
         </div>
+
+        {# Refresh #}
+        <button title="Refresh media data"
+                class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="24"
+               height="24"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               class="w-4 h-4">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M8 16H3v5"></path>
+          </svg>
+        </button>
       </div>
-    </div>
-  </div>
 
-  <div class="flex flex-col md:flex-row gap-12 md:gap-10">
-    {# Details Column #}
-    <div class="w-full md:w-1/4 md:max-w-[250px]">
-      <h2 class="text-2xl font-bold mb-4">Details</h2>
-      {% if user_media %}
-        <div class="bg-[#2a2f35] p-4 rounded-lg mb-4">
-          <h3 class="text-sm font-semibold text-gray-400 mb-2">YOUR HISTORY</h3>
-
-          {% if user_media.start_date %}
-            <div class="flex justify-between text-sm mb-1">
-              <span class="text-gray-400">Started:</span>
-              <span class="text-gray-200">{{ user_media.start_date }}</span>
-            </div>
-          {% endif %}
-
-          {% if user_media.end_date %}
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Finished:</span>
-              <span class="text-gray-200">{{ user_media.end_date }}</span>
-            </div>
-          {% endif %}
-
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-400">Progress:</span>
-            <span class="text-gray-200">
-              {{ user_media.progress }}
-              {% if user_media.max_progress %}/ {{ user_media.max_progress }}{% endif %}
-            </span>
-          </div>
-
-          {% if user_media.repeats and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Repeats:</span>
-              <div class="flex items-center text-gray-200">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="24"
-                     height="24"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4 mr-1">
-                  <path d="m17 2 4 4-4 4"></path>
-                  <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
-                  <path d="m7 22-4-4 4-4"></path>
-                  <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
-                </svg>
-                <span>{{ user_media.repeats }}x</span>
-              </div>
-            </div>
-          {% endif %}
-        </div>
-      {% endif %}
-
+      {# Media Details #}
+      <h2 class="text-xl font-bold mb-4">Details</h2>
       <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start">
         {% if media.details.items %}
           {% for key, value in media.details.items %}
@@ -428,10 +455,10 @@
         {% for name, related_items in media.related.items %}
           {% if related_items %}
             <section class="{% if not forloop.last %}mb-8{% endif %}">
-              <h2 class="text-2xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
+              <h2 class="text-xl font-bold mb-4">{{ name|no_underscore|title }}</h2>
               <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
                 {% for item in related_items %}
-                  {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title request=request only %}
+                  {% include "app/components/media_card.html" with item=item title=item.season_title|default:item.title media=None %}
                 {% endfor %}
               </div>
             </section>
@@ -442,8 +469,8 @@
 
     {# Episodes List #}
     {% if media.episodes %}
-      <div class="w-full md:w-3/4">
-        <h2 class="text-2xl font-bold mb-4">Episodes</h2>
+      <div class="w-full">
+        <h2 class="text-xl font-bold mb-4">Episodes</h2>
         <div class="space-y-6">
           {% for episode in media.episodes %}
             <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg">

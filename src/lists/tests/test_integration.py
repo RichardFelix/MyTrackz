@@ -49,7 +49,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).first.click()
         self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
         expect(self.page.locator("#lists-anime-437")).to_contain_text(
-            "No lists available",
+            "You haven't created any lists yet.",
         )
 
     def test_flow(self):
