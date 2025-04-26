@@ -12,8 +12,8 @@ from app.models import Item, MediaTypes, Sources
 from events.models import Event
 
 
-class ReleaseCalendarViewTests(TestCase):
-    """Tests for the release calendar views."""
+class CalendarViewTests(TestCase):
+    """Tests for the calendar views."""
 
     def setUp(self):
         """Set up test data."""
@@ -23,18 +23,18 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_default_view(
+    def test_calendar_default_view(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar view with default parameters."""
+        """Test the calendar view with default parameters."""
         # Set up mocks
         mock_update_preference.return_value = "month"
         mock_get_user_events.return_value = []
 
         # Make the request
-        response = self.client.get(reverse("release_calendar"))
+        response = self.client.get(reverse("calendar"))
 
         # Check response
         self.assertEqual(response.status_code, 200)
@@ -68,18 +68,18 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_with_month_year_params(
+    def test_calendar_with_month_year_params(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar view with month and year parameters."""
+        """Test the calendar view with month and year parameters."""
         # Set up mocks
         mock_update_preference.return_value = "month"
         mock_get_user_events.return_value = []
 
         # Make the request with specific month and year
-        response = self.client.get(reverse("release_calendar") + "?month=6&year=2024")
+        response = self.client.get(reverse("calendar") + "?month=6&year=2024")
 
         # Check response
         self.assertEqual(response.status_code, 200)
@@ -104,18 +104,18 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_with_view_param(
+    def test_calendar_with_view_param(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar view with view parameter."""
+        """Test the calendar view with view parameter."""
         # Set up mocks
         mock_update_preference.return_value = "list"
         mock_get_user_events.return_value = []
 
         # Make the request with view parameter
-        response = self.client.get(reverse("release_calendar") + "?view=list")
+        response = self.client.get(reverse("calendar") + "?view=list")
 
         # Check response
         self.assertEqual(response.status_code, 200)
@@ -129,19 +129,19 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_with_invalid_month_year(
+    def test_calendar_with_invalid_month_year(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar view with invalid month and year parameters."""
+        """Test the calendar view with invalid month and year parameters."""
         # Set up mocks
         mock_update_preference.return_value = "month"
         mock_get_user_events.return_value = []
 
         # Make the request with invalid month and year
         response = self.client.get(
-            reverse("release_calendar") + "?month=invalid&year=invalid",
+            reverse("calendar") + "?month=invalid&year=invalid",
         )
 
         # Check response
@@ -157,18 +157,18 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_december_navigation(
+    def test_calendar_december_navigation(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar navigation for December."""
+        """Test the calendar navigation for December."""
         # Set up mocks
         mock_update_preference.return_value = "month"
         mock_get_user_events.return_value = []
 
         # Make the request for December
-        response = self.client.get(reverse("release_calendar") + "?month=12&year=2024")
+        response = self.client.get(reverse("calendar") + "?month=12&year=2024")
 
         # Check context data for navigation
         self.assertEqual(response.context["prev_month"], 11)
@@ -178,18 +178,18 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_january_navigation(
+    def test_calendar_january_navigation(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar navigation for January."""
+        """Test the calendar navigation for January."""
         # Set up mocks
         mock_update_preference.return_value = "month"
         mock_get_user_events.return_value = []
 
         # Make the request for January
-        response = self.client.get(reverse("release_calendar") + "?month=1&year=2024")
+        response = self.client.get(reverse("calendar") + "?month=1&year=2024")
 
         # Check context data for navigation
         self.assertEqual(response.context["prev_month"], 12)
@@ -199,12 +199,12 @@ class ReleaseCalendarViewTests(TestCase):
 
     @patch("events.models.Event.objects.get_user_events")
     @patch.object(get_user_model(), "update_preference")
-    def test_release_calendar_with_events(
+    def test_calendar_with_events(
         self,
         mock_update_preference,
         mock_get_user_events,
     ):
-        """Test the release calendar with events."""
+        """Test the calendar with events."""
         # Set up mocks
         mock_update_preference.return_value = "month"
 
@@ -251,7 +251,7 @@ class ReleaseCalendarViewTests(TestCase):
         mock_get_user_events.return_value = [event1, event2, event3]
 
         # Make the request
-        response = self.client.get(reverse("release_calendar"))
+        response = self.client.get(reverse("calendar"))
 
         # Check response
         self.assertEqual(response.status_code, 200)
@@ -269,7 +269,7 @@ class ReleaseCalendarViewTests(TestCase):
         response = self.client.post(reverse("reload_calendar"))
 
         # Check response
-        self.assertRedirects(response, reverse("release_calendar"))
+        self.assertRedirects(response, reverse("calendar"))
 
         # Check that the task was called
         mock_reload_task.assert_called_once_with(self.user)

@@ -1,4 +1,4 @@
-import calendar
+import calendar as cal
 import logging
 from datetime import UTC, date, timedelta
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @require_GET
-def release_calendar(request):
+def calendar(request):
     """Display the calendar page."""
     # Handle view type
     view_type = request.user.update_preference(
@@ -62,8 +62,8 @@ def release_calendar(request):
     ) - timedelta(days=1)
 
     # Get calendar data
-    cal = calendar.monthcalendar(year, month)
-    month_name = calendar.month_name[month]
+    calendar_format = cal.monthcalendar(year, month)
+    month_name = cal.month_name[month]
 
     # Get events and organize by day
     releases = Event.objects.get_user_events(request.user, first_day, last_day)
@@ -81,7 +81,7 @@ def release_calendar(request):
     today = timezone.localtime().date()
 
     context = {
-        "calendar": cal,
+        "calendar": calendar_format,
         "month": month,
         "month_name": month_name,
         "year": year,
@@ -101,7 +101,7 @@ def reload_calendar(request):
     """Refresh the calendar with the latest dates."""
     tasks.reload_calendar.delay(request.user)
     messages.info(request, "The task to refresh upcoming releases has been queued.")
-    return redirect("release_calendar")
+    return redirect("calendar")
 
 
 @login_not_required
@@ -141,5 +141,5 @@ def download_calendar(_, token: str):
 
     # Return the iCal file
     response = HttpResponse(cal.to_ical(), content_type="text/calendar")
-    response["Content-Disposition"] = 'attachment; filename="release_calendar.ics"'
+    response["Content-Disposition"] = 'attachment; filename="calendar.ics"'
     return response

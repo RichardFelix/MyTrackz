@@ -117,7 +117,7 @@
                   </a>
                 </li>
 
-                {% url 'release_calendar' as calendar_url %}
+                {% url 'calendar' as calendar_url %}
                 <li>
                   <a href="{{ calendar_url }}"
                      class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
