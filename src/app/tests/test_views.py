@@ -536,7 +536,7 @@ class TrackModalViewTests(TestCase):
                     "media_id": "278",
                 },
             )
-            + "?return_url=/home",
+            + "?return_url=/home&title=New+Movie",
         )
 
         self.assertEqual(response.status_code, 200)

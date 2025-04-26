@@ -320,7 +320,7 @@ def track_modal(
         request,
         "app/components/fill_track.html",
         {
-            "title": media.item if media else "Track",
+            "title": media.item if media else request.GET["title"],
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],

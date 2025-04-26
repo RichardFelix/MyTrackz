@@ -17,7 +17,7 @@
       <div x-data="{ trackOpen: false }">
         <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_media.status %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                 hx-get="{% modal_url 'track' media %}"
-                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "title": "{{ media.title }}{% if media.season_title %} S{{ media.season_number }}{% endif %}"}'
                 hx-target="#{% component_id 'track' media %}"
                 hx-trigger="click"
                 @click="trackOpen = true">
@@ -25,7 +25,7 @@
             {% if user_media %}
               {{ user_media.status|media_status_readable }}
             {% else %}
-              Not tracked
+              Add to tracker
             {% endif %}
           </div>
 
