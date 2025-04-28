@@ -428,45 +428,87 @@ class MediaManagerTests(TestCase):
             score=0,
         )
 
-        # Get all seasons
-        queryset = Season.objects.filter(user=self.user.id).select_related("item")
-        seasons_list = list(queryset)
+        # Get all seasons with prefetch_related applied
+        queryset = Season.objects.filter(user=self.user).select_related("item")
+        queryset = manager._apply_prefetch_related(queryset, MediaTypes.SEASON.value)
 
         # Test sorting by start_date
-        sorted_list = manager._sort_media_list(seasons_list, "start_date")
-        # Seasons with start_date should come first, then those without
-        seasons_with_dates = [s for s in seasons_list if s.start_date is not None]
-        seasons_without_dates = [s for s in seasons_list if s.start_date is None]
-        self.assertEqual(
-            sorted_list,
-            sorted(seasons_with_dates, key=lambda x: x.start_date)
-            + seasons_without_dates,
+        sorted_queryset = manager._sort_media_list(
+            queryset,
+            "start_date",
+            MediaTypes.SEASON.value,
         )
+        seasons = list(sorted_queryset)
+
+        # Verify seasons with episodes come first (have start_date)
+        self.assertEqual(seasons[0].item.title, "Friends")
+        self.assertEqual(seasons[1].item.title, "Friends Season 2")
+        # Season with no episodes should come last
+        self.assertEqual(seasons[2].item.title, "Friends Season 3")
 
         # Test sorting by end_date
-        sorted_list = manager._sort_media_list(seasons_list, "end_date")
-        # Seasons with end_date should come first, then those without
-        seasons_with_dates = [s for s in seasons_list if s.end_date is not None]
-        seasons_without_dates = [s for s in seasons_list if s.end_date is None]
-        self.assertEqual(
-            sorted_list,
-            sorted(seasons_with_dates, key=lambda x: x.end_date, reverse=True)
-            + seasons_without_dates,
+        sorted_queryset = manager._sort_media_list(
+            queryset,
+            "end_date",
+            MediaTypes.SEASON.value,
         )
+        seasons = list(sorted_queryset)
 
-        # Test sorting by title (item field)
-        sorted_list = manager._sort_media_list(seasons_list, "title")
-        self.assertEqual(
-            sorted_list,
-            sorted(seasons_list, key=lambda x: x.item.title.lower()),
-        )
+        # Season 2 has later dates so should come first
+        self.assertEqual(seasons[0].item.title, "Friends Season 2")
+        self.assertEqual(seasons[1].item.title, "Friends")
+        # Season with no episodes should come last
+        self.assertEqual(seasons[2].item.title, "Friends Season 3")
 
         # Test sorting by score (media field)
-        sorted_list = manager._sort_media_list(seasons_list, "score")
-        self.assertEqual(
-            sorted_list,
-            sorted(seasons_list, key=lambda x: x.score or 0, reverse=True),
+        sorted_queryset = manager._sort_media_list(
+            queryset,
+            "score",
+            MediaTypes.SEASON.value,
         )
+        seasons = list(sorted_queryset)
+
+        # Should be ordered by score descending
+        self.assertEqual(seasons[0].score, 8)  # Season 1
+        self.assertEqual(seasons[1].score, 7)  # Season 2
+        self.assertEqual(seasons[2].score, 0)  # Season 3
+
+        # Test sorting for TV shows
+        tv_queryset = TV.objects.filter(user=self.user).select_related("item")
+        tv_queryset = manager._apply_prefetch_related(tv_queryset, MediaTypes.TV.value)
+
+        # Test TV sorting by progress
+        sorted_tv = manager._sort_media_list(
+            tv_queryset,
+            "progress",
+            MediaTypes.TV.value,
+        )
+        tv_shows = list(sorted_tv)
+
+        # Should have our test TV show
+        self.assertEqual(tv_shows[0].item.title, "Friends")
+
+        # Test TV sorting by start_date
+        sorted_tv = manager._sort_media_list(
+            tv_queryset,
+            "start_date",
+            MediaTypes.TV.value,
+        )
+        tv_shows = list(sorted_tv)
+
+        # Should have our test TV show
+        self.assertEqual(tv_shows[0].item.title, "Friends")
+
+        # Test generic media sorting (e.g., for movies)
+        movie_queryset = Movie.objects.filter(user=self.user).select_related("item")
+        sorted_movies = manager._sort_media_list(
+            movie_queryset,
+            "title",
+            MediaTypes.MOVIE.value,
+        )
+        movies = list(sorted_movies)
+
+        self.assertEqual(movies[0].item.title, "Fight Club")
 
     def test_get_media_list_sort_by_item_field(self):
         """Test the get_media_list method with sorting by item field."""
@@ -512,7 +554,8 @@ class MediaManagerTests(TestCase):
         )
 
         # Higher score should come first
-        self.assertEqual(media_list, [self.anime, anime2])
+        self.assertEqual(media_list.first(), self.anime)
+        self.assertEqual(media_list.last(), anime2)
 
     def test_get_media_types_to_process(self):
         """Test the _get_media_types_to_process method."""
