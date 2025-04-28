@@ -213,6 +213,33 @@ def media_url(media):
 
 
 @register.simple_tag
+def media_view_url(view_name, media):
+    """Return the modal URL for both metadata and model object cases."""
+    is_dict = isinstance(media, dict)
+
+    # Build kwargs using either dict access or object attribute
+    kwargs = {
+        "source": media["source"] if is_dict else media.source,
+        "media_type": media["media_type"] if is_dict else media.media_type,
+        "media_id": media["media_id"] if is_dict else media.media_id,
+    }
+
+    # Handle season/episode numbers if they exist
+    if is_dict:
+        if "season_number" in media:
+            kwargs["season_number"] = media["season_number"]
+        if "episode_number" in media:
+            kwargs["episode_number"] = media["episode_number"]
+    else:
+        if media.season_number is not None:
+            kwargs["season_number"] = media.season_number
+        if media.episode_number is not None:
+            kwargs["episode_number"] = media.episode_number
+
+    return reverse(view_name, kwargs=kwargs)
+
+
+@register.simple_tag
 def component_id(component_type, media):
     """Return the component ID for both metadata and model object cases."""
     is_dict = isinstance(media, dict)
@@ -236,33 +263,6 @@ def component_id(component_type, media):
             component_id += f"-{media.episode_number}"
 
     return component_id
-
-
-@register.simple_tag
-def modal_url(modal_type, media):
-    """Return the modal URL for both metadata and model object cases."""
-    is_dict = isinstance(media, dict)
-
-    # Build kwargs using either dict access or object attribute
-    kwargs = {
-        "source": media["source"] if is_dict else media.source,
-        "media_type": media["media_type"] if is_dict else media.media_type,
-        "media_id": media["media_id"] if is_dict else media.media_id,
-    }
-
-    # Handle season/episode numbers if they exist
-    if is_dict:
-        if "season_number" in media:
-            kwargs["season_number"] = media["season_number"]
-        if "episode_number" in media:
-            kwargs["episode_number"] = media["episode_number"]
-    else:
-        if media.season_number is not None:
-            kwargs["season_number"] = media.season_number
-        if media.episode_number is not None:
-            kwargs["episode_number"] = media.episode_number
-
-    return reverse(f"{modal_type}_modal", kwargs=kwargs)
 
 
 @register.simple_tag

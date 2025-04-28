@@ -250,32 +250,28 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 
 
 @require_POST
-def update_media_score(request):
+def update_media_score(request, source, media_type, media_id, season_number=None):
     """Update the user's score for a media item."""
-    score = float(request.POST.get("score"))
-    item_id = request.POST.get("item_id")
+    media = BasicMedia.objects.get_media(
+        request.user,
+        media_id,
+        media_type,
+        source,
+        season_number=season_number,
+    )
 
-    item = Item.objects.get(id=item_id)
-
-    # Get the media model based on type
-    model = apps.get_model(app_label="app", model_name=item.media_type)
-
-    # Get the user's media instance through the Item relationship
-    user_media = model.objects.filter(
-        user=request.user,
-        item_id=item_id,
-    ).first()
-
-    if not user_media:
-        msg = f"Media not found for user {request.user.username} with item ID {item_id}"
+    if not media:
+        msg = "Media not found for user"
         raise ValueError(msg)
 
     # Update the score
-    user_media.score = score
-    user_media.save()
+    score = float(request.POST.get("score"))
+
+    media.score = score
+    media.save()
     logger.info(
         "%s score updated to %s",
-        user_media,
+        media,
         score,
     )
 

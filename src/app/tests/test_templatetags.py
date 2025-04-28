@@ -298,10 +298,10 @@ class AppTagsTests(TestCase):
         episode_dict_id = app_tags.component_id("card", self.episode_dict)
         self.assertEqual(episode_dict_id, "card-episode-1668-1-1")
 
-    def test_modal_url(self):
-        """Test the modal_url tag."""
+    def test_media_view_url(self):
+        """Test the media_view_url tag."""
         # Test with object for TV
-        tv_modal = app_tags.modal_url("track", self.tv_item)
+        tv_modal = app_tags.media_view_url("track_modal", self.tv_item)
         expected_tv_modal = reverse(
             "track_modal",
             kwargs={
@@ -313,11 +313,11 @@ class AppTagsTests(TestCase):
         self.assertEqual(tv_modal, expected_tv_modal)
 
         # Test with dict for TV
-        tv_dict_modal = app_tags.modal_url("track", self.tv_dict)
+        tv_dict_modal = app_tags.media_view_url("track_modal", self.tv_dict)
         self.assertEqual(tv_dict_modal, expected_tv_modal)
 
         # Test with object for Episode
-        episode_modal = app_tags.modal_url("history", self.episode_item)
+        episode_modal = app_tags.media_view_url("history_modal", self.episode_item)
         expected_episode_modal = reverse(
             "history_modal",
             kwargs={
@@ -331,7 +331,7 @@ class AppTagsTests(TestCase):
         self.assertEqual(episode_modal, expected_episode_modal)
 
         # Test with dict for Episode
-        episode_dict_modal = app_tags.modal_url("history", self.episode_dict)
+        episode_dict_modal = app_tags.media_view_url("history_modal", self.episode_dict)
         self.assertEqual(episode_dict_modal, expected_episode_modal)
 
     def test_unicode_icon(self):
