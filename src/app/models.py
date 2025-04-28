@@ -202,7 +202,7 @@ class MediaManager(models.Manager):
         queryset = self._apply_prefetch_related(queryset, media_type)
 
         if sort_filter:
-            return self._sort_media_list(queryset, sort_filter)
+            return self._sort_media_list(queryset, sort_filter, media_type)
         return queryset
 
     def _apply_prefetch_related(self, queryset, media_type):
@@ -243,51 +243,127 @@ class MediaManager(models.Manager):
 
         return base_queryset
 
-    def _sort_media_list(self, media_list, sort_filter):
-        """Sort media list using Python sorting."""
-        # Special handling for date fields
-        if sort_filter in ("start_date", "end_date"):
-            # Split items with and without dates
-            with_dates = [
-                item for item in media_list if getattr(item, sort_filter) is not None
-            ]
-            without_dates = [
-                item for item in media_list if getattr(item, sort_filter) is None
-            ]
+    def _sort_media_list(self, queryset, sort_filter, media_type=None):
+        """Sort media list using SQL sorting with annotations for calculated fields."""
+        if media_type == MediaTypes.TV.value:
+            return self._sort_tv_media_list(queryset, sort_filter)
+        if media_type == MediaTypes.SEASON.value:
+            return self._sort_season_media_list(queryset, sort_filter)
 
-            # Sort items with dates
-            if sort_filter == "start_date":
-                # For start_date, sort ascending (earliest first)
-                sorted_with_dates = sorted(
-                    with_dates,
-                    key=lambda x: getattr(x, sort_filter),
-                )
-            else:
-                # For other date fields, sort descending (latest first)
-                sorted_with_dates = sorted(
-                    with_dates,
-                    key=lambda x: getattr(x, sort_filter),
-                    reverse=True,
-                )
+        return self._sort_generic_media_list(queryset, sort_filter)
 
-            # Combine lists - items with dates first, then items without dates
-            return sorted_with_dates + without_dates
-
-        # Handle sorting by Item fields
-        if sort_filter in [f.name for f in Item._meta.fields]:  # noqa: SLF001
-            if sort_filter == "title":
-                return sorted(media_list, key=lambda x: x.item.title.lower())
-            return sorted(
-                media_list,
-                key=lambda x: getattr(x.item, sort_filter) or 0,
-                reverse=True,
+    def _sort_tv_media_list(self, queryset, sort_filter):
+        """Sort TV media list based on the sort criteria."""
+        if sort_filter == "start_date":
+            # Annotate with the minimum start_date from related seasons/episodes
+            queryset = queryset.annotate(
+                calculated_start_date=models.Min(
+                    "seasons__episodes__end_date",
+                    filter=models.Q(seasons__item__season_number__gt=0),
+                ),
+            )
+            return queryset.order_by(
+                models.F("calculated_start_date").asc(nulls_last=True),
+                models.functions.Lower("item__title"),
             )
 
-        # Default sorting by media field or property
-        return sorted(
-            media_list,
-            key=lambda x: getattr(x, sort_filter) or 0,
-            reverse=True,
+        if sort_filter == "end_date":
+            # Annotate with the maximum end_date from related seasons/episodes
+            queryset = queryset.annotate(
+                calculated_end_date=models.Max(
+                    "seasons__episodes__end_date",
+                    filter=models.Q(seasons__item__season_number__gt=0),
+                ),
+            )
+            return queryset.order_by(
+                models.F("calculated_end_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
+        if sort_filter == "progress":
+            # Annotate with the sum of episodes watched (excluding season 0)
+            queryset = queryset.annotate(
+                # Count episodes in regular seasons (season_number > 0)
+                calculated_progress=models.Count(
+                    "seasons__episodes",
+                    filter=models.Q(seasons__item__season_number__gt=0),
+                ),
+            )
+            return queryset.order_by(
+                "-calculated_progress",
+                models.functions.Lower("item__title"),
+            )
+
+        # Default to generic sorting
+        return self._sort_generic_media_list(queryset, sort_filter)
+
+    def _sort_season_media_list(self, queryset, sort_filter):
+        """Sort Season media list based on the sort criteria."""
+        if sort_filter == "start_date":
+            # Annotate with the minimum end_date from related episodes
+            queryset = queryset.annotate(
+                calculated_start_date=models.Min("episodes__end_date"),
+            )
+            return queryset.order_by(
+                models.F("calculated_start_date").asc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
+        if sort_filter == "end_date":
+            # Annotate with the maximum end_date from related episodes
+            queryset = queryset.annotate(
+                calculated_end_date=models.Max("episodes__end_date"),
+            )
+            return queryset.order_by(
+                models.F("calculated_end_date").desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
+        if sort_filter == "progress":
+            # Annotate with the maximum episode number
+            queryset = queryset.annotate(
+                calculated_progress=models.Max("episodes__item__episode_number"),
+            )
+            return queryset.order_by(
+                "-calculated_progress",
+                models.functions.Lower("item__title"),
+            )
+
+        # Default to generic sorting
+        return self._sort_generic_media_list(queryset, sort_filter)
+
+    def _sort_generic_media_list(self, queryset, sort_filter):
+        """Apply generic sorting logic for all media types."""
+        # Handle sorting by date fields with special null handling
+        if sort_filter in ("start_date", "end_date"):
+            # For start_date, sort ascending (earliest first)
+            if sort_filter == "start_date":
+                return queryset.order_by(
+                    models.F(sort_filter).asc(nulls_last=True),
+                    models.functions.Lower("item__title"),
+                )
+            # For other date fields, sort descending (latest first)
+            return queryset.order_by(
+                models.F(sort_filter).desc(nulls_last=True),
+                models.functions.Lower("item__title"),
+            )
+
+        # Handle sorting by Item fields
+        item_fields = [f.name for f in Item._meta.fields]  # noqa: SLF001
+        if sort_filter in item_fields:
+            if sort_filter == "title":
+                # Case-insensitive title sorting
+                return queryset.order_by(models.functions.Lower("item__title"))
+            # Default sorting for other Item fields
+            return queryset.order_by(
+                f"-item__{sort_filter}",
+                models.functions.Lower("item__title"),
+            )
+
+        # Default sorting by media field
+        return queryset.order_by(
+            f"-{sort_filter}",
+            models.functions.Lower("item__title"),
         )
 
     def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
@@ -737,20 +813,33 @@ class TV(Media):
     @property
     def repeats(self):
         """Return the number of max repeated episodes in the TV show."""
-        return max((season.repeats for season in self.seasons.all()), default=0)
+        return max(
+            (
+                season.repeats
+                for season in self.seasons.all()
+                if season.item.season_number != 0
+            ),
+            default=0,
+        )
 
     @property
     def start_date(self):
         """Return the date of the first episode watched."""
         dates = [
-            season.start_date for season in self.seasons.all() if season.start_date
+            season.start_date
+            for season in self.seasons.all()
+            if season.start_date and season.item.season_number != 0
         ]
         return min(dates) if dates else None
 
     @property
     def end_date(self):
         """Return the date of the last episode watched."""
-        dates = [season.end_date for season in self.seasons.all() if season.end_date]
+        dates = [
+            season.end_date
+            for season in self.seasons.all()
+            if season.end_date and season.item.season_number != 0
+        ]
         return max(dates) if dates else None
 
     def completed(self):
