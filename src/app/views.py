@@ -289,9 +289,13 @@ def update_media_score(request, source, media_type, media_id, season_number=None
 def refresh_media(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
     if source == Sources.MANUAL.value:
-        msg = "Manual items cannot be refreshed."
+        msg = "Manual items cannot be refreshed"
         messages.error(request, msg)
-        return helpers.redirect_back(request)
+        return HttpResponse(
+            msg,
+            status=400,
+            headers={"HX-Redirect": request.POST.get("next", "/")},
+        )
 
     cache_key = f"{source}_{media_type}_{media_id}"
     if media_type == MediaTypes.SEASON.value:
@@ -312,7 +316,7 @@ def refresh_media(request, source, media_type, media_id, season_number=None):
             source,
             [season_number],
         )
-        item, _ = Item.objects.update_or_create(
+        Item.objects.update_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
@@ -380,6 +384,13 @@ def refresh_media(request, source, media_type, media_id, season_number=None):
         msg = f"{title} was refreshed successfully."
         messages.success(request, msg)
 
+    if request.headers.get("HX-Request"):
+        return HttpResponse(
+            status=204,
+            headers={
+                "HX-Redirect": request.POST.get("next", request.get_full_path()),
+            },
+        )
     return helpers.redirect_back(request)
 
 
