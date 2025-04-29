@@ -463,7 +463,7 @@
       <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
 
       {% if score_distribution.top_rated %}
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-8 gap-4">
+        <div class="media-grid">
           {% for media in score_distribution.top_rated %}
             <div class="bg-[#39404b] rounded-lg overflow-hidden shadow-lg">
               <div class="relative">

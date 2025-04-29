@@ -21,6 +21,10 @@
   clip-path: inset(0 50% 0 0);
 }
 
+.media-grid {
+  @apply grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
 @custom-variant parent-hover-tap (.hover-tap:hover &);
