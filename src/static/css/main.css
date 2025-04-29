@@ -2642,6 +2642,11 @@
       gap: calc(var(--spacing) * 10);
     }
   }
+  .md\:gap-x-2 {
+    @media (width >= 48rem) {
+      column-gap: calc(var(--spacing) * 2);
+    }
+  }
   .md\:space-y-20 {
     @media (width >= 48rem) {
       :where(& > :not(:last-child)) {
@@ -2654,6 +2659,11 @@
   .md\:gap-y-0 {
     @media (width >= 48rem) {
       row-gap: calc(var(--spacing) * 0);
+    }
+  }
+  .md\:p-2 {
+    @media (width >= 48rem) {
+      padding: calc(var(--spacing) * 2);
     }
   }
   .md\:px-0 {
@@ -2730,6 +2740,16 @@
   .lg\:justify-center {
     @media (width >= 64rem) {
       justify-content: center;
+    }
+  }
+  .lg\:gap-x-5 {
+    @media (width >= 64rem) {
+      column-gap: calc(var(--spacing) * 5);
+    }
+  }
+  .lg\:p-4 {
+    @media (width >= 64rem) {
+      padding: calc(var(--spacing) * 4);
     }
   }
   .lg\:pb-40 {

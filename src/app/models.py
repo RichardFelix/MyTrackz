@@ -785,9 +785,6 @@ class TV(Media):
     @property
     def last_watched(self):
         """Return the latest watched episode in SxxExx format."""
-        if not hasattr(self, "seasons"):
-            return ""
-
         watched_episodes = [
             {
                 "season": season.item.season_number,
@@ -967,17 +964,17 @@ class Season(Media):
     def progress(self):
         """Return the current episode number of the season."""
         # continue initial watch
-        if self.status == self.Status.IN_PROGRESS.value:
-            sorted_episodes = sorted(
-                self.episodes.all(),
-                key=lambda e: e.item.episode_number,
-                reverse=True,
-            )
-        else:
+        if self.status == self.Status.REPEATING.value:
             # sort by repeats and then by episode_number
             sorted_episodes = sorted(
                 self.episodes.all(),
                 key=lambda e: (e.repeats, e.item.episode_number),
+                reverse=True,
+            )
+        else:
+            sorted_episodes = sorted(
+                self.episodes.all(),
+                key=lambda e: e.item.episode_number,
                 reverse=True,
             )
 

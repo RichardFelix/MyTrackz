@@ -286,7 +286,7 @@
 
             {% if user_media.end_date %}
               <div class="flex justify-between text-sm">
-                <span class="text-gray-400">Finished:</span>
+                <span class="text-gray-400">Ended:</span>
                 <span class="text-gray-200">{{ user_media.end_date }}</span>
               </div>
             {% endif %}
@@ -328,7 +328,7 @@
 
       {# Actions #}
       <h2 class="text-xl font-bold mb-4">Actions</h2>
-      <div class="bg-[#2a2f35] p-4 rounded-lg flex items-center justify-center gap-x-5 mb-6">
+      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
           <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
