@@ -246,25 +246,31 @@ def lists_modal(
     episode_number=None,
 ):
     """Return the modal showing all custom lists and allowing to add to them."""
-    metadata = services.get_media_metadata(
-        media_type,
-        media_id,
-        source,
-        [season_number],
-        episode_number,
-    )
-
-    item, _ = Item.objects.get_or_create(
-        media_id=media_id,
-        source=source,
-        media_type=media_type,
-        season_number=season_number,
-        episode_number=episode_number,
-        defaults={
-            "title": metadata["title"],
-            "image": metadata["image"],
-        },
-    )
+    try:
+        item = Item.objects.get(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            episode_number=episode_number,
+        )
+    except Item.DoesNotExist:
+        metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+            episode_number,
+        )
+        item = Item.objects.create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            episode_number=episode_number,
+            title=metadata["title"],
+            image=metadata["image"],
+        )
 
     custom_lists = CustomList.objects.get_user_lists_with_item(request.user, item)
 
