@@ -151,7 +151,6 @@ def game(media_id):
             "title": response["name"],
             "max_progress": None,
             "image": get_image_url(response),
-            "backdrop": get_backdrop(response),
             "synopsis": response["summary"],
             "genres": get_list(response, "genres"),
             "score": get_score(response),
@@ -187,16 +186,6 @@ def get_image_url(response):
         return f"https://images.igdb.com/igdb/image/upload/t_original/{response['cover']['image_id']}.jpg"
     except KeyError:
         return settings.IMG_NONE
-
-
-def get_backdrop(response):
-    """Return the backdrop URL for the media."""
-    # when no backdrop, artworks is not present in the response
-    # e.g game: 287348
-    try:
-        return f"https://images.igdb.com/igdb/image/upload/t_original/{response['artworks'][0]['image_id']}.jpg"
-    except KeyError:
-        return get_image_url(response)
 
 
 def get_game_type(game_type_id):

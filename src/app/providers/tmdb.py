@@ -82,7 +82,6 @@ def movie(media_id):
             "title": response["title"],
             "max_progress": 1,
             "image": get_image_url(response["poster_path"]),
-            "backdrop": get_backdrop_url(response),
             "synopsis": get_synopsis(response["overview"]),
             "genres": get_genres(response["genres"]),
             "score": get_score(response["vote_average"]),
@@ -175,7 +174,6 @@ def tv_with_seasons(media_id, season_numbers):
             season_data["title"] = data["title"]
             season_data["tvdb_id"] = data["tvdb_id"]
             season_data["genres"] = data["genres"]
-            season_data["backdrop"] = data["backdrop"]
             if season_data["synopsis"] == "No synopsis available.":
                 season_data["synopsis"] = data["synopsis"]
             cache.set(
@@ -217,7 +215,6 @@ def process_tv(response):
         "title": response["name"],
         "max_progress": num_episodes,
         "image": get_image_url(response["poster_path"]),
-        "backdrop": get_backdrop_url(response),
         "synopsis": get_synopsis(response["overview"]),
         "genres": get_genres(response["genres"]),
         "score": get_score(response["vote_average"]),
@@ -305,18 +302,6 @@ def get_image_url(path):
     if path:
         return f"https://image.tmdb.org/t/p/w500{path}"
     return settings.IMG_NONE
-
-
-def get_backdrop_url(response):
-    """Return the backdrop URL for the media."""
-    # when no image, value from response is null
-    # e.g movie: 445290
-    if response["backdrop_path"]:
-        return f"https://image.tmdb.org/t/p/w1280{response['backdrop_path']}"
-    if response["poster_path"]:
-        return f"https://image.tmdb.org/t/p/w1280{response['poster_path']}"
-
-    return None
 
 
 def get_title(response):
