@@ -29,7 +29,7 @@ def handle_error(error):
 
 def search(query):
     """Search for comics on Comic Vine."""
-    cache_key = f"search_comicvine_{query}"
+    cache_key = f"search_{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{query}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -68,7 +68,7 @@ def search(query):
 
 def comic(media_id):
     """Return the metadata for the selected comic volume from Comic Vine."""
-    cache_key = f"{Sources.COMICVINE.value}_volume_{media_id}"
+    cache_key = f"{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{media_id}"
     data = cache.get(cache_key)
 
     if data is None:

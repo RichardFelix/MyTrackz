@@ -68,7 +68,8 @@ def get_access_token():
 
 def search(query):
     """Search for games on IGDB."""
-    data = cache.get(f"search_games_{query}")
+    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}"
+    data = cache.get(cache_key)
     if data is None:
         access_token = get_access_token()
         url = f"{base_url}/games"
@@ -106,13 +107,14 @@ def search(query):
             }
             for media in response
         ]
-        cache.set(f"search_games_{query}", data)
+        cache.set(cache_key, data)
     return data
 
 
 def game(media_id):
     """Return the metadata for the selected game from IGDB."""
-    data = cache.get(f"game_{media_id}")
+    cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}"
+    data = cache.get(cache_key)
     if data is None:
         access_token = get_access_token()
         url = f"{base_url}/games"
@@ -173,7 +175,7 @@ def game(media_id):
                 "recommendations": get_related(response.get("similar_games")),
             },
         }
-        cache.set(f"game_{media_id}", data)
+        cache.set(cache_key, data)
     return data
 
 

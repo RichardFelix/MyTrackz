@@ -14,7 +14,8 @@ base_url = "https://api.mangaupdates.com/v1"
 
 def search(query):
     """Search for media on MangaUpdates."""
-    data = cache.get(f"search_{Sources.MANGAUPDATES.value}_{query}")
+    cache_key = f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/series/search"
@@ -55,7 +56,7 @@ def search(query):
             for media in response
         ]
 
-        cache.set(f"search_{Sources.MANGAUPDATES.value}_{query}", data)
+        cache.set(cache_key, data)
 
     return data
 
@@ -67,7 +68,8 @@ def manga(media_id):
 
 async def async_manga(media_id):
     """Asynchronous implementation of manga metadata retrieval."""
-    data = cache.get(f"{Sources.MANGAUPDATES.value}_manga_{media_id}")
+    cache_key = f"{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/series/{media_id}"
@@ -107,7 +109,7 @@ async def async_manga(media_id):
             },
         }
 
-        cache.set(f"{Sources.MANGAUPDATES.value}_manga_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 

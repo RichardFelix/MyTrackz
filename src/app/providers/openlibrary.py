@@ -17,7 +17,8 @@ search_url = "https://openlibrary.org/search.json"
 
 def search(query):
     """Search for books on Open Library."""
-    data = cache.get(f"search_books_{query}")
+    cache_key = f"search_{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{query}"
+    data = cache.get(cache_key)
 
     if data is None:
         params = {
@@ -45,7 +46,7 @@ def search(query):
             if (media_id := get_media_id(doc)) and "title" in doc
         ]
 
-        cache.set(f"search_books_{query}", data)
+        cache.set(cache_key, data)
     return data
 
 
@@ -86,7 +87,8 @@ def book(media_id):
 
 async def async_book(media_id):
     """Asynchronous implementation of book metadata retrieval."""
-    data = cache.get(f"{MediaTypes.BOOK.value}_{media_id}")
+    cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         book_url = f"https://openlibrary.org/books/{media_id}.json"
@@ -148,7 +150,7 @@ async def async_book(media_id):
             },
         }
 
-        cache.set(f"{MediaTypes.BOOK.value}_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 

@@ -148,13 +148,17 @@ else:
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
+CACHE_TIMEOUT = 18000  # 5 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
-        "TIMEOUT": 18000,  # 5 hours,
+        "TIMEOUT": CACHE_TIMEOUT,
         "VERSION": 7,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
     },
 }
 

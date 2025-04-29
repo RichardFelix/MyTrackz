@@ -1,7 +1,9 @@
 import logging
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
@@ -281,6 +283,104 @@ def update_media_score(request, source, media_type, media_id, season_number=None
             "score": score,
         },
     )
+
+
+@require_POST
+def refresh_media(request, source, media_type, media_id, season_number=None):
+    """Refresh the metadata for a media item."""
+    if source == Sources.MANUAL.value:
+        msg = "Manual items cannot be refreshed."
+        messages.error(request, msg)
+        return helpers.redirect_back(request)
+
+    cache_key = f"{source}_{media_type}_{media_id}"
+    if media_type == MediaTypes.SEASON.value:
+        cache_key += f"_{season_number}"
+
+    ttl = cache.ttl(cache_key)
+    logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
+    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 300):
+        msg = "The data was recently refreshed, please wait a few minutes."
+        messages.error(request, msg)
+    else:
+        deleted = cache.delete(cache_key)
+        logger.debug("%s - Old cache deleted: %s", cache_key, deleted)
+
+        metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+        )
+        item, _ = Item.objects.update_or_create(
+            media_id=media_id,
+            source=source,
+            media_type=media_type,
+            season_number=season_number,
+            defaults={
+                "title": metadata["title"],
+                "image": metadata["image"],
+            },
+        )
+        title = metadata["title"]
+        if season_number:
+            title += f" - Season {season_number}"
+
+        if media_type == MediaTypes.SEASON.value:
+            metadata["episodes"] = tmdb.process_episodes(
+                metadata,
+                [],
+            )
+
+            # Create a dictionary of existing episodes keyed by episode number
+            existing_episodes = {
+                ep.episode_number: ep
+                for ep in Item.objects.filter(
+                    source=source,
+                    media_type=MediaTypes.EPISODE.value,
+                    media_id=media_id,
+                    season_number=season_number,
+                )
+            }
+
+            episodes_to_update = []
+            episode_count = 0
+
+            for episode_data in metadata["episodes"]:
+                episode_number = episode_data["episode_number"]
+                if episode_number in existing_episodes:
+                    episode_item = existing_episodes[episode_number]
+                    episode_item.title = metadata["title"]
+                    episode_item.image = episode_data["image"]
+                    episodes_to_update.append(episode_item)
+                    episode_count += 1
+
+            # Log before bulk update
+            logger.info(
+                "Found %s existing episodes to update for %s",
+                episode_count,
+                title,
+            )
+
+            # Bulk update existing episodes
+            if episodes_to_update:
+                updated_count = Item.objects.bulk_update(
+                    episodes_to_update,
+                    ["title", "image"],
+                    batch_size=100,
+                )
+
+                # Log results
+                logger.info(
+                    "Successfully updated %s episodes for %s",
+                    updated_count,
+                    title,
+                )
+
+        msg = f"{title} was refreshed successfully."
+        messages.success(request, msg)
+
+    return helpers.redirect_back(request)
 
 
 @require_GET

@@ -30,7 +30,8 @@ def handle_error(error):
 
 def search(media_type, query):
     """Search for media on TMDB."""
-    data = cache.get(f"search_{media_type}_{query}")
+    cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/search/{media_type}"
@@ -56,14 +57,15 @@ def search(media_type, query):
             for media in response
         ]
 
-        cache.set(f"search_{media_type}_{query}", data)
+        cache.set(cache_key, data)
 
     return data
 
 
 def movie(media_id):
     """Return the metadata for the selected movie from The Movie Database."""
-    data = cache.get(f"{MediaTypes.MOVIE.value}_{media_id}")
+    cache_key = f"{Sources.TMDB.value}_{MediaTypes.MOVIE.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/movie/{media_id}"
@@ -102,7 +104,7 @@ def movie(media_id):
             },
         }
 
-        cache.set(f"{MediaTypes.MOVIE.value}_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 
@@ -114,12 +116,15 @@ def tv_with_seasons(media_id, season_numbers):
 
     url = f"{base_url}/tv/{media_id}"
     base_append = "recommendations,external_ids"
-    data = cache.get(f"{MediaTypes.TV.value}_{media_id}", {})
+    tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    data = cache.get(tv_cache_key, {})
 
     uncached_seasons = []
     for season_number in season_numbers:
-        season_data = cache.get(f"{MediaTypes.SEASON.value}_{media_id}_{season_number}")
-
+        season_cache_key = (
+            f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}"
+        )
+        season_data = cache.get(season_cache_key)
         if season_data:
             data[f"season/{season_number}"] = season_data
         else:
@@ -142,7 +147,7 @@ def tv_with_seasons(media_id, season_numbers):
         # tv show metadata is not in the response
         if "media_id" not in data:
             tv_data = process_tv(response)
-            cache.set(f"{MediaTypes.TV.value}_{media_id}", tv_data)
+            cache.set(tv_cache_key, tv_data)
 
             # merge tv show metadata with seasons metadata
             data = tv_data | data
@@ -174,7 +179,7 @@ def tv_with_seasons(media_id, season_numbers):
             if season_data["synopsis"] == "No synopsis available.":
                 season_data["synopsis"] = data["synopsis"]
             cache.set(
-                f"{MediaTypes.SEASON.value}_{media_id}_{season_number}",
+                f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}",
                 season_data,
             )
             data[season_key] = season_data
@@ -184,7 +189,8 @@ def tv_with_seasons(media_id, season_numbers):
 
 def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
-    data = cache.get(f"{MediaTypes.TV.value}_{media_id}")
+    cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/tv/{media_id}"
@@ -194,7 +200,7 @@ def tv(media_id):
         }
         response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
         data = process_tv(response)
-        cache.set(f"{MediaTypes.TV.value}_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 

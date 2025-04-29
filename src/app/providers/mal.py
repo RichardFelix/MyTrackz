@@ -31,7 +31,8 @@ def handle_error(error):
 
 def search(media_type, query):
     """Search for media on MyAnimeList."""
-    data = cache.get(f"search_mal_{media_type}_{query}")
+    cache_key = f"search_{Sources.MAL.value}_{media_type}_{query}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/{media_type}"
@@ -68,14 +69,15 @@ def search(media_type, query):
             for media in response
         ]
 
-        cache.set(f"search_mal_{media_type}_{query}", data)
+        cache.set(cache_key, data)
 
     return data
 
 
 def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"{Sources.MAL.value}_anime_{media_id}")
+    cache_key = f"{Sources.MAL.value}_{MediaTypes.ANIME.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/anime/{media_id}"
@@ -129,14 +131,15 @@ def anime(media_id):
             },
         }
 
-        cache.set(f"{Sources.MAL.value}_anime_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 
 
 def manga(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
-    data = cache.get(f"{Sources.MAL.value}_manga_{media_id}")
+    cache_key = f"{Sources.MAL.value}_{MediaTypes.MANGA.value}_{media_id}"
+    data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/manga/{media_id}"
@@ -185,7 +188,7 @@ def manga(media_id):
             },
         }
 
-        cache.set(f"{Sources.MAL.value}_manga_{media_id}", data)
+        cache.set(cache_key, data)
 
     return data
 
