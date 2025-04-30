@@ -72,7 +72,7 @@ class TVProcessor(MediaProcessor):
         trakt_title = entry["show"]["title"]
 
         if not tmdb_id:
-            message = f"No TMDB ID found for {trakt_title}"
+            message = f"No {Sources.TMDB.label} ID found for {trakt_title}"
             raise MediaImportError(message)
 
         if tmdb_id in self.media_instances[MediaTypes.TV.value]:
@@ -122,7 +122,7 @@ class MovieProcessor(MediaProcessor):
         trakt_title = entry["movie"]["title"]
 
         if not tmdb_id:
-            message = f"No TMDB ID found for {trakt_title}"
+            message = f"No {Sources.TMDB.label} ID found for {trakt_title}"
             raise MediaImportError(message)
 
         if tmdb_id in self.media_instances[MediaTypes.MOVIE.value]:
@@ -237,7 +237,9 @@ class SeasonProcessor(MediaProcessor):
         trakt_title = entry["show"]["title"]
 
         if not tmdb_id:
-            message = f"No TMDB ID found for {trakt_title} S{season_number}"
+            message = (
+                f"No {Sources.TMDB.label} ID found for {trakt_title} S{season_number}"
+            )
             raise MediaImportError(message)
 
         season_key = (tmdb_id, season_number)
@@ -438,7 +440,10 @@ class TraktImporter(MediaProcessor):
                         )
                     else:
                         self.warnings.append(
-                            f"No TMDB ID found for {trakt_title} in watch history",
+                            (
+                                f"No {Sources.TMDB.label} ID found for {trakt_title} "
+                                "in watch history"
+                            ),
                         )
                         break
 
@@ -503,9 +508,31 @@ class TraktImporter(MediaProcessor):
         )
 
         total_plays = 0
+        metadata_episode_numbers = [
+            episode["episode_number"] for episode in season_metadata["episodes"]
+        ]
+        max_metadata_episode = metadata_episode_numbers[-1]
+        if season["episodes"][-1]["number"] > max_metadata_episode:
+            self.warnings.append(
+                f"{title} S{season['number']}: Trakt reports you watched "
+                f"{season['episodes'][-1]['number']} episodes but "
+                f"{Sources.TMDB.label} only has {max_metadata_episode}. "
+                f"Progress limited to {Sources.TMDB.label} count.",
+            )
+
         for episode in season["episodes"]:
-            total_plays += episode["plays"]
             episode_number = episode["number"]
+            if episode_number not in metadata_episode_numbers:
+                logger.warning(
+                    "Episode %s not found in %s metadata for %s S%s",
+                    episode_number,
+                    Sources.TMDB.label,
+                    entry["show"]["title"],
+                    season["number"],
+                )
+                continue
+
+            total_plays += episode["plays"]
             ep_img = self._get_episode_image(episode_number, season_metadata)
 
             episode_item, _ = app.models.Item.objects.get_or_create(
@@ -555,6 +582,19 @@ class TraktImporter(MediaProcessor):
             mal_id,
         )
 
+        max_episodes = metadata["max_progress"]
+        last_episode_num = season["episodes"][-1]["number"]
+
+        # Check for episode count mismatch
+        if max_episodes and last_episode_num > max_episodes:
+            season_number = season["number"]
+            self.warnings.append(
+                f"{title} S{season_number}: Trakt reports {last_episode_num} episodes "
+                f"but {Sources.MAL.label} only has {max_episodes}. "
+                f"Progress limited to {Sources.MAL.label} count.",
+            )
+            last_episode_num = max_episodes
+
         start_date = season["episodes"][0]["last_watched_at"]
         end_date = season["episodes"][-1]["last_watched_at"]
         anime_repeats = 0
@@ -568,13 +608,13 @@ class TraktImporter(MediaProcessor):
             total_plays += episode["plays"]
 
         status = get_status(
-            season["episodes"][-1]["number"],
+            last_episode_num,
             total_plays,
             metadata["max_progress"],
         )
 
         return {
-            "progress": season["episodes"][-1]["number"],
+            "progress": last_episode_num,
             "status": status,
             "repeats": anime_repeats,
             "start_date": self._get_date(start_date),
@@ -795,7 +835,10 @@ def get_response(url):
 
 def get_status(episodes_watched, total_plays, max_progress):
     """Determine media status based on watch progress."""
-    if max_progress == episodes_watched:
+    # Limit progress to max available episodes
+    actual_watched = min(episodes_watched, max_progress)
+
+    if max_progress == actual_watched:
         if total_plays % max_progress != 0:
             return Media.Status.REPEATING.value
         return Media.Status.COMPLETED.value
