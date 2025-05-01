@@ -56,6 +56,19 @@ session.mount(
 )
 
 
+class ProviderAPIError(Exception):
+    """Exception raised when a provider API fails to respond."""
+
+    def __init__(self, provider, details=None):
+        """Initialize the exception with the provider name."""
+        self.provider = provider
+        message = f"There was an error contacting the {Sources(provider).label} API"
+        if details:
+            message += f": {details}"
+        message += ". Check the logs for more details."
+        super().__init__(message)
+
+
 def retry_on_error(delay=1):
     """Retry a function if it raises a RequestException."""
 
@@ -145,7 +158,13 @@ def request_error_handling(error, provider, method, url, params, data, headers):
     elif provider == Sources.COMICVINE.value:
         comicvine.handle_error(error)
 
-    raise error
+    logger.error(
+        "%s %s error: %s",
+        Sources(provider).label,
+        method,
+        error_resp.text,
+    )
+    raise ProviderAPIError(provider)
 
 
 def get_media_metadata(

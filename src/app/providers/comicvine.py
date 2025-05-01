@@ -19,12 +19,18 @@ def handle_error(error):
     """Handle ComicVine-specific API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
-    error_json = error_resp.json()
+
+    try:
+        error_json = error_resp.json()
+    except requests.exceptions.JSONDecodeError as json_error:
+        logger.exception("Failed to decode JSON response")
+        raise services.ProviderAPIError(Sources.COMICVINE.value) from json_error
 
     # Handle invalid API key
     if status_code == requests.codes.unauthorized:
-        message = error_json["error"]
-        logger.error("%s unauthorized: %s", Sources.COMICVINE.label, message)
+        details = error_json["error"]
+        logger.error("%s unauthorized: %s", Sources.COMICVINE.label, details)
+        raise services.ProviderAPIError(Sources.COMICVINE.value, details)
 
 
 def search(query):

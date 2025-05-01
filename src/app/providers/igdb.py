@@ -39,7 +39,12 @@ def handle_error(error, provider, method, url, params, data, headers):
 
     # Invalid keys
     if status_code == requests.codes.bad_request:
-        error_json = error_resp.json()
+        try:
+            error_json = error_resp.json()
+        except requests.exceptions.JSONDecodeError as json_error:
+            logger.exception("Failed to decode JSON response")
+            raise services.ProviderAPIError(Sources.IGDB.value) from json_error
+
         message = error_json.get("message", "Unknown error")
         logger.error("%s bad request: %s", Sources.IGDB.label, message)
 

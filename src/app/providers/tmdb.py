@@ -20,12 +20,18 @@ def handle_error(error):
     error_resp = error.response
     status_code = error_resp.status_code
 
-    error_json = error_resp.json()
-    error_message = error_json.get("status_message", "Unknown error")
+    try:
+        error_json = error_resp.json()
+    except requests.exceptions.JSONDecodeError as json_error:
+        logger.exception("Failed to decode JSON response")
+        raise services.ProviderAPIError(Sources.TMDB.value) from json_error
 
     # Handle authentication errors
     if status_code == requests.codes.unauthorized:
-        logger.error("%s unauthorized: %s", Sources.TMDB.label, error_message)
+        details = error_json.get("status_message")
+        if details:
+            logger.error("%s unauthorized: %s", Sources.TMDB.label, details)
+            raise services.ProviderAPIError(Sources.TMDB.value, details)
 
 
 def search(media_type, query):

@@ -89,6 +89,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

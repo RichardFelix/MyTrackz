@@ -18,7 +18,12 @@ def handle_error(error):
     """Handle MAL-specific API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
-    error_json = error_resp.json()
+
+    try:
+        error_json = error_resp.json()
+    except requests.exceptions.JSONDecodeError as json_error:
+        logger.exception("Failed to decode JSON response")
+        raise services.ProviderAPIError(Sources.MAL.value) from json_error
 
     if status_code == requests.codes.forbidden:
         logger.error("%s forbidden: is the API key set?", Sources.MAL.label)
@@ -26,7 +31,9 @@ def handle_error(error):
         status_code == requests.codes.bad_request
         and error_json.get("message") == "Invalid client id"
     ):
-        logger.error("%s bad request: Invalid API key", Sources.MAL.label)
+        details = "Invalid API key"
+        logger.error("%s bad request: %s", Sources.MAL.label, details)
+        raise services.ProviderAPIError(Sources.MAL.value, details)
 
 
 def search(media_type, query):
