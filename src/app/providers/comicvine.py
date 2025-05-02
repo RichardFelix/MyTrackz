@@ -16,7 +16,7 @@ headers = {
 
 
 def handle_error(error):
-    """Handle ComicVine-specific API errors."""
+    """Handle ComicVine API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
 
@@ -24,13 +24,14 @@ def handle_error(error):
         error_json = error_resp.json()
     except requests.exceptions.JSONDecodeError as json_error:
         logger.exception("Failed to decode JSON response")
-        raise services.ProviderAPIError(Sources.COMICVINE.value) from json_error
+        raise services.ProviderAPIError(Sources.COMICVINE.value, error) from json_error
 
     # Handle invalid API key
     if status_code == requests.codes.unauthorized:
         details = error_json["error"]
-        logger.error("%s unauthorized: %s", Sources.COMICVINE.label, details)
-        raise services.ProviderAPIError(Sources.COMICVINE.value, details)
+        raise services.ProviderAPIError(Sources.COMICVINE.value, error, details)
+
+    raise services.ProviderAPIError(Sources.MAL.value, error)
 
 
 def search(query):
@@ -48,13 +49,16 @@ def search(query):
             "limit": 20,
         }
 
-        response = services.api_request(
-            Sources.COMICVINE.value,
-            "GET",
-            f"{base_url}/search/",
-            params=params,
-            headers=headers,
-        )
+        try:
+            response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/search/",
+                params=params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         data = [
             {
@@ -87,13 +91,16 @@ def comic(media_id):
             ),
         }
 
-        response = services.api_request(
-            Sources.COMICVINE.value,
-            "GET",
-            f"{base_url}/volume/4050-{media_id}/",
-            params=params,
-            headers=headers,
-        )
+        try:
+            response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/volume/4050-{media_id}/",
+                params=params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         response = response.get("results", {})
         publisher_id = response["publisher"]["id"]

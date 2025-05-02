@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 base_url = "https://api.igdb.com/v4"
 
 
-def handle_error(error, provider, method, url, params, data, headers):
-    """Handle IGDB-specific API errors."""
+def handle_error(error):
+    """Handle IGDB API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
 
@@ -24,31 +24,25 @@ def handle_error(error, provider, method, url, params, data, headers):
             Sources.IGDB.label,
         )
         cache.delete(f"{Sources.IGDB.value}_access_token")
-        headers["Authorization"] = f"Bearer {get_access_token()}"
+        return {"retry": True}
 
-        # Return instructions to retry
-        return {
-            "retry": True,
-            "provider": provider,
-            "method": method,
-            "url": url,
-            "params": params,
-            "data": data,
-            "headers": headers,
-        }
+    try:
+        error_json = error_resp.json()
+    except requests.exceptions.JSONDecodeError as json_error:
+        logger.exception("Failed to decode JSON response")
+        raise services.ProviderAPIError(Sources.IGDB.value, error) from json_error
 
     # Invalid keys
-    if status_code == requests.codes.bad_request:
-        try:
-            error_json = error_resp.json()
-        except requests.exceptions.JSONDecodeError as json_error:
-            logger.exception("Failed to decode JSON response")
-            raise services.ProviderAPIError(Sources.IGDB.value) from json_error
+    if status_code in (requests.codes.bad_request, requests.codes.forbidden):
+        details = error_json.get("message").capitalize()
+        if details:
+            raise services.ProviderAPIError(
+                Sources.IGDB.value,
+                error,
+                details,
+            )
 
-        message = error_json.get("message", "Unknown error")
-        logger.error("%s bad request: %s", Sources.IGDB.label, message)
-
-    return None
+    raise services.ProviderAPIError(Sources.IGDB.value, error)
 
 
 def get_access_token():
@@ -61,7 +55,17 @@ def get_access_token():
             "client_secret": settings.IGDB_SECRET,
             "grant_type": "client_credentials",
         }
-        response = services.api_request(Sources.IGDB.value, "POST", url, params=json)
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                params=json,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
         access_token = response["access_token"]
         cache.set(
             f"{Sources.IGDB.value}_access_token",
@@ -95,13 +99,28 @@ def search(query):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-        response = services.api_request(
-            Sources.IGDB.value,
-            "POST",
-            url,
-            data=data,
-            headers=headers,
-        )
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=data,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=data,
+                    headers=headers,
+                )
+
         data = [
             {
                 "media_id": media["id"],
@@ -140,13 +159,28 @@ def game(media_id):
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
-        response = services.api_request(
-            Sources.IGDB.value,
-            "POST",
-            url,
-            data=data,
-            headers=headers,
-        )
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=data,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=data,
+                    headers=headers,
+                )
+
         response = response[0]  # response is a list with a single element
         data = {
             "media_id": response["id"],

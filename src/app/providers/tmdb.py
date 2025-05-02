@@ -16,7 +16,7 @@ base_params = {
 
 
 def handle_error(error):
-    """Handle TMDB-specific API errors."""
+    """Handle TMDB API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
 
@@ -24,14 +24,20 @@ def handle_error(error):
         error_json = error_resp.json()
     except requests.exceptions.JSONDecodeError as json_error:
         logger.exception("Failed to decode JSON response")
-        raise services.ProviderAPIError(Sources.TMDB.value) from json_error
+        raise services.ProviderAPIError(Sources.TMDB.value, error) from json_error
 
     # Handle authentication errors
     if status_code == requests.codes.unauthorized:
         details = error_json.get("status_message")
         if details:
-            logger.error("%s unauthorized: %s", Sources.TMDB.label, details)
-            raise services.ProviderAPIError(Sources.TMDB.value, details)
+            # Remove trailing period if present
+            details = details.rstrip(".")
+            raise services.ProviderAPIError(Sources.TMDB.value, error, details)
+
+    raise services.ProviderAPIError(
+        Sources.TMDB.value,
+        error,
+    )
 
 
 def search(media_type, query):
@@ -50,7 +56,16 @@ def search(media_type, query):
         if settings.TMDB_NSFW:
             params["include_adult"] = "true"
 
-        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
         response = response["results"]
         data = [
             {
@@ -79,7 +94,17 @@ def movie(media_id):
             **base_params,
             "append_to_response": "recommendations",
         }
-        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
         data = {
             "media_id": media_id,
             "source": Sources.TMDB.value,
@@ -148,7 +173,16 @@ def tv_with_seasons(media_id, season_numbers):
             else base_append,
         }
 
-        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
         # tv show metadata is not in the response
         if "media_id" not in data:
             tv_data = process_tv(response)
@@ -202,7 +236,17 @@ def tv(media_id):
             **base_params,
             "append_to_response": "recommendations,external_ids",
         }
-        response = services.api_request(Sources.TMDB.value, "GET", url, params=params)
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
         data = process_tv(response)
         cache.set(cache_key, data)
 

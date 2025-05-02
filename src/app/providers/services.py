@@ -1,6 +1,5 @@
 import logging
 import time
-from functools import wraps
 
 import requests
 from django.conf import settings
@@ -59,38 +58,23 @@ session.mount(
 class ProviderAPIError(Exception):
     """Exception raised when a provider API fails to respond."""
 
-    def __init__(self, provider, details=None):
+    def __init__(self, provider, error, details=None):
         """Initialize the exception with the provider name."""
         self.provider = provider
-        message = f"There was an error contacting the {Sources(provider).label} API"
+        try:
+            provider = Sources(provider).label
+        except ValueError:
+            provider = provider.title()
+
+        logger.error("%s error: %s", provider, error.response.text)
+
+        message = f"There was an error contacting the {provider} API"
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."
         super().__init__(message)
 
 
-def retry_on_error(delay=1):
-    """Retry a function if it raises a RequestException."""
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except requests.exceptions.RequestException:
-                msg = f"Request failed. Retrying in {delay} seconds."
-                logger.warning(msg)
-                time.sleep(delay)
-
-                # Retry the function
-                return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-@retry_on_error(delay=1)
 def api_request(provider, method, url, params=None, data=None, headers=None):
     """Make a request to the API and return the response as a dictionary."""
     try:
@@ -110,61 +94,28 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         response = request_func(**request_kwargs)
         response.raise_for_status()
-        json_response = response.json()
+        return response.json()
 
     except requests.exceptions.HTTPError as error:
-        json_response = request_error_handling(
-            error,
-            provider,
-            method,
-            url,
-            params,
-            data,
-            headers,
-        )
+        error_resp = error.response
+        status_code = error_resp.status_code
 
-    return json_response
+        # handle rate limiting
+        if status_code == requests.codes.too_many_requests:
+            seconds_to_wait = int(error_resp.headers["Retry-After"])
+            logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
+            time.sleep(seconds_to_wait + 3)
+            logger.info("Retrying request")
+            return api_request(
+                provider,
+                method,
+                url,
+                params=params,
+                data=data,
+                headers=headers,
+            )
 
-
-def request_error_handling(error, provider, method, url, params, data, headers):
-    """Handle errors when making a request to the API."""
-    error_resp = error.response
-    status_code = error_resp.status_code
-
-    # handle rate limiting
-    if status_code == requests.codes.too_many_requests:
-        seconds_to_wait = int(error_resp.headers["Retry-After"])
-        logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
-        time.sleep(seconds_to_wait + 3)
-        logger.info("Retrying request")
-        return api_request(
-            provider,
-            method,
-            url,
-            params=params,
-            data=data,
-            headers=headers,
-        )
-
-    # Delegate to provider-specific error handlers
-    if provider == Sources.IGDB.value:
-        result = igdb.handle_error(error, provider, method, url, params, data, headers)
-        if result and result.get("retry"):
-            return api_request(**{k: v for k, v in result.items() if k != "retry"})
-    elif provider == Sources.TMDB.value:
-        tmdb.handle_error(error)
-    elif provider == Sources.MAL.value:
-        mal.handle_error(error)
-    elif provider == Sources.COMICVINE.value:
-        comicvine.handle_error(error)
-
-    logger.error(
-        "%s %s error: %s",
-        Sources(provider).label,
-        method,
-        error_resp.text,
-    )
-    raise ProviderAPIError(provider)
+        raise error from None
 
 
 def get_media_metadata(

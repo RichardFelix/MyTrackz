@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -11,8 +12,18 @@ from django.core.cache import cache
 from app.models import MediaTypes, Sources
 from app.providers import services
 
+logger = logging.getLogger(__name__)
+
 base_url = "https://openlibrary.org/api"
 search_url = "https://openlibrary.org/search.json"
+
+
+def handle_error(error):
+    """Handle Open Library API errors."""
+    raise services.ProviderAPIError(
+        Sources.MANGAUPDATES.value,
+        error,
+    )
 
 
 def search(query):
@@ -27,12 +38,15 @@ def search(query):
             "limit": 20,
         }
 
-        response = services.api_request(
-            Sources.OPENLIBRARY.value,
-            "GET",
-            search_url,
-            params=params,
-        )
+        try:
+            response = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                search_url,
+                params=params,
+            )
+        except requests.RequestException as e:
+            handle_error(e)
 
         data = [
             {
@@ -93,11 +107,14 @@ async def async_book(media_id):
     if data is None:
         book_url = f"https://openlibrary.org/books/{media_id}.json"
 
-        response_book = services.api_request(
-            Sources.OPENLIBRARY.value,
-            "GET",
-            book_url,
-        )
+        try:
+            response_book = services.api_request(
+                Sources.OPENLIBRARY.value,
+                "GET",
+                book_url,
+            )
+        except requests.RequestException as e:
+            handle_error(e)
 
         works = response_book.get("works", [])
         if works:
@@ -105,11 +122,14 @@ async def async_book(media_id):
             work_id = extract_openlibrary_id(work["key"])
             work_url = f"https://openlibrary.org/works/{work_id}.json"
 
-            response_work = services.api_request(
-                Sources.OPENLIBRARY.value,
-                "GET",
-                work_url,
-            )
+            try:
+                response_work = services.api_request(
+                    Sources.OPENLIBRARY.value,
+                    "GET",
+                    work_url,
+                )
+            except requests.RequestException as e:
+                handle_error(e)
         else:
             response_work = {}
 

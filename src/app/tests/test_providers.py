@@ -657,35 +657,8 @@ class ServicesTests(TestCase):
         self.assertEqual(kwargs["data"], {"form_data": "value"})
         self.assertIn("timeout", kwargs)
 
-    @patch("app.providers.services.session.get")
-    def test_api_request_http_error(self, mock_get):
-        """Test the api_request function with HTTP error."""
-        # Setup mock response for HTTP error
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-            "404 Client Error",
-        )
-        mock_response.status_code = 404
-        mock_get.return_value = mock_response
-
-        # Setup mock for error handling
-        with patch(
-            "app.providers.services.request_error_handling",
-        ) as mock_error_handler:
-            mock_error_handler.return_value = {"error": "handled"}
-
-            # Call the function
-            result = services.api_request("TEST", "GET", "https://example.com/api")
-
-            # Verify error handler was called
-            mock_error_handler.assert_called_once()
-
-            # Verify the result
-            self.assertEqual(result, {"error": "handled"})
-
-    @patch("app.providers.services.time.sleep")
     @patch("app.providers.services.api_request")
-    def test_request_error_handling_rate_limit(self, mock_api_request, mock_sleep):
+    def test_request_error_handling_rate_limit(self, mock_api_request):
         """Test the request_error_handling function with rate limiting."""
         # Setup mock response for rate limit error
         mock_response = MagicMock()
@@ -700,7 +673,7 @@ class ServicesTests(TestCase):
         mock_api_request.return_value = {"data": "retry_success"}
 
         # Call the function
-        result = services.request_error_handling(
+        result = services.api_request(
             error,
             "TEST",
             "GET",
@@ -710,9 +683,6 @@ class ServicesTests(TestCase):
             None,
         )
 
-        # Verify sleep was called with correct duration
-        mock_sleep.assert_called_once_with(8)  # 5 + 3 seconds
-
         # Verify api_request was called again
         mock_api_request.assert_called_once()
 
@@ -720,15 +690,11 @@ class ServicesTests(TestCase):
         self.assertEqual(result, {"data": "retry_success"})
 
     @patch("app.providers.igdb.cache.delete")
-    @patch("app.providers.igdb.get_access_token")
-    @patch("app.providers.services.api_request")
-    def test_request_error_handling_igdb_unauthorized(
+    def test_handle_error_igdb_unauthorized(
         self,
-        mock_api_request,
-        mock_get_token,
         mock_cache_delete,
     ):
-        """Test the request_error_handling function with IGDB unauthorized error."""
+        """Test the handle_error function with IGDB unauthorized error."""
         # Setup mock response for unauthorized error
         mock_response = MagicMock()
         mock_response.status_code = 401  # Unauthorized
@@ -737,39 +703,17 @@ class ServicesTests(TestCase):
         error = requests.exceptions.HTTPError("401 Unauthorized")
         error.response = mock_response
 
-        # Setup mocks
-        mock_get_token.return_value = "new_token"
-        mock_api_request.return_value = {"data": "retry_success"}
-
         # Call the function
-        result = services.request_error_handling(
-            error,
-            Sources.IGDB.value,
-            "GET",
-            "https://example.com/api",
-            {"param": "value"},
-            None,
-            {"Authorization": "Bearer old_token"},
-        )
+        result = igdb.handle_error(error)
 
-        # Verify cache delete was called
+        # Verify cache delete was called with correct key
         mock_cache_delete.assert_called_once_with("igdb_access_token")
 
-        # Verify get_access_token was called
-        mock_get_token.assert_called_once()
+        # Verify the result indicates retry should be attempted
+        self.assertEqual(result, {"retry": True})
 
-        # Verify api_request was called again with new token
-        mock_api_request.assert_called_once()
-        _, kwargs = mock_api_request.call_args
-        self.assertEqual(kwargs["provider"], Sources.IGDB.value)
-        self.assertEqual(kwargs["headers"]["Authorization"], "Bearer new_token")
-
-        # Verify the result
-        self.assertEqual(result, {"data": "retry_success"})
-
-    @patch("app.providers.igdb.logger.error")
-    def test_request_error_handling_igdb_bad_request(self, mock_logger):
-        """Test the request_error_handling function with IGDB bad request error."""
+    def test_handle_error_igdb_bad_request(self):
+        """Test the handle_error function with IGDB bad request error."""
         # Setup mock response for bad request error
         mock_response = MagicMock()
         mock_response.status_code = 400  # Bad Request
@@ -779,28 +723,15 @@ class ServicesTests(TestCase):
         error = requests.exceptions.HTTPError("400 Bad Request")
         error.response = mock_response
 
-        # Call the function and expect it to re-raise the error
-        with self.assertRaises(requests.exceptions.HTTPError):
-            services.request_error_handling(
-                error,
-                Sources.IGDB.value,
-                "GET",
-                "https://example.com/api",
-                None,
-                None,
-                None,
-            )
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            igdb.handle_error(error)
 
-        # Verify logger was called
-        mock_logger.assert_called_once_with(
-            "%s bad request: %s",
-            Sources.IGDB.label,
-            "Invalid query",
-        )
+        # Verify the exception contains the correct source
+        self.assertEqual(cm.exception.provider, Sources.IGDB.value)
 
-    @patch("app.providers.tmdb.logger.error")
-    def test_request_error_handling_tmdb_unauthorized(self, mock_logger):
-        """Test the request_error_handling function with TMDB unauthorized error."""
+    def test_handle_error_tmdb_unauthorized(self):
+        """Test the handle_error function with TMDB unauthorized error."""
         # Setup mock response for unauthorized error
         mock_response = MagicMock()
         mock_response.status_code = 401  # Unauthorized
@@ -810,28 +741,15 @@ class ServicesTests(TestCase):
         error = requests.exceptions.HTTPError("401 Unauthorized")
         error.response = mock_response
 
-        # Call the function and expect it to re-raise the error
-        with self.assertRaises(requests.exceptions.HTTPError):
-            services.request_error_handling(
-                error,
-                Sources.TMDB.value,
-                "GET",
-                "https://example.com/api",
-                None,
-                None,
-                None,
-            )
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            tmdb.handle_error(error)
 
-        # Verify logger was called
-        mock_logger.assert_called_once_with(
-            "%s unauthorized: %s",
-            Sources.TMDB.label,
-            "Invalid API key",
-        )
+        # Verify the exception contains the correct source
+        self.assertEqual(cm.exception.provider, Sources.TMDB.value)
 
-    @patch("app.providers.mal.logger.error")
-    def test_request_error_handling_mal_forbidden(self, mock_logger):
-        """Test the request_error_handling function with MAL forbidden error."""
+    def test_handle_error_mal_forbidden(self):
+        """Test the handle_error function with MAL forbidden error."""
         # Setup mock response for forbidden error
         mock_response = MagicMock()
         mock_response.status_code = 403  # Forbidden
@@ -841,23 +759,12 @@ class ServicesTests(TestCase):
         error = requests.exceptions.HTTPError("403 Forbidden")
         error.response = mock_response
 
-        # Call the function and expect it to re-raise the error
-        with self.assertRaises(requests.exceptions.HTTPError):
-            services.request_error_handling(
-                error,
-                Sources.MAL.value,
-                "GET",
-                "https://example.com/api",
-                None,
-                None,
-                None,
-            )
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            mal.handle_error(error)
 
-        # Verify logger was called
-        mock_logger.assert_called_once_with(
-            "%s forbidden: is the API key set?",
-            Sources.MAL.label,
-        )
+        # Verify the exception contains the correct source
+        self.assertEqual(cm.exception.provider, Sources.MAL.value)
 
     @patch("app.providers.mal.anime")
     def test_get_media_metadata_anime(self, mock_anime):

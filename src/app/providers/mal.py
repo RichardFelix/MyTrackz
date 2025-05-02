@@ -15,7 +15,7 @@ base_fields = "title,main_picture,media_type,start_date,end_date,synopsis,status
 
 
 def handle_error(error):
-    """Handle MAL-specific API errors."""
+    """Handle MAL API errors."""
     error_resp = error.response
     status_code = error_resp.status_code
 
@@ -23,17 +23,20 @@ def handle_error(error):
         error_json = error_resp.json()
     except requests.exceptions.JSONDecodeError as json_error:
         logger.exception("Failed to decode JSON response")
-        raise services.ProviderAPIError(Sources.MAL.value) from json_error
+        raise services.ProviderAPIError(Sources.MAL.value, error) from json_error
 
     if status_code == requests.codes.forbidden:
-        logger.error("%s forbidden: is the API key set?", Sources.MAL.label)
-    elif (
-        status_code == requests.codes.bad_request
-        and error_json.get("message") == "Invalid client id"
-    ):
-        details = "Invalid API key"
-        logger.error("%s bad request: %s", Sources.MAL.label, details)
-        raise services.ProviderAPIError(Sources.MAL.value, details)
+        details = "API key is missing"
+        raise services.ProviderAPIError(Sources.MAL.value, error, details)
+    if status_code == requests.codes.bad_request:
+        error_message = error_json.get("message")
+        if error_message == "Invalid client id":
+            details = "Invalid API key"
+            raise services.ProviderAPIError(Sources.MAL.value, error, details)
+        if error_message == "invalid q":
+            return {"data": []}
+
+    raise services.ProviderAPIError(Sources.MAL.value, error)
 
 
 def search(media_type, query):
@@ -59,10 +62,7 @@ def search(media_type, query):
                 headers={"X-MAL-CLIENT-ID": settings.MAL_API},
             )
         except requests.exceptions.HTTPError as error:
-            # if the query is invalid, return an empty list
-            if error.response.json()["message"] == "invalid q":
-                return []
-            raise
+            response = handle_error(error)
 
         response = response["data"]
         data = [
@@ -91,13 +91,17 @@ def anime(media_id):
         params = {
             "fields": f"{base_fields},num_episodes,average_episode_duration,studios,start_season,broadcast,source,related_anime",  # noqa: E501
         }
-        response = services.api_request(
-            Sources.MAL.value,
-            "GET",
-            url,
-            params=params,
-            headers={"X-MAL-CLIENT-ID": settings.MAL_API},
-        )
+
+        try:
+            response = services.api_request(
+                Sources.MAL.value,
+                "GET",
+                url,
+                params=params,
+                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         num_episodes = get_number_of_episodes(response)
 
@@ -152,13 +156,17 @@ def manga(media_id):
         params = {
             "fields": f"{base_fields},num_chapters,related_manga,recommendations",
         }
-        response = services.api_request(
-            Sources.MAL.value,
-            "GET",
-            url,
-            params=params,
-            headers={"X-MAL-CLIENT-ID": settings.MAL_API},
-        )
+
+        try:
+            response = services.api_request(
+                Sources.MAL.value,
+                "GET",
+                url,
+                params=params,
+                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         num_chapters = get_number_of_episodes(response)
 

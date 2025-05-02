@@ -520,10 +520,15 @@ def get_tvmaze_episode_map(tvdb_id):
             logger.warning(
                 "TVMaze lookup failed for TVDB ID %s - %s",
                 tvdb_id,
-                err.response.json(),
+                err.response.text(),
             )
-            return {}
-        raise
+        else:
+            logger.warning(
+                "%s - TVMaze lookup error: %s",
+                tvdb_id,
+                err.response.text(),
+            )
+        lookup_response = {}
 
     if not lookup_response:
         logger.warning("%s - No TVMaze lookup response for TVDB ID", tvdb_id)
@@ -537,7 +542,11 @@ def get_tvmaze_episode_map(tvdb_id):
 
     # Now fetch the show with embedded episodes
     show_url = f"https://api.tvmaze.com/shows/{tvmaze_id}?embed=episodes"
-    show_response = services.api_request("TVMaze", "GET", show_url)
+
+    try:
+        show_response = services.api_request("TVMaze", "GET", show_url)
+    except requests.exceptions.HTTPError:
+        return {}
 
     # Process episodes into the map format we need
     tvmaze_map = {}
@@ -590,7 +599,15 @@ def process_comic(item, events_bulk):
         return
 
     # add latest issue
-    issue_metadata = comicvine.issue(metadata["last_issue_id"])
+    try:
+        issue_metadata = comicvine.issue(metadata["last_issue_id"])
+    except requests.exceptions.HTTPError as err:
+        logger.warning(
+            "Failed to fetch issue metadata for %s - %s",
+            item,
+            err.response.json(),
+        )
+        return
 
     if issue_metadata["store_date"]:
         issue_datetime = date_parser(issue_metadata["store_date"])

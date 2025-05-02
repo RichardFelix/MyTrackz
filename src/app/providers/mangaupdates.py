@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 
 import aiohttp
@@ -9,7 +10,36 @@ from django.core.cache import cache
 from app.models import MediaTypes, Sources
 from app.providers import services
 
+logger = logging.getLogger(__name__)
+
 base_url = "https://api.mangaupdates.com/v1"
+
+
+def handle_error(error):
+    """Handle MangaUpdates API errors."""
+    error_resp = error.response
+    status_code = error_resp.status_code
+
+    try:
+        error_json = error_resp.json()
+    except requests.exceptions.JSONDecodeError as json_error:
+        logger.exception("Failed to decode JSON response")
+        raise services.ProviderAPIError(
+            Sources.MANGAUPDATES.value,
+            error,
+        ) from json_error
+
+    if status_code == requests.codes.bad_request:
+        search_error = error_json["context"].get("search")
+        if search_error:
+            message = search_error[0]["errors"][0]
+            if message == '"" must have a length between 1 and 400':
+                return {"results": []}
+
+    raise services.ProviderAPIError(
+        Sources.MANGAUPDATES.value,
+        error,
+    )
 
 
 def search(query):
@@ -39,10 +69,7 @@ def search(query):
                 params=params,
             )
         except requests.exceptions.HTTPError as error:
-            # if the query is invalid, return an empty list
-            if error.response.json()["reason"] == "Field Validation Error":
-                return []
-            raise
+            response = handle_error(error)
 
         response = response["results"]
         data = [
@@ -73,7 +100,11 @@ async def async_manga(media_id):
 
     if data is None:
         url = f"{base_url}/series/{media_id}"
-        response = services.api_request(Sources.MANGAUPDATES.value, "GET", url)
+
+        try:
+            response = services.api_request(Sources.MANGAUPDATES.value, "GET", url)
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         # Run related_manga and recommendations concurrently
         related_task = asyncio.create_task(
