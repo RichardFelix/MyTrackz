@@ -381,7 +381,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                     title,
                 )
 
-        msg = f"{title} was synced successfully."
+        msg = f"{title} was synced to {Sources(source).label} successfully."
         messages.success(request, msg)
 
     if request.headers.get("HX-Request"):
