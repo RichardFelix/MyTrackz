@@ -218,11 +218,6 @@ class MediaManager(models.Manager):
                     "seasons__episodes",
                     queryset=Episode.objects.select_related("item"),
                 ),
-                Prefetch(
-                    "seasons__item__event_set",
-                    queryset=events.models.Event.objects.all(),
-                    to_attr="prefetched_events",
-                ),
             )
 
         base_queryset = queryset.prefetch_related(
@@ -508,29 +503,37 @@ class MediaManager(models.Manager):
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
+        # Prefetch all relevant events in one query
+        released_events = events.models.Event.objects.filter(
+            item__media_id__in=[tv.item.media_id for tv in tv_list],
+            item__source=tv_list[0].item.source if tv_list else None,
+            item__media_type=MediaTypes.SEASON.value,
+            item__season_number__gt=0,
+            datetime__lte=current_datetime,
+            content_number__isnull=False,
+        ).select_related("item")
+
+        # Create a dictionary to store max episode numbers per season per show
+        released_episodes = {}
+
+        for event in released_events:
+            media_id = event.item.media_id
+            season_number = event.item.season_number
+            episode_number = event.content_number
+
+            if media_id not in released_episodes:
+                released_episodes[media_id] = {}
+
+            if (
+                season_number not in released_episodes[media_id]
+                or episode_number > released_episodes[media_id][season_number]
+            ):
+                released_episodes[media_id][season_number] = episode_number
+
+        # Calculate total released episodes per TV show
         for tv in tv_list:
-            total_released_episodes = 0
-
-            for season in tv.seasons.all():
-                # Skip special seasons (season 0)
-                if (
-                    not hasattr(season.item, "prefetched_events")
-                    or season.item.season_number == 0
-                ):
-                    continue
-
-                # Find max episode number from released events
-                released_episode_numbers = [
-                    event.content_number
-                    for event in season.item.prefetched_events
-                    if event.datetime <= current_datetime
-                    and event.content_number is not None
-                ]
-
-                if released_episode_numbers:
-                    total_released_episodes += max(released_episode_numbers)
-
-            tv.max_progress = total_released_episodes
+            tv_episodes = released_episodes.get(tv.item.media_id, {})
+            tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
 
     def get_media(
         self,

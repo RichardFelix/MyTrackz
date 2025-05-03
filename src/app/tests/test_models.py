@@ -296,7 +296,7 @@ class MediaManagerTests(TestCase):
         # Verify prefetch_related was applied
         self.assertTrue(hasattr(prefetched_queryset, "_prefetch_related_lookups"))
         prefetch_lookups = prefetched_queryset._prefetch_related_lookups
-        self.assertEqual(len(prefetch_lookups), 3)
+        self.assertEqual(len(prefetch_lookups), 2)
 
         # Test with Season media type
         queryset = Season.objects.filter(user=self.user.id)

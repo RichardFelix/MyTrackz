@@ -350,7 +350,6 @@ def get_seasons_to_process(tv_item):
     season_numbers = [
         season["season_number"]
         for season in tv_metadata["related"]["seasons"]
-        if season["season_number"] > 0
     ]
 
     if not season_numbers:
@@ -520,13 +519,13 @@ def get_tvmaze_episode_map(tvdb_id):
             logger.warning(
                 "TVMaze lookup failed for TVDB ID %s - %s",
                 tvdb_id,
-                err.response.text(),
+                err.response.text,
             )
         else:
             logger.warning(
                 "%s - TVMaze lookup error: %s",
                 tvdb_id,
-                err.response.text(),
+                err.response.text,
             )
         lookup_response = {}
 
