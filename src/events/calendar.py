@@ -368,17 +368,14 @@ def get_seasons_to_process(tv_item):
     # Create a set of seasons that already have events
     seasons_with_events = {event.item.season_number for event in existing_season_events}
 
-    # Identify seasons to process:
-    # 1. Seasons with no events
-    # 2. Currently airing season
     seasons_to_process = []
 
     for season_num in season_numbers:
         if season_num not in seasons_with_events:
             # No events for this season, process it
             seasons_to_process.append(season_num)
-        elif current_season and season_num == current_season:
-            # Currently airing season, process it
+        elif current_season and season_num >= current_season:
+            # Current or future season, process it
             seasons_to_process.append(season_num)
 
     if not seasons_to_process:
