@@ -286,10 +286,10 @@ def update_media_score(request, source, media_type, media_id, season_number=None
 
 
 @require_POST
-def refresh_media(request, source, media_type, media_id, season_number=None):
+def sync_metadata(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
     if source == Sources.MANUAL.value:
-        msg = "Manual items cannot be refreshed"
+        msg = "Manual items cannot be synced."
         messages.error(request, msg)
         return HttpResponse(
             msg,
@@ -304,7 +304,7 @@ def refresh_media(request, source, media_type, media_id, season_number=None):
     ttl = cache.ttl(cache_key)
     logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
     if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 300):
-        msg = "The data was recently refreshed, please wait a few minutes."
+        msg = "The data was recently synced, please wait a few minutes."
         messages.error(request, msg)
     else:
         deleted = cache.delete(cache_key)
@@ -381,7 +381,7 @@ def refresh_media(request, source, media_type, media_id, season_number=None):
                     title,
                 )
 
-        msg = f"{title} was refreshed successfully."
+        msg = f"{title} was synced successfully."
         messages.success(request, msg)
 
     if request.headers.get("HX-Request"):

@@ -31,14 +31,14 @@ urlpatterns = [
         name="update_media_score",
     ),
     path(
-        "details/refresh/<source:source>/<media_type:media_type>/<str:media_id>",
-        views.refresh_media,
-        name="refresh_media",
+        "details/sync/<source:source>/<media_type:media_type>/<str:media_id>",
+        views.sync_metadata,
+        name="sync_metadata",
     ),
     path(
-        "details/refresh/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
-        views.refresh_media,
-        name="refresh_media",
+        "details/sync/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        views.sync_metadata,
+        name="sync_metadata",
     ),
     path(
         "track_modal/<source:source>/<media_type:media_type>/<str:media_id>",
