@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Case, IntegerField, Q, UniqueConstraint, Value, When
 from django.utils import timezone
 
 from app import media_type_config
@@ -31,17 +31,7 @@ class EventManager(models.Manager):
     """Custom manager for the Event model."""
 
     def get_user_events(self, user, first_day, last_day):
-        """Get all upcoming media events of the specified user.
-
-        For TV shows:
-        - If the latest season the user is tracking has an active status,
-          show events for all seasons of that TV show
-        - If the latest season has an inactive status, don't show TV show events
-
-        For other media types:
-        - Only show events for media the user is actively tracking
-        """
-        # Convert date objects to datetime objects with timezone awareness
+        """Get all upcoming media events of the specified user."""
         start_datetime = timezone.make_aware(
             datetime.combine(first_day, datetime.min.time()),
         )
@@ -66,52 +56,80 @@ class EventManager(models.Manager):
                 **{f"item__{media_type}__status__in": INACTIVE_TRACKING_STATUSES},
             )
 
-        tv_query = Q()
-
-        if (
-            MediaTypes.TV.value in enabled_types
-            or MediaTypes.SEASON.value in enabled_types
-        ):
-            user_seasons = Season.objects.filter(
-                user=user,
-            ).select_related("item")
-
-            # Track the latest season for each TV show
-            latest_seasons = {}
-
-            # Find the latest season for each TV show in a single pass
-            for season in user_seasons:
-                tv_id = season.item.media_id
-                season_number = season.item.season_number
-
-                if (
-                    tv_id not in latest_seasons
-                    or season_number > latest_seasons[tv_id].item.season_number
-                ):
-                    latest_seasons[tv_id] = season
-
-            # Identify TV shows where the latest season has active status
-            tv_shows_with_active_latest_season = {
-                tv_id
-                for tv_id, season in latest_seasons.items()
-                if season.status not in INACTIVE_TRACKING_STATUSES
-            }
-
-            if tv_shows_with_active_latest_season:
-                # Include all seasons from TV shows where the latest season is active
-                tv_query = Q(
-                    item__media_type=MediaTypes.SEASON.value,
-                    item__media_id__in=tv_shows_with_active_latest_season,
-                )
-
+        tv_query = self._build_tv_query(user, enabled_types)
         combined_query = (user_query & active_status_query) | tv_query
 
-        # Return events matching our criteria
-        return self.filter(
+        queryset = self.filter(
             combined_query,
             datetime__gte=start_datetime,
             datetime__lte=end_datetime,
-        ).order_by("datetime").select_related("item")
+        ).select_related("item")
+
+        return self.sort_with_sentinel_last(queryset)
+
+    def _build_tv_query(self, user, enabled_types):
+        """Build query for TV shows based on latest season status."""
+        if not (
+            MediaTypes.TV.value in enabled_types
+            or MediaTypes.SEASON.value in enabled_types
+        ):
+            return Q()
+
+        user_seasons = Season.objects.filter(user=user).select_related("item")
+        latest_seasons = {}
+
+        for season in user_seasons:
+            tv_id = season.item.media_id
+            season_number = season.item.season_number
+
+            if (
+                tv_id not in latest_seasons
+                or season_number > latest_seasons[tv_id].item.season_number
+            ):
+                latest_seasons[tv_id] = season
+
+        tv_shows_with_active_latest_season = {
+            tv_id
+            for tv_id, season in latest_seasons.items()
+            if season.status not in INACTIVE_TRACKING_STATUSES
+        }
+
+        if not tv_shows_with_active_latest_season:
+            return Q()
+
+        return Q(
+            item__media_type=MediaTypes.SEASON.value,
+            item__media_id__in=tv_shows_with_active_latest_season,
+        )
+
+    def sort_with_sentinel_last(self, queryset):
+        """Sort events with sentinel time last."""
+        today = timezone.now().date()
+        sentinel_dt = timezone.localtime(
+            datetime(
+                today.year,
+                today.month,
+                today.day,
+                SentinelDatetime.HOUR,
+                SentinelDatetime.MINUTE,
+                SentinelDatetime.SECOND,
+                SentinelDatetime.MICROSECOND,
+                tzinfo=UTC,
+            ),
+        )
+
+        return queryset.annotate(
+            is_sentinel=Case(
+                When(
+                    datetime__hour=sentinel_dt.hour,
+                    datetime__minute=sentinel_dt.minute,
+                    datetime__second=sentinel_dt.second,
+                    then=Value(1),
+                ),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+        ).order_by("datetime__date", "is_sentinel", "datetime")
 
 
 class Event(models.Model):

@@ -20,11 +20,13 @@ def send_releases():
     thirty_minutes_ago = now - timezone.timedelta(minutes=30)
 
     # Find events that were released recently and haven't been notified yet
-    events = Event.objects.filter(
+    base_queryset = Event.objects.filter(
         datetime__gte=thirty_minutes_ago,
         datetime__lte=now,
         notification_sent=False,
     ).select_related("item")
+
+    events = Event.objects.sort_with_sentinel_last(base_queryset)
 
     if not events.exists():
         return "No recent releases found"
@@ -77,10 +79,12 @@ def send_daily_digest():
     today_end_utc = today_end.astimezone(UTC)
 
     # Get today's events using the converted UTC times
-    events = Event.objects.filter(
+    base_queryset = Event.objects.filter(
         datetime__gte=today_start_utc,
         datetime__lt=today_end_utc,
     ).select_related("item")
+
+    events = Event.objects.sort_with_sentinel_last(base_queryset)
 
     if not events.exists():
         return "No releases scheduled for today"
@@ -391,9 +395,7 @@ def format_notification(releases):
         else:
             notification_body.append(f"{icon}  {media_type.upper()}")
 
-        sorted_events = sorted(media_events, key=lambda e: e.datetime)
-
-        for event in sorted_events:
+        for event in media_events:
             if event.is_sentinel_time:
                 # Don't show time for sentinel times
                 notification_body.append(f"  • {event}")
