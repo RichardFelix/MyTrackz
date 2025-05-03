@@ -348,8 +348,7 @@ def get_seasons_to_process(tv_item):
 
     # Get all season numbers
     season_numbers = [
-        season["season_number"]
-        for season in tv_metadata["related"]["seasons"]
+        season["season_number"] for season in tv_metadata["related"]["seasons"]
     ]
 
     if not season_numbers:
@@ -475,11 +474,11 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
     """Determine the most accurate air datetime for an episode."""
     # First check if we have TVMaze data for this episode
     tvmaze_key = f"{season_number}_{episode_number}"
-    tvmaze_episode = tvmaze_map.get(tvmaze_key)
+    tvmaze_airstamp = tvmaze_map.get(tvmaze_key)
 
-    # Use TVMaze data if it has an airstamp
-    if tvmaze_episode and tvmaze_episode["airstamp"]:
-        return datetime.fromisoformat(tvmaze_episode["airstamp"])
+    # Use TVMaze data if available
+    if tvmaze_airstamp:
+        return datetime.fromisoformat(tvmaze_airstamp)
 
     # Fall back to TMDB data (date only)
     if episode["air_date"]:
@@ -553,8 +552,7 @@ def get_tvmaze_episode_map(tvdb_id):
         episode_num = ep.get("number")
         if season_num is not None and episode_num is not None:
             key = f"{season_num}_{episode_num}"
-            value = {"airstamp": ep.get("airstamp"), "airtime": ep.get("airtime")}
-            tvmaze_map[key] = value
+            tvmaze_map[key] = ep.get("airstamp")
 
     # Cache the processed map for 24 hours
     cache.set(cache_key, tvmaze_map, timeout=86400)
