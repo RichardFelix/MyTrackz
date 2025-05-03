@@ -258,6 +258,14 @@ class MovieForm(MediaForm):
         """Bind form to model."""
 
         model = Movie
+        fields = [
+            "score",
+            "repeats",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+        ]
 
 
 class GameForm(MediaForm):

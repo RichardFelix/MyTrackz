@@ -291,13 +291,15 @@
               </div>
             {% endif %}
 
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Progress:</span>
-              <span class="text-gray-200">
-                {{ user_media.progress }}
-                {% if user_media.max_progress %}/ {{ user_media.max_progress }}{% endif %}
-              </span>
-            </div>
+            {% if media.media_type != MediaTypes.MOVIE.value %}
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Progress:</span>
+                <span class="text-gray-200">
+                  {{ user_media.progress }}
+                  {% if user_media.max_progress %}/ {{ user_media.max_progress }}{% endif %}
+                </span>
+              </div>
+            {% endif %}
 
             {% if user_media.repeats and media.media_type != MediaTypes.TV.value and media.media_type != MediaTypes.SEASON.value %}
               <div class="flex justify-between text-sm">

@@ -32,7 +32,7 @@
 
         {% for field in form %}
           {% if field.name != 'notes' and field.name != 'media_type' and field.name != 'source' and field.name != 'media_id' and field.name != 'season_number' %}
-            <div class="mb-5">
+            <div class="mb-5 {% if field.name == "status" and not total_fields|divisibleby:2 %}col-span-2{% endif %}">
               <label class="block text-sm font-medium mb-1 text-gray-300"
                      for="{{ field.id_for_label }}">{{ field.label }}</label>
               <div class="relative">
