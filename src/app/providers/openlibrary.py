@@ -21,7 +21,7 @@ search_url = "https://openlibrary.org/search.json"
 def handle_error(error):
     """Handle Open Library API errors."""
     raise services.ProviderAPIError(
-        Sources.MANGAUPDATES.value,
+        Sources.OPENLIBRARY.value,
         error,
     )
 
