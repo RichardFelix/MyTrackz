@@ -61,12 +61,12 @@
              @click="isMobileMenuOpen = false"></div>
 
         {# Sidebar #}
-        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky"
+        <aside class="fixed top-0 left-0 z-40 h-screen w-64 bg-[#1a1d20] transform transition-transform duration-300 ease-in-out border-r border-[#2c3136] -translate-x-full lg:translate-x-0 lg:sticky flex flex-col"
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
           <div class="h-16 border-b border-[#2c3136] flex items-center px-6">
             <h1 class="text-2xl font-semibold text-gray-100">Yamtrack</h1>
           </div>
-          <nav class="p-4">
+          <nav class="p-4 flex-1 overflow-y-auto">
             <ul class="space-y-1 mb-6">
               <li>
                 <a href="{% url 'home' %}"
@@ -125,36 +125,37 @@
                     <span>Calendar</span>
                   </a>
                 </li>
-
-                {% url 'account' as account_url %}
-                {% url 'notifications' as notifications_url %}
-                {% url 'sidebar' as sidebar_url %}
-                {% url 'integrations' as integrations_url %}
-                {% url 'import_data' as import_url %}
-                {% url 'export_data' as export_url %}
-                <li>
-                  <a href="{{ account_url }}"
-                     class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
-                      {% icon 'settings' is_active=True %}
-                    {% else %}
-                      {% icon 'settings' is_active=False %}
-                    {% endif %}
-                    <span>Settings</span>
-                  </a>
-                </li>
               </ul>
             </div>
           </nav>
-          <div class="absolute bottom-4 left-4 right-4">
-            <form method="post" action="{% url 'account_logout' %}" class="w-full">
-              {% csrf_token %}
-              <button type="submit"
-                      class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
-                {% icon 'logout' is_active=False %}
-                <span>Logout</span>
-              </button>
-            </form>
+
+          <div class="p-4 border-t border-[#2c3136] mt-auto">
+            <div class="space-y-2">
+              {% url 'account' as account_url %}
+              {% url 'notifications' as notifications_url %}
+              {% url 'sidebar' as sidebar_url %}
+              {% url 'integrations' as integrations_url %}
+              {% url 'import_data' as import_url %}
+              {% url 'export_data' as export_url %}
+              <a href="{{ account_url }}"
+                 class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                {% if request.path == account_url or request.path == notifications_url or request.path == sidebar_url or request.path == integrations_url or request.path == import_url or request.path == export_url %}
+                  {% icon 'settings' is_active=True %}
+                {% else %}
+                  {% icon 'settings' is_active=False %}
+                {% endif %}
+                <span>Settings</span>
+              </a>
+
+              <form method="post" action="{% url 'account_logout' %}" class="w-full">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full flex items-center space-x-3 px-4 py-2 rounded-md text-gray-400 hover:bg-[#23272b] hover:text-white transition-colors duration-200 text-sm cursor-pointer">
+                  {% icon 'logout' is_active=False %}
+                  <span>Logout</span>
+                </button>
+              </form>
+            </div>
           </div>
         </aside>
 
