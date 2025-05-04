@@ -386,9 +386,9 @@ class ReloadCalendarTaskTests(TestCase):
 
         # TVMaze data with more precise timestamps
         mock_get_tvmaze_episode_map.return_value = {
-            "1_1": {"airstamp": "2008-01-20T22:00:00+00:00", "airtime": "22:00"},
-            "1_2": {"airstamp": "2008-01-27T22:00:00+00:00", "airtime": "22:00"},
-            "1_3": {"airstamp": "2008-02-03T22:00:00+00:00", "airtime": "22:00"},
+            "1_1": "2008-01-20T22:00:00+00:00",
+            "1_2": "2008-01-27T22:00:00+00:00",
+            "1_3": "2008-02-03T22:00:00+00:00",
         }
 
         # Process the item
@@ -626,8 +626,8 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(len(result), 2)
         self.assertIn("1_1", result)
         self.assertIn("1_2", result)
-        self.assertEqual(result["1_1"]["airstamp"], "2008-01-20T22:00:00+00:00")
-        self.assertEqual(result["1_2"]["airstamp"], "2008-01-27T22:00:00+00:00")
+        self.assertEqual(result["1_1"], "2008-01-20T22:00:00+00:00")
+        self.assertEqual(result["1_2"], "2008-01-27T22:00:00+00:00")
 
         # Verify cache was set
         cached_result = cache.get("tvmaze_map_81189")
