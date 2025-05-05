@@ -59,7 +59,7 @@ class MediaTypes(models.TextChoices):
     COMIC = "comic", "Comic"
 
 
-class Item(models.Model):
+class Item(CalendarTriggerMixin, models.Model):
     """Model for items in custom lists."""
 
     media_id = models.CharField(max_length=20)
@@ -178,6 +178,42 @@ class Item(models.Model):
             return "1"
 
         return str(int(latest_item.media_id) + 1)
+
+    def fetch_releases(self):
+        """Fetch releases for the item."""
+        if not self._disable_calendar_triggers:
+            if self.media_type == MediaTypes.SEASON.value:
+                # Get or create the TV item for this season
+                try:
+                    tv_item = Item.objects.get(
+                        media_id=self.media_id,
+                        source=self.source,
+                        media_type=MediaTypes.TV.value,
+                        season_number__isnull=True,
+                        episode_number__isnull=True,
+                    )
+                except Item.DoesNotExist:
+                    # Get metadata for the TV show
+                    tv_metadata = providers.services.get_media_metadata(
+                        MediaTypes.TV.value,
+                        self.media_id,
+                        self.source,
+                    )
+                    tv_item = Item.objects.create(
+                        media_id=self.media_id,
+                        source=self.source,
+                        media_type=MediaTypes.TV.value,
+                        title=tv_metadata["title"],
+                        image=tv_metadata["image"],
+                    )
+                    logger.info("Created TV item %s for season %s", tv_item, self)
+
+                # Process the TV item instead of the season
+                items_to_process = [tv_item]
+            else:
+                items_to_process = [self]
+
+            events.tasks.reload_calendar.delay(items_to_process=items_to_process)
 
 
 class MediaManager(models.Manager):
@@ -617,7 +653,7 @@ class MediaManager(models.Manager):
         return params
 
 
-class Media(CalendarTriggerMixin, models.Model):
+class Media(models.Model):
     """Abstract model for all media types."""
 
     class Status(models.TextChoices):
@@ -732,8 +768,7 @@ class Media(CalendarTriggerMixin, models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        if not self._disable_calendar_triggers:
-            events.tasks.reload_calendar.delay(items_to_process=[self.item])
+        self.item.fetch_releases()
 
     @property
     def formatted_progress(self):
@@ -773,8 +808,7 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            if not self._disable_calendar_triggers:
-                events.tasks.reload_calendar.delay(items_to_process=[self.item])
+            self.item.fetch_releases()
 
     @property
     def progress(self):
@@ -958,10 +992,7 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            if not self._disable_calendar_triggers:
-                events.tasks.reload_calendar.delay(
-                    items_to_process=[self.related_tv.item],
-                )
+            self.item.fetch_releases()
 
     @property
     def progress(self):

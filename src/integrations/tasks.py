@@ -3,7 +3,7 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 
 import events
-from app.mixins import disable_all_calendar_triggers
+from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack
@@ -16,14 +16,14 @@ def import_trakt(username, user_id, mode):
     """Celery task for importing anime and manga data from Trakt."""
     user = get_user_model().objects.get(id=user_id)
 
-    with disable_all_calendar_triggers():
+    with disable_fetch_releases():
         (
             num_tv_imported,
             num_movie_imported,
             num_anime_imported,
             warning_message,
         ) = trakt.importer(username, user, mode)
-        events.tasks.reload_calendar.delay()
+    events.tasks.reload_calendar.delay()
 
     info_message = (
         f"Imported {num_tv_imported} "
@@ -44,11 +44,11 @@ def import_trakt(username, user_id, mode):
 def import_simkl(username, user_id, mode):
     """Celery task for importing anime and manga data from SIMKL."""
     user = get_user_model().objects.get(id=user_id)
-    with disable_all_calendar_triggers():
+    with disable_fetch_releases():
         num_tv_imported, num_movie_imported, num_anime_imported, warning_message = (
             simkl.importer(username, user, mode)
         )
-        events.tasks.reload_calendar.delay()
+    events.tasks.reload_calendar.delay()
 
     info_message = (
         f"Imported {num_tv_imported} "
@@ -70,9 +70,9 @@ def import_mal(username, user_id, mode):
     """Celery task for importing anime and manga data from MyAnimeList."""
     try:
         user = get_user_model().objects.get(id=user_id)
-        with disable_all_calendar_triggers():
+        with disable_fetch_releases():
             num_anime_imported, num_manga_imported = mal.importer(username, user, mode)
-            events.tasks.reload_calendar.delay()
+        events.tasks.reload_calendar.delay()
     except requests.exceptions.HTTPError as error:
         if error.response.status_code == requests.codes.not_found:
             msg = f"User {username} not found."
@@ -92,13 +92,13 @@ def import_anilist(username, user_id, mode):
     """Celery task for importing anime and manga data from AniList."""
     user = get_user_model().objects.get(id=user_id)
     try:
-        with disable_all_calendar_triggers():
+        with disable_fetch_releases():
             num_anime_imported, num_manga_imported, warning_message = anilist.importer(
                 username,
                 user,
                 mode,
             )
-            events.tasks.reload_calendar.delay()
+        events.tasks.reload_calendar.delay()
     except requests.exceptions.HTTPError as error:
         error_message = error.response.json()["errors"][0].get("message")
         if error_message == "User not found":
@@ -126,13 +126,13 @@ def import_anilist(username, user_id, mode):
 def import_kitsu(username, user_id, mode):
     """Celery task for importing anime and manga data from Kitsu."""
     user = get_user_model().objects.get(id=user_id)
-    with disable_all_calendar_triggers():
+    with disable_fetch_releases():
         num_anime_imported, num_manga_imported, warning_message = kitsu.importer(
             username,
             user,
             mode,
         )
-        events.tasks.reload_calendar.delay()
+    events.tasks.reload_calendar.delay()
 
     info_message = (
         f"Imported {num_anime_imported} "
@@ -152,9 +152,9 @@ def import_yamtrack(file, user_id, mode):
     """Celery task for importing media data from Yamtrack."""
     try:
         user = get_user_model().objects.get(id=user_id)
-        with disable_all_calendar_triggers():
+        with disable_fetch_releases():
             imported_counts = yamtrack.importer(file, user, mode)
-            events.tasks.reload_calendar.delay()
+        events.tasks.reload_calendar.delay()
     except UnicodeDecodeError as error:
         msg = "Invalid file format. Please upload a CSV file."
         raise ValueError(msg) from error
