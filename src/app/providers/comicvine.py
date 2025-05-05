@@ -238,13 +238,16 @@ def get_similar_comics(publisher_id, current_id, limit=10):
             "limit": limit + 1,  # Get one extra to account for current comic
         }
 
-        response = services.api_request(
-            Sources.COMICVINE.value,
-            "GET",
-            f"{base_url}/volumes/",
-            params=params,
-            headers=headers,
-        )
+        try:
+            response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/volumes/",
+                params=params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         # Filter out the current comic and format the response
         data = [
@@ -276,13 +279,16 @@ def issue(media_id):
             "field_list": ("cover_date,store_date"),
         }
 
-        response = services.api_request(
-            Sources.COMICVINE.value,
-            "GET",
-            f"{base_url}/issue/4000-{media_id}/",
-            params=params,
-            headers=headers,
-        )
+        try:
+            response = services.api_request(
+                Sources.COMICVINE.value,
+                "GET",
+                f"{base_url}/issue/4000-{media_id}/",
+                params=params,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
 
         response = response.get("results", {})
 

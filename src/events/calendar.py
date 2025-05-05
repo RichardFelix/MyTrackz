@@ -325,17 +325,13 @@ def process_tv(tv_item, events_bulk):
         # Fetch and process season data
         process_tv_seasons(tv_item, seasons_to_process, events_bulk)
 
-    except requests.exceptions.HTTPError as err:
-        if err.response.status_code == requests.codes.not_found:
-            logger.warning(
-                "Failed to fetch metadata for TV show %s - %s",
-                tv_item,
-                err.response.json(),
-            )
-        else:
-            raise
+    except services.ProviderAPIError:
+        logger.warning(
+            "Failed to fetch metadata for %s",
+            tv_item,
+        )
     except Exception:
-        logger.exception("Error processing TV show %s", tv_item)
+        logger.exception("Error processing %s", tv_item)
 
 
 def get_seasons_to_process(tv_item):
@@ -574,16 +570,12 @@ def process_comic(item, events_bulk):
             item.media_id,
             item.source,
         )
-    except requests.exceptions.HTTPError as err:
-        # happens for niche media in which the mappings during import are incorrect
-        if err.response.status_code == requests.codes.not_found:
-            logger.warning(
-                "Failed to fetch metadata for %s - %s",
-                item,
-                err.response.json(),
-            )
-            return
-        raise
+    except services.ProviderAPIError:
+        logger.warning(
+            "Failed to fetch metadata for %s",
+            item,
+        )
+        return
 
     # get latest event
     latest_event = Event.objects.filter(item=item).order_by("-datetime").first()
@@ -595,11 +587,10 @@ def process_comic(item, events_bulk):
     # add latest issue
     try:
         issue_metadata = comicvine.issue(metadata["last_issue_id"])
-    except requests.exceptions.HTTPError as err:
+    except services.ProviderAPIError:
         logger.warning(
-            "Failed to fetch issue metadata for %s - %s",
+            "Failed to fetch issue metadata for %s",
             item,
-            err.response.json(),
         )
         return
 
@@ -628,16 +619,12 @@ def process_other(item, events_bulk):
             item.media_id,
             item.source,
         )
-    except requests.exceptions.HTTPError as err:
-        # happens for niche media in which the mappings during import are incorrect
-        if err.response.status_code == requests.codes.not_found:
-            logger.warning(
-                "Failed to fetch metadata for %s - %s",
-                item,
-                err.response.json(),
-            )
-            return
-        raise
+    except services.ProviderAPIError:
+        logger.warning(
+            "Failed to fetch metadata for %s",
+            item,
+        )
+        return
 
     date_key = media_type_config.get_date_key(item.media_type)
 
