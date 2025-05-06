@@ -145,7 +145,7 @@ class ExportCSVTest(TestCase):
         )
 
         item_book = Item.objects.create(
-            media_id="OL7353617M",
+            media_id="OL21733390M",
             source=Sources.OPENLIBRARY.value,
             media_type=MediaTypes.BOOK.value,
             title="Fantastic Mr. Fox",

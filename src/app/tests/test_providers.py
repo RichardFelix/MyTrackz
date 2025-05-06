@@ -329,9 +329,9 @@ class Metadata(TestCase):
 
     def test_book(self):
         """Test the metadata method for books."""
-        response = openlibrary.book("OL46835937M")
-        self.assertEqual(response["title"], "The Name of the Wind")
-        self.assertEqual(response["details"]["author"], ["Patrick Rothfuss"])
+        response = openlibrary.book("OL21733390M")
+        self.assertEqual(response["title"], "Nineteen Eighty-Four")
+        self.assertEqual(response["details"]["author"], ["George Orwell"])
 
     def test_comic(self):
         """Test the metadata method for comics."""
