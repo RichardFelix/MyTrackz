@@ -35,12 +35,12 @@ def calendar(request):
         current_date = (
             date(int(year), int(month), 1)
             if month and year
-            else timezone.localtime().date()
+            else timezone.localdate()
         )
         month, year = current_date.month, current_date.year
     except (ValueError, TypeError):
         logger.warning("Invalid month or year provided: %s, %s", month, year)
-        current_date = timezone.localtime().date()
+        current_date = timezone.localdate()
         month, year = current_date.month, current_date.year
 
     # Calculate navigation dates
@@ -78,7 +78,7 @@ def calendar(request):
         release_dict[day].append(release)
 
     # Get today's date for highlighting
-    today = timezone.localtime().date()
+    today = timezone.localdate()
 
     context = {
         "calendar": calendar_format,

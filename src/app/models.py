@@ -747,15 +747,15 @@ class Media(models.Model):
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        now = timezone.now().date()
+        today = timezone.localdate()
 
         if self.status == self.Status.IN_PROGRESS.value:
             if not self.start_date:
-                self.start_date = now
+                self.start_date = today
 
         elif self.status == self.Status.COMPLETED.value:
             if not self.end_date:
-                self.end_date = now
+                self.end_date = today
 
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
@@ -1061,7 +1061,7 @@ class Season(Media):
                 episodes,
             )
 
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         if next_episode_number:
             self.watch(next_episode_number, today)
@@ -1195,7 +1195,7 @@ class Season(Media):
             max_episode_number = 0
 
         episodes_to_create = []
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         # Create Episode objects for the remaining episodes
         for episode in reversed(season_metadata["episodes"]):

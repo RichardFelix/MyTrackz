@@ -816,7 +816,7 @@ def statistics(request):
     """Return the statistics page."""
     # Set default date range to last year
     timeformat = "%Y-%m-%d"
-    today = timezone.now().date()
+    today = timezone.localdate()
     one_year_ago = today.replace(year=today.year - 1)
 
     # Get date parameters with defaults

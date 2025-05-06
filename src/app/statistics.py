@@ -397,7 +397,7 @@ def get_activity_data(user, start_date, end_date):
     if start_date is None:
         start_date = user.date_joined.date()
     if end_date is None:
-        end_date = timezone.now().date()
+        end_date = timezone.localdate()
 
     # Get the Monday of the week containing start_date (for grid alignment)
     start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())

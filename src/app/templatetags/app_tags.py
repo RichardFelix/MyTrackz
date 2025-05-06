@@ -157,7 +157,7 @@ def media_color(media_type):
 def natural_day(value):
     """Format date with natural language (Today, Tomorrow, etc.)."""
     # Get today's date in the current timezone
-    today = timezone.localtime(timezone.now()).date()
+    today = timezone.localdate()
 
     # Extract just the date part for comparison
     value_date = value.date()

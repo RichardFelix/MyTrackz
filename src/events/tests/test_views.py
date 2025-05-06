@@ -44,7 +44,7 @@ class CalendarViewTests(TestCase):
         mock_update_preference.assert_called_once_with("calendar_layout", None)
 
         # Get today's date for verification
-        today = timezone.localtime().date()
+        today = timezone.localdate()
         first_day = date(today.year, today.month, 1)
 
         # Calculate last day of the month
@@ -149,7 +149,7 @@ class CalendarViewTests(TestCase):
         self.assertTemplateUsed(response, "events/calendar.html")
 
         # Get today's date for verification
-        today = timezone.localtime().date()
+        today = timezone.localdate()
 
         # Check context data - should default to current month/year
         self.assertEqual(response.context["month"], today.month)
@@ -227,7 +227,7 @@ class CalendarViewTests(TestCase):
         )
 
         # Create some mock events
-        today = timezone.localtime().date()
+        today = timezone.localdate()
         event1 = Event(
             item=item1,
             datetime=timezone.make_aware(

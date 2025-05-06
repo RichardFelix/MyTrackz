@@ -189,7 +189,7 @@ def import_yamtrack(request):
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
-    today = timezone.now().strftime("%Y-%m-%d")
+    today = timezone.localdate()
     response = StreamingHttpResponse(
         streaming_content=exports.generate_rows(request.user),
         content_type="text/csv",
