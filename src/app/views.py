@@ -303,9 +303,11 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
 
     ttl = cache.ttl(cache_key)
     logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
-    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 300):
+
+    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 30):
         msg = "The data was recently synced, please wait a few minutes."
         messages.error(request, msg)
+        logger.error(msg)
     else:
         deleted = cache.delete(cache_key)
         logger.debug("%s - Old cache deleted: %s", cache_key, deleted)
@@ -316,7 +318,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source,
             [season_number],
         )
-        Item.objects.update_or_create(
+        item, _ = Item.objects.update_or_create(
             media_id=media_id,
             source=source,
             media_type=media_type,
@@ -373,13 +375,13 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                     ["title", "image"],
                     batch_size=100,
                 )
-
-                # Log results
                 logger.info(
                     "Successfully updated %s episodes for %s",
                     updated_count,
                     title,
                 )
+
+        item.fetch_releases(delay=False)
 
         msg = f"{title} was synced to {Sources(source).label} successfully."
         messages.success(request, msg)

@@ -1430,7 +1430,7 @@ class SearchParentViewTests(TestCase):
 
         # Create some manual TV shows and seasons for testing
         tv_item1 = Item.objects.create(
-            media_id="tv1",
+            media_id="111",
             source=Sources.MANUAL.value,
             media_type=MediaTypes.TV.value,
             title="Test TV Show",
@@ -1442,7 +1442,7 @@ class SearchParentViewTests(TestCase):
         )
 
         tv_item2 = Item.objects.create(
-            media_id="tv2",
+            media_id="222",
             source=Sources.MANUAL.value,
             media_type=MediaTypes.TV.value,
             title="Another TV Show",
@@ -1454,7 +1454,7 @@ class SearchParentViewTests(TestCase):
         )
 
         season_item1 = Item.objects.create(
-            media_id="season1",
+            media_id="111",
             source=Sources.MANUAL.value,
             media_type=MediaTypes.SEASON.value,
             title="Test Season",
@@ -1468,7 +1468,7 @@ class SearchParentViewTests(TestCase):
         )
 
         season_item2 = Item.objects.create(
-            media_id="season2",
+            media_id="222",
             source=Sources.MANUAL.value,
             media_type=MediaTypes.SEASON.value,
             title="Another Season",

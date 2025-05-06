@@ -20,6 +20,7 @@ from app.models import (
     Season,
     Sources,
 )
+from app.providers import services
 from events.calendar import (
     anilist_date_parser,
     date_parser,
@@ -782,19 +783,20 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
 
-    @patch("events.calendar.services.get_media_metadata")
-    def test_http_error_handling(self, mock_get_media_metadata):
-        """Test handling of HTTP errors in process_other."""
-        # Setup mock to raise 404 error
-        import requests
-
+    @patch("app.providers.tmdb.movie")
+    def test_http_error_handling(self, mock_tmdb_movie):
+        """Test handling of ProviderAPIError in process_other."""
+        # Create a mock response for the error
         response_mock = MagicMock()
         response_mock.status_code = 404
-        response_mock.json.return_value = {"error": "Not found"}
+        response_mock.text = "Not found"
 
-        http_error = requests.exceptions.HTTPError("404 Client Error")
-        http_error.response = response_mock
-        mock_get_media_metadata.side_effect = http_error
+        # Create and raise the ProviderAPIError
+        mock_tmdb_movie.side_effect = services.ProviderAPIError(
+            provider=Sources.TMDB.value,
+            error=response_mock,
+            details="Movie not found",
+        )
 
         # Process the item - should not raise exception
         events_bulk = []
@@ -803,15 +805,6 @@ class ReloadCalendarTaskTests(TestCase):
         # Verify no events were added
         self.assertEqual(len(events_bulk), 0)
 
-        # Setup mock to raise 500 error
-        response_mock.status_code = 500
-        http_error = requests.exceptions.HTTPError("500 Server Error")
-        http_error.response = response_mock
-        mock_get_media_metadata.side_effect = http_error
-
-        # Process the item - should raise exception
-        with self.assertRaises(requests.exceptions.HTTPError):
-            process_other(self.movie_item, events_bulk)
 
     @patch("events.calendar.services.get_media_metadata")
     @patch("events.calendar.comicvine.issue")

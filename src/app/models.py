@@ -179,7 +179,7 @@ class Item(CalendarTriggerMixin, models.Model):
 
         return str(int(latest_item.media_id) + 1)
 
-    def fetch_releases(self):
+    def fetch_releases(self, delay):
         """Fetch releases for the item."""
         if not self._disable_calendar_triggers:
             if self.media_type == MediaTypes.SEASON.value:
@@ -189,8 +189,6 @@ class Item(CalendarTriggerMixin, models.Model):
                         media_id=self.media_id,
                         source=self.source,
                         media_type=MediaTypes.TV.value,
-                        season_number__isnull=True,
-                        episode_number__isnull=True,
                     )
                 except Item.DoesNotExist:
                     # Get metadata for the TV show
@@ -213,7 +211,10 @@ class Item(CalendarTriggerMixin, models.Model):
             else:
                 items_to_process = [self]
 
-            events.tasks.reload_calendar.delay(items_to_process=items_to_process)
+            if delay:
+                events.tasks.reload_calendar.delay(items_to_process=items_to_process)
+            else:
+                events.tasks.reload_calendar(items_to_process=items_to_process)
 
 
 class MediaManager(models.Manager):
@@ -768,7 +769,7 @@ class Media(models.Model):
             if self.tracker.previous("status") == self.Status.REPEATING.value:
                 self.repeats += 1
 
-        self.item.fetch_releases()
+        self.item.fetch_releases(delay=True)
 
     @property
     def formatted_progress(self):
@@ -808,7 +809,7 @@ class TV(Media):
         if self.tracker.has_changed("status"):
             if self.status == self.Status.COMPLETED.value:
                 self.completed()
-            self.item.fetch_releases()
+            self.item.fetch_releases(delay=True)
 
     @property
     def progress(self):
@@ -992,7 +993,7 @@ class Season(Media):
                     self.get_remaining_eps(season_metadata),
                     Episode,
                 )
-            self.item.fetch_releases()
+            self.item.fetch_releases(delay=True)
 
     @property
     def progress(self):
