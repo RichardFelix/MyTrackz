@@ -1,5 +1,9 @@
 @import "tailwindcss" source("../../");
 
+@theme {
+  --breakpoint-xs: 30rem;
+}
+
 [x-cloak] {
   display: none !important;
 }
@@ -21,8 +25,9 @@
   clip-path: inset(0 50% 0 0);
 }
 
+
 .media-grid {
-  @apply grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
+  @apply grid grid-cols-2 xs:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
 }
 
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
