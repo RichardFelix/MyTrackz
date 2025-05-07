@@ -150,8 +150,17 @@ def process_entry(
 ):
     """Process a single entry and return the model instance."""
     attributes = entry["attributes"]
-    kitsu_id = entry["relationships"][media_type]["data"]["id"]
-    kitsu_metadata = media_lookup[kitsu_id]
+    relationship = entry["relationships"][media_type]
+
+    if relationship["data"]:
+        kitsu_id = relationship["data"]["id"]
+        kitsu_metadata = media_lookup[kitsu_id]
+    else:
+        # NSFW content are hidden, fetch from related URL
+        kitsu_metadata, mapping_lookup = fetch_media_from_related_url(
+            relationship,
+            media_type,
+        )
 
     item = create_or_get_item(
         media_type,
@@ -159,6 +168,7 @@ def process_entry(
         mapping_lookup,
         kitsu_mu_mapping,
     )
+
     model = apps.get_model(app_label="app", model_name=media_type)
 
     instance = model(
@@ -177,6 +187,35 @@ def process_entry(
         instance.status = Media.Status.REPEATING.value
 
     return instance
+
+
+def fetch_media_from_related_url(relationship, media_type):
+    """Fetch media data from Kitsu related URL when relationship data is null."""
+    related_url = relationship["links"]["related"]
+    if not related_url:
+        msg = "Could not import unknown item - missing media data from Kitsu"
+        raise MediaImportError(msg)
+
+    params = {
+        "include": "mappings",
+        f"fields[{media_type}]": "canonicalTitle,posterImage,mappings",
+        "fields[mappings]": "externalSite,externalId",
+    }
+
+    response = app.providers.services.api_request(
+        "KITSU",
+        "GET",
+        related_url,
+        params=params,
+    )
+
+    mapping_lookup = {
+        item["id"]: item
+        for item in response.get("included", [])
+        if item["type"] == "mappings"
+    }
+
+    return response["data"], mapping_lookup
 
 
 def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapping):
