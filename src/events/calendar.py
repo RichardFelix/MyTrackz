@@ -20,28 +20,39 @@ def fetch_releases(user=None, items_to_process=None):
     if items_to_process and items_to_process[0].source == Sources.MANUAL.value:
         return "Manual sources are not processed"
 
-    if not items_to_process:
-        items_to_process = get_items_to_process(user)
-
+    items_to_process = items_to_process or get_items_to_process(user)
     if not items_to_process:
         return "No items to process"
 
+    events_bulk, skipped_items = process_items(items_to_process)
+    save_events(events_bulk)
+    cleanup_invalid_events(events_bulk)
+
+    return generate_final_message(items_to_process, skipped_items)
+
+
+def process_items(items_to_process):
+    """Process items and categorize them."""
     events_bulk = []
     anime_to_process = []
+    skipped_items = []
 
     for item in items_to_process:
-        # anime can later be processed in bulk
         if item.media_type == MediaTypes.ANIME.value:
             anime_to_process.append(item)
         elif item.media_type == MediaTypes.TV.value:
-            process_tv(item, events_bulk)
+            process_tv(item, events_bulk, skipped_items)
         elif item.media_type == MediaTypes.COMIC.value:
-            process_comic(item, events_bulk)
+            process_comic(item, events_bulk, skipped_items)
         else:
-            process_other(item, events_bulk)
+            process_other(item, events_bulk, skipped_items)
 
     process_anime_bulk(anime_to_process, events_bulk)
+    return events_bulk, skipped_items
 
+
+def save_events(events_bulk):
+    """Save events in bulk."""
     for event in events_bulk:
         Event.objects.update_or_create(
             item=event.item,
@@ -49,16 +60,33 @@ def fetch_releases(user=None, items_to_process=None):
             defaults={"datetime": event.datetime},
         )
 
-    cleanup_invalid_events(events_bulk)
 
-    result_msg = "\n".join(
-        f"{item} ({item.get_media_type_display()})" for item in items_to_process
+def generate_final_message(items_to_process, skipped_items):
+    """Generate the final message summarizing the results."""
+    successful_items = [item for item in items_to_process if item not in skipped_items]
+    final_message_parts = []
+
+    if successful_items:
+        success_details = "\n".join(
+            f"  - {item} ({item.get_media_type_display()})" for item in successful_items
+        )
+        final_message_parts.append(
+            f"Releases have been fetched for the following items:\n{success_details}",
+        )
+
+    if skipped_items:
+        skipped_details = "\n".join(
+            f"  - {item} ({item.get_media_type_display()})" for item in skipped_items
+        )
+        final_message_parts.append(
+            f"The following items were skipped due to errors:\n{skipped_details}",
+        )
+
+    return (
+        "\n\n".join(final_message_parts)
+        if final_message_parts
+        else "No releases have been fetched for any items."
     )
-
-    if len(items_to_process) > 0:
-        return f"""Releases have been fetched for the following items:
-                    {result_msg}"""
-    return "No releases have been fetched for any items."
 
 
 def cleanup_invalid_events(events_bulk):
@@ -306,7 +334,7 @@ def get_anime_schedule_bulk(media_ids):
     return all_data
 
 
-def process_tv(tv_item, events_bulk):
+def process_tv(tv_item, events_bulk, skipped_items):
     """Process TV item and create events for all seasons and episodes.
 
     Only processes:
@@ -330,8 +358,12 @@ def process_tv(tv_item, events_bulk):
             "Failed to fetch metadata for %s",
             tv_item,
         )
+        if tv_item not in skipped_items:
+            skipped_items.append(tv_item)
     except Exception:
         logger.exception("Error processing %s", tv_item)
+        if tv_item not in skipped_items:
+            skipped_items.append(tv_item)
 
 
 def get_seasons_to_process(tv_item):
@@ -561,7 +593,7 @@ def get_tvmaze_episode_map(tvdb_id):
     return tvmaze_map
 
 
-def process_comic(item, events_bulk):
+def process_comic(item, events_bulk, skipped_items):
     """Process comic item and add events to the event list."""
     logger.info("Fetching releases for %s", item)
     try:
@@ -575,6 +607,8 @@ def process_comic(item, events_bulk):
             "Failed to fetch metadata for %s",
             item,
         )
+        if item not in skipped_items:
+            skipped_items.append(item)
         return
 
     # get latest event
@@ -592,6 +626,8 @@ def process_comic(item, events_bulk):
             "Failed to fetch issue metadata for %s",
             item,
         )
+        if item not in skipped_items:
+            skipped_items.append(item)
         return
 
     if issue_metadata["store_date"]:
@@ -610,7 +646,7 @@ def process_comic(item, events_bulk):
     )
 
 
-def process_other(item, events_bulk):
+def process_other(item, events_bulk, skipped_items):
     """Process other types of items and add events to the event list."""
     logger.info("Fetching releases for %s", item)
     try:
@@ -624,6 +660,8 @@ def process_other(item, events_bulk):
             "Failed to fetch metadata for %s",
             item,
         )
+        if item not in skipped_items:
+            skipped_items.append(item)
         return
 
     date_key = media_type_config.get_date_key(item.media_type)
