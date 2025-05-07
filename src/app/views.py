@@ -304,8 +304,8 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
     ttl = cache.ttl(cache_key)
     logger.debug("%s - Cache TTL for: %s", cache_key, ttl)
 
-    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 30):
-        msg = "The data was recently synced, please wait a few minutes."
+    if ttl is not None and ttl > (settings.CACHE_TIMEOUT - 3):
+        msg = "The data was recently synced, please wait a few seconds."
         messages.error(request, msg)
         logger.error(msg)
     else:
