@@ -223,9 +223,6 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
     sites = [
         f"myanimelist/{media_type}",
         "mangaupdates",
-        "thetvdb/season",
-        "thetvdb",
-        "thetvdb/series",
     ]
 
     mappings = {
@@ -259,7 +256,8 @@ def create_or_get_item(media_type, kitsu_metadata, mapping_lookup, kitsu_mu_mapp
             source = Sources.MANGAUPDATES.value
             break
 
-    if not media_id:
+    # Farmagia (49333) shows MAL external_id == "anime"
+    if not media_id or not media_id.isdigit():
         media_title = kitsu_metadata["attributes"]["canonicalTitle"]
         msg = f"{media_title}: No valid external ID found."
         raise MediaImportError(msg)
