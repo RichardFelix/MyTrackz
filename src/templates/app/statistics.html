@@ -462,15 +462,15 @@
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <h2 class="text-xl font-semibold mb-4">Top Rated Media</h2>
 
-      {% if score_distribution.top_rated %}
+      {% if top_rated %}
         <div class="media-grid">
-          {% for media in score_distribution.top_rated %}
+          {% for media in top_rated %}
             <div class="bg-[#39404b] rounded-lg overflow-hidden shadow-lg">
               <div class="relative">
-                <a href="{{ media.url }}" class="block">
-                  <img alt="{{ media.title }}"
-                       class="w-full aspect-[2/3] bg-[#3e454d] {% if media.image != IMG_NONE %}object-cover{% endif %}"
-                       src="{{ media.image }}">
+                <a href="{{ media.item|media_url }}" class="block">
+                  <img alt="{{ media.item.title }}"
+                       class="w-full aspect-[2/3] bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
+                       src="{{ media.item.image }}">
                   <div class="absolute top-2 right-2 bg-black/75 px-2 py-1 rounded-md flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg"
                          width="24"
@@ -484,14 +484,14 @@
                          class="w-4 h-4 text-yellow-400 fill-current mr-1">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                     </svg>
-                    <span class="text-white text-sm font-medium">{{ media.score }}</span>
+                    <span class="text-white text-sm font-medium">{{ media.formatted_score }}</span>
                   </div>
                 </a>
               </div>
               <div class="p-3">
-                <a href="{{ media.url }}"
+                <a href="{{ media.item|media_url }}"
                    class="font-medium text-sm text-white hover:text-indigo-400 transition duration-300 line-clamp-1"
-                   title="{{ media.title }}">{{ media.title }}</a>
+                   title="{{ media.item.title }}">{{ media.item.title }}</a>
               </div>
             </div>
           {% endfor %}
@@ -591,7 +591,7 @@
                                    class="w-4 h-4 mr-1 fill-current">
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                               </svg>
-                              <span>{{ media.score }}</span>
+                              <span>{{ media.formatted_score }}</span>
                             </div>
                           {% endif %}
                         </div>

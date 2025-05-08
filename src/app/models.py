@@ -772,6 +772,17 @@ class Media(models.Model):
         self.item.fetch_releases(delay=True)
 
     @property
+    def formatted_score(self):
+        """Return as int if score is 10.0 or 0.0, otherwise show decimal."""
+        if self.score is not None:
+            max_score = 10
+            min_score = 0
+            if self.score in (max_score, min_score):
+                return int(self.score)
+            return self.score
+        return None
+
+    @property
     def formatted_progress(self):
         """Return the progress of the media in a formatted string."""
         return str(self.progress)

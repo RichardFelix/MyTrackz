@@ -227,7 +227,7 @@ def get_score_distribution(user_media):
 
     # Use heapq to maintain top items efficiently
     top_rated = []
-    top_rated_count = 12
+    top_rated_count = 14
     counter = itertools.count()  # For unique identifiers
 
     # Define score range (0-10)
@@ -242,25 +242,17 @@ def get_score_distribution(user_media):
 
         # Process each media item
         for media in scored_media:
-            # Update top rated using heap
-            item_data = {
-                "title": media.item.__str__(),
-                "image": media.item.image,
-                "score": media.score,
-                "url": app_tags.media_url(media.item),
-            }
-
             # Use negative score for max heap (heapq implements min heap)
             # Add counter as tiebreaker
             if len(top_rated) < top_rated_count:
                 heapq.heappush(
                     top_rated,
-                    (float(media.score), next(counter), item_data),
+                    (float(media.score), next(counter), media),
                 )
             else:
                 heapq.heappushpop(
                     top_rated,
-                    (float(media.score), next(counter), item_data),
+                    (float(media.score), next(counter), media),
                 )
 
             # Bin the score
@@ -280,7 +272,7 @@ def get_score_distribution(user_media):
 
     # Convert heap to sorted list of top rated items
     top_rated = [
-        item_data for _, _, item_data in sorted(top_rated, key=lambda x: (-x[0], x[1]))
+        media for _, _, media in sorted(top_rated, key=lambda x: (-x[0], x[1]))
     ]
 
     return {
@@ -295,8 +287,7 @@ def get_score_distribution(user_media):
         ],
         "average_score": average_score,
         "total_scored": total_scored,
-        "top_rated": top_rated,
-    }
+    }, top_rated
 
 
 def get_status_color(status):

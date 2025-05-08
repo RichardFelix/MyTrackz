@@ -715,14 +715,13 @@ class StatisticsTests(TestCase):
             MediaTypes.ANIME.value: Anime.objects.filter(user=self.user),
         }
 
-        score_distribution = statistics.get_score_distribution(user_media)
+        score_distribution, top_rated = statistics.get_score_distribution(user_media)
 
         # Check structure
         self.assertIn("labels", score_distribution)
         self.assertIn("datasets", score_distribution)
         self.assertIn("average_score", score_distribution)
         self.assertIn("total_scored", score_distribution)
-        self.assertIn("top_rated", score_distribution)
 
         # Check content
         self.assertEqual(len(score_distribution["labels"]), 11)  # Scores 0-10
@@ -737,15 +736,15 @@ class StatisticsTests(TestCase):
 
         # Check top rated
         self.assertEqual(
-            len(score_distribution["top_rated"]),
+            len(top_rated),
             2,
         )  # Only 2 items have scores
         self.assertEqual(
-            score_distribution["top_rated"][0]["score"],
+            top_rated[0].score,
             8.5,
         )  # TV should be first
         self.assertEqual(
-            score_distribution["top_rated"][1]["score"],
+            top_rated[1].score,
             7.5,
         )  # Movie should be second
 
