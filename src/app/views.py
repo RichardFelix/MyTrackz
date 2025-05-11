@@ -390,7 +390,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
         return HttpResponse(
             status=204,
             headers={
-                "HX-Redirect": request.POST.get("next", request.get_full_path()),
+                "HX-Redirect": request.POST.get("next", request.path()),
             },
         )
     return helpers.redirect_back(request)
