@@ -162,5 +162,5 @@
 {% endblock settings_content %}
 
 {% block js %}
-  <script src="{% static 'js/copy-token.js' %}"></script>
+  <script src="{% static 'js/copy-token.js' %}{% get_static_file_mtime 'js/copy-token.js' %}"></script>
 {% endblock js %}

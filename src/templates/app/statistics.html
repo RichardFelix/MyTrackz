@@ -629,7 +629,7 @@
 {% endblock content %}
 
 {% block js %}
-  <script src="{% static 'js/date-range.js' %}"></script>
+  <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"></script>
 
   <script src="{% static 'js/libraries/chartjs-4.4.9.min.js' %}"></script>
   <script src="{% static 'js/libraries/chartjs-datalabels-2.0.0.min.js' %}"></script>
@@ -640,5 +640,5 @@
   {{ status_distribution|json_script:"status_distribution" }}
   {{ score_distribution|json_script:"score_distribution" }}
 
-  <script src="{% static 'js/statistics-charts.js' %}"></script>
+  <script src="{% static 'js/statistics-charts.js' %}{% get_static_file_mtime 'js/statistics-charts.js' %}"></script>
 {% endblock js %}
