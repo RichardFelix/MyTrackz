@@ -268,6 +268,11 @@ IGDB_ID = config("IGDB_ID", default="8wqmm7x1n2xxtnz94lb8mthadhtgrt")
 IGDB_SECRET = config("IGDB_SECRET", default="ovbq0hwscv58hu46yxn50hovt4j8kj")
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+HARDCOVER_API = config(
+    "HARDCOVER_API",
+    default="Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQiOjIsInN1YiI6IjM0OTUxIiwiYXVkIjoiMSIsImlkIjoiMzQ5NTEiLCJsb2dnZWRJbiI6dHJ1ZSwiaWF0IjoxNzQ2OTc3ODc3LCJleHAiOjE3Nzg1MTM4NzcsImh0dHBzOi8vaGFzdXJhLmlvL2p3dC9jbGFpbXMiOnsieC1oYXN1cmEtYWxsb3dlZC1yb2xlcyI6WyJ1c2VyIl0sIngtaGFzdXJhLWRlZmF1bHQtcm9sZSI6InVzZXIiLCJ4LWhhc3VyYS1yb2xlIjoidXNlciIsIlgtaGFzdXJhLXVzZXItaWQiOiIzNDk1MSJ9LCJ1c2VyIjp7ImlkIjozNDk1MX19.edcEqLAeO3uH5xxBTFDKtyWwi-B-WfXX_yiLFdOAJ3c",  # noqa: E501
+)
+
 COMICVINE_API = config(
     "COMICVINE_API",
     default="cdab0706269e4bca03a096fbc39920dadf7e4992",

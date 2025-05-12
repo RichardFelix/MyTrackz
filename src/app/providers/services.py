@@ -8,7 +8,16 @@ from redis import ConnectionPool
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
-from app.providers import comicvine, igdb, mal, mangaupdates, manual, openlibrary, tmdb
+from app.providers import (
+    comicvine,
+    hardcover,
+    igdb,
+    mal,
+    mangaupdates,
+    manual,
+    openlibrary,
+    tmdb,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +61,10 @@ session.mount(
 session.mount(
     "https://openlibrary.org",
     LimiterAdapter(per_minute=20),
+)
+session.mount(
+    "https://api.hardcover.app/v1/graphql",
+    LimiterAdapter(per_minute=60),
 )
 
 
@@ -152,7 +165,9 @@ def get_media_metadata(
         ),
         MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id),
         MediaTypes.GAME.value: lambda: igdb.game(media_id),
-        MediaTypes.BOOK.value: lambda: openlibrary.book(media_id),
+        MediaTypes.BOOK.value: lambda: hardcover.book(media_id)
+        if source == Sources.HARDCOVER.value
+        else openlibrary.book(media_id),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
     }
     return metadata_retrievers[media_type]()
@@ -172,7 +187,10 @@ def search(media_type, query, source=None):
     elif media_type == MediaTypes.GAME.value:
         query_list = igdb.search(query)
     elif media_type == MediaTypes.BOOK.value:
-        query_list = openlibrary.search(query)
+        if source == Sources.HARDCOVER.value:
+            query_list = hardcover.search(query)
+        else:
+            query_list = openlibrary.search(query)
     elif media_type == MediaTypes.COMIC.value:
         query_list = comicvine.search(query)
 
