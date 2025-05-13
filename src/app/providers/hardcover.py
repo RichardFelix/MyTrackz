@@ -165,12 +165,12 @@ def book(media_id):
             "score": get_ratings(book_data.get("rating")),
             "score_count": book_data.get("ratings_count", 0),
             "details": {
-                "format": edition_details["format"],
+                "format": edition_details.get("format"),
                 "number_of_pages": book_data.get("pages"),
                 "publish_date": book_data.get("release_date"),
                 "author": book_data.get("cached_contributors"),
-                "publisher": edition_details["publisher"],
-                "isbn": edition_details["isbn"],
+                "publisher": edition_details.get("publisher"),
+                "isbn": edition_details.get("isbn"),
             },
             "related": {
                 "recommendations": get_recommendations(recommendations),
