@@ -1332,14 +1332,37 @@ class ServicesTests(TestCase):
         # Verify the correct function was called
         mock_search.assert_called_once_with("test")
 
+    @patch("app.providers.hardcover.search")
+    def test_search_hardcover_book(self, mock_search):
+        """Test the search function for books from Hardcover."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Hardcover Book"}]
+
+        # Call the function
+        result = services.search(
+            MediaTypes.BOOK.value,
+            "test",
+            source=Sources.HARDCOVER.value,
+        )
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Hardcover Book"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")
+
     @patch("app.providers.openlibrary.search")
-    def test_search_book(self, mock_search):
+    def test_search_openlibrary_book(self, mock_search):
         """Test the search function for books."""
         # Setup mock
         mock_search.return_value = [{"title": "Test Book"}]
 
         # Call the function
-        result = services.search(MediaTypes.BOOK.value, "test")
+        result = services.search(
+            MediaTypes.BOOK.value,
+            "test",
+            source=Sources.OPENLIBRARY.value,
+        )
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Book"}])
@@ -1358,25 +1381,6 @@ class ServicesTests(TestCase):
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Comic"}])
-
-        # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
-
-    @patch("app.providers.hardcover.search")
-    def test_search_hardcover_book(self, mock_search):
-        """Test the search function for books from Hardcover."""
-        # Setup mock
-        mock_search.return_value = [{"title": "Test Hardcover Book"}]
-
-        # Call the function
-        result = services.search(
-            MediaTypes.BOOK.value,
-            "test",
-            source=Sources.HARDCOVER.value,
-        )
-
-        # Verify the result
-        self.assertEqual(result, [{"title": "Test Hardcover Book"}])
 
         # Verify the correct function was called
         mock_search.assert_called_once_with("test")

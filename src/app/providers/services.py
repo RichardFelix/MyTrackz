@@ -187,10 +187,10 @@ def search(media_type, query, source=None):
     elif media_type == MediaTypes.GAME.value:
         query_list = igdb.search(query)
     elif media_type == MediaTypes.BOOK.value:
-        if source == Sources.HARDCOVER.value:
-            query_list = hardcover.search(query)
-        else:
+        if source == Sources.OPENLIBRARY.value:
             query_list = openlibrary.search(query)
+        else:
+            query_list = hardcover.search(query)
     elif media_type == MediaTypes.COMIC.value:
         query_list = comicvine.search(query)
 

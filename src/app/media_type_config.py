@@ -100,7 +100,7 @@ MEDIA_TYPE_CONFIG = {
         "date_key": "release_date",
     },
     MediaTypes.BOOK.value: {
-        "default_source": Sources.OPENLIBRARY.label,
+        "default_source": Sources.HARDCOVER.label,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
         "verb": ("read", "read"),

@@ -22,12 +22,12 @@
           </a>
         {% elif media_type == MediaTypes.BOOK.value %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.BOOK.value }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.HARDCOVER.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
-            Open Library
-          </a>
-          <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.BOOK.value }}&source={{ Sources.HARDCOVER.value }}"
-             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.HARDCOVER.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source != Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
             Hardcover
+          </a>
+          <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ MediaTypes.BOOK.value }}&source={{ Sources.OPENLIBRARY.value }}"
+             class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer {% if request.GET.source == Sources.OPENLIBRARY.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+            Open Library
           </a>
         {% else %}
           <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}"
