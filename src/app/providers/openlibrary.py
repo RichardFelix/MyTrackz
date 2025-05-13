@@ -35,7 +35,7 @@ def search(query):
         params = {
             "q": query,
             "fields": "title,key,cover_edition_key,cover_i,editions",
-            "limit": 20,
+            "limit": 30,
         }
 
         try:

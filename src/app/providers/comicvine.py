@@ -46,7 +46,7 @@ def search(query):
             "query": query,
             "resources": "volume",
             "field_list": "id,name,image",
-            "limit": 20,
+            "limit": 30,
         }
 
         try:

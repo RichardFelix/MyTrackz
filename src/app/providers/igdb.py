@@ -85,7 +85,7 @@ def search(query):
         data = (
             "fields name,cover.image_id;"
             "sort total_rating_count desc;"
-            "limit 25;"
+            "limit 30;"
             f'where name ~ *"{query}"* & game_type = (0,2,3,4,5,8,9,10)'
         )
 

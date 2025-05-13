@@ -52,6 +52,7 @@ def search(query):
         params = {
             "search": query,
             "stype": "title",
+            "perpage": 30,
         }
 
         if not settings.MAL_NSFW:

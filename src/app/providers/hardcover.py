@@ -51,7 +51,7 @@ def search(query):
 
         variables = {
             "query": query,
-            "per_page": 20,
+            "per_page": 30,
         }
 
         try:
