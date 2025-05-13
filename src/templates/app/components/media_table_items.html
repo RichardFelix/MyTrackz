@@ -10,7 +10,7 @@
            src="{{ media.item.image }}">
       <button class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
               hx-get="{% media_view_url 'track_modal' media.item %}"
-              hx-vals='{"return_url": "{{ request.path|urlencode }}"}'
+              hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
               hx-target="#{% component_id 'track' media.item %}"
               hx-trigger="click once"
               @click="trackOpen = true">
