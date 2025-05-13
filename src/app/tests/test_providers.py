@@ -10,6 +10,7 @@ from django.test import TestCase
 from app.models import Item, MediaTypes, Sources
 from app.providers import (
     comicvine,
+    hardcover,
     igdb,
     mal,
     mangaupdates,
@@ -103,6 +104,26 @@ class Search(TestCase):
 
         for comic in response:
             self.assertTrue(all(key in comic for key in required_keys))
+
+    def test_hardcover(self):
+        """Test the search method for books from Hardcover.
+
+        Assert that all required keys are present in each entry.
+        """
+        response = hardcover.search("1984 George Orwell")
+        required_keys = {"media_id", "media_type", "title", "image"}
+
+        # Ensure we got results
+        self.assertTrue(len(response) > 0)
+
+        for book in response:
+            self.assertTrue(all(key in book for key in required_keys))
+
+    def test_hardcover_not_found(self):
+        """Test the search method for books from Hardcover with no results."""
+        # Using a very specific query that shouldn't match any books
+        response = hardcover.search("xjkqzptmvnsieurytowahdbfglc")
+        self.assertEqual(response, [])
 
 
 class Metadata(TestCase):
@@ -337,6 +358,34 @@ class Metadata(TestCase):
         """Test the metadata method for comics."""
         response = comicvine.comic("155969")
         self.assertEqual(response["title"], "Ultimate Spider-Man")
+
+    def test_hardcover_book(self):
+        """Test the metadata method for books from Hardcover."""
+        response = hardcover.book("379760")
+        self.assertEqual(response["title"], "1984")
+        self.assertEqual(response["details"]["author"], "George Orwell")
+        self.assertEqual(response["details"]["publisher"], "Signet Classic")
+        self.assertEqual(response["details"]["publish_date"], "1949-01-01")
+        self.assertEqual(response["details"]["number_of_pages"], 328)
+        self.assertEqual(response["details"]["format"], "Mass Market Paperback")
+        # Testing that we have some of the expected genres
+        self.assertIn("Fiction", response["genres"])
+        self.assertIn("Dystopian", response["genres"])
+        self.assertIn("Classics", response["genres"])
+        # Rating is approximately 4.21 * 2 = 8.42
+        self.assertAlmostEqual(response["score"], 8.4, delta=0.1)
+
+    def test_hardcover_book_unknown(self):
+        """Test the metadata method for books from Hardcover with minimal data."""
+        response = hardcover.book("1265528")
+        self.assertEqual(response["title"], "MiNRS")
+        self.assertEqual(response["details"]["author"], "Kevin Sylvester")
+        self.assertEqual(response["details"]["publish_date"], "2015-09-22")
+        # These fields should be None or default values
+        self.assertEqual(response["synopsis"], "No synopsis available.")
+        self.assertEqual(response["details"]["format"], "Unknown")
+        self.assertIsNone(response["genres"])
+        self.assertIsNone(response["score"])
 
     def test_manual_tv(self):
         """Test the metadata method for manually created TV shows."""
@@ -598,6 +647,135 @@ class Metadata(TestCase):
         self.assertFalse(result[2]["watched"])
         self.assertIsNone(result[2]["end_date"])
         self.assertEqual(result[2]["repeats"], 0)
+
+    def test_hardcover_get_tags(self):
+        """Test the get_tags function from Hardcover provider."""
+        tags_data = [{"tag": "Science Fiction"}, {"tag": "Fantasy"}]
+        result = hardcover.get_tags(tags_data)
+        self.assertEqual(result, ["Science Fiction", "Fantasy"])
+
+        # Test with None
+        self.assertIsNone(hardcover.get_tags(None))
+
+    def test_hardcover_get_ratings(self):
+        """Test the get_ratings function from Hardcover provider."""
+        # Test with 4.5 rating (scaled to 10)
+        self.assertEqual(hardcover.get_ratings(4.5), 9.0)
+
+        # Test with None
+        self.assertIsNone(hardcover.get_ratings(None))
+
+    def test_hardcover_get_edition_details(self):
+        """Test the get_edition_details function from Hardcover provider."""
+        edition_data = {
+            "edition_format": "Paperback",
+            "isbn_13": "9781234567890",
+            "isbn_10": "1234567890",
+            "publisher": {"name": "Test Publisher"},
+        }
+
+        result = hardcover.get_edition_details(edition_data)
+        self.assertEqual(result["format"], "Paperback")
+        self.assertEqual(result["publisher"], "Test Publisher")
+        self.assertEqual(result["isbn"], ["1234567890", "9781234567890"])
+
+        # Test with None
+        self.assertEqual(hardcover.get_edition_details(None), {})
+
+        # Test with missing publisher
+        no_publisher = {
+            "edition_format": "Paperback",
+            "isbn_13": "9781234567890",
+        }
+        result = hardcover.get_edition_details(no_publisher)
+        self.assertEqual(result["publisher"], None)
+
+    def test_hardcover_get_recommendations(self):
+        """Test the get_recommendations function from Hardcover provider."""
+        recs_data = [
+            {
+                "item_book": {
+                    "id": 123,
+                    "title": "Book 1",
+                    "cached_image": "https://example.com/book1.jpg",
+                },
+            },
+            {
+                "item_book": {
+                    "id": 456,
+                    "title": "Book 2",
+                    "cached_image": None,
+                },
+            },
+        ]
+
+        result = hardcover.get_recommendations(recs_data)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]["media_id"], 123)
+        self.assertEqual(result[0]["title"], "Book 1")
+        self.assertEqual(result[0]["image"], "https://example.com/book1.jpg")
+        self.assertEqual(result[1]["image"], settings.IMG_NONE)
+
+        # Test with None
+        self.assertEqual(hardcover.get_recommendations(None), [])
+
+    def test_handle_error_hardcover_unauthorized(self):
+        """Test the handle_error function with Hardcover unauthorized error."""
+        # Setup mock response for unauthorized error
+        mock_response = MagicMock()
+        mock_response.status_code = 401  # Unauthorized
+        mock_response.json.return_value = {"error": "Invalid API key"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("401 Unauthorized")
+        error.response = mock_response
+
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        # Verify the exception contains the correct source and details
+        self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
+
+    def test_handle_error_hardcover_other(self):
+        """Test the handle_error function with Hardcover other error."""
+        # Setup mock response for other error
+        mock_response = MagicMock()
+        mock_response.status_code = 500  # Server error
+        mock_response.json.return_value = {"error": "Server error"}
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("500 Server Error")
+        error.response = mock_response
+
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        # Verify the exception contains the correct source
+        self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
+
+    def test_handle_error_hardcover_json_error(self):
+        """Test the handle_error function with JSON decode error."""
+        # Setup mock response that returns invalid JSON
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.json.side_effect = requests.exceptions.JSONDecodeError(
+            "Invalid JSON",
+            "",
+            0,
+        )
+
+        # Create HTTP error with this response
+        error = requests.exceptions.HTTPError("500 Server Error")
+        error.response = mock_response
+
+        # Call the function and expect it to raise ProviderAPIError
+        with self.assertRaises(services.ProviderAPIError) as cm:
+            hardcover.handle_error(error)
+
+        # Verify the exception contains the correct source
+        self.assertEqual(cm.exception.provider, Sources.HARDCOVER.value)
 
 
 class ServicesTests(TestCase):
@@ -1041,6 +1219,25 @@ class ServicesTests(TestCase):
         # Verify the correct function was called
         mock_episode.assert_called_once_with("1", 1, "2")
 
+    @patch("app.providers.hardcover.book")
+    def test_get_media_metadata_hardcover_book(self, mock_book):
+        """Test the get_media_metadata function for books from Hardcover."""
+        # Setup mock
+        mock_book.return_value = {"title": "Test Hardcover Book"}
+
+        # Call the function
+        result = services.get_media_metadata(
+            MediaTypes.BOOK.value,
+            "1",
+            Sources.HARDCOVER.value,
+        )
+
+        # Verify the result
+        self.assertEqual(result, {"title": "Test Hardcover Book"})
+
+        # Verify the correct function was called
+        mock_book.assert_called_once_with("1")
+
     @patch("app.providers.mal.search")
     def test_search_anime(self, mock_search):
         """Test the search function for anime."""
@@ -1161,6 +1358,25 @@ class ServicesTests(TestCase):
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Comic"}])
+
+        # Verify the correct function was called
+        mock_search.assert_called_once_with("test")
+
+    @patch("app.providers.hardcover.search")
+    def test_search_hardcover_book(self, mock_search):
+        """Test the search function for books from Hardcover."""
+        # Setup mock
+        mock_search.return_value = [{"title": "Test Hardcover Book"}]
+
+        # Call the function
+        result = services.search(
+            MediaTypes.BOOK.value,
+            "test",
+            source=Sources.HARDCOVER.value,
+        )
+
+        # Verify the result
+        self.assertEqual(result, [{"title": "Test Hardcover Book"}])
 
         # Verify the correct function was called
         mock_search.assert_called_once_with("test")
