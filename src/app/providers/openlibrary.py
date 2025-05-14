@@ -353,8 +353,10 @@ async def get_ratings(response_work):
         if response.status == requests.codes.ok:
             data = await response.json()
             summary = data.get("summary", {})
+            average = summary.get("average")
+            count = summary.get("count")
 
-            if "average" in summary and "count" in summary:
+            if average and count:
                 # Convert to 10-point scale (multiply by 2) and round to 1 decimal place
                 score = round(summary["average"] * 2, 1)
                 score_count = summary["count"]
