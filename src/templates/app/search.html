@@ -39,12 +39,120 @@
     </div>
   </div>
 
-  {% if query_list %}
+  {% if data.results %}
     <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
-      {% for item in query_list %}
+      {% for item in data.results %}
         {% include "app/components/media_card.html" with item=item title=item.title %}
       {% endfor %}
     </div>
+
+    {% if data.total_pages > 1 %}
+      <div class="flex justify-center items-center mt-8 space-x-2">
+        {# Previous button #}
+        {% if data.page > 1 %}
+          <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'-1' }}"
+             class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-5 h-5">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </a>
+        {% else %}
+          <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
+                  disabled>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-5 h-5">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </button>
+        {% endif %}
+
+        {# Page numbers with ellipses #}
+        {% get_pagination_range data.page data.total_pages 2 as pages %}
+        {% for page_num in pages %}
+          {% if page_num %}
+            <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ page_num }}"
+               class="w-10 h-10 rounded-md {% if data.page == page_num %}bg-indigo-600{% else %}bg-[#2a2f35] hover:bg-[#39404b]{% endif %} text-white flex items-center justify-center">
+              {{ page_num }}
+            </a>
+          {% else %}
+            {# Ellipsis #}
+            <span class="flex items-center justify-center w-10 h-10 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   class="w-5 h-5">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="19" cy="12" r="1"></circle>
+                <circle cx="5" cy="12" r="1"></circle>
+              </svg>
+            </span>
+          {% endif %}
+        {% endfor %}
+
+        {# Next button #}
+        {% if data.page < data.total_pages %}
+          <a href="?q={{ request.GET.q }}&media_type={{ media_type }}{% if source %}&source={{ source }}{% endif %}&page={{ data.page|add:'1' }}"
+             class="p-2 rounded-md bg-[#2a2f35] text-white hover:bg-[#39404b]">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-5 h-5">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </a>
+        {% else %}
+          <button class="p-2 rounded-md bg-gray-700 text-gray-500 cursor-not-allowed"
+                  disabled>
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 width="24"
+                 height="24"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 class="w-5 h-5">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </button>
+        {% endif %}
+      </div>
+
+      {# Page info text #}
+      <div class="text-center text-sm text-gray-400 mt-3">
+        Page {{ data.page }} of {{ data.total_pages }} ({{ data.total_results }} results)
+      </div>
+    {% endif %}
   {% else %}
     <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
       <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">

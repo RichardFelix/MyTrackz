@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -39,9 +40,9 @@ def handle_error(error):
     raise services.ProviderAPIError(Sources.MAL.value, error)
 
 
-def search(media_type, query):
+def search(media_type, query, page):
     """Search for media on MyAnimeList."""
-    cache_key = f"search_{Sources.MAL.value}_{media_type}_{query}"
+    cache_key = f"search_{Sources.MAL.value}_{media_type}_{query}_{page}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -49,6 +50,7 @@ def search(media_type, query):
         params = {
             "q": query,
             "fields": "media_type",
+            "limit": settings.PER_PAGE,
         }
         if settings.MAL_NSFW:
             params["nsfw"] = "true"
@@ -65,7 +67,7 @@ def search(media_type, query):
             response = handle_error(error)
 
         response = response["data"]
-        data = [
+        results = [
             {
                 "media_id": media["node"]["id"],
                 "source": Sources.MAL.value,
@@ -75,6 +77,13 @@ def search(media_type, query):
             }
             for media in response
         ]
+
+        data = helpers.format_search_response(
+            page,
+            100,
+            len(results),
+            results,
+        )
 
         cache.set(cache_key, data)
 

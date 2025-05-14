@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -75,53 +76,61 @@ def get_access_token():
     return access_token
 
 
-def search(query):
-    """Search for games on IGDB."""
-    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}"
+def search(query, page):
+    """Search for games on IGDB using MultiQuery."""
+    cache_key = f"search_{Sources.IGDB.value}_{MediaTypes.GAME.value}_{query}_{page}"
     data = cache.get(cache_key)
+
     if data is None:
         access_token = get_access_token()
-        url = f"{base_url}/games"
-        data = (
-            "fields name,cover.image_id;"
-            "sort total_rating_count desc;"
-            "limit 30;"
-            f'where name ~ *"{query}"* & game_type = (0,2,3,4,5,8,9,10)'
-        )
-
-        # exclude adult games depending on the settings
-        if not settings.IGDB_NSFW:
-            data += " & themes != (42);"
-        else:
-            data += ";"
-
         headers = {
             "Client-ID": settings.IGDB_ID,
             "Authorization": f"Bearer {access_token}",
         }
 
+        base_conditions = f'where name ~ *"{query}"* & game_type = (0,2,3,4,5,8,9,10)'
+
+        if not settings.IGDB_NSFW:
+            base_conditions += " & themes != (42)"
+
+        offset = (page - 1) * settings.PER_PAGE
+
+        # Create the multiquery with both search and count
+        multiquery = (
+            'query games "SearchResults" {'
+            "fields name,cover.image_id;"
+            "sort total_rating_count desc;"
+            f"limit {settings.PER_PAGE};"
+            f"offset {offset};"
+            f"{base_conditions};"
+            "};"
+            'query games/count "TotalCount" {'
+            f"{base_conditions};"
+            "};"
+        )
+
         try:
             response = services.api_request(
                 Sources.IGDB.value,
                 "POST",
-                url,
-                data=data,
+                f"{base_url}/multiquery",
+                data=multiquery,
                 headers=headers,
             )
-        except requests.exceptions.HTTPError as error:
-            error_resp = handle_error(error)
-            if error_resp and error_resp.get("retry"):
-                # Retry the request with the new access token
-                headers["Authorization"] = f"Bearer {get_access_token()}"
-                response = services.api_request(
-                    Sources.IGDB.value,
-                    "POST",
-                    url,
-                    data=data,
-                    headers=headers,
-                )
 
-        data = [
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        search_results = next(
+            (item["result"] for item in response if item["name"] == "SearchResults"),
+            [],
+        )
+        total_results = next(
+            (item["count"] for item in response if item["name"] == "TotalCount"),
+            0,
+        )
+
+        results = [
             {
                 "media_id": media["id"],
                 "source": Sources.IGDB.value,
@@ -129,9 +138,18 @@ def search(query):
                 "title": media["name"],
                 "image": get_image_url(media),
             }
-            for media in response
+            for media in search_results
         ]
+
+        data = helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            total_results,
+            results,
+        )
+
         cache.set(cache_key, data)
+
     return data
 
 

@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -30,19 +31,21 @@ def handle_error(error):
     raise services.ProviderAPIError(Sources.HARDCOVER.value, error)
 
 
-def search(query):
+def search(query, page):
     """Search for books on Hardcover."""
-    cache_key = f"search_{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{query}"
+    cache_key = (
+        f"search_{Sources.HARDCOVER.value}_{MediaTypes.BOOK.value}_{query}_{page}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
         search_query = """
-        query SearchBooks($query: String!, $per_page: Int!) {
+        query SearchBooks($query: String!, $per_page: Int!, $page: Int!) {
           search(
             query: $query,
             query_type: "Book",
             per_page: $per_page,
-            page: 1
+            page: $page,
           ) {
             results
           }
@@ -51,7 +54,8 @@ def search(query):
 
         variables = {
             "query": query,
-            "per_page": 30,
+            "per_page": settings.PER_PAGE,
+            "page": page,
         }
 
         try:
@@ -66,7 +70,7 @@ def search(query):
             response = handle_error(error)
 
         hits = response["data"]["search"]["results"]["hits"]
-        data = [
+        results = [
             {
                 "media_id": hit["document"]["id"],
                 "source": Sources.HARDCOVER.value,
@@ -76,6 +80,14 @@ def search(query):
             }
             for hit in hits
         ]
+        total_results = response["data"]["search"]["results"]["found"]
+
+        data = helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            total_results,
+            results,
+        )
 
         cache.set(cache_key, data)
 

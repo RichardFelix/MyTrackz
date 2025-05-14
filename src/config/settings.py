@@ -156,7 +156,7 @@ CACHES = {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 8,
+        "VERSION": 9,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -254,6 +254,7 @@ TZ = zoneinfo.ZoneInfo(TIME_ZONE)
 IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-basic-38-picture-grey-c2ebdbb057f2a7614185931650f8cee23fa137b93812ccb132b9df511df1cfac.svg"
 
 REQUEST_TIMEOUT = 120  # seconds
+PER_PAGE = 24
 
 TMDB_API = config("TMDB_API", default="61572be02f0a068658828f6396aacf60")
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)

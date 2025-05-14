@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -26,16 +27,19 @@ def handle_error(error):
     )
 
 
-def search(query):
+def search(query, page):
     """Search for books on Open Library."""
-    cache_key = f"search_{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{query}"
+    cache_key = (
+        f"search_{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{query}_{page}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
         params = {
             "q": query,
             "fields": "title,key,cover_edition_key,cover_i,editions",
-            "limit": 30,
+            "limit": settings.PER_PAGE,
+            "page": page,
         }
 
         try:
@@ -48,7 +52,7 @@ def search(query):
         except requests.RequestException as e:
             handle_error(e)
 
-        data = [
+        results = [
             {
                 "media_id": media_id,
                 "source": Sources.OPENLIBRARY.value,
@@ -59,6 +63,14 @@ def search(query):
             for doc in response.get("docs", [])
             if (media_id := get_media_id(doc)) and "title" in doc
         ]
+
+        total_results = response["numFound"]
+        data = helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            total_results,
+            results,
+        )
 
         cache.set(cache_key, data)
     return data

@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -34,9 +35,11 @@ def handle_error(error):
     raise services.ProviderAPIError(Sources.MAL.value, error)
 
 
-def search(query):
+def search(query, page):
     """Search for comics on Comic Vine."""
-    cache_key = f"search_{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{query}"
+    cache_key = (
+        f"search_{Sources.COMICVINE.value}_{MediaTypes.COMIC.value}_{query}_{page}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
@@ -46,7 +49,8 @@ def search(query):
             "query": query,
             "resources": "volume",
             "field_list": "id,name,image",
-            "limit": 30,
+            "limit": settings.PER_PAGE,
+            "page": page,
         }
 
         try:
@@ -60,7 +64,7 @@ def search(query):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = [
+        results = [
             {
                 "media_id": str(item["id"]),
                 "source": Sources.COMICVINE.value,
@@ -70,6 +74,14 @@ def search(query):
             }
             for item in response["results"]
         ]
+
+        total_results = response["number_of_total_results"]
+        data = helpers.format_search_response(
+            page,
+            settings.PER_PAGE,
+            total_results,
+            results,
+        )
 
         cache.set(cache_key, data)
 

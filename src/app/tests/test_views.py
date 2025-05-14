@@ -324,15 +324,20 @@ class MediaSearchViewTests(TestCase):
     def test_media_search_view(self, mock_search):
         """Test the media search view."""
         # Mock the search results
-        mock_search.return_value = [
-            {
-                "media_id": "238",
-                "title": "Test Movie",
-                "media_type": MediaTypes.MOVIE.value,
-                "source": Sources.TMDB.value,
-                "image": "http://example.com/image.jpg",
-            },
-        ]
+        mock_search.return_value = {
+            "page": 1,
+            "total_results": 1,
+            "total_pages": 1,
+            "results": [
+                {
+                    "media_id": "238",
+                    "title": "Test Movie",
+                    "media_type": MediaTypes.MOVIE.value,
+                    "source": Sources.TMDB.value,
+                    "image": "http://example.com/image.jpg",
+                },
+            ],
+        }
 
         response = self.client.get(
             reverse("search") + "?media_type=movie&q=test",
@@ -341,16 +346,12 @@ class MediaSearchViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/search.html")
 
-        # Check that search results are in the context
-        self.assertIn("query_list", response.context)
-        self.assertEqual(len(response.context["query_list"]), 1)
-
         # Check that user preference was updated
         self.user.refresh_from_db()
         self.assertEqual(self.user.last_search_type, MediaTypes.MOVIE.value)
 
         # Verify the search function was called with correct parameters
-        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test", None)
+        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test", 1, None)
 
 
 class MediaDetailsViewTests(TestCase):

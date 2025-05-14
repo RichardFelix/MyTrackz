@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -34,7 +35,7 @@ def handle_error(error):
         if search_error:
             message = search_error[0]["errors"][0]
             if message == '"" must have a length between 1 and 400':
-                return {"results": []}
+                return {"results": [], "total_hits": 0}
 
     raise services.ProviderAPIError(
         Sources.MANGAUPDATES.value,
@@ -42,17 +43,21 @@ def handle_error(error):
     )
 
 
-def search(query):
+def search(query, page):
     """Search for media on MangaUpdates."""
-    cache_key = f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}"
+    cache_key = (
+        f"search_{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{query}_{page}"
+    )
     data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/series/search"
+        per_page = 30
         params = {
             "search": query,
             "stype": "title",
-            "perpage": 30,
+            "perpage": per_page,
+            "page": page,
         }
 
         if not settings.MAL_NSFW:
@@ -72,8 +77,7 @@ def search(query):
         except requests.exceptions.HTTPError as error:
             response = handle_error(error)
 
-        response = response["results"]
-        data = [
+        results = [
             {
                 "media_id": media["record"]["series_id"],
                 "source": Sources.MANGAUPDATES.value,
@@ -81,8 +85,16 @@ def search(query):
                 "title": media["record"]["title"],
                 "image": get_image_url(media["record"]),
             }
-            for media in response
+            for media in response["results"]
         ]
+
+        total_results = response["total_hits"]
+        data = helpers.format_search_response(
+            page,
+            per_page,
+            total_results,
+            results,
+        )
 
         cache.set(cache_key, data)
 

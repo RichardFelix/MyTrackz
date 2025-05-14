@@ -173,25 +173,25 @@ def get_media_metadata(
     return metadata_retrievers[media_type]()
 
 
-def search(media_type, query, source=None):
+def search(media_type, query, page, source=None):
     """Search for media based on the query and return the results."""
     if media_type == MediaTypes.MANGA.value:
         if source == Sources.MANGAUPDATES.value:
-            query_list = mangaupdates.search(query)
+            response = mangaupdates.search(query, page)
         else:
-            query_list = mal.search(media_type, query)
+            response = mal.search(media_type, query, page)
     elif media_type == MediaTypes.ANIME.value:
-        query_list = mal.search(media_type, query)
+        response = mal.search(media_type, query, page)
     elif media_type in (MediaTypes.TV.value, MediaTypes.MOVIE.value):
-        query_list = tmdb.search(media_type, query)
+        response = tmdb.search(media_type, query, page)
     elif media_type == MediaTypes.GAME.value:
-        query_list = igdb.search(query)
+        response = igdb.search(query, page)
     elif media_type == MediaTypes.BOOK.value:
         if source == Sources.OPENLIBRARY.value:
-            query_list = openlibrary.search(query)
+            response = openlibrary.search(query, page)
         else:
-            query_list = hardcover.search(query)
+            response = hardcover.search(query, page)
     elif media_type == MediaTypes.COMIC.value:
-        query_list = comicvine.search(query)
+        response = comicvine.search(query, page)
 
-    return query_list
+    return response

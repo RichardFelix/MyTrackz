@@ -4,6 +4,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from app import helpers
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -40,9 +41,9 @@ def handle_error(error):
     )
 
 
-def search(media_type, query):
+def search(media_type, query, page):
     """Search for media on TMDB."""
-    cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}"
+    cache_key = f"search_{Sources.TMDB.value}_{media_type}_{query}_{page}"
     data = cache.get(cache_key)
 
     if data is None:
@@ -51,6 +52,7 @@ def search(media_type, query):
         params = {
             **base_params,
             "query": query,
+            "page": page,
         }
 
         if settings.TMDB_NSFW:
@@ -66,8 +68,7 @@ def search(media_type, query):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        response = response["results"]
-        data = [
+        results = [
             {
                 "media_id": media["id"],
                 "source": Sources.TMDB.value,
@@ -75,8 +76,17 @@ def search(media_type, query):
                 "title": get_title(media),
                 "image": get_image_url(media["poster_path"]),
             }
-            for media in response
+            for media in response["results"]
         ]
+
+        total_results = response["total_results"]
+        per_page = 20 # TMDB always returns 20 results per page
+        data = helpers.format_search_response(
+            page,
+            per_page,
+            total_results,
+            results,
+        )
 
         cache.set(cache_key, data)
 

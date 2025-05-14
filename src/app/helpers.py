@@ -193,3 +193,13 @@ def form_error_messages(form, request):
                 request,
                 f"{field.replace('_', ' ').title()}: {error}",
             )
+
+
+def format_search_response(page, per_page, total_results, results):
+    """Format the search response for pagination."""
+    return {
+        "page": page,
+        "total_results": total_results,
+        "total_pages": total_results // per_page + 1,
+        "results": results,
+    }

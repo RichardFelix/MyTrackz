@@ -176,13 +176,14 @@ def media_search(request):
         request.GET["media_type"],
     )
     query = request.GET["q"]
+    page = int(request.GET.get("page", 1))
 
     # only receives source when searching with secondary source
     source = request.GET.get("source")
 
-    query_list = services.search(media_type, query, source)
+    data = services.search(media_type, query, page, source)
 
-    context = {"query_list": query_list, "source": source, "media_type": media_type}
+    context = {"data": data, "source": source, "media_type": media_type}
 
     return render(request, "app/search.html", context)
 

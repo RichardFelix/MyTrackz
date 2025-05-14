@@ -31,45 +31,45 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = mal.search(MediaTypes.ANIME.value, "Cowboy Bebop")
+        response = mal.search(MediaTypes.ANIME.value, "Cowboy Bebop", 1)
 
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for anime in response:
+        for anime in response["results"]:
             self.assertTrue(all(key in anime for key in required_keys))
 
     def test_anime_not_found(self):
         """Test the search method for anime with no results."""
-        response = mal.search(MediaTypes.ANIME.value, "q")
+        response = mal.search(MediaTypes.ANIME.value, "q", 1)
 
-        self.assertEqual(response, [])
+        self.assertEqual(response["results"], [])
 
     def test_mangaupdates(self):
         """Test the search method for manga.
 
         Assert that all required keys are present in each entry.
         """
-        response = mangaupdates.search("One Piece")
+        response = mangaupdates.search("One Piece", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for manga in response:
+        for manga in response["results"]:
             self.assertTrue(all(key in manga for key in required_keys))
 
     def test_manga_not_found(self):
         """Test the search method for manga with no results."""
-        response = mangaupdates.search("")
+        response = mangaupdates.search("", 1)
 
-        self.assertEqual(response, [])
+        self.assertEqual(response["results"], [])
 
     def test_tv(self):
         """Test the search method for TV shows.
 
         Assert that all required keys are present in each entry.
         """
-        response = tmdb.search(MediaTypes.TV.value, "Breaking Bad")
+        response = tmdb.search(MediaTypes.TV.value, "Breaking Bad", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for tv in response:
+        for tv in response["results"]:
             self.assertTrue(all(key in tv for key in required_keys))
 
     def test_games(self):
@@ -77,10 +77,10 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = igdb.search("Persona 5")
+        response = igdb.search("Persona 5", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for game in response:
+        for game in response["results"]:
             self.assertTrue(all(key in game for key in required_keys))
 
     def test_books(self):
@@ -88,10 +88,10 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = openlibrary.search("The Name of the Wind")
+        response = openlibrary.search("The Name of the Wind", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for book in response:
+        for book in response["results"]:
             self.assertTrue(all(key in book for key in required_keys))
 
     def test_comics(self):
@@ -99,10 +99,10 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = igdb.search("Batman")
+        response = igdb.search("Batman", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
-        for comic in response:
+        for comic in response["results"]:
             self.assertTrue(all(key in comic for key in required_keys))
 
     def test_hardcover(self):
@@ -110,20 +110,20 @@ class Search(TestCase):
 
         Assert that all required keys are present in each entry.
         """
-        response = hardcover.search("1984 George Orwell")
+        response = hardcover.search("1984 George Orwell", 1)
         required_keys = {"media_id", "media_type", "title", "image"}
 
         # Ensure we got results
-        self.assertTrue(len(response) > 0)
+        self.assertTrue(len(response["results"]) > 0)
 
-        for book in response:
+        for book in response["results"]:
             self.assertTrue(all(key in book for key in required_keys))
 
     def test_hardcover_not_found(self):
         """Test the search method for books from Hardcover with no results."""
         # Using a very specific query that shouldn't match any books
-        response = hardcover.search("xjkqzptmvnsieurytowahdbfglc")
-        self.assertEqual(response, [])
+        response = hardcover.search("xjkqzptmvnsieurytowahdbfglc", 1)
+        self.assertEqual(response["results"], [])
 
 
 class Metadata(TestCase):
@@ -1245,13 +1245,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Anime"}]
 
         # Call the function
-        result = services.search(MediaTypes.ANIME.value, "test")
+        result = services.search(MediaTypes.ANIME.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Anime"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test")
+        mock_search.assert_called_once_with(MediaTypes.ANIME.value, "test", 1)
 
     @patch("app.providers.mangaupdates.search")
     def test_search_manga_mangaupdates(self, mock_search):
@@ -1263,6 +1263,7 @@ class ServicesTests(TestCase):
         result = services.search(
             MediaTypes.MANGA.value,
             "test",
+            1,
             source=Sources.MANGAUPDATES.value,
         )
 
@@ -1270,7 +1271,7 @@ class ServicesTests(TestCase):
         self.assertEqual(result, [{"title": "Test Manga"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
+        mock_search.assert_called_once_with("test", 1)
 
     @patch("app.providers.mal.search")
     def test_search_manga_mal(self, mock_search):
@@ -1279,13 +1280,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Manga"}]
 
         # Call the function
-        result = services.search(MediaTypes.MANGA.value, "test")
+        result = services.search(MediaTypes.MANGA.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Manga"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test")
+        mock_search.assert_called_once_with(MediaTypes.MANGA.value, "test", 1)
 
     @patch("app.providers.tmdb.search")
     def test_search_tv(self, mock_search):
@@ -1294,13 +1295,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test TV"}]
 
         # Call the function
-        result = services.search(MediaTypes.TV.value, "test")
+        result = services.search(MediaTypes.TV.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test TV"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with(MediaTypes.TV.value, "test")
+        mock_search.assert_called_once_with(MediaTypes.TV.value, "test", 1)
 
     @patch("app.providers.tmdb.search")
     def test_search_movie(self, mock_search):
@@ -1309,13 +1310,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Movie"}]
 
         # Call the function
-        result = services.search(MediaTypes.MOVIE.value, "test")
+        result = services.search(MediaTypes.MOVIE.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Movie"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test")
+        mock_search.assert_called_once_with(MediaTypes.MOVIE.value, "test", 1)
 
     @patch("app.providers.igdb.search")
     def test_search_game(self, mock_search):
@@ -1324,13 +1325,13 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Game"}]
 
         # Call the function
-        result = services.search(MediaTypes.GAME.value, "test")
+        result = services.search(MediaTypes.GAME.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Game"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
+        mock_search.assert_called_once_with("test", 1)
 
     @patch("app.providers.hardcover.search")
     def test_search_hardcover_book(self, mock_search):
@@ -1342,6 +1343,7 @@ class ServicesTests(TestCase):
         result = services.search(
             MediaTypes.BOOK.value,
             "test",
+            1,
             source=Sources.HARDCOVER.value,
         )
 
@@ -1349,7 +1351,7 @@ class ServicesTests(TestCase):
         self.assertEqual(result, [{"title": "Test Hardcover Book"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
+        mock_search.assert_called_once_with("test", 1)
 
     @patch("app.providers.openlibrary.search")
     def test_search_openlibrary_book(self, mock_search):
@@ -1361,6 +1363,7 @@ class ServicesTests(TestCase):
         result = services.search(
             MediaTypes.BOOK.value,
             "test",
+            1,
             source=Sources.OPENLIBRARY.value,
         )
 
@@ -1368,7 +1371,7 @@ class ServicesTests(TestCase):
         self.assertEqual(result, [{"title": "Test Book"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
+        mock_search.assert_called_once_with("test", 1)
 
     @patch("app.providers.comicvine.search")
     def test_search_comic(self, mock_search):
@@ -1377,10 +1380,10 @@ class ServicesTests(TestCase):
         mock_search.return_value = [{"title": "Test Comic"}]
 
         # Call the function
-        result = services.search(MediaTypes.COMIC.value, "test")
+        result = services.search(MediaTypes.COMIC.value, "test", 1)
 
         # Verify the result
         self.assertEqual(result, [{"title": "Test Comic"}])
 
         # Verify the correct function was called
-        mock_search.assert_called_once_with("test")
+        mock_search.assert_called_once_with("test", 1)
