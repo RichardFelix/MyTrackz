@@ -363,7 +363,7 @@ def get_range(value):
 
 
 @register.simple_tag
-def get_pagination_range(current_page, total_pages, window=2):
+def get_pagination_range(current_page, total_pages, window):
     """
     Return a list of page numbers to display in pagination.
 
