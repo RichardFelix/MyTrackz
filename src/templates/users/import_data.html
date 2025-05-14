@@ -423,7 +423,9 @@
                        x-show="showDetails">
                     {% if result.errors %}
                       <div class="text-xs text-gray-400 mb-2">Couldn't import the following media:</div>
-                      <div class="text-xs space-y-1 text-red-400">{{ result.errors|linebreaksbr }}</div>
+                      <div class="text-xs space-y-1 text-red-400">
+                        {% for error in result.errors.splitlines %}<div>{{ error }}</div>{% endfor %}
+                      </div>
                     {% else %}
                       <div class="text-xs text-gray-400 mb-2">Unexpected error occurred:</div>
                       <div class="text-xs space-y-1 text-red-400">{{ result.summary }}</div>
