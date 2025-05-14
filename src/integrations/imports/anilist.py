@@ -177,6 +177,10 @@ def process_status_list(bulk_media, status_list, media_type, user, warnings):
 
 def get_date(date):
     """Return date object from date dict."""
-    if date["year"]:
-        return datetime.date(date["year"], date["month"], date["day"])
-    return None
+    if not date["year"]:
+        return None
+
+    month = date["month"] or 1
+    day = date["day"] or 1
+
+    return datetime.date(date["year"], month, day)
