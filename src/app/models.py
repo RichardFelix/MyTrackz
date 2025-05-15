@@ -1126,12 +1126,35 @@ class Season(Media):
             )
 
             if episode.repeats > 0:
-                episode.repeats -= 1
-                episode.save(update_fields=["repeats"])
-                logger.info(
-                    "%s watch count decreased.",
-                    episode,
-                )
+                # Get the historical records for this episode
+                history = episode.history.all()
+
+                if history.count() > 1:
+                    # Get the previous historical record (second latest)
+                    previous_record = history[1]
+
+                    # Revert to previous state without creating new history
+                    episode.repeats = previous_record.repeats
+                    episode.end_date = previous_record.end_date
+                    episode.save_without_historical_record()
+
+                    # Delete the latest historical record (the one we're reverting from)
+                    latest_record = history.first()
+                    latest_record.delete()
+
+                    logger.info(
+                        "%s reverted to previous state (repeats: %s)",
+                        episode,
+                        episode.repeats,
+                    )
+                else:
+                    # Fallback to original behavior if no previous history exists
+                    episode.repeats -= 1
+                    episode.save_without_historical_record(update_fields=["repeats"])
+                    logger.info(
+                        "%s watch count decreased (no history to revert).",
+                        episode,
+                    )
             else:
                 episode.delete()
                 logger.info(
