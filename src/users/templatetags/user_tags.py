@@ -50,7 +50,7 @@ def source_display(source_name):
         "hltb": {
             "name": "HowLongToBeat",
             "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
-        }
+        },
     }
 
     # Get source info or use defaults if source not found

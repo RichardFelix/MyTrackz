@@ -254,3 +254,12 @@ def get_unique_constraint_fields(model):
         if isinstance(constraint, models.UniqueConstraint):
             return constraint.fields
     return None
+
+
+def join_with_commas_and(items):
+    """Join a list of items with commas and 'and'."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    return ", ".join(items[:-1]) + " and " + items[-1]

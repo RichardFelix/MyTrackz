@@ -1,6 +1,7 @@
 import logging
 from csv import DictReader
 
+import requests
 from django.apps import apps
 from django.conf import settings
 
@@ -21,9 +22,10 @@ def importer(file, user, mode):
 
     bulk_media = {media_type: [] for media_type in MediaTypes.values}
     imported_counts = {}
+    warnings = []
 
     for row in reader:
-        add_bulk_media(row, user, bulk_media)
+        add_bulk_media(row, user, bulk_media, warnings)
 
     for media_type in MediaTypes.values:
         imported_counts[media_type] = import_media(
@@ -33,29 +35,40 @@ def importer(file, user, mode):
             mode,
         )
 
-    return imported_counts
+    return imported_counts, "\n".join(warnings) if warnings else None
 
 
-def add_bulk_media(row, user, bulk_media):
+def add_bulk_media(row, user, bulk_media, warnings):
     """Add media to list for bulk creation."""
     media_type = row["media_type"]
 
     season_number = row["season_number"] if row["season_number"] != "" else None
     episode_number = row["episode_number"] if row["episode_number"] != "" else None
 
+    if row["progress"] == "":
+        row["progress"] = 0
+    if row["repeats"] == "":
+        row["repeats"] = 0
+
     if row["title"] == "" or row["image"] == "":
         if row["source"] == Sources.MANUAL.value and row["image"] == "":
             row["image"] = settings.IMG_NONE
         else:
-            metadata = app.providers.services.get_media_metadata(
-                media_type,
-                row["media_id"],
-                row["source"],
-                season_number,
-                episode_number,
-            )
-            row["title"] = metadata["title"]
-            row["image"] = metadata["image"]
+            try:
+                metadata = app.providers.services.get_media_metadata(
+                    media_type,
+                    row["media_id"],
+                    row["source"],
+                    season_number,
+                    episode_number,
+                )
+                row["title"] = metadata["title"]
+                row["image"] = metadata["image"]
+            except requests.exceptions.HTTPError as e:
+                warnings.append(
+                    f"Failed to fetch metadata for {row['media_id']}: {e!s}",
+                )
+                return
 
     item, _ = app.models.Item.objects.update_or_create(
         media_id=row["media_id"],
@@ -83,7 +96,9 @@ def add_bulk_media(row, user, bulk_media):
     if form.is_valid():
         bulk_media[media_type].append(form.instance)
     else:
-        logger.error("Error importing %s: %s", row["title"], form.errors.as_json())
+        error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
+        warnings.append(error_msg)
+        logger.error(error_msg)
 
 
 def import_media(media_type, bulk_data, user, mode):

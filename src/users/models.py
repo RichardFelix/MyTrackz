@@ -470,6 +470,7 @@ class User(AbstractUser):
             "anilist": "Import from AniList",
             "kitsu": "Import from Kitsu",
             "yamtrack": "Import from Yamtrack",
+            "hltb": "Import from HowLongToBeat",
         }
 
         # Reverse mapping to get source from task name
@@ -486,7 +487,7 @@ class User(AbstractUser):
         # Build results list
         results = []
         for task in task_results:
-            source = task_to_source.get(task.task_name, "unknown")
+            source = task_to_source[task.task_name]
             processed_task = helpers.process_task_result(task)
             results.append(
                 {

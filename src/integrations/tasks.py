@@ -6,9 +6,19 @@ import events
 from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
-from integrations.imports import anilist, kitsu, mal, simkl, trakt, yamtrack, hltb
+from integrations import helpers
+from integrations.imports import anilist, hltb, kitsu, mal, simkl, trakt, yamtrack
 
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
+
+
+def format_media_type_display(count, media_type):
+    """Format media type display with proper pluralization."""
+    if count == 0:
+        return None
+    if count == 1:
+        return f"{count} {dict(MediaTypes.choices).get(media_type, media_type)}"
+    return f"{count} {app_tags.media_type_readable_plural(media_type)}"
 
 
 @shared_task(name="Import from Trakt")
@@ -25,14 +35,18 @@ def import_trakt(username, user_id, mode):
         ) = trakt.importer(username, user, mode)
     events.tasks.reload_calendar.delay()
 
-    info_message = (
-        f"Imported {num_tv_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.TV.value)}, "
-        f"{num_movie_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.MOVIE.value)}, "
-        f"and {num_anime_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)}."
-    )
+    parts = [
+        format_media_type_display(num_tv_imported, MediaTypes.TV.value),
+        format_media_type_display(num_movie_imported, MediaTypes.MOVIE.value),
+        format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
+    ]
+    parts = [p for p in parts if p is not None]
+
+    if not parts:
+        info_message = "No media was imported."
+    else:
+        info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
         if warning_message
@@ -50,14 +64,18 @@ def import_simkl(username, user_id, mode):
         )
     events.tasks.reload_calendar.delay()
 
-    info_message = (
-        f"Imported {num_tv_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.TV.value)}, "
-        f"{num_movie_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.MOVIE.value)}, "
-        f"and {num_anime_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)}."
-    )
+    parts = [
+        format_media_type_display(num_tv_imported, MediaTypes.TV.value),
+        format_media_type_display(num_movie_imported, MediaTypes.MOVIE.value),
+        format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
+    ]
+    parts = [p for p in parts if p is not None]
+
+    if not parts:
+        info_message = "No media was imported."
+    else:
+        info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
         if warning_message
@@ -79,12 +97,15 @@ def import_mal(username, user_id, mode):
             raise ValueError(msg) from error
         raise
     else:
-        return (
-            f"Imported {num_anime_imported} "
-            f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
-            f"and {num_manga_imported} "
-            f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
-        )
+        parts = [
+            format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
+            format_media_type_display(num_manga_imported, MediaTypes.MANGA.value),
+        ]
+        parts = [p for p in parts if p is not None]
+
+        if not parts:
+            return "No media was imported."
+        return f"Imported {helpers.join_with_commas_and(parts)}."
 
 
 @shared_task(name="Import from AniList")
@@ -109,12 +130,17 @@ def import_anilist(username, user_id, mode):
             raise ValueError(msg) from error
         raise
     else:
-        info_message = (
-            f"Imported {num_anime_imported} "
-            f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
-            f"and {num_manga_imported} "
-            f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
-        )
+        parts = [
+            format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
+            format_media_type_display(num_manga_imported, MediaTypes.MANGA.value),
+        ]
+        parts = [p for p in parts if p is not None]
+
+        if not parts:
+            info_message = "No media was imported."
+        else:
+            info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+
         return (
             f"{info_message} {ERROR_TITLE} {warning_message}"
             if warning_message
@@ -134,12 +160,17 @@ def import_kitsu(username, user_id, mode):
         )
     events.tasks.reload_calendar.delay()
 
-    info_message = (
-        f"Imported {num_anime_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.ANIME.value)} "
-        f"and {num_manga_imported} "
-        f"{app_tags.media_type_readable_plural(MediaTypes.MANGA.value)}."
-    )
+    parts = [
+        format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
+        format_media_type_display(num_manga_imported, MediaTypes.MANGA.value),
+    ]
+    parts = [p for p in parts if p is not None]
+
+    if not parts:
+        info_message = "No media was imported."
+    else:
+        info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+
     return (
         f"{info_message} {ERROR_TITLE} {warning_message}"
         if warning_message
@@ -153,7 +184,7 @@ def import_yamtrack(file, user_id, mode):
     try:
         user = get_user_model().objects.get(id=user_id)
         with disable_fetch_releases():
-            imported_counts = yamtrack.importer(file, user, mode)
+            imported_counts, warning_message = yamtrack.importer(file, user, mode)
         events.tasks.reload_calendar.delay()
     except UnicodeDecodeError as error:
         msg = "Invalid file format. Please upload a CSV file."
@@ -162,18 +193,24 @@ def import_yamtrack(file, user_id, mode):
         msg = "Error parsing Yamtrack CSV file."
         raise ValueError(msg) from error
     else:
-        imported_summary_list = [
-            f"{count} {app_tags.media_type_readable_plural(media_type)}"
+        parts = [
+            format_media_type_display(count, media_type)
             for media_type, count in imported_counts.items()
         ]
-        if len(imported_summary_list) > 1:
-            imported_summary = (
-                f"{', '.join(imported_summary_list[:-1])} and "
-                f"{imported_summary_list[-1]}"
-            )
+        parts = [p for p in parts if p is not None]
+
+        if not parts:
+            info_message = "No media was imported."
+        elif len(parts) > 1:
+            info_message = f"Imported {helpers.join_with_commas_and(parts)}."
         else:
-            imported_summary = imported_summary_list[0]
-        return f"Imported {imported_summary}."
+            info_message = f"Imported {parts[0]}."
+
+        return (
+            f"{info_message} {ERROR_TITLE} {warning_message}"
+            if warning_message
+            else info_message
+        )
 
 
 @shared_task(name="Import from HowLongToBeat")
@@ -182,7 +219,7 @@ def import_hltb(file, user_id, mode):
     try:
         user = get_user_model().objects.get(id=user_id)
         with disable_fetch_releases():
-            imported_counts = hltb.importer(file, user, mode)
+            imported_counts, warning_message = hltb.importer(file, user, mode)
         events.tasks.reload_calendar.delay()
     except UnicodeDecodeError as error:
         msg = "Invalid file format. Please upload a CSV file."
@@ -191,15 +228,19 @@ def import_hltb(file, user_id, mode):
         msg = "Error parsing HowLongToBeat CSV file."
         raise ValueError(msg) from error
     else:
-        imported_summary_list = [
-            f"{count} {app_tags.media_type_readable_plural(media_type)}"
+        parts = [
+            format_media_type_display(count, media_type)
             for media_type, count in imported_counts.items()
         ]
-        if len(imported_summary_list) > 1:
-            imported_summary = (
-                f"{', '.join(imported_summary_list[:-1])} and "
-                f"{imported_summary_list[-1]}"
-            )
+        parts = [p for p in parts if p is not None]
+
+        if not parts:
+            info_message = "No media was imported."
         else:
-            imported_summary = imported_summary_list[0]
-        return f"Imported {imported_summary}."
+            info_message = f"Imported {helpers.join_with_commas_and(parts)}."
+
+        return (
+            f"{info_message} {ERROR_TITLE} {warning_message}"
+            if warning_message
+            else info_message
+        )
