@@ -295,7 +295,7 @@
         <div class="bg-[#39404b] p-4 rounded-lg">
           <div class="flex items-center mb-3">{% source_display "hltb" %}</div>
           <p class="text-sm text-gray-400 mb-3"
-             x-text="importFrequency === 'once' ? 'Import from HowLongToBeat backup' : 'File uploads are not available for periodic imports'">
+             x-text="importFrequency === 'once' ? 'Import games' : 'File uploads are not available for periodic imports'">
           </p>
           <form method="post"
                 action="{% url 'import_hltb' %}"

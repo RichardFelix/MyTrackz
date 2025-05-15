@@ -88,7 +88,9 @@ def search(query, page):
             "Authorization": f"Bearer {access_token}",
         }
 
-        base_conditions = f'where name ~ *"{query}"* & game_type = (0,2,3,4,5,8,9,10)'
+        base_conditions = (
+            f'where name ~ *"{query}"* & game_type = (0,1,2,3,4,5,6,7,8,9,10)'
+        )
 
         if not settings.IGDB_NSFW:
             base_conditions += " & themes != (42)"

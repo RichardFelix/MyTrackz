@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from csv import DictReader
 
 from django.apps import apps
@@ -18,16 +19,61 @@ def importer(file, user, mode):
     decoded_file = file.read().decode("utf-8").splitlines()
     reader = DictReader(decoded_file)
 
-    bulk_media = {"game": []}
+    bulk_media = {MediaTypes.GAME.value: []}
     imported_counts = {}
     warnings = []
 
-    for row in reader:
-        add_bulk_media(row, user, bulk_media["game"], warnings)
+    # Track media IDs and their titles from the import file
+    media_id_counts = defaultdict(int)
+    media_id_titles = defaultdict(list)
 
-    imported_counts["game"] = import_media(
+    # First pass: identify duplicates
+    rows = list(reader)
+    for row in rows:
+        game = search_game(row)
+        if not game:
+            warnings.append(
+                f"{row['Title']}: Couldn't find a game with this title in "
+                f"{Sources.IGDB.value}",
+            )
+            continue
+
+        media_id = game["media_id"]
+
+        # Count occurrences of each media_id
+        media_id_counts[media_id] += 1
+        media_id_titles[media_id].append(row["Title"])
+
+    # Second pass: add non-duplicates to bulk_media
+    for row in rows:
+        game = search_game(row)
+        if not game:
+            continue  # Already added warning in first pass
+
+        media_id = game["media_id"]
+
+        # Skip if this media_id appears more than once
+        if media_id_counts[media_id] > 1:
+            continue
+
+        item, _ = create_or_update_item(game)
+        notes = format_notes(row)
+        instance = create_media_instance(item, user, row, notes)
+        bulk_media[MediaTypes.GAME.value].append(instance)
+
+    # Add consolidated warnings for duplicates
+    for media_id, count in media_id_counts.items():
+        if count > 1:
+            titles = media_id_titles[media_id]
+            title_list = helpers.join_with_commas_and(titles)
+            warnings.append(
+                f"{title_list}: They were matched to the same ID {media_id} "
+                "- none imported",
+            )
+
+    imported_counts[MediaTypes.GAME.value] = import_media(
         MediaTypes.GAME.value,
-        bulk_media["game"],
+        bulk_media[MediaTypes.GAME.value],
         user,
         mode,
     )
@@ -65,11 +111,6 @@ def search_game(row):
     if not results:
         return None
     return results[0]
-
-
-def is_duplicate_media(game, bulk_media):
-    """Check if media already exists in bulk_media list."""
-    return any(game["media_id"] == int(media.item.media_id) for media in bulk_media)
 
 
 def create_or_update_item(game):
@@ -148,29 +189,6 @@ def create_media_instance(item, user, row, notes):
         end_date=row["Completion Date"] if row["Completion Date"] != "" else None,
         notes=notes,
     )
-
-
-def add_bulk_media(row, user, bulk_media, warnings):
-    """Add media to list for bulk creation."""
-    game = search_game(row)
-    if not game:
-        warnings.append(
-            (
-                f"{row['Title']}: Could not find game matching title in "
-                f"{Sources.IGDB.value}"
-            ),
-        )
-        return
-    if is_duplicate_media(game, bulk_media):
-        warnings.append(
-            f"{game['title']} (ID: {game['media_id']}): Duplicate game found in import",
-        )
-        return
-
-    item, _ = create_or_update_item(game)
-    notes = format_notes(row)
-    instance = create_media_instance(item, user, row, notes)
-    bulk_media.append(instance)
 
 
 def import_media(media_type, bulk_data, user, mode):
