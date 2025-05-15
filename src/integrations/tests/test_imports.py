@@ -13,6 +13,7 @@ from app.models import (
     TV,
     Anime,
     Episode,
+    Game,
     Item,
     Manga,
     Media,
@@ -20,10 +21,9 @@ from app.models import (
     Movie,
     Season,
     Sources,
-    Game,
 )
 from integrations import helpers
-from integrations.imports import anilist, kitsu, mal, simkl, yamtrack, hltb
+from integrations.imports import anilist, hltb, kitsu, mal, simkl, yamtrack
 from integrations.imports.trakt import TraktImporter
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -144,6 +144,7 @@ class ImportYamtrack(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             24,
         )
+
 
 class ImportHowLongToBeat(TestCase):
     """Test importing media from HowLongToBeat CSV."""
