@@ -100,6 +100,7 @@ def list_detail(request, list_id):
         msg = "List not found"
         raise Http404(msg)
 
+    # Get request parameters with defaults
     sort_by = request.user.update_preference(
         "list_detail_sort",
         request.GET.get("sort"),
@@ -108,14 +109,14 @@ def list_detail(request, list_id):
     page = request.GET.get("page", 1)
     search_query = request.GET.get("q", "")
 
-    # Apply filters and sorting
+    # Base queryset with permissions check
     items = custom_list.items.all()
     if search_query:
         items = items.filter(title__icontains=search_query)
     if media_type != "all":
         items = items.filter(media_type=media_type)
 
-    # Apply sorting
+    # Sorting logic
     sort_options = {
         "date_added": "-customlistitem__date_added",
         "title": ("title", "season_number", "episode_number"),
@@ -124,7 +125,6 @@ def list_detail(request, list_id):
     sort_field = sort_options.get(sort_by, "-customlistitem__date_added")
 
     if isinstance(sort_field, tuple):
-        # Create order expressions for tuple-based sorting
         items = items.order_by(
             *[
                 F(field).asc(nulls_last=True)
@@ -136,35 +136,31 @@ def list_detail(request, list_id):
     else:
         items = items.order_by(sort_field)
 
-    # Paginate and prepare items
+    # Pagination
     paginator = Paginator(items, 16)
     items_page = paginator.get_page(page)
 
-    # Get media objects for the current page
+    # Media object retrieval
     item_ids = [item.id for item in items_page]
     media_by_item_id = {}
-
-    # Get media objects by type
     for media_type in {item.media_type for item in items_page}:
         model = apps.get_model("app", media_type)
         filter_kwargs = {"item_id__in": item_ids}
-
-        # Handle episode type differently
         if media_type == MediaTypes.EPISODE.value:
             filter_kwargs["related_season__user"] = request.user
         else:
             filter_kwargs["user"] = request.user
-
         entries = model.objects.filter(**filter_kwargs).select_related("item")
+        media_by_item_id.update({entry.item_id: entry for entry in entries})
 
-        for entry in entries:
-            media_by_item_id[entry.item_id] = entry
-
-    # Add media to each item
+    # Annotate items with media objects
     for item in items_page:
-        item.media = media_by_item_id.get(item.id)
+        if media := media_by_item_id.get(item.id):
+            item.media = media
+            item.watched = True
+            item.repeats = media.repeats
 
-    # Prepare context
+    # Base context for both full and partial responses
     context = {
         "custom_list": custom_list,
         "items": items_page,
@@ -176,7 +172,7 @@ def list_detail(request, list_id):
         "sort_choices": ListDetailSortChoices.choices,
     }
 
-    # For full page render, add additional context
+    # Additional context for full page render
     if not request.headers.get("HX-Request"):
         context.update(
             {
@@ -188,7 +184,7 @@ def list_detail(request, list_id):
         )
         return render(request, "lists/list_detail.html", context)
 
-    # For HTMX request
+    # HTMX partial response
     return render(request, "lists/components/media_grid.html", context)
 
 
