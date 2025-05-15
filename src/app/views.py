@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import helpers
+from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, Media, MediaTypes, Season, Sources
@@ -712,63 +712,10 @@ def history_modal(
 
     timeline_entries = []
     if media and (history := media.history.all()):
-        last = history.first()
-
-        for _ in range(history.count()):
-            new_record, old_record = last, last.prev_record
-            entry = {
-                "id": new_record.history_id,
-                "date": new_record.history_date,
-                "changes": [],
-            }
-
-            if old_record is not None:
-                delta = new_record.diff_against(old_record)
-
-                for change in delta.changes:
-                    if change.field == "progress_changed":
-                        continue
-                    entry["changes"].append(
-                        {
-                            "description": helpers.format_description(
-                                change.field,
-                                change.old,
-                                change.new,
-                                media_type,
-                            ),
-                        },
-                    )
-            else:
-                # Creation entry
-                history_model = apps.get_model(
-                    app_label="app",
-                    model_name=f"historical{media_type}",
-                )
-
-                for field in history_model._meta.get_fields():  # noqa: SLF001
-                    if (
-                        field.name.startswith("history_")
-                        or field.name in ["id", "progress_changed"]
-                        or not getattr(new_record, field.attname)
-                    ):
-                        continue
-
-                    value = getattr(new_record, field.attname)
-                    if value:  # Skip empty/None/0 values
-                        entry["changes"].append(
-                            {
-                                "description": helpers.format_description(
-                                    field.name,
-                                    None,
-                                    value,
-                                    media_type,
-                                ),
-                            },
-                        )
-
-            if entry["changes"]:  # Only add entries with changes
-                timeline_entries.append(entry)
-            last = old_record
+        timeline_entries = history_processor.process_history_entries(
+            history,
+            media_type,
+        )
 
     return render(
         request,
