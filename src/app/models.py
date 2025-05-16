@@ -1352,19 +1352,33 @@ class Episode(models.Model):
             # clear prefetch cache to get the updated episodes
             self.related_season.refresh_from_db()
 
-            total_watches = self.related_season.progress + total_repeats
-
-            if total_watches >= max_progress * (self.related_season.repeats + 1):
+            season_just_completed = False
+            if (
+                self.related_season.status == Media.Status.IN_PROGRESS.value
+                and self.related_season.progress == max_progress
+            ):
                 self.related_season.status = Media.Status.COMPLETED.value
                 self.related_season.save_base(update_fields=["status"])
+                season_just_completed = True
 
+            else:
+                total_watches = self.related_season.progress + total_repeats
+
+                if total_watches >= max_progress * (self.related_season.repeats + 1):
+                    self.related_season.status = Media.Status.COMPLETED.value
+                    self.related_season.save_base(update_fields=["status"])
+                    season_just_completed = True
+
+            if season_just_completed:
                 last_season = tv_with_seasons_metadata["related"]["seasons"][-1][
                     "season_number"
                 ]
                 # mark the TV show as completed if it's the last season
                 if season_number == last_season:
                     self.related_season.related_tv.status = Media.Status.COMPLETED.value
-                    self.related_season.related_tv.save_base(update_fields=["status"])
+                    self.related_season.related_tv.save_base(
+                        update_fields=["status"],
+                    )
 
 
 class Manga(Media):

@@ -1563,7 +1563,7 @@ class EpisodeModel(TestCase):
                 episode.repeats = 1
                 episode.save()
 
-        self.assertEqual(self.season.status, Media.Status.IN_PROGRESS.value)
+        self.assertEqual(self.season.status, Media.Status.COMPLETED.value)
 
         episode_2 = Episode.objects.get(
             item__media_id="1668",
