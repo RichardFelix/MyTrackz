@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import UTC, datetime
 
 from django.test import TestCase
+from django.utils import timezone
 
 from app import media_type_config
 from app.history_processor import format_description
@@ -198,28 +199,14 @@ class HistoryProcessorTests(TestCase):
 
     def test_format_description_repeats(self):
         """Test format_description for repeat count changes."""
-        # Initial repeat
-        self.assertEqual(
-            format_description("repeats", None, 0, MediaTypes.TV.value),
-            "Watched for the first time",
-        )
-        self.assertEqual(
-            format_description("repeats", None, 0, MediaTypes.BOOK.value),
-            "Read for the first time",
-        )
-        self.assertEqual(
-            format_description("repeats", None, 0, MediaTypes.GAME.value),
-            "Played for the first time",
-        )
-
         # Repeat increment
         self.assertEqual(
             format_description("repeats", 0, 1, MediaTypes.TV.value),
-            "Watched again (#2)",
+            "Watched again for the 2nd time",
         )
         self.assertEqual(
             format_description("repeats", 1, 2, MediaTypes.BOOK.value),
-            "Read again (#3)",
+            "Read again for the 3rd time",
         )
 
         # Repeat adjustment
@@ -231,23 +218,30 @@ class HistoryProcessorTests(TestCase):
     def test_format_description_dates(self):
         """Test format_description for date changes."""
         # Initial dates
-        start_date = date(2023, 3, 15)
-        end_date = date(2023, 4, 20)
+        start_date = datetime(2023, 3, 15, 0, 0, 0, tzinfo=UTC)
+        end_date = datetime(2023, 4, 20, 0, 0, 0, tzinfo=UTC)
+
+        start_date_local = timezone.localtime(start_date)
+        end_date_local = timezone.localtime(end_date)
 
         self.assertEqual(
             format_description("start_date", None, start_date),
-            "Started on March 15, 2023",
+            f"Started on {start_date_local.strftime('%Y-%m-%d %H:%M')}",
         )
         self.assertEqual(
             format_description("end_date", None, end_date),
-            "Finished on April 20, 2023",
+            f"Finished on {end_date_local.strftime('%Y-%m-%d %H:%M')}",
         )
 
         # Date changes
-        new_start = date(2023, 5, 1)
+        new_start = datetime(2023, 5, 1, 0, 0, 0, tzinfo=UTC)
+        new_start_local = timezone.localtime(new_start)
         self.assertEqual(
             format_description("start_date", start_date, new_start),
-            "Changed start date to May 1, 2023",
+            (
+                f"Changed start date from {start_date_local.strftime('%Y-%m-%d %H:%M')}"
+                f" to {new_start_local.strftime('%Y-%m-%d %H:%M')}"
+            ),
         )
 
         # Date removal

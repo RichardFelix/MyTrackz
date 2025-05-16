@@ -220,7 +220,7 @@ def add_tv(media_id, payload, user):
             item=episode_item,
             related_season=season_instance,
             defaults={
-                "end_date": timezone.localdate(),
+                "end_date": timezone.now().replace(second=0, microsecond=0),
             },
         )
     else:

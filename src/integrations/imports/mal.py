@@ -1,7 +1,9 @@
 import logging
+from datetime import datetime
 
 from django.apps import apps
 from django.conf import settings
+from django.utils import timezone
 
 import app
 from app.models import Media, MediaTypes, Sources
@@ -109,13 +111,26 @@ def add_media_list(response, media_type, user):
             progress=progress,
             status=status,
             repeats=repeats,
-            start_date=list_status.get("start_date", None),
-            end_date=list_status.get("finish_date", None),
+            start_date=parse_mal_date(list_status.get("start_date", None)),
+            end_date=parse_mal_date(list_status.get("finish_date", None)),
             notes=list_status["comments"],
         )
         bulk_media.append(instance)
 
     return bulk_media
+
+
+def parse_mal_date(date_str):
+    """Parse MAL date string (YYYY-MM-YY) into datetime object."""
+    if date_str is None:
+        return None
+
+    return datetime.strptime(date_str, "%Y-%m-%d").replace(
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=timezone.get_current_timezone(),
+    )
 
 
 def get_status(status):

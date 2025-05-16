@@ -11,6 +11,8 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from app import helpers, history_processor
@@ -391,7 +393,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
         return HttpResponse(
             status=204,
             headers={
-                "HX-Redirect": request.POST.get("next", request.path()),
+                "HX-Redirect": request.POST["next"],
             },
         )
     return helpers.redirect_back(request)
@@ -564,7 +566,10 @@ def episode_handler(request):
     if "unwatch" in request.POST:
         related_season.unwatch(episode_number)
     elif "watch" in request.POST:
-        end_date = request.POST["date"]
+        end_date = timezone.make_aware(
+            timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
+            timezone=timezone.get_current_timezone(),
+        )
         related_season.watch(episode_number, end_date)
 
     return helpers.redirect_back(request)
@@ -779,9 +784,19 @@ def statistics(request):
         start_date = None
         end_date = None
     else:
-        # Convert strings directly to datetime.date objects
-        start_date = timezone.datetime.strptime(start_date_str, timeformat).date()
-        end_date = timezone.datetime.strptime(end_date_str, timeformat).date()
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
+
+        if start_date and end_date:
+            # Convert to datetime with timezone awareness
+            start_date = timezone.make_aware(
+                datetime.combine(start_date, datetime.min.time()),
+            )
+
+            # End date should be end of day
+            end_date = timezone.make_aware(
+                datetime.combine(end_date, datetime.max.time()),
+            )
 
     # Get all user media data in a single operation
     user_media, media_count = stats.get_user_media(

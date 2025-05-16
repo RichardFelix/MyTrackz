@@ -211,11 +211,11 @@ def import_hltb(request):
 @require_GET
 def export_csv(request):
     """View for exporting all media data to a CSV file."""
-    today = timezone.localdate()
+    now = timezone.localtime()
     response = StreamingHttpResponse(
         streaming_content=exports.generate_rows(request.user),
         content_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="yamtrack_{today}.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="yamtrack_{now}.csv"'},
     )
     logger.info("User %s started CSV export", request.user.username)
     return response

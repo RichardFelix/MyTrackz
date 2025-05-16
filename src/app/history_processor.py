@@ -1,5 +1,7 @@
 from django.apps import apps
+from django.contrib.humanize.templatetags.humanize import ordinal
 from django.template.defaultfilters import pluralize
+from django.utils import timezone
 
 from app import helpers, media_type_config
 from app.models import Media, MediaTypes
@@ -104,7 +106,7 @@ def organize_changes(changes, media_type):
     if repeats_change and end_date_change:
         combined_description = (
             f"{repeats_change['description']} on "
-            f"{end_date_change['new'].strftime('%B %-d, %Y')}"
+            f"{format_datetime(end_date_change['new'])}"
         )
         combined_change = {
             "description": combined_description,
@@ -176,7 +178,7 @@ def apply_date_status_integration(changes):
         and status_change["new"] == Media.Status.IN_PROGRESS.value
     ):
         date_changes["start_date"]["description"] = (
-            f"Started on {date_changes['start_date']['new'].strftime('%B %-d, %Y')}"
+            f"Started on {format_datetime(date_changes['start_date']['new'])}"
         )
         changes["status_change"] = None
 
@@ -187,7 +189,7 @@ def apply_date_status_integration(changes):
         and status_change["new"] == Media.Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
-            f"Finished on {date_changes['end_date']['new'].strftime('%B %-d, %Y')}"
+            f"Finished on {format_datetime(date_changes['end_date']['new'])}"
         )
         changes["status_change"] = None
 
@@ -214,6 +216,10 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     Provides natural language descriptions for various types of changes,
     taking into account the media type and status transitions.
     """
+    if field_name in {"start_date", "end_date"}:
+        new_value = format_datetime(new_value)
+        old_value = format_datetime(old_value)
+
     # If old_value is None, treat it as an initial setting
     if old_value is None:
         if field_name == "status":
@@ -242,12 +248,12 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         if field_name == "repeats":
             verb = media_type_config.get_verb(media_type, past_tense=True)
-            return f"{verb.title()} for the first time"
+            return f"{verb.title()} for the {ordinal(new_value + 1)} time"
 
         if field_name in ["start_date", "end_date"]:
             field_display = "Started" if field_name == "start_date" else "Finished"
             return (
-                f"{field_display} on {new_value.strftime('%B %-d, %Y')}"
+                f"{field_display} on {new_value}"
                 if new_value
                 else f"Removed {field_display.lower()} date"
             )
@@ -317,7 +323,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if diff < 0:
-            verb = "Removed"  # Override with "Removed" for negative changes
+            verb = "Reverted to"
 
         return f"{verb} {diff_abs} {unit}"
 
@@ -325,7 +331,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         # Handle combined case in organize_changes function
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if new_value > old_value:
-            return f"{verb} again (#{new_value + 1})"
+            return f"{verb} again for the {ordinal(new_value + 1)} time"
         return f"Adjusted repeat count from {old_value} to {new_value}"
 
     if field_name in ["start_date", "end_date"]:
@@ -333,9 +339,8 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         if not new_value:
             return f"Removed {field_display.lower()} date"
         if not old_value:
-            return f"{field_display}ed on {new_value.strftime('%B %-d, %Y')}"
-        date_str = new_value.strftime("%B %-d, %Y")
-        return f"Changed {field_display.lower()} date to {date_str}"
+            return f"{field_display}ed on {new_value}"
+        return f"Changed {field_display.lower()} date from {old_value} to {new_value}"
 
     if field_name == "notes":
         if not old_value:
@@ -346,3 +351,12 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
     field_label = field_name.replace("_", " ").lower()
     return f"Updated {field_label} from {old_value} to {new_value}"
+
+
+def format_datetime(value):
+    """Format a datetime object to a readable string."""
+    if not value:
+        return value
+
+    local_dt = timezone.localtime(value)
+    return local_dt.strftime("%Y-%m-%d %H:%M")

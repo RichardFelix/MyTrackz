@@ -699,8 +699,8 @@ class Media(models.Model):
         default=Status.COMPLETED.value,
     )
     repeats = models.PositiveIntegerField(default=0)
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
 
     class Meta:
@@ -748,15 +748,15 @@ class Media(models.Model):
 
     def process_status(self):
         """Update fields depending on the status of the media."""
-        today = timezone.localdate()
+        now = timezone.now().replace(second=0, microsecond=0)
 
         if self.status == self.Status.IN_PROGRESS.value:
             if not self.start_date:
-                self.start_date = today
+                self.start_date = now
 
         elif self.status == self.Status.COMPLETED.value:
             if not self.end_date:
-                self.end_date = today
+                self.end_date = now
 
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
@@ -1073,10 +1073,10 @@ class Season(Media):
                 episodes,
             )
 
-        today = timezone.localdate()
+        now = timezone.now().replace(second=0, microsecond=0)
 
         if next_episode_number:
-            self.watch(next_episode_number, today)
+            self.watch(next_episode_number, now)
         else:
             logger.info("No more episodes to watch.")
 
@@ -1230,7 +1230,7 @@ class Season(Media):
             max_episode_number = 0
 
         episodes_to_create = []
-        today = timezone.localdate()
+        now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
         for episode in reversed(season_metadata["episodes"]):
@@ -1242,7 +1242,7 @@ class Season(Media):
             episode_db = Episode(
                 related_season=self,
                 item=item,
-                end_date=today,
+                end_date=now,
             )
             episodes_to_create.append(episode_db)
 
@@ -1301,7 +1301,7 @@ class Episode(models.Model):
         on_delete=models.CASCADE,
         related_name="episodes",
     )
-    end_date = models.DateField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     repeats = models.PositiveIntegerField(default=0)
 
     class Meta:

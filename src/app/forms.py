@@ -215,8 +215,8 @@ class MediaForm(forms.ModelForm):
             ),
             "progress": forms.NumberInput(attrs={"min": 0}),
             "repeats": forms.NumberInput(attrs={"min": 0}),
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "notes": forms.Textarea(
                 attrs={"placeholder": "Add any notes or comments..."},
             ),

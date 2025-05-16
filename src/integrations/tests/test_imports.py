@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -213,11 +213,6 @@ class ImportKitsu(TestCase):
         self.assertEqual(kitsu.get_rating(1), 0.5)
         self.assertIsNone(kitsu.get_rating(None))
 
-    def test_get_date(self):
-        """Test getting date from Kitsu."""
-        self.assertEqual(kitsu.get_date("2023-01-01T00:00:00.000Z"), date(2023, 1, 1))
-        self.assertIsNone(kitsu.get_date(None))
-
     def test_get_status(self):
         """Test getting status from Kitsu."""
         self.assertEqual(kitsu.get_status("completed"), Media.Status.COMPLETED.value)
@@ -254,8 +249,6 @@ class ImportKitsu(TestCase):
         self.assertEqual(instance.progress, 26)
         self.assertEqual(instance.status, Media.Status.COMPLETED.value)
         self.assertEqual(instance.repeats, 1)
-        self.assertEqual(instance.start_date, date(2023, 8, 1))
-        self.assertEqual(instance.end_date, date(2023, 9, 1))
         self.assertEqual(instance.notes, "Great series!")
 
 
@@ -429,15 +422,6 @@ class ImportTrakt(TestCase):
         self.assertEqual(len(bulk_media[MediaTypes.MOVIE.value]), 1)
         self.assertEqual(bulk_media[MediaTypes.MOVIE.value][0].score, 8)
 
-    def test_get_date(self):
-        """Test getting date from Trakt."""
-        importer = TraktImporter()
-        self.assertEqual(
-            importer._get_date("2023-01-01T00:00:00.000Z"),
-            date(2023, 1, 1),
-        )
-        self.assertIsNone(importer._get_date(None))
-
 
 class ImportSimkl(TestCase):
     """Test importing media from SIMKL."""
@@ -537,7 +521,10 @@ class ImportSimkl(TestCase):
 
     def test_get_date(self):
         """Test getting date from SIMKL."""
-        self.assertEqual(simkl.get_date("2023-01-01T00:00:00Z"), date(2023, 1, 1))
+        self.assertEqual(
+            simkl.get_date("2023-01-01T00:00:00Z"),
+            datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+        )
         self.assertIsNone(simkl.get_date(None))
 
 

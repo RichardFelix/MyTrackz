@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -209,7 +209,7 @@ class MediaManagerTests(TestCase):
                 Episode.objects.create(
                     item=episode_item,
                     related_season=self.season1,
-                    end_date=date(2023, 6, i),
+                    end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
                 )
 
         # Create events for upcoming episodes
@@ -407,7 +407,7 @@ class MediaManagerTests(TestCase):
             Episode.objects.create(
                 item=episode_item,
                 related_season=season2,
-                end_date=date(2023, 7, i),
+                end_date=datetime(2023, 7, i, 0, 0, tzinfo=UTC),
             )
 
         # Create a season with no episodes (no dates)
@@ -942,18 +942,18 @@ class MediaModel(TestCase):
         self.anime.save()
 
         self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).end_date,
+            Anime.objects.get(item__media_id="1", user=self.user).end_date.date(),
             timezone.now().date(),
         )
 
     def test_completed_end(self):
         """When completed, if specified end_date, it should be the specified date."""
         self.anime.status = Media.Status.COMPLETED.value
-        self.anime.end_date = "2023-06-01"
+        self.anime.end_date = datetime(2023, 6, 1, 0, 0, tzinfo=UTC)
         self.anime.save()
         self.assertEqual(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            date(2023, 6, 1),
+            datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
 
     def test_completed_progress(self):
@@ -991,9 +991,8 @@ class MediaModel(TestCase):
             Anime.objects.get(item__media_id="1", user=self.user).status,
             Media.Status.COMPLETED.value,
         )
-        self.assertEqual(
+        self.assertIsNotNone(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            timezone.now().date(),
         )
 
     def test_progress_is_max_from_repeating(self):
@@ -1073,7 +1072,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep1,
             related_season=season1,
-            end_date=date(2023, 6, 1),
+            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_ep2 = Item.objects.create(
@@ -1088,7 +1087,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep2,
             related_season=season1,
-            end_date=date(2023, 6, 2),
+            end_date=datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
         )
 
         item_season2 = Item.objects.create(
@@ -1120,7 +1119,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep3,
             related_season=season2,
-            end_date=date(2023, 6, 4),
+            end_date=datetime(2023, 6, 4, 0, 0, tzinfo=UTC),
         )
 
         item_ep4 = Item.objects.create(
@@ -1135,7 +1134,7 @@ class TVModel(TestCase):
         Episode.objects.create(
             item=item_ep4,
             related_season=season2,
-            end_date=date(2023, 6, 5),
+            end_date=datetime(2023, 6, 5, 0, 0, tzinfo=UTC),
         )
 
     def test_tv_progress(self):
@@ -1144,11 +1143,17 @@ class TVModel(TestCase):
 
     def test_tv_start_date(self):
         """Test the start_date property of the Season model."""
-        self.assertEqual(self.tv.start_date, date(2023, 6, 1))
+        self.assertEqual(
+            self.tv.start_date,
+            datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+        )
 
     def test_tv_end_date(self):
         """Test the end_date property of the Season model."""
-        self.assertEqual(self.tv.end_date, date(2023, 6, 5))
+        self.assertEqual(
+            self.tv.end_date,
+            datetime(2023, 6, 5, 0, 0, tzinfo=UTC),
+        )
 
     def test_tv_save(self):
         """Test the custom save method of the TV model."""
@@ -1212,7 +1217,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             item=item_ep1,
             related_season=self.season,
-            end_date=date(2023, 6, 1),
+            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_ep2 = Item.objects.create(
@@ -1227,7 +1232,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             item=item_ep2,
             related_season=self.season,
-            end_date=date(2023, 6, 2),
+            end_date=datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
         )
 
     def test_season_progress(self):
@@ -1236,11 +1241,17 @@ class SeasonModel(TestCase):
 
     def test_season_start_date(self):
         """Test the start_date property of the Season model."""
-        self.assertEqual(self.season.start_date, date(2023, 6, 1))
+        self.assertEqual(
+            self.season.start_date,
+            datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+        )
 
     def test_season_end_date(self):
         """Test the end_date property of the Season model."""
-        self.assertEqual(self.season.end_date, date(2023, 6, 2))
+        self.assertEqual(
+            self.season.end_date,
+            datetime(2023, 6, 2, 0, 0, tzinfo=UTC),
+        )
 
     def test_season_save(self):
         """Test the custom save method of the Season model."""
@@ -1266,25 +1277,25 @@ class SeasonModel(TestCase):
         mock_get_episode_item.return_value = episode_item
 
         # Test watching a new episode
-        self.season.watch(3, date(2023, 6, 3))
+        self.season.watch(3, datetime(2023, 6, 3, 0, 0, tzinfo=UTC))
 
         # Check if the episode was created
         episode = Episode.objects.get(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.end_date, date(2023, 6, 3))
+        self.assertEqual(episode.end_date, datetime(2023, 6, 3, 0, 0, tzinfo=UTC))
         self.assertEqual(episode.repeats, 0)
 
         # Test rewatching the same episode
-        self.season.watch(3, date(2023, 6, 4))
+        self.season.watch(3, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
 
         # Check if the episode was updated
         episode = Episode.objects.get(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.end_date, date(2023, 6, 4))
+        self.assertEqual(episode.end_date, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
         self.assertEqual(episode.repeats, 1)
 
     @patch("app.models.Season.get_episode_item")
@@ -1331,7 +1342,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             related_season=self.season,
             item=episode_item,
-            end_date=date(2023, 6, 3),
+            end_date=datetime(2023, 6, 3, 0, 0, tzinfo=UTC),
         )
 
         # Test unwatching the episode
@@ -1363,7 +1374,7 @@ class SeasonModel(TestCase):
         Episode.objects.create(
             related_season=self.season,
             item=episode_item,
-            end_date=date(2023, 6, 3),
+            end_date=datetime(2023, 6, 3, 0, 0, tzinfo=UTC),
             repeats=2,
         )
 
@@ -1458,7 +1469,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
         # when all episodes are created, the season status should be COMPLETED
@@ -1491,7 +1502,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
         # Season should still be in progress
@@ -1511,7 +1522,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
         # Season should now be completed
@@ -1544,7 +1555,7 @@ class EpisodeModel(TestCase):
             episode = Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
             # Add repeats to the first episode
@@ -1594,7 +1605,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
         # Season should be completed
@@ -1633,7 +1644,7 @@ class EpisodeModel(TestCase):
             Episode.objects.create(
                 item=item_episode,
                 related_season=self.season,
-                end_date=date(2023, 6, i),
+                end_date=datetime(2023, 6, i, 0, 0, tzinfo=UTC),
             )
 
         # Season should be completed

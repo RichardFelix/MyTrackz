@@ -1,9 +1,9 @@
-import datetime
 import logging
 
 import requests
 from django.apps import apps
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import Media, MediaTypes, Sources
@@ -256,7 +256,7 @@ def process_seasons_and_episodes(
             episode_instance = app.models.Episode(
                 item=episode_item,
                 related_season=season_instance,
-                end_date=get_date(episode["watched_at"]),
+                end_date=episode["watched_at"],
             )
             bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
 
@@ -371,21 +371,14 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
                 },
             )
 
-            # Determine end date based on status
-            end_date = (
-                get_date(anime["last_watched_at"])
-                if anime_status == Media.Status.COMPLETED.value
-                else None
-            )
-
             anime_instance = app.models.Anime(
                 item=anime_item,
                 user=user,
                 status=anime_status,
                 score=anime["user_rating"],
                 progress=anime["watched_episodes_count"],
-                start_date=get_date(anime["last_watched_at"]),
-                end_date=end_date,
+                start_date=get_start_date(anime),
+                end_date=get_end_date(anime_status, anime["last_watched_at"]),
             )
             bulk_media[MediaTypes.ANIME.value].append(anime_instance)
             existing_anime_ids.add(mal_id)
@@ -414,13 +407,25 @@ def get_status(status):
     return status_mapping.get(status, Media.Status.IN_PROGRESS.value)
 
 
-def get_date(date):
+def get_date(date_str):
     """Convert the date from Trakt to a date object."""
-    if date:
-        return (
-            datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ")
-            .replace(tzinfo=datetime.UTC)
-            .astimezone(settings.TZ)
-            .date()
-        )
+    if date_str:
+        return parse_datetime(date_str)
+    return None
+
+
+def get_start_date(anime):
+    """Get the start date based on earliest watched episode."""
+    if "seasons" in anime:
+        episodes = anime["seasons"][0]["episodes"]
+        dates = [get_date(episode["watched_at"]) for episode in episodes]
+        return min(dates) if dates else None
+
+    return None
+
+
+def get_end_date(anime_status, last_watched_at):
+    """Get the end date based on the anime status."""
+    if anime_status == Media.Status.COMPLETED.value:
+        return get_date(last_watched_at)
     return None

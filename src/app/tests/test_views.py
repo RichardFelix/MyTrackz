@@ -75,7 +75,7 @@ class HomeViewTests(TestCase):
             Episode.objects.create(
                 item=episode_item,
                 related_season=season,
-                end_date=timezone.now().date() - timezone.timedelta(days=i),
+                end_date=timezone.now() - timezone.timedelta(days=i),
             )
 
         # Create anime
@@ -182,7 +182,7 @@ class HomeViewTests(TestCase):
             Episode.objects.create(
                 item=episode_item,
                 related_season=season,
-                end_date=timezone.now().date(),
+                end_date=timezone.now(),
             )
 
         # Now test the load more functionality
@@ -700,12 +700,6 @@ class StatisticsViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/statistics.html")
 
-        # Check default date range (last year)
-        today = timezone.now().date()
-        one_year_ago = today.replace(year=today.year - 1)
-        self.assertEqual(response.context["start_date"], one_year_ago)
-        self.assertEqual(response.context["end_date"], today)
-
         # Check that all expected context variables are present
         self.assertIn("media_count", response.context)
         self.assertIn("activity_data", response.context)
@@ -729,13 +723,6 @@ class StatisticsViewTests(TestCase):
         # Check response
         self.assertEqual(response.status_code, 200)
 
-        # Check that custom date range is used
-        expected_start = timezone.datetime.strptime(start_date, "%Y-%m-%d").date()
-        expected_end = timezone.datetime.strptime(end_date, "%Y-%m-%d").date()
-
-        self.assertEqual(response.context["start_date"], expected_start)
-        self.assertEqual(response.context["end_date"], expected_end)
-
         # Check that all expected context variables are present
         self.assertIn("media_count", response.context)
         self.assertIn("activity_data", response.context)
@@ -749,39 +736,22 @@ class StatisticsViewTests(TestCase):
         """Test the statistics view with invalid date format."""
         # Invalid date format
         start_date = "01/01/2023"  # MM/DD/YYYY instead of YYYY-MM-DD
-        end_date = "2023-12-31"
+        end_date = "2023/12/31"
 
-        try:
-            # Call the view with invalid date format
-            response = self.client.get(
-                reverse("statistics") + f"?start-date={start_date}&end-date={end_date}",
-            )
+        # Call the view with invalid date format
+        response = self.client.get(
+            reverse("statistics") + f"?start-date={start_date}&end-date={end_date}",
+        )
 
-            # If we get here, the view handled the invalid date format
-            self.assertEqual(response.status_code, 200)
+        # If we get here, the view handled the invalid date format
+        self.assertEqual(response.status_code, 200)
 
-            # Check if it fell back to default dates
-            today = timezone.now().date()
-            one_year_ago = today.replace(year=today.year - 1)
+        date_is_none = (
+            response.context["start_date"] is None
+            and response.context["end_date"] is None
+        )
 
-            # One of these should be true:
-            # 1. Either the view used the default dates
-            # 2. Or it somehow parsed the invalid format
-            date_is_default = (
-                response.context["start_date"] == one_year_ago
-                and response.context["end_date"] == today
-            )
-            date_is_parsed = (
-                response.context["start_date"] != one_year_ago
-                or response.context["end_date"] != today
-            )
-
-            self.assertTrue(date_is_default or date_is_parsed)
-
-        except ValueError as e:
-            # If the view doesn't handle invalid dates, it might raise an exception
-            # This is also an acceptable behavior
-            self.assertIsInstance(e, (ValueError))
+        self.assertTrue(date_is_none)
 
 
 class CreateMedia(TestCase):
@@ -877,7 +847,7 @@ class CreateMedia(TestCase):
                 "season_number": 1,
                 "episode_number": 1,
                 "source": Sources.TMDB.value,
-                "date": "2023-06-01",
+                "date": "2023-06-01T00:00",
                 "watch": "",
             },
         )
@@ -916,8 +886,8 @@ class EditMedia(TestCase):
             progress=1,
             status=Media.Status.COMPLETED.value,
             notes="Nice",
-            start_date=datetime.date(2023, 6, 1),
-            end_date=datetime.date(2023, 6, 1),
+            start_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
         self.client.post(
@@ -985,7 +955,7 @@ class DeleteMedia(TestCase):
         Episode.objects.create(
             item=self.item_ep,
             related_season=season,
-            end_date=datetime.date(2023, 6, 1),
+            end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
     def test_delete_tv(self):
@@ -1089,7 +1059,7 @@ class ProgressEditSeason(TestCase):
         Episode.objects.create(
             item=item_ep,
             related_season=season,
-            end_date=datetime.date(2023, 6, 1),
+            end_date=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
     def test_progress_increase(self):
@@ -1208,8 +1178,8 @@ class CreateEntryViewTests(TestCase):
             "score": 8,
             "progress": 1,
             "repeats": 0,
-            "start_date": "2023-01-01",
-            "end_date": "2023-01-02",
+            "start_date": "2023-01-01T00:00",
+            "end_date": "2023-01-02T00:00",
         }
 
         response = self.client.post(reverse("create_entry"), form_data, follow=True)
@@ -1345,7 +1315,7 @@ class CreateEntryViewTests(TestCase):
             "season_number": 1,
             "episode_number": 1,
             "parent_season": parent_season.id,
-            "end_date": "2023-01-02",
+            "end_date": "2023-01-02T00:00",
             "repeats": 0,
         }
 
@@ -1368,7 +1338,8 @@ class CreateEntryViewTests(TestCase):
         episode = Episode.objects.get(item__title="TV Show")
         self.assertEqual(episode.repeats, 0)
         self.assertEqual(episode.related_season, parent_season)
-        self.assertEqual(episode.end_date.strftime("%Y-%m-%d"), "2023-01-02")
+        end_date_local = timezone.localtime(episode.end_date)
+        self.assertEqual(end_date_local.strftime("%Y-%m-%d %H:%M"), "2023-01-02 00:00")
 
     def test_create_entry_post_duplicate_item(self):
         """Test creating a duplicate item."""

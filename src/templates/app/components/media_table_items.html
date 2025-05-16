@@ -33,7 +33,7 @@
       <div x-show="trackOpen"
            @keydown.escape.window="trackOpen = false"
            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div class="w-[32rem] max-h-[90vh] px-4 md:px-0 relative z-60"
+        <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
              @click.outside="trackOpen = false">
           <div id="{% component_id 'track' media.item %}"></div>
         </div>

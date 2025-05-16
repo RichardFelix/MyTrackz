@@ -1,8 +1,10 @@
 import logging
 from collections import defaultdict
 from csv import DictReader
+from datetime import datetime
 
 from django.apps import apps
+from django.utils import timezone
 
 import app
 import app.providers
@@ -162,6 +164,19 @@ def determine_status(row):
     return Media.Status.COMPLETED.value
 
 
+def parse_hltb_date(date_str):
+    """Parse HLTB date string (YYYY-MM-DD) into datetime object."""
+    if not date_str:
+        return None
+
+    return datetime.strptime(date_str, "%Y-%m-%d").replace(
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=timezone.get_current_timezone(),
+    )
+
+
 def create_media_instance(item, user, row, notes):
     """Create media instance with all parameters."""
     progress = format_time(row["Progress"])
@@ -170,7 +185,6 @@ def create_media_instance(item, user, row, notes):
     completionist = format_time(row["Completionist"])
 
     model = apps.get_model(app_label="app", model_name=MediaTypes.GAME.value)
-
     return model(
         item=item,
         user=user,
@@ -185,8 +199,8 @@ def create_media_instance(item, user, row, notes):
         ),
         status=determine_status(row),
         repeats=0,
-        start_date=row["Start Date"] if row["Start Date"] != "" else None,
-        end_date=row["Completion Date"] if row["Completion Date"] != "" else None,
+        start_date=parse_hltb_date(row["Start Date"]),
+        end_date=parse_hltb_date(row["Completion Date"]),
         notes=notes,
     )
 

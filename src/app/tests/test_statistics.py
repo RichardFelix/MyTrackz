@@ -142,13 +142,13 @@ class StatisticsDateFilteringTests(TestCase):
         self.episode1 = Episode.objects.create(
             item=self.episode1_item,
             related_season=self.season,
-            end_date=datetime.date(2025, 1, 1),
+            end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
         self.episode2 = Episode.objects.create(
             item=self.episode2_item,
             related_season=self.season,
-            end_date=datetime.date(2025, 1, 15),
+            end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Create movies for different date scenarios
@@ -158,8 +158,8 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie1_item,
             status=Media.Status.COMPLETED.value,
             score=7.5,
-            start_date=datetime.date(2025, 2, 10),
-            end_date=datetime.date(2025, 2, 10),
+            start_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Case 2: Movie with only start date within range
@@ -168,7 +168,7 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie2_item,
             status=Media.Status.IN_PROGRESS.value,
             score=8.0,
-            start_date=datetime.date(2025, 2, 15),
+            start_date=datetime.datetime(2025, 2, 15, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
         )
 
@@ -179,7 +179,7 @@ class StatisticsDateFilteringTests(TestCase):
             status=Media.Status.COMPLETED.value,
             score=6.5,
             start_date=None,
-            end_date=datetime.date(2025, 2, 20),
+            end_date=datetime.datetime(2025, 2, 20, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Case 4: Movie with no dates
@@ -198,8 +198,8 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie5_item,
             status=Media.Status.COMPLETED.value,
             score=9.0,
-            start_date=datetime.date(2025, 1, 10),
-            end_date=datetime.date(2025, 1, 15),
+            start_date=datetime.datetime(2025, 1, 10, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Case 6: Movie with dates after range
@@ -208,8 +208,8 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie6_item,
             status=Media.Status.PLANNING.value,
             score=None,
-            start_date=datetime.date(2025, 3, 10),
-            end_date=datetime.date(2025, 3, 15),
+            start_date=datetime.datetime(2025, 3, 10, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 3, 15, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Case 7: Movie that starts before range but ends within range
@@ -218,8 +218,8 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie7_item,
             status=Media.Status.COMPLETED.value,
             score=7.0,
-            start_date=datetime.date(2025, 1, 25),
-            end_date=datetime.date(2025, 2, 5),
+            start_date=datetime.datetime(2025, 1, 25, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 2, 5, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Case 8: Movie that starts within range but ends after range
@@ -228,13 +228,13 @@ class StatisticsDateFilteringTests(TestCase):
             item=self.movie8_item,
             status=Media.Status.COMPLETED.value,
             score=8.5,
-            start_date=datetime.date(2025, 2, 25),
-            end_date=datetime.date(2025, 3, 5),
+            start_date=datetime.datetime(2025, 2, 25, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 3, 5, 0, 0, tzinfo=datetime.UTC),
         )
 
     def test_all_time_filtering(self):
         """Test when no date filtering is applied (All Time)."""
-        user_media, media_count = statistics.get_user_media(
+        _, media_count = statistics.get_user_media(
             self.user,
             None,
             None,
@@ -248,8 +248,8 @@ class StatisticsDateFilteringTests(TestCase):
 
     def test_date_range_filtering(self):
         """Test filtering with a specific date range."""
-        start_date = datetime.date(2025, 2, 1)
-        end_date = datetime.date(2025, 2, 28)
+        start_date = datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 28, 0, 0, tzinfo=datetime.UTC)
 
         user_media, media_count = statistics.get_user_media(
             self.user,
@@ -290,8 +290,8 @@ class StatisticsDateFilteringTests(TestCase):
     def test_both_dates_filtering(self):
         """Test filtering for media with both start and end dates."""
         # Test case where media has both dates within range
-        start_date = datetime.date(2025, 2, 5)
-        end_date = datetime.date(2025, 2, 15)
+        start_date = datetime.datetime(2025, 2, 5, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 15, 0, 0, tzinfo=datetime.UTC)
 
         user_media, _ = statistics.get_user_media(
             self.user,
@@ -311,8 +311,8 @@ class StatisticsDateFilteringTests(TestCase):
 
     def test_start_date_only_filtering(self):
         """Test filtering for media with only start date."""
-        start_date = datetime.date(2025, 2, 10)
-        end_date = datetime.date(2025, 2, 20)
+        start_date = datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 20, 0, 0, tzinfo=datetime.UTC)
 
         user_media, _ = statistics.get_user_media(
             self.user,
@@ -337,7 +337,7 @@ class StatisticsDateFilteringTests(TestCase):
             user=self.user,
             item=outside_item,
             status=Media.Status.IN_PROGRESS.value,
-            start_date=datetime.date(2025, 3, 1),
+            start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
             end_date=None,
         )
 
@@ -355,8 +355,8 @@ class StatisticsDateFilteringTests(TestCase):
 
     def test_end_date_only_filtering(self):
         """Test filtering for media with only end date."""
-        start_date = datetime.date(2025, 2, 10)
-        end_date = datetime.date(2025, 2, 20)
+        start_date = datetime.datetime(2025, 2, 10, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 20, 0, 0, tzinfo=datetime.UTC)
 
         user_media, _ = statistics.get_user_media(
             self.user,
@@ -382,7 +382,7 @@ class StatisticsDateFilteringTests(TestCase):
             item=outside_item,
             status=Media.Status.COMPLETED.value,
             start_date=None,
-            end_date=datetime.date(2025, 3, 1),
+            end_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Re-run the query
@@ -399,8 +399,8 @@ class StatisticsDateFilteringTests(TestCase):
 
     def test_no_dates_filtering(self):
         """Test that media with no dates is excluded from date-filtered results."""
-        start_date = datetime.date(2025, 2, 1)
-        end_date = datetime.date(2025, 2, 28)
+        start_date = datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 28, 0, 0, tzinfo=datetime.UTC)
 
         user_media, _ = statistics.get_user_media(
             self.user,
@@ -425,8 +425,8 @@ class StatisticsDateFilteringTests(TestCase):
 
     def test_overlapping_ranges(self):
         """Test media with date ranges that overlap with the filter range."""
-        start_date = datetime.date(2025, 2, 1)
-        end_date = datetime.date(2025, 2, 28)
+        start_date = datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 2, 28, 0, 0, tzinfo=datetime.UTC)
 
         user_media, _ = statistics.get_user_media(
             self.user,
@@ -454,8 +454,8 @@ class StatisticsDateFilteringTests(TestCase):
             user=self.user,
             item=spanning_item,
             status=Media.Status.COMPLETED.value,
-            start_date=datetime.date(2025, 1, 15),
-            end_date=datetime.date(2025, 3, 15),
+            start_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 3, 15, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Re-run the query
@@ -549,13 +549,13 @@ class StatisticsTests(TestCase):
         self.episode1 = Episode.objects.create(
             item=self.episode1_item,
             related_season=self.season,
-            end_date=datetime.date(2025, 1, 1),
+            end_date=datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
         self.episode2 = Episode.objects.create(
             item=self.episode2_item,
             related_season=self.season,
-            end_date=datetime.date(2025, 1, 15),
+            end_date=datetime.datetime(2025, 1, 15, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Create a movie with different dates
@@ -564,8 +564,8 @@ class StatisticsTests(TestCase):
             item=self.movie_item,
             status=Media.Status.PLANNING.value,
             score=7.5,
-            start_date=datetime.date(2025, 2, 1),
-            end_date=datetime.date(2025, 2, 1),
+            start_date=datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.UTC),
         )
 
         # Create an anime with different dates
@@ -574,8 +574,8 @@ class StatisticsTests(TestCase):
             item=self.anime_item,
             status=Media.Status.COMPLETED.value,
             score=None,
-            start_date=datetime.date(2025, 3, 1),
-            end_date=datetime.date(2025, 3, 31),
+            start_date=datetime.datetime(2025, 3, 1, 0, 0, tzinfo=datetime.UTC),
+            end_date=datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC),
         )
 
     def test_get_media_type_distribution(self):
@@ -805,8 +805,8 @@ class StatisticsTests(TestCase):
     @patch("app.statistics.get_filtered_historical_data")
     def test_get_activity_data(self, mock_get_filtered_data):
         """Test the get_activity_data function."""
-        start_date = datetime.date(2025, 1, 1)
-        end_date = datetime.date(2025, 3, 31)
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC)
 
         # Mock the historical data
         mock_get_filtered_data.return_value = [
@@ -858,8 +858,8 @@ class StatisticsTests(TestCase):
     ):
         """Test the get_filtered_historical_data function."""
         # Setup test dates
-        start_date = datetime.date(2025, 1, 1)
-        end_date = datetime.date(2025, 3, 31)
+        start_date = datetime.datetime(2025, 1, 1, 0, 0, tzinfo=datetime.UTC)
+        end_date = datetime.datetime(2025, 3, 31, 0, 0, tzinfo=datetime.UTC)
 
         # Mock historical models list
         mock_get_historical_models.return_value = [

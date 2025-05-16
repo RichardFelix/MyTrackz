@@ -324,10 +324,12 @@ def get_timeline(user_media):
         if media_type == MediaTypes.TV.value:
             continue
         for media in queryset:
-            if media.start_date and media.end_date:
+            local_start_date = timezone.localdate(media.start_date)
+            local_end_date = timezone.localdate(media.end_date)
+            if local_start_date and local_end_date:
                 # add media to all months between start and end
-                current_date = media.start_date
-                while current_date <= media.end_date:
+                current_date = local_start_date
+                while current_date <= local_end_date:
                     year = current_date.year
                     month = current_date.month
                     month_name = calendar.month_name[month]
@@ -338,18 +340,18 @@ def get_timeline(user_media):
                     # Move to next month
                     current_date += relativedelta(months=1)
                     current_date = current_date.replace(day=1)
-            elif media.start_date:
+            elif local_start_date:
                 # If only start date, add to the start month
-                year = media.start_date.year
-                month = media.start_date.month
+                year = local_start_date.year
+                month = local_start_date.month
                 month_name = calendar.month_name[month]
                 month_year = f"{month_name} {year}"
 
                 timeline[month_year].append(media)
-            elif media.end_date:
+            elif local_end_date:
                 # If only end date, add to the end month
-                year = media.end_date.year
-                month = media.end_date.month
+                year = local_end_date.year
+                month = local_end_date.month
                 month_name = calendar.month_name[month]
                 month_year = f"{month_name} {year}"
 
@@ -379,16 +381,16 @@ def get_timeline(user_media):
 def time_line_sort_key(media):
     """Sort media items in the timeline."""
     if media.start_date is not None:
-        return media.start_date
-    return media.end_date
+        return timezone.localdate(media.start_date)
+    return timezone.localdate(media.end_date)
 
 
 def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
     if start_date is None:
-        start_date = user.date_joined.date()
+        start_date = user.date_joined
     if end_date is None:
-        end_date = timezone.localdate()
+        end_date = timezone.localtime()
 
     # Get the Monday of the week containing start_date (for grid alignment)
     start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())
@@ -402,18 +404,18 @@ def get_activity_data(user, start_date, end_date):
         date_counts[date] = date_counts.get(date, 0) + item["count"]
 
     date_range = [
-        start_date_aligned + datetime.timedelta(days=x)
-        for x in range((end_date - start_date_aligned).days + 1)
+        start_date_aligned.date() + datetime.timedelta(days=x)
+        for x in range((end_date.date() - start_date_aligned.date()).days + 1)
     ]
 
     # Calculate activity statistics
     most_active_day, day_percentage = calculate_day_of_week_stats(
         date_counts,
-        start_date,
+        start_date.date(),
     )
     current_streak, longest_streak = calculate_streaks(
         date_counts,
-        end_date,
+        end_date.date(),
     )
 
     # Create complete date range including padding days
@@ -481,7 +483,7 @@ def get_filtered_historical_data(start_date, end_date, user):
     """Get historical data filtered by date range."""
     historical_models = BasicMedia.objects.get_historical_models()
     combined_data = []
-
+    local_timezone = timezone.get_current_timezone()
     for model_name in historical_models:
         historical_model = apps.get_model("app", model_name)
 
@@ -492,7 +494,9 @@ def get_filtered_historical_data(start_date, end_date, user):
                 history_date__date__gte=start_date,
                 history_date__date__lte=end_date,
             )
-            .annotate(date=TruncDate("history_date"))
+            .annotate(
+                date=TruncDate("history_date", tzinfo=local_timezone),
+            )
             .values("date")
             .annotate(count=Count("id"))
         )

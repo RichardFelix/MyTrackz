@@ -1,7 +1,7 @@
-import datetime
 import logging
 
 from django.apps import apps
+from django.utils import timezone
 
 import app
 from app.models import Media, MediaTypes, Sources
@@ -183,4 +183,12 @@ def get_date(date):
     month = date["month"] or 1
     day = date["day"] or 1
 
-    return datetime.date(date["year"], month, day)
+    return timezone.datetime(
+        year=date["year"],
+        month=month,
+        day=day,
+        hour=0,
+        minute=0,
+        second=0,
+        tzinfo=timezone.get_current_timezone(),
+    )

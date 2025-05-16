@@ -1,5 +1,5 @@
 import csv
-from datetime import date
+from datetime import UTC, datetime
 from io import StringIO
 
 from django.contrib.auth import get_user_model
@@ -62,8 +62,8 @@ class ExportCSVTest(TestCase):
             score=9,
             status=Media.Status.COMPLETED.value,
             notes="Nice",
-            start_date=date(2023, 6, 1),
-            end_date=date(2023, 6, 1),
+            start_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
+            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_season = Item.objects.create(
@@ -96,7 +96,7 @@ class ExportCSVTest(TestCase):
         Episode.objects.create(
             item=item_episode,
             related_season=season,
-            end_date=date(2023, 6, 1),
+            end_date=datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_anime = Item.objects.create(
@@ -111,7 +111,7 @@ class ExportCSVTest(TestCase):
             user=self.user,
             status=Media.Status.IN_PROGRESS.value,
             progress=2,
-            start_date=date(2021, 6, 1),
+            start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_manga = Item.objects.create(
@@ -126,7 +126,7 @@ class ExportCSVTest(TestCase):
             user=self.user,
             status=Media.Status.IN_PROGRESS.value,
             progress=2,
-            start_date=date(2021, 6, 1),
+            start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_game = Item.objects.create(
@@ -141,7 +141,7 @@ class ExportCSVTest(TestCase):
             user=self.user,
             status=Media.Status.IN_PROGRESS.value,
             progress=120,
-            start_date=date(2021, 6, 1),
+            start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
 
         item_book = Item.objects.create(
@@ -156,7 +156,7 @@ class ExportCSVTest(TestCase):
             user=self.user,
             status=Media.Status.IN_PROGRESS.value,
             progress=120,
-            start_date=date(2021, 6, 1),
+            start_date=datetime(2021, 6, 1, 0, 0, tzinfo=UTC),
         )
 
     def test_export_csv(self):

@@ -1,4 +1,3 @@
-import datetime
 import json
 import logging
 from pathlib import Path
@@ -178,8 +177,8 @@ def process_entry(
         progress=attributes["progress"],
         status=get_status(attributes["status"]),
         repeats=attributes["reconsumeCount"],
-        start_date=get_date(attributes["startedAt"]),
-        end_date=get_date(attributes["finishedAt"]),
+        start_date=attributes["startedAt"],
+        end_date=attributes["finishedAt"],
         notes=attributes["notes"] or "",  # sometimes returns None instead of ""
     )
 
@@ -290,18 +289,6 @@ def get_rating(rating):
     """Convert the rating from Kitsu to a 0-10 scale."""
     if rating:
         return rating / 2
-    return None
-
-
-def get_date(date):
-    """Convert the date from Kitsu to a date object."""
-    if date:
-        return (
-            datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
-            .replace(tzinfo=datetime.UTC)
-            .astimezone(settings.TZ)
-            .date()
-        )
     return None
 
 

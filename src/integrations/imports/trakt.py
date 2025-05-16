@@ -1,4 +1,3 @@
-import datetime
 import logging
 import re
 
@@ -48,17 +47,6 @@ class MediaProcessor:
             )
             logger.warning(msg)
             raise MediaImportError(msg) from e
-
-    def _get_date(self, date):
-        """Convert ISO formatted date string to date object."""
-        if date:
-            return (
-                datetime.datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%fZ")
-                .replace(tzinfo=datetime.UTC)
-                .astimezone(settings.TZ)
-                .date()
-            )
-        return None
 
 
 class TVProcessor(MediaProcessor):
@@ -550,7 +538,7 @@ class TraktImporter(MediaProcessor):
             episode_instance = app.models.Episode(
                 item=episode_item,
                 related_season=season_instance,
-                end_date=self._get_date(episode["last_watched_at"]),
+                end_date=episode["last_watched_at"],
                 repeats=episode["plays"] - 1,
             )
             self.bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
@@ -617,8 +605,8 @@ class TraktImporter(MediaProcessor):
             "progress": last_episode_num,
             "status": status,
             "repeats": anime_repeats,
-            "start_date": self._get_date(start_date),
-            "end_date": self._get_date(end_date),
+            "start_date": start_date,
+            "end_date": end_date,
         }
 
     def _process_watched_movies(self, watched, mal_mapping):
@@ -645,8 +633,8 @@ class TraktImporter(MediaProcessor):
                     "progress": 1,
                     "status": Media.Status.COMPLETED.value,
                     "repeats": entry["plays"] - 1,
-                    "start_date": self._get_date(entry["last_watched_at"]),
-                    "end_date": self._get_date(entry["last_watched_at"]),
+                    "start_date": entry["last_watched_at"],
+                    "end_date": entry["last_watched_at"],
                 }
 
                 trakt_id = entry["movie"]["ids"]["trakt"]
