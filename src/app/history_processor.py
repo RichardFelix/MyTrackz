@@ -224,17 +224,17 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
     if old_value is None:
         if field_name == "status":
             verb = media_type_config.get_verb(media_type, past_tense=False)
+            action = "Marked as"
             if new_value == Media.Status.IN_PROGRESS.value:
-                return f"Started {verb}ing"
+                return f"{action} currently {verb}ing"
             if new_value == Media.Status.COMPLETED.value:
-                return f"Finished {verb}ing"
+                return f"{action} finished {verb}ing"
             if new_value == Media.Status.PLANNING.value:
                 return f"Added to {verb}ing list"
             if new_value == Media.Status.DROPPED.value:
-                return f"Stopped {verb}ing"
+                return f"{action} dropped"
             if new_value == Media.Status.PAUSED.value:
-                return f"Paused {verb}ing"
-            return f"Status set to {new_value}"
+                return f"{action} paused {verb}ing"
 
         if field_name == "score":
             return f"Rated {new_value}/10"
@@ -271,7 +271,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             (
                 Media.Status.PLANNING.value,
                 Media.Status.IN_PROGRESS.value,
-            ): f"Started {verb}ing",
+            ): f"Currently {verb}ing",
             (
                 Media.Status.IN_PROGRESS.value,
                 Media.Status.COMPLETED.value,

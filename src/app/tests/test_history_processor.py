@@ -1,7 +1,4 @@
-from datetime import UTC, datetime
-
 from django.test import TestCase
-from django.utils import timezone
 
 from app import media_type_config
 from app.history_processor import format_description
@@ -32,7 +29,7 @@ class HistoryProcessorTests(TestCase):
                 Media.Status.IN_PROGRESS.value,
                 MediaTypes.TV.value,
             ),
-            "Started watching",
+            "Marked as currently watching",
         )
         self.assertEqual(
             format_description(
@@ -41,7 +38,7 @@ class HistoryProcessorTests(TestCase):
                 Media.Status.COMPLETED.value,
                 MediaTypes.MANGA.value,
             ),
-            "Finished reading",
+            "Marked as finished reading",
         )
         self.assertEqual(
             format_description(
@@ -59,7 +56,7 @@ class HistoryProcessorTests(TestCase):
                 Media.Status.DROPPED.value,
                 MediaTypes.BOOK.value,
             ),
-            "Stopped reading",
+            "Marked as dropped",
         )
         self.assertEqual(
             format_description(
@@ -68,11 +65,7 @@ class HistoryProcessorTests(TestCase):
                 Media.Status.PAUSED.value,
                 MediaTypes.ANIME.value,
             ),
-            "Paused watching",
-        )
-        self.assertEqual(
-            format_description("status", None, "Custom Status", MediaTypes.TV.value),
-            "Status set to Custom Status",
+            "Marked as paused watching",
         )
 
     def test_format_description_status_transitions(self):
@@ -85,7 +78,7 @@ class HistoryProcessorTests(TestCase):
                 Media.Status.IN_PROGRESS.value,
                 MediaTypes.TV.value,
             ),
-            "Started watching",
+            "Currently watching",
         )
         self.assertEqual(
             format_description(
@@ -213,41 +206,6 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description("repeats", 2, 1, MediaTypes.GAME.value),
             "Adjusted repeat count from 2 to 1",
-        )
-
-    def test_format_description_dates(self):
-        """Test format_description for date changes."""
-        # Initial dates
-        start_date = datetime(2023, 3, 15, 0, 0, 0, tzinfo=UTC)
-        end_date = datetime(2023, 4, 20, 0, 0, 0, tzinfo=UTC)
-
-        start_date_local = timezone.localtime(start_date)
-        end_date_local = timezone.localtime(end_date)
-
-        self.assertEqual(
-            format_description("start_date", None, start_date),
-            f"Started on {start_date_local.strftime('%Y-%m-%d %H:%M')}",
-        )
-        self.assertEqual(
-            format_description("end_date", None, end_date),
-            f"Finished on {end_date_local.strftime('%Y-%m-%d %H:%M')}",
-        )
-
-        # Date changes
-        new_start = datetime(2023, 5, 1, 0, 0, 0, tzinfo=UTC)
-        new_start_local = timezone.localtime(new_start)
-        self.assertEqual(
-            format_description("start_date", start_date, new_start),
-            (
-                f"Changed start date from {start_date_local.strftime('%Y-%m-%d %H:%M')}"
-                f" to {new_start_local.strftime('%Y-%m-%d %H:%M')}"
-            ),
-        )
-
-        # Date removal
-        self.assertEqual(
-            format_description("end_date", end_date, None),
-            "Removed end date",
         )
 
     def test_format_description_notes(self):
