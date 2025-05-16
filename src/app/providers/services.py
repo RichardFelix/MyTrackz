@@ -74,6 +74,7 @@ class ProviderAPIError(Exception):
     def __init__(self, provider, error, details=None):
         """Initialize the exception with the provider name."""
         self.provider = provider
+        self.status_code = error.response.status_code
         try:
             provider = Sources(provider).label
         except ValueError:

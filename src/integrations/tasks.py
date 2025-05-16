@@ -29,16 +29,18 @@ def import_trakt(username, user_id, mode):
     with disable_fetch_releases():
         (
             num_tv_imported,
+            num_season_imported,
+            num_episode_imported,
             num_movie_imported,
-            num_anime_imported,
             warning_message,
         ) = trakt.importer(username, user, mode)
     events.tasks.reload_calendar.delay()
 
     parts = [
         format_media_type_display(num_tv_imported, MediaTypes.TV.value),
+        format_media_type_display(num_season_imported, MediaTypes.SEASON.value),
+        format_media_type_display(num_episode_imported, MediaTypes.EPISODE.value),
         format_media_type_display(num_movie_imported, MediaTypes.MOVIE.value),
-        format_media_type_display(num_anime_imported, MediaTypes.ANIME.value),
     ]
     parts = [p for p in parts if p is not None]
 
