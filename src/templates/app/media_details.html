@@ -280,14 +280,14 @@
             {% if user_media.start_date %}
               <div class="flex justify-between text-sm">
                 <span class="text-gray-400">Started:</span>
-                <span class="text-gray-200">{{ user_media.start_date|date:"Y-m-d" }}</span>
+                <span class="text-gray-200">{{ user_media.start_date|date:"DATETIME_FORMAT" }}</span>
               </div>
             {% endif %}
 
             {% if user_media.end_date %}
               <div class="flex justify-between text-sm">
                 <span class="text-gray-400">Ended:</span>
-                <span class="text-gray-200">{{ user_media.end_date|date:"Y-m-d" }}</span>
+                <span class="text-gray-200">{{ user_media.end_date|date:"DATETIME_FORMAT" }}</span>
               </div>
             {% endif %}
 
@@ -614,7 +614,7 @@
                   </div>
                   {% if episode.watched %}
                     <p class="text-xs text-gray-400 mt-2">
-                      Last watched: {{ episode.end_date|date:"Y-m-d" }} {{ episode.end_date|time:"H:i" }}
+                      Last watched: {{ episode.end_date|date:"DATETIME_FORMAT" }}
                       {% if episode.repeats > 0 %}• Watched {{ episode.repeats|add:"1" }} times{% endif %}
                     </p>
                   {% endif %}

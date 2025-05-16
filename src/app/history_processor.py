@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.contrib.humanize.templatetags.humanize import ordinal
 from django.template.defaultfilters import pluralize
-from django.utils import timezone
+from django.utils import formats, timezone
 
 from app import helpers, media_type_config
 from app.models import Media, MediaTypes
@@ -359,4 +359,7 @@ def format_datetime(value):
         return value
 
     local_dt = timezone.localtime(value)
-    return local_dt.strftime("%Y-%m-%d %H:%M")
+    return formats.date_format(
+        local_dt,
+        "DATETIME_FORMAT",
+    )

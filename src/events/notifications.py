@@ -5,7 +5,7 @@ import apprise
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.utils import timezone
+from django.utils import formats, timezone
 
 from app.models import MediaTypes
 from app.templatetags import app_tags
@@ -103,9 +103,11 @@ def send_daily_digest():
         return "No users with daily digest enabled"
 
     # Format date for display in local timezone
-    title = (
-        f"📆 YamTrack: Today's Releases ({today_start.date().strftime('%b %d, %Y')}) 📆"
+    message_date = formats.date_format(
+        today_start.date(),
+        "DATE_FORMAT",
     )
+    title = f"📆 YamTrack: Today's Releases ({message_date}) 📆"
 
     result = send_notifications(
         events=events,

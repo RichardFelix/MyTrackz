@@ -53,7 +53,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Air date").click()
         self.page.get_by_role("button", name="Add watch").click()
         expect(self.page.get_by_role("main")).to_contain_text(
-            "Last watched: 2008-01-20",
+            "Last watched: Jan. 20, 2008",
         )
         self.page.get_by_role("link", name="Home").click()
         expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
@@ -62,7 +62,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).click()
         self.page.get_by_role("link", name="Breaking Bad S1").click()
 
-        today = timezone.now().date().isoformat()
+        today = timezone.localtime().strftime("%b %d, %Y")
         expect(self.page.get_by_role("main")).to_contain_text(f"Last watched: {today}")
 
     def test_tv_completed(self):

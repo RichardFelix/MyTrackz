@@ -376,8 +376,8 @@
             <div class="text-sm text-gray-400 space-y-1">
               <div>Username: {{ periodic_import.username }}</div>
               <div>Mode: {{ periodic_import.mode }}</div>
-              <div>Last Import: {{ periodic_import.last_run|date:"Y-m-d G:i" }}</div>
-              <div>Next Import: {{ periodic_import.next_run|date:"Y-m-d G:i" }}</div>
+              <div>Last Import: {{ periodic_import.last_run|date:"DATETIME_FORMAT" }}</div>
+              <div>Next Import: {{ periodic_import.next_run|date:"DATETIME_FORMAT" }}</div>
             </div>
           </div>
         {% empty %}
@@ -433,7 +433,7 @@
 
                 {% source_display result.source %}
               </div>
-              <span class="text-xs text-gray-400">{{ result.date|date:"Y-m-d G:i" }}</span>
+              <span class="text-xs text-gray-400">{{ result.date|date:"DATETIME_FORMAT" }}</span>
             </div>
 
             <div class="text-xs text-gray-400 mb-2">Mode: {{ result.mode }}</div>
