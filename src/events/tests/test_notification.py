@@ -553,7 +553,7 @@ class NotificationTests(TestCase):
         }
 
         # Set events to today
-        now = timezone.now()
+        now = timezone.localtime()
         today = now.replace(hour=12, minute=0, second=0, microsecond=0)
 
         self.anime_event.datetime = today
@@ -641,7 +641,7 @@ class NotificationTests(TestCase):
         }
 
         # Set events to today
-        now = timezone.now()
+        now = timezone.localtime()
         today = now.replace(hour=12, minute=0, second=0, microsecond=0)
 
         self.anime_event.datetime = today
@@ -715,7 +715,7 @@ class NotificationTests(TestCase):
         }
 
         # Set events to today
-        now = timezone.now()
+        now = timezone.localtime()
         today = now.replace(hour=12, minute=0, second=0, microsecond=0)
 
         self.anime_event.datetime = today
