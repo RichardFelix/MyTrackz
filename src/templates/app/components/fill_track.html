@@ -20,7 +20,7 @@
     </button>
   </div>
 
-  <form method="post">
+  <form method="post" x-data="mediaForm" x-init="init">
     {% csrf_token %}
     {{ form.media_type }}
     {{ form.source }}
