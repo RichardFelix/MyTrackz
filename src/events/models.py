@@ -5,7 +5,7 @@ from django.db.models import Case, IntegerField, Q, UniqueConstraint, Value, Whe
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import Item, Media, MediaTypes, Season
+from app.models import TV, Item, Media, MediaTypes, Season
 
 # Statuses that represent inactive tracking
 # will be ignored when creating events
@@ -68,38 +68,48 @@ class EventManager(models.Manager):
         return self.sort_with_sentinel_last(queryset)
 
     def _build_tv_query(self, user, enabled_types):
-        """Build query for TV shows based on latest season status."""
+        """Build query for TV shows based on TV status and season statuses."""
         if not (
             MediaTypes.TV.value in enabled_types
             or MediaTypes.SEASON.value in enabled_types
         ):
             return Q()
 
-        user_seasons = Season.objects.filter(user=user).select_related("item")
-        latest_seasons = {}
+        active_tv_shows = (
+            TV.objects.filter(
+                user=user,
+                item__media_type=MediaTypes.TV.value,
+            )
+            .exclude(
+                status__in=INACTIVE_TRACKING_STATUSES,
+            )
+            .values_list("item__media_id", flat=True)
+        )
 
-        for season in user_seasons:
-            tv_id = season.item.media_id
-            season_number = season.item.season_number
-
-            if (
-                tv_id not in latest_seasons
-                or season_number > latest_seasons[tv_id].item.season_number
-            ):
-                latest_seasons[tv_id] = season
-
-        tv_shows_with_active_latest_season = {
-            tv_id
-            for tv_id, season in latest_seasons.items()
-            if season.status not in INACTIVE_TRACKING_STATUSES
-        }
-
-        if not tv_shows_with_active_latest_season:
+        if not active_tv_shows:
             return Q()
 
-        return Q(
-            item__media_type=MediaTypes.SEASON.value,
-            item__media_id__in=tv_shows_with_active_latest_season,
+        inactive_seasons = Season.objects.filter(
+            user=user,
+            status__in=INACTIVE_TRACKING_STATUSES,
+            item__media_id__in=active_tv_shows,
+        ).select_related("item")
+
+        # Build a query that excludes specific inactive seasons
+        exclude_query = Q()
+        for season in inactive_seasons:
+            exclude_query |= Q(
+                item__media_type=MediaTypes.SEASON.value,
+                item__media_id=season.item.media_id,
+                item__season_number=season.item.season_number,
+            )
+
+        return (
+            Q(
+                item__media_type=MediaTypes.SEASON.value,
+                item__media_id__in=active_tv_shows,
+            )
+            & ~exclude_query
         )
 
     def sort_with_sentinel_last(self, queryset):

@@ -298,8 +298,8 @@ class EventManagerTests(TestCase):
         # Get events for the other user
         other_events = Event.objects.get_user_events(self.other_user, today, next_week)
 
-        # Should have no events, as other user has no active seasons or non-TV media
-        self.assertEqual(other_events.count(), 0)
+        # Other user has TV as active, so get season events
+        self.assertEqual(other_events.count(), 1)
 
         # Test with a different date range
         tomorrow = today + datetime.timedelta(days=1)  # April 16
