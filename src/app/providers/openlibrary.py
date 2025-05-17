@@ -319,7 +319,8 @@ async def get_editions(response_book, response_work):
     if not work_id:
         work_id = book_id
 
-    url = f"https://openlibrary.org/works/{work_id}/editions.json"
+    # limit to 500 editions, pagination is not supported
+    url = f"https://openlibrary.org/works/{work_id}/editions.json?limit=500"
 
     async with aiohttp.ClientSession() as session, session.get(url) as response:
         if response.status == requests.codes.ok:
@@ -333,7 +334,7 @@ async def get_editions(response_book, response_work):
                     "title": edition.get("title"),
                     "image": get_cover_image_url(edition),
                 }
-                for edition in data["entries"][:10]
+                for edition in data["entries"]
                 if extract_openlibrary_id(edition["key"]) != book_id
                 and edition.get("title")
             ]

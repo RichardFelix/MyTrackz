@@ -6,8 +6,9 @@
       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
     <td class="p-2 relative">
       <img alt="{{ media.item }}"
-           class="min-w-10 w-10 h-10 object-cover rounded-md parent-hover-tap:hidden"
-           src="{{ media.item.image }}">
+           class="lazyload min-w-10 w-10 h-10 object-cover rounded-md parent-hover-tap:hidden"
+           data-src="{{ media.item.image }}"
+           src="{{ IMG_NONE }}">
       <button class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
               hx-get="{% media_view_url 'track_modal' media.item %}"
               hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
