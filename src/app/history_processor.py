@@ -244,7 +244,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             if media_type == MediaTypes.GAME.value:
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
             unit = media_type_config.get_unit(media_type, short=False).lower()
-            return f"{verb} {new_value} {unit}{pluralize(new_value)}"
+            return f"{verb} up to {unit} {new_value}"
 
         if field_name == "repeats":
             verb = media_type_config.get_verb(media_type, past_tense=True)
@@ -317,11 +317,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             f"{pluralize(diff_abs)}"
         )
 
-        verb = media_type_config.get_verb(media_type, past_tense=True).title()
-        if diff < 0:
-            verb = "Progress set to"
-
-        return f"{verb} {new_value} {unit}"
+        return f"Progress set to {new_value} {unit}"
 
     if field_name == "repeats":
         # Handle combined case in organize_changes function

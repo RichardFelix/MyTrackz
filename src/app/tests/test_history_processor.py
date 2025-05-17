@@ -165,11 +165,11 @@ class HistoryProcessorTests(TestCase):
         )
         self.assertEqual(
             format_description("progress", None, 5, MediaTypes.BOOK.value),
-            "Read 5 pages",
+            "Read up to page 5",
         )
         self.assertEqual(
             format_description("progress", None, 10, MediaTypes.MANGA.value),
-            "Read 10 chapters",
+            "Read up to chapter 10",
         )
 
         # Progress change
@@ -183,11 +183,11 @@ class HistoryProcessorTests(TestCase):
         )
         self.assertEqual(
             format_description("progress", 10, 15, MediaTypes.BOOK.value),
-            "Read 5 pages",
+            "Progress set to 15 pages",
         )
         self.assertEqual(
             format_description("progress", 5, 10, MediaTypes.MANGA.value),
-            "Read 5 chapters",
+            "Progress set to 10 chapters",
         )
 
     def test_format_description_repeats(self):
@@ -195,11 +195,11 @@ class HistoryProcessorTests(TestCase):
         # Repeat increment
         self.assertEqual(
             format_description("repeats", 0, 1, MediaTypes.TV.value),
-            "Watched again for the 2nd time",
+            "Finished watching again for the 2nd time",
         )
         self.assertEqual(
             format_description("repeats", 1, 2, MediaTypes.BOOK.value),
-            "Read again for the 3rd time",
+            "Finished reading again for the 3rd time",
         )
 
         # Repeat adjustment
