@@ -80,7 +80,7 @@ def search(media_type, query, page):
         ]
 
         total_results = response["total_results"]
-        per_page = 20 # TMDB always returns 20 results per page
+        per_page = 20  # TMDB always returns 20 results per page
         data = helpers.format_search_response(
             page,
             per_page,
@@ -206,8 +206,8 @@ def tv_with_seasons(media_id, season_numbers):
             season_key = f"season/{season_number}"
             if season_key not in response:
                 msg = (
-                    f"Season {season_number} not found for "
-                    f"{Sources.TMDB.label} {media_id}"
+                    f"Season {season_number} not found for {media_id} "
+                    f"in {Sources.TMDB.label}."
                 )
                 # Create a new response object with 404 status
                 not_found_response = requests.Response()
