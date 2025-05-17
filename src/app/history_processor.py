@@ -319,9 +319,9 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if diff < 0:
-            verb = "Reverted"
+            verb = "Progress set to"
 
-        return f"{verb} {diff_abs} {unit}"
+        return f"{verb} {new_value} {unit}"
 
     if field_name == "repeats":
         # Handle combined case in organize_changes function
