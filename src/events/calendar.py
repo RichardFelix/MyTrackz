@@ -52,13 +52,57 @@ def process_items(items_to_process):
 
 
 def save_events(events_bulk):
-    """Save events in bulk."""
+    """Save events in bulk with proper conflict handling."""
+    # Get all existing events that match our bulk data
+    existing_events = Event.objects.filter(
+        item__in=[e.item for e in events_bulk],
+    ).select_related("item")
+
+    # Create lookup dictionaries - separate ones for null and non-null content_number
+    existing_with_content = {
+        (event.item_id, event.content_number): event
+        for event in existing_events
+        if event.content_number is not None
+    }
+    existing_without_content = {
+        event.item_id: event
+        for event in existing_events
+        if event.content_number is None
+    }
+
+    # Split into creates and updates
+    to_create = []
+    to_update = []
+
     for event in events_bulk:
-        Event.objects.update_or_create(
-            item=event.item,
-            content_number=event.content_number,
-            defaults={"datetime": event.datetime},
-        )
+        if event.content_number is not None:
+            key = (event.item_id, event.content_number)
+            if key in existing_with_content:
+                existing_event = existing_with_content[key]
+                existing_event.datetime = event.datetime
+                to_update.append(existing_event)
+            else:
+                to_create.append(event)
+        elif event.item_id in existing_without_content:
+            existing_event = existing_without_content[event.item_id]
+            existing_event.datetime = event.datetime
+            to_update.append(existing_event)
+        else:
+            to_create.append(event)
+
+    # Perform bulk operations
+    if to_create:
+        Event.objects.bulk_create(to_create)
+
+    if to_update:
+        Event.objects.bulk_update(to_update, ["datetime"])
+
+    logger.info(
+        "Successfully processed %d events (%d created, %d updated)",
+        len(events_bulk),
+        len(to_create),
+        len(to_update),
+    )
 
 
 def generate_final_message(items_to_process, skipped_items):
