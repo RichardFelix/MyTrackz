@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 from django.core.cache import cache
-from django.db.models import Count, Exists, OuterRef, Q, Subquery
+from django.db.models import Exists, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from app import media_type_config
@@ -170,30 +170,14 @@ def cleanup_invalid_events(events_bulk):
 
 
 def get_items_to_process(user=None):
-    """Get items to process for the calendar.
-
-    This function identifies items that need calendar events by:
-    1. Finding active items (non-inactive status)
-    2. Replacing season items with their parent TV shows
-    3. Including items with no events or future events
-    4. Including comics with recent events
-    """
-    active_items = get_active_items(user)
-
-    items_needing_events = filter_items_needing_events(active_items)
-
-    return replace_seasons_with_tv_shows(items_needing_events)
-
-
-def get_active_items(user=None):
-    """Get all items, excluding manual sources."""
+    """Get items to process for the calendar."""
     media_types = [
         choice.value
         for choice in MediaTypes
-        if choice not in [MediaTypes.TV, MediaTypes.EPISODE]
+        if choice not in [MediaTypes.SEASON, MediaTypes.EPISODE]
     ]
 
-    active_query = Q()
+    query = Q()
 
     for media_type in media_types:
         # Build query for this media type
@@ -203,18 +187,27 @@ def get_active_items(user=None):
         if user:
             media_query &= Q(**{f"{media_type}__user": user})
 
-        active_query |= media_query
+        query |= media_query
 
-    # Add exclusion for manual sources
-    active_query &= ~Q(source=Sources.MANUAL.value)
+    # Exclude manual sources
+    query &= ~Q(source=Sources.MANUAL.value)
 
-    # Return distinct items
-    return Item.objects.filter(active_query)
+    items = Item.objects.filter(query).distinct()
+
+    return exclude_items_to_fetch(items)
 
 
-def filter_items_needing_events(items):
-    """Filter items that need calendar events."""
+def exclude_items_to_fetch(items):
+    """Filter items that need calendar events according to specific rules.
+
+    1. Always include if item has no events
+    2. For items with events:
+       - If comic: only include if latest event is within 365 days
+       - If TV show: always include
+       - Other media types: only include if has future events
+    """
     now = timezone.now()
+    one_year_ago = now - timezone.timedelta(days=365)
 
     # Subquery for future events
     future_events = Event.objects.filter(
@@ -222,50 +215,24 @@ def filter_items_needing_events(items):
         datetime__gte=now,
     )
 
-    # Subquery for recent comic events (within last year)
-    one_year_ago = now - timezone.timedelta(days=365)
-    recent_comic_events = Event.objects.filter(
+    # Subquery for latest comic event
+    latest_comic_event = Event.objects.filter(
         item=OuterRef("pk"),
         item__media_type=MediaTypes.COMIC.value,
-        datetime__gte=one_year_ago,
     ).order_by("-datetime")
 
-    # Apply filters to identify items needing events
     return items.annotate(
-        event_count=Count("event"),
-        latest_comic_event=Subquery(recent_comic_events.values("datetime")[:1]),
+        has_future_events=Exists(future_events),
+        latest_comic_event_datetime=Subquery(latest_comic_event.values("datetime")[:1]),
     ).filter(
-        Q(Exists(future_events))  # has future events
-        | Q(event__isnull=True)  # no events
+        Q(event__isnull=True)  # No events at all - always include
         | (
-            Q(media_type=MediaTypes.COMIC.value) & Q(latest_comic_event__isnull=False)
-        ),  # comics with recent events
+            Q(media_type=MediaTypes.COMIC.value)
+            & Q(latest_comic_event_datetime__gte=one_year_ago)
+        )  # Comics with recent events
+        | Q(media_type=MediaTypes.TV.value)  # TV shows - always include
+        | Q(has_future_events=True),  # Other media types with future events
     )
-
-
-def replace_seasons_with_tv_shows(items):
-    """Replace season items with their parent TV shows."""
-    # Identify season items
-    season_items = items.filter(media_type=MediaTypes.SEASON.value)
-
-    if not season_items.exists():
-        return items
-
-    # Get media IDs from seasons
-    season_media_ids = season_items.values_list("media_id", flat=True).distinct()
-
-    # Find corresponding TV shows
-    tv_items = Item.objects.filter(
-        media_id__in=season_media_ids,
-        media_type=MediaTypes.TV.value,
-        source=Sources.TMDB.value,
-    )
-
-    # Get all non-season items
-    non_season_items = items.exclude(media_type=MediaTypes.SEASON.value)
-
-    # Combine non-season items with TV shows
-    return non_season_items | tv_items
 
 
 def process_anime_bulk(items, events_bulk):
