@@ -1,7 +1,17 @@
 from datetime import UTC, datetime
 
 from django.db import models
-from django.db.models import Case, IntegerField, Q, UniqueConstraint, Value, When
+from django.db.models import (
+    Case,
+    IntegerField,
+    Min,
+    OuterRef,
+    Q,
+    Subquery,
+    UniqueConstraint,
+    Value,
+    When,
+)
 from django.utils import timezone
 
 from app import media_type_config
@@ -75,6 +85,7 @@ class EventManager(models.Manager):
         ):
             return Q()
 
+        # Get active TV shows
         active_tv_shows = (
             TV.objects.filter(
                 user=user,
@@ -89,19 +100,38 @@ class EventManager(models.Manager):
         if not active_tv_shows:
             return Q()
 
-        inactive_seasons = Season.objects.filter(
-            user=user,
-            status__in=INACTIVE_TRACKING_STATUSES,
-            item__media_id__in=active_tv_shows,
-        ).select_related("item")
+        # Subquery to find the first season with inactive status for each TV show
+        first_dropped_seasons = (
+            Season.objects.filter(
+                user=user,
+                item__media_id=OuterRef("media_id"),
+                status__in=INACTIVE_TRACKING_STATUSES,
+            )
+            .values("item__media_id")
+            .annotate(min_season=Min("item__season_number"))
+            .values("min_season")
+        )
 
-        # Build a query that excludes specific inactive seasons
+        # Get all media_ids and their first dropped season numbers
+        dropped_seasons = (
+            Item.objects.filter(
+                media_id__in=active_tv_shows,
+                media_type=MediaTypes.SEASON.value,
+            )
+            .annotate(
+                first_dropped_season=Subquery(first_dropped_seasons),
+            )
+            .filter(first_dropped_season__isnull=False)
+            .values_list("media_id", "first_dropped_season")
+        )
+
+        # Build exclusion query
         exclude_query = Q()
-        for season in inactive_seasons:
+        for media_id, first_dropped_season in dropped_seasons:
             exclude_query |= Q(
                 item__media_type=MediaTypes.SEASON.value,
-                item__media_id=season.item.media_id,
-                item__season_number=season.item.season_number,
+                item__media_id=media_id,
+                item__season_number__gte=first_dropped_season,
             )
 
         return (
