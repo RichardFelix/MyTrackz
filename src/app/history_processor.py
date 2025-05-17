@@ -252,11 +252,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         if field_name in ["start_date", "end_date"]:
             field_display = "Started" if field_name == "start_date" else "Finished"
-            return (
-                f"{field_display} on {new_value}"
-                if new_value
-                else f"Removed {field_display.lower()} date"
-            )
+            return f"{field_display} on {new_value}"
 
         if field_name == "notes":
             return "Added notes"
@@ -323,15 +319,18 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
 
         verb = media_type_config.get_verb(media_type, past_tense=True).title()
         if diff < 0:
-            verb = "Reverted to"
+            verb = "Reverted"
 
         return f"{verb} {diff_abs} {unit}"
 
     if field_name == "repeats":
         # Handle combined case in organize_changes function
-        verb = media_type_config.get_verb(media_type, past_tense=True).title()
+        verb = media_type_config.get_verb(media_type, past_tense=False).title()
         if new_value > old_value:
-            return f"{verb} again for the {ordinal(new_value + 1)} time"
+            return (
+                f"Finished {verb.lower()}ing again for the "
+                f"{ordinal(new_value + 1)} time"
+            )
         return f"Adjusted repeat count from {old_value} to {new_value}"
 
     if field_name in ["start_date", "end_date"]:
@@ -340,7 +339,7 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
             return f"Removed {field_display.lower()} date"
         if not old_value:
             return f"{field_display}ed on {new_value}"
-        return f"Changed {field_display.lower()} date from {old_value} to {new_value}"
+        return f"{field_display}ed again on {new_value}"
 
     if field_name == "notes":
         if not old_value:
