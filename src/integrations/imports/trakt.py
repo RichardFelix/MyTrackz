@@ -2,7 +2,6 @@ import logging
 
 import requests
 from django.conf import settings
-from django.db import transaction
 
 import app
 from app.models import Media, MediaTypes, Sources
@@ -17,9 +16,7 @@ TRAKT_API_BASE_URL = "https://api.trakt.tv"
 def importer(username, user, mode):
     """Import the user's data from Trakt."""
     trakt_importer = TraktImporter(username, user, mode)
-
-    with transaction.atomic():
-        return trakt_importer.import_data()
+    return trakt_importer.import_data()
 
 
 class TraktImporter:
@@ -135,10 +132,23 @@ class TraktImporter:
 
         # Process in chronological order (oldest first)
         for entry in reversed(full_history):
+            watched_at = entry["watched_at"]
             try:
                 if entry["type"] == "movie":
+                    logger.info(
+                        "Processing movie %s watched at %s",
+                        entry["movie"]["title"],
+                        watched_at,
+                    )
                     self.process_movie(entry)
                 elif entry["type"] == "episode":
+                    logger.info(
+                        "Processing episode %s S%sE%s watched at %s",
+                        entry["show"]["title"],
+                        entry["episode"]["season"],
+                        entry["episode"]["number"],
+                        watched_at,
+                    )
                     self.process_episode(entry)
             except:
                 logger.debug(
@@ -362,8 +372,12 @@ class TraktImporter:
         )
 
         if not created:
+            logger.info(
+                "Existing movie found: %s, adding another watch entry at %s",
+                movie["title"],
+                watched_at,
+            )
             movie_obj.end_date = watched_at
-            movie_obj.status = Media.Status.COMPLETED.value
             movie_obj.repeats += 1
             movie_obj.save()
 
@@ -465,6 +479,13 @@ class TraktImporter:
             },
         )
         if not episode_created:
+            logger.info(
+                "Existing episode found: %s S%sE%s, adding another watch entry at %s",
+                entry["show"]["title"],
+                season_number,
+                episode_number,
+                watched_at,
+            )
             episode_obj.end_date = watched_at
             episode_obj.repeats += 1
             episode_obj.save()
@@ -505,6 +526,10 @@ class TraktImporter:
         entry_type = entry["type"]
 
         if entry_type == "movie":
+            logger.info(
+                "Processing movie %s for watchlist",
+                entry["movie"]["title"],
+            )
             self.process_media_item(
                 entry["movie"],
                 MediaTypes.MOVIE.value,
@@ -512,6 +537,10 @@ class TraktImporter:
                 {"status": Media.Status.PLANNING.value},
             )
         elif entry_type == "show":
+            logger.info(
+                "Processing show %s for watchlist",
+                entry["show"]["title"],
+            )
             self.process_media_item(
                 entry["show"],
                 MediaTypes.TV.value,
@@ -519,6 +548,11 @@ class TraktImporter:
                 {"status": Media.Status.PLANNING.value},
             )
         elif entry_type == "season":
+            logger.info(
+                "Processing season %s S%s for watchlist",
+                entry["show"]["title"],
+                entry["season"]["number"],
+            )
             self.process_media_item(
                 entry["show"],
                 MediaTypes.SEASON.value,
@@ -549,6 +583,11 @@ class TraktImporter:
         rating = entry["rating"]
 
         if entry_type == "movie":
+            logger.info(
+                "Processing movie %s with rating %s",
+                entry["movie"]["title"],
+                rating,
+            )
             self.process_media_item(
                 entry["movie"],
                 MediaTypes.MOVIE.value,
@@ -556,6 +595,11 @@ class TraktImporter:
                 {"score": rating},
             )
         elif entry_type == "show":
+            logger.info(
+                "Processing show %s with rating %s",
+                entry["show"]["title"],
+                rating,
+            )
             self.process_media_item(
                 entry["show"],
                 MediaTypes.TV.value,
@@ -563,6 +607,12 @@ class TraktImporter:
                 {"score": rating},
             )
         elif entry_type == "season":
+            logger.info(
+                "Processing season %s S%s with rating %s",
+                entry["show"]["title"],
+                entry["season"]["number"],
+                rating,
+            )
             self.process_media_item(
                 entry["show"],
                 MediaTypes.SEASON.value,
