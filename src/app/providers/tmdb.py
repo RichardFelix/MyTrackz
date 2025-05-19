@@ -267,6 +267,7 @@ def process_tv(response):
     """Process the metadata for the selected tv show from The Movie Database."""
     num_episodes = response["number_of_episodes"]
     next_episode = response.get("next_episode_to_air")
+    last_episode = response.get("last_episode_to_air")
     return {
         "media_id": response["id"],
         "source": Sources.TMDB.value,
@@ -303,6 +304,7 @@ def process_tv(response):
             ),
         },
         "tvdb_id": response["external_ids"]["tvdb_id"],
+        "last_episode_season": last_episode["season_number"] if last_episode else None,
         "next_episode_season": next_episode["season_number"] if next_episode else None,
     }
 
@@ -311,6 +313,7 @@ def process_season(response):
     """Process the metadata for the selected season from The Movie Database."""
     episodes = response["episodes"]
     num_episodes = len(episodes)
+    last_episode_number = episodes[-1]["episode_number"] if episodes else None
 
     runtimes = []
     total_runtime = 0
@@ -331,7 +334,7 @@ def process_season(response):
         "source": Sources.TMDB.value,
         "media_type": MediaTypes.SEASON.value,
         "season_title": response["name"],
-        "max_progress": num_episodes,
+        "max_progress": last_episode_number,
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
