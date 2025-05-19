@@ -70,7 +70,7 @@
                       onfocus="this.showPicker?.()"
                       x-model="inputDateTime">
               {% if episode.air_date %}
-                <button type="button" @click="inputDateTime = '{{ episode.air_date }}T00:00'"
+                <button type="button" @click="inputDateTime = '{{ episode.air_date }}T{% now 'H:i' %}'"
                         class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors bg-[#2a2f35] px-2 py-1 rounded cursor-pointer">
                   <svg xmlns="http://www.w3.org/2000/svg"
                         width="24"
