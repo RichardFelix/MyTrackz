@@ -240,7 +240,7 @@ class TraktImporter:
                 msg = f"Error processing history entry: {entry}"
                 raise MediaImportError(msg) from e
 
-    def _get_tmdb_id(self, entry_data, media_type):
+    def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
         if (
             "ids" in entry_data
@@ -249,10 +249,7 @@ class TraktImporter:
         ):
             return str(entry_data["ids"]["tmdb"])
 
-        self.warnings.append(
-            f"No {Sources.TMDB.label} ID found for "
-            f"{media_type} {entry_data.get('title', 'Unknown')}",
-        )
+        self.warnings.add(f"{entry_data['title']}: No {Sources.TMDB.label} ID found.")
         return None
 
     def _get_metadata(self, media_type, tmdb_id, title, season_number=None):
@@ -350,7 +347,7 @@ class TraktImporter:
     def process_watched_movie(self, entry):
         """Process a single movie watch event."""
         movie = entry["movie"]
-        tmdb_id = self._get_tmdb_id(movie, MediaTypes.MOVIE.value)
+        tmdb_id = self._get_tmdb_id(movie)
         if not tmdb_id:
             return
 
@@ -410,7 +407,7 @@ class TraktImporter:
     def process_watched_episode(self, entry):
         """Process a single episode watch event."""
         show = entry["show"]
-        tmdb_id = self._get_tmdb_id(show, MediaTypes.TV.value)
+        tmdb_id = self._get_tmdb_id(show)
         if not tmdb_id:
             return
 
@@ -444,7 +441,7 @@ class TraktImporter:
 
         if not episode_exists:
             item_identifier = f"{show['title']} S{season_number}E{episode_number}"
-            self.warnings.append(
+            self.warnings.add(
                 f"{item_identifier}: not found in TMDB with ID {tmdb_id}.",
             )
             return
@@ -666,7 +663,7 @@ class TraktImporter:
         season_number=None,
     ):
         """Process media items for watchlist, ratings, and comments."""
-        tmdb_id = self._get_tmdb_id(media_data, media_type)
+        tmdb_id = self._get_tmdb_id(media_data)
         if not tmdb_id:
             return
 
@@ -680,7 +677,7 @@ class TraktImporter:
         metadata = self._get_metadata(
             media_type,
             tmdb_id,
-            media_data,
+            media_data["title"],
             season_number,
         )
         if not metadata:
