@@ -667,7 +667,6 @@ class TraktImporter:
         if not tmdb_id:
             return
 
-        # Check if we should process this media based on mode
         parent_type = (
             MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
         )
@@ -689,7 +688,6 @@ class TraktImporter:
                 return
             defaults["related_tv"] = tv_obj
 
-        # Create or update the media item
         key = f"{tmdb_id}"
         if media_type == MediaTypes.SEASON.value:
             key = f"{key}:{season_number}"
@@ -697,18 +695,17 @@ class TraktImporter:
         item = self._get_or_create_item(media_type, tmdb_id, metadata, season_number)
 
         if key in self.media_instances[media_type]:
-            # Update existing media object with new attributes
-            for media_obj in self.media_instances[media_type][key]:
-                for attr, value in defaults.items():
-                    setattr(media_obj, attr, value)
-
+            self._update_instance(media_type, key, defaults)
         else:
-            # Create new media object
             media_obj = model_class(
                 item=item,
                 user=self.user,
                 **defaults,
             )
+            # if rating or comment, and media doesnt exist, set status to in progress
+            if "status" not in defaults:
+                media_obj.status = Media.Status.IN_PROGRESS.value
+
             self._add_to_bulk_media(media_type, media_obj, n_watches=0)
             self.media_instances[media_type][key] = [media_obj]
 
@@ -742,3 +739,9 @@ class TraktImporter:
             self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         return tv_obj
+
+    def _update_instance(self, media_type, key, defaults):
+        """Update the instance with new attributes."""
+        for media_obj in self.media_instances[media_type][key]:
+            for attr, value in defaults.items():
+                setattr(media_obj, attr, value)
