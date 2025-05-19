@@ -702,9 +702,6 @@ class TraktImporter:
                 user=self.user,
                 **defaults,
             )
-            # if rating or comment, and media doesnt exist, set status to in progress
-            if "status" not in defaults:
-                media_obj.status = Media.Status.IN_PROGRESS.value
 
             self._add_to_bulk_media(media_type, media_obj, n_watches=0)
             self.media_instances[media_type][key] = [media_obj]
