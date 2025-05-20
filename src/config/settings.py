@@ -411,9 +411,6 @@ SOCIALACCOUNT_PROVIDERS = config(
 SOCIALACCOUNT_ONLY = config("SOCIALACCOUNT_ONLY", default=False, cast=bool)
 if SOCIALACCOUNT_ONLY:
     ACCOUNT_EMAIL_VERIFICATION = "none"
-else:
-    # only works if SOCIALACCOUNT_ONLY is False
-    INSTALLED_APPS += ["allauth.mfa"]
 
 REGISTRATION = config("REGISTRATION", default=True, cast=bool)
 if not REGISTRATION:
