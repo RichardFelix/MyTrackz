@@ -111,6 +111,7 @@ def get_user_list(token):
     params = {
         "extended": "full",
         "episode_watched_at": "yes",
+        "memos": "yes",
     }
 
     return app.providers.services.api_request(
@@ -172,6 +173,7 @@ def process_tv_list(tv_list, user, bulk_media, warnings):
                 user=user,
                 status=tv_status,
                 score=tv["user_rating"],
+                notes=tv["memo"]["text"] if tv["memo"] != {} else "",
             )
             bulk_media[MediaTypes.TV.value].append(tv_instance)
             existing_tv_ids.add(tmdb_id)
@@ -318,6 +320,7 @@ def process_movie_list(movie_list, user, bulk_media, warnings):
                 score=movie["user_rating"],
                 start_date=get_date(movie["last_watched_at"]),
                 end_date=get_date(movie["last_watched_at"]),
+                notes=movie["memo"]["text"] if movie["memo"] != {} else "",
             )
             bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
             existing_movie_ids.add(tmdb_id)
@@ -381,6 +384,7 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
                 progress=anime["watched_episodes_count"],
                 start_date=get_start_date(anime),
                 end_date=get_end_date(anime_status, anime["last_watched_at"]),
+                notes=anime["memo"]["text"] if anime["memo"] != {} else "",
             )
             bulk_media[MediaTypes.ANIME.value].append(anime_instance)
             existing_anime_ids.add(mal_id)
