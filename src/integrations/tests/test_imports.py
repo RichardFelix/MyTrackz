@@ -453,6 +453,7 @@ class ImportSimkl(TestCase):
                             ],
                         },
                     ],
+                    "memo": {},
                 },
             ],
             "movies": [
@@ -461,6 +462,7 @@ class ImportSimkl(TestCase):
                     "status": "completed",
                     "user_rating": 9,
                     "last_watched_at": "2023-02-01T00:00:00Z",
+                    "memo": {},
                 },
             ],
             "anime": [
@@ -470,6 +472,7 @@ class ImportSimkl(TestCase):
                     "user_rating": 7,
                     "watched_episodes_count": 0,
                     "last_watched_at": None,
+                    "memo": {"text": "Great series!"},
                 },
             ],
         }
@@ -506,6 +509,7 @@ class ImportSimkl(TestCase):
         anime_obj = Anime.objects.get(item=anime_item)
         self.assertEqual(anime_obj.status, Media.Status.PLANNING.value)
         self.assertEqual(anime_obj.score, 7)
+        self.assertEqual(anime_obj.notes, "Great series!")
 
     def test_get_status(self):
         """Test mapping SIMKL status to internal status."""
