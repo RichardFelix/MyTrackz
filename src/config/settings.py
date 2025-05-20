@@ -330,7 +330,6 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SYNC_EVERY = 1
 
 CELERY_TASK_TRACK_STARTED = True
@@ -340,6 +339,7 @@ CELERY_RESULT_EXTENDED = True
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "default"
 CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7  # 7 days
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-serializer
 CELERY_TASK_SERIALIZER = "pickle"
@@ -366,7 +366,6 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
 }
-
 # Allauth settings
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
