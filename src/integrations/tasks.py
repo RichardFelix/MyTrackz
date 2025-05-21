@@ -44,11 +44,6 @@ def format_import_message(imported_counts, warning_messages=None):
 def import_media(importer_func, identifier, user_id, mode):
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
-    logger.info(
-        "Starting import from %s for user %s",
-        importer_func.__module__,
-        user.username,
-    )
 
     with disable_fetch_releases():
         imported_counts, warnings = importer_func(identifier, user, mode)
