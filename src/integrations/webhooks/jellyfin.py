@@ -175,12 +175,21 @@ def add_tv(media_id, payload, user):
         },
     )
 
-    tv_instance, _ = app.models.TV.objects.update_or_create(
+    tv_instance, created = app.models.TV.objects.get_or_create(
         item=tv_item,
         user=user,
         defaults={
             "status": Media.Status.IN_PROGRESS.value,
         },
+    )
+
+    if not created and tv_instance.status not in (
+        Media.Status.COMPLETED.value,
+        Media.Status.REPEATING.value,
+        Media.Status.IN_PROGRESS.value,
+    ):
+        tv_instance.status = Media.Status.IN_PROGRESS.value
+        tv_instance.save(
     )
 
     season_item, _ = app.models.Item.objects.get_or_create(
@@ -194,7 +203,7 @@ def add_tv(media_id, payload, user):
         },
     )
 
-    season_instance, _ = app.models.Season.objects.update_or_create(
+    season_instance, created = app.models.Season.objects.get_or_create(
         item=season_item,
         user=user,
         related_tv=tv_instance,
@@ -202,6 +211,14 @@ def add_tv(media_id, payload, user):
             "status": Media.Status.IN_PROGRESS.value,
         },
     )
+
+    if not created and season_instance.status not in (
+        Media.Status.COMPLETED.value,
+        Media.Status.REPEATING.value,
+        Media.Status.IN_PROGRESS.value,
+    ):
+        season_instance.status = Media.Status.IN_PROGRESS.value
+        season_instance.save()
 
     episode_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
@@ -216,14 +233,21 @@ def add_tv(media_id, payload, user):
     )
 
     if payload["Item"]["UserData"]["Played"]:
-        app.models.Episode.objects.get_or_create(
+        now = timezone.now().replace(second=0, microsecond=0)
+        episode, created = app.models.Episode.objects.get_or_create(
             item=episode_item,
             related_season=season_instance,
             defaults={
-                "end_date": timezone.now().replace(second=0, microsecond=0),
+                "end_date": now,
             },
         )
-    else:
+
+        if not created:
+            episode.end_date = now
+            episode.repeats += 1
+            episode.save()
+
+    elif payload["Event"] == "MarkUnplayed":
         app.models.Episode.objects.filter(
             item=episode_item,
             related_season=season_instance,
