@@ -273,7 +273,7 @@
 
     <div class="w-full md:w-1/4 md:max-w-[250px] mx-auto lg:mx-0">
       {# Your History #}
-      {% if user_media %}
+      {% if user_media.start_date or user_media.end_date or user_media.repeats or user_media.formatted_progress and media.media_type != MediaTypes.MOVIE.value %}
         <h2 class="text-xl font-bold mb-4">Your History</h2>
         <div class="bg-[#2a2f35] p-4 rounded-lg text-center md:text-start mb-6">
           <div class="@container flex flex-col gap-y-1">
