@@ -11,9 +11,11 @@ logger = logging.getLogger(__name__)
 
 def process_payload(payload, user):
     """Process a Jellyfin webhook payload."""
+    logger.debug("Processing Jellyfin webhook payload: %s", payload)
+
     event_type = payload["Event"]
 
-    if event_type not in ("Stop", "MarkPlayed", "MarkUnplayed"):
+    if event_type not in ("Play", "Stop", "MarkPlayed", "MarkUnplayed"):
         logger.info("Ignoring Jellyfin webhook event: %s", event_type)
         return
 
@@ -52,24 +54,24 @@ def process_payload(payload, user):
             )
             if mal_id:
                 logger.info("Detected anime: %s", title)
-                add_anime(mal_id, episode_offset, payload, user)
+                handle_anime(mal_id, episode_offset, payload, user)
                 return
 
         logger.info("Detected TV show: %s", title)
-        add_tv(tmdb_id, payload, user)
+        handle_tv_episode(tmdb_id, payload, user)
 
     elif media_type == MediaTypes.MOVIE.value:
         title = payload["Item"]["Name"]
         mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
         if mal_id and user.anime_enabled:
             logger.info("Detected anime movie: %s", title)
-            add_anime(mal_id, 1, payload, user)
+            handle_anime(mal_id, 1, payload, user)
         else:
             logger.info("Detected movie: %s", title)
-            add_movie(tmdb_id, payload, user)
+            handle_movie(tmdb_id, payload, user)
 
 
-def add_anime(media_id, episode_number, payload, user):
+def handle_anime(media_id, episode_number, payload, user):
     """Add an anime episode as watched."""
     anime_metadata = app.providers.mal.anime(media_id)
     episode_played = payload["Item"]["UserData"]["Played"]
@@ -110,7 +112,7 @@ def add_anime(media_id, episode_number, payload, user):
         )
 
 
-def add_movie(media_id, payload, user):
+def handle_movie(media_id, payload, user):
     """Add a movie as watched."""
     movie_metadata = app.providers.tmdb.movie(media_id)
     movie_played = payload["Item"]["UserData"]["Played"]
@@ -154,7 +156,7 @@ def add_movie(media_id, payload, user):
         )
 
 
-def add_tv(media_id, payload, user):
+def handle_tv_episode(media_id, payload, user):
     """Add a TV show episode as watched."""
     season_number = payload["Item"]["ParentIndexNumber"]
     episode_number = payload["Item"]["IndexNumber"]
