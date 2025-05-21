@@ -9,7 +9,7 @@ import app
 from app.models import Media, MediaTypes, Sources
 from app.providers import services
 from integrations import helpers
-from integrations.helpers import MediaImportError
+from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +95,17 @@ class TraktImporter:
         # Bulk create all media
         self._bulk_create_media()
 
-        return (
-            len(self.media_instances[MediaTypes.TV.value]),
-            len(self.media_instances[MediaTypes.SEASON.value]),
-            len(self.media_instances[MediaTypes.EPISODE.value]),
-            len(self.media_instances[MediaTypes.MOVIE.value]),
-            # Deduplicate while preserving order
-            "\n".join(dict.fromkeys(self.warnings)),
-        )
+        imported_counts = {
+            MediaTypes.TV.value: len(self.media_instances[MediaTypes.TV.value]),
+            MediaTypes.SEASON.value: len(self.media_instances[MediaTypes.SEASON.value]),
+            MediaTypes.EPISODE.value: len(
+                self.media_instances[MediaTypes.EPISODE.value],
+            ),
+            MediaTypes.MOVIE.value: len(self.media_instances[MediaTypes.MOVIE.value]),
+        }
+        deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
+
+        return imported_counts, deduplicated_messages
 
     def _bulk_create_media(self):
         """Bulk create all media objects."""
@@ -239,7 +242,7 @@ class TraktImporter:
                     self.process_watched_episode(entry)
             except Exception as e:
                 msg = f"Error processing history entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def _get_tmdb_id(self, entry_data):
         """Extract TMDB ID from entry data."""
@@ -578,7 +581,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing watchlist entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def process_ratings(self):
         """Process ratings from Trakt."""
@@ -595,7 +598,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing rating entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def process_comments(self):
         """Process comments from Trakt."""
@@ -612,7 +615,7 @@ class TraktImporter:
                 )
             except Exception as e:
                 msg = f"Error processing comment entry: {entry}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
     def _process_generic_entry(self, entry, entry_type, attribute_updates=None):
         """Process a generic entry (watchlist, rating, or comment)."""
