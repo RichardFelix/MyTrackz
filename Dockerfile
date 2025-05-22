@@ -29,7 +29,7 @@ RUN apk add --no-cache nginx shadow \
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic --noinput
+RUN SECRET="" python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
