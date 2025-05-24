@@ -260,10 +260,10 @@ def plex_webhook(request, token):
     # the POST request contains a JPEG thumbnail for the media.
 
     # Access payload data
-    data = request.POST.get('payload')
+    data = request.POST.get("payload")
     if not data:
         return HttpResponse("Missing payload", status=400)
-    
+
     payload = json.loads(data)
     plex.process_payload(payload, user)
     return HttpResponse(status=200)

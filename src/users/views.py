@@ -295,6 +295,7 @@ def regenerate_token(request):
             continue
     return redirect("integrations")
 
+
 @require_POST
 def update_plex_usernames(request):
     """Update the Plex usernames for the user."""

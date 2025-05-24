@@ -1,14 +1,14 @@
-import logging
 import json
+import logging
 
-from django.core.cache import cache
 from django.utils import timezone
 
 import app
-from app.models import Media, MediaTypes, Sources
 import app.providers
+from app.models import Media, MediaTypes, Sources
 
 logger = logging.getLogger(__name__)
+
 
 def process_payload(payload, user):
     """Process a Plex webhook payload."""
@@ -20,11 +20,21 @@ def process_payload(payload, user):
         return
 
     # Case-insensitive, trimmed user check (handle User object or string)
-    if payload["Account"]["title"].strip().lower() not in str(user.plex_usernames).strip().lower():
+    if (
+        payload["Account"]["title"].strip().lower()
+        not in str(user.plex_usernames).strip().lower()
+    ):
         logger.info("Ignoring Plex webhook event for user: %s", user)
         return
 
-    tmdb_id = next((guid["id"].replace("tmdb://", "") for guid in payload["Metadata"]["Guid"] if guid["id"].startswith("tmdb://")), None)
+    tmdb_id = next(
+        (
+            guid["id"].replace("tmdb://", "")
+            for guid in payload["Metadata"]["Guid"]
+            if guid["id"].startswith("tmdb://")
+        ),
+        None,
+    )
 
     if payload["Metadata"]["type"] == "episode":
         media_type = MediaTypes.TV.value
@@ -44,7 +54,14 @@ def process_payload(payload, user):
     tmdb_id = int(tmdb_id)
 
     if media_type == MediaTypes.TV.value:
-        imdb_id = next((guid["id"].replace("imdb://", "") for guid in payload["Metadata"]["Guid"] if guid["id"].startswith("imdb://")), None)
+        imdb_id = next(
+            (
+                guid["id"].replace("imdb://", "")
+                for guid in payload["Metadata"]["Guid"]
+                if guid["id"].startswith("imdb://")
+            ),
+            None,
+        )
 
         title = payload["Metadata"]["grandparentTitle"]
 
@@ -85,11 +102,13 @@ def handle_movie(media_id, payload, user):
         item=movie_item,
         user=user,
         defaults={
-            'progress': progress,
-            'status': Media.Status.COMPLETED.value if movie_played else Media.Status.IN_PROGRESS.value,
-            'start_date': now if not movie_played else None,
-            'end_date': now if movie_played else None
-        }
+            "progress": progress,
+            "status": Media.Status.COMPLETED.value
+            if movie_played
+            else Media.Status.IN_PROGRESS.value,
+            "start_date": now if not movie_played else None,
+            "end_date": now if movie_played else None,
+        },
     )
 
     if not created:
@@ -106,22 +125,22 @@ def handle_movie(media_id, payload, user):
                 movie_instance.status = Media.Status.COMPLETED.value
             else:  # From IN_PROGRESS/PLANNING/PAUSED/DROPPED to COMPLETED
                 movie_instance.status = Media.Status.COMPLETED.value
-        else:
-            if movie_instance.status == Media.Status.COMPLETED.value:
-                # Transition from COMPLETED to REPEATING
-                movie_instance.status = Media.Status.REPEATING.value
-                movie_instance.start_date = now  # Reset start date
-                movie_instance.end_date = None   # Clear completion date
-            elif movie_instance.status not in (
-                Media.Status.REPEATING.value,
-                Media.Status.IN_PROGRESS.value,
-            ):
-                # For other statuses (except REPEATING and IN_PROGRESS) set to IN_PROGRESS
-                movie_instance.status = Media.Status.IN_PROGRESS.value
-                if not movie_instance.start_date:
-                    movie_instance.start_date = now
+        elif movie_instance.status == Media.Status.COMPLETED.value:
+            # Transition from COMPLETED to REPEATING
+            movie_instance.status = Media.Status.REPEATING.value
+            movie_instance.start_date = now  # Reset start date
+            movie_instance.end_date = None  # Clear completion date
+        elif movie_instance.status not in (
+            Media.Status.REPEATING.value,
+            Media.Status.IN_PROGRESS.value,
+        ):
+            # For other statuses (except REPEATING and IN_PROGRESS) set to IN_PROGRESS
+            movie_instance.status = Media.Status.IN_PROGRESS.value
+            if not movie_instance.start_date:
+                movie_instance.start_date = now
 
         movie_instance.save()
+
 
 def handle_tv_episode(media_id, payload, user):
     """Add a TV show episode as watched."""
@@ -199,7 +218,7 @@ def handle_tv_episode(media_id, payload, user):
             "image": season_metadata["image"],
         },
     )
-    
+
     now = timezone.now().replace(second=0, microsecond=0)
     episode, created = app.models.Episode.objects.get_or_create(
         item=episode_item,

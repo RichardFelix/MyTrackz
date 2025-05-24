@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Anime, Episode, Item, Media, MediaTypes, Movie, Season
+from app.models import TV, Episode, Item, Media, MediaTypes, Movie, Season
+
 
 class PlexWebhookTests(TestCase):
     """Tests for Plex webhook."""
@@ -12,7 +13,11 @@ class PlexWebhookTests(TestCase):
     def setUp(self):
         """Set up test data."""
         self.client = Client()
-        self.credentials = {"username": "testuser", "token": "test-token"}
+        self.credentials = {
+            "username": "testuser",
+            "token": "test-token",
+            "plex_usernames": "testuser",
+        }
         self.user = get_user_model().objects.create_superuser(**self.credentials)
         self.url = reverse("plex_webhook", kwargs={"token": "test-token"})
 
@@ -25,7 +30,10 @@ class PlexWebhookTests(TestCase):
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
-            "event": "media.scrobble", 
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
             "Metadata": {
                 "type": "episode",
                 "grandparentTitle": "Friends",
@@ -33,18 +41,18 @@ class PlexWebhookTests(TestCase):
                 "parentIndex": 1,
                 "Guid": [
                     {
-                        "id": "imdb://tt0583459"
+                        "id": "imdb://tt0583459",
                     },
                     {
-                        "id": "tmdb://85987"
+                        "id": "tmdb://85987",
                     },
                     {
-                        "id": "tvdb://303821"
-                    }
+                        "id": "tvdb://303821",
+                    },
                 ],
-            }
+            },
         }
-        
+
         data = {
             "payload": json.dumps(payload),
         }
@@ -59,7 +67,7 @@ class PlexWebhookTests(TestCase):
 
         # Verify objects were created
         tv_item = Item.objects.get(media_type=MediaTypes.TV.value, media_id="1668")
-        self.assertEqual(tv_item.title, "Friends") 
+        self.assertEqual(tv_item.title, "Friends")
 
         tv = TV.objects.get(item=tv_item, user=self.user)
         self.assertEqual(tv.status, Media.Status.IN_PROGRESS.value)
@@ -80,22 +88,25 @@ class PlexWebhookTests(TestCase):
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
-            "event": "media.scrobble", 
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
             "Metadata": {
                 "type": "movie",
                 "title": "The Matrix",
                 "Guid": [
                     {
-                        "id": "imdb://tt0133093"
+                        "id": "imdb://tt0133093",
                     },
                     {
-                        "id": "tmdb://603"
+                        "id": "tmdb://603",
                     },
                     {
-                        "id": "tvdb://169"
-                    }
+                        "id": "tvdb://169",
+                    },
                 ],
-            }
+            },
         }
 
         data = {
@@ -121,22 +132,25 @@ class PlexWebhookTests(TestCase):
     def test_ignored_event_types(self):
         """Test webhook ignores irrelevant event types."""
         payload = {
-            "event": "media.something_else", 
+            "event": "media.something_else",
+            "Account": {
+                "title": "testuser",
+            },
             "Metadata": {
                 "type": "movie",
                 "title": "Movie",
                 "Guid": [
                     {
-                        "id": "imdb://tt12345"
+                        "id": "imdb://tt12345",
                     },
                     {
-                        "id": "tmdb://12345"
+                        "id": "tmdb://12345",
                     },
                     {
-                        "id": "tvdb://12345"
-                    }
+                        "id": "tvdb://12345",
+                    },
                 ],
-            }
+            },
         }
 
         data = {
@@ -155,12 +169,15 @@ class PlexWebhookTests(TestCase):
     def test_missing_tmdb_id(self):
         """Test webhook handles missing TMDB ID gracefully."""
         payload = {
-            "event": "media.scrobble", 
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
             "Metadata": {
                 "type": "movie",
                 "title": "The Matrix",
                 "Guid": [],
-            }
+            },
         }
         data = {
             "payload": json.dumps(payload),
@@ -178,28 +195,31 @@ class PlexWebhookTests(TestCase):
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
         payload = {
-            "event": "media.scrobble", 
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
             "Metadata": {
                 "type": "movie",
                 "title": "The Matrix",
                 "Guid": [
                     {
-                        "id": "imdb://tt0133093"
+                        "id": "imdb://tt0133093",
                     },
                     {
-                        "id": "tmdb://603"
+                        "id": "tmdb://603",
                     },
                     {
-                        "id": "tvdb://169"
-                    }
+                        "id": "tvdb://169",
+                    },
                 ],
-            }
+            },
         }
 
         data = {
             "payload": json.dumps(payload),
         }
-        
+
         # First watch
         response = self.client.post(
             self.url,
@@ -216,5 +236,5 @@ class PlexWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         movie = Movie.objects.get(item__media_id="603")
-        self.assertEqual(movie.status, Media.Status.REPEATING.value)
+        self.assertEqual(movie.status, Media.Status.COMPLETED.value)
         self.assertEqual(movie.repeats, 1)
