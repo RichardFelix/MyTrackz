@@ -284,6 +284,11 @@ class User(AbstractUser):
         help_text="Token for external integrations",
     )
 
+    plex_usernames = models.TextField(
+        blank=True,
+        help_text="Comma-separated list of Plex usernames for webhook matching",
+    )
+
     class Meta:
         """Meta options for the model."""
 
