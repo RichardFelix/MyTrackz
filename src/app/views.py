@@ -364,14 +364,12 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                     episodes_to_update.append(episode_item)
                     episode_count += 1
 
-            # Log before bulk update
             logger.info(
                 "Found %s existing episodes to update for %s",
                 episode_count,
                 title,
             )
 
-            # Bulk update existing episodes
             if episodes_to_update:
                 updated_count = Item.objects.bulk_update(
                     episodes_to_update,

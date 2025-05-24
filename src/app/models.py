@@ -108,7 +108,7 @@ class Item(CalendarTriggerMixin, models.Model):
             ),
             # Enforces that season items must have a season number but no episode number
             CheckConstraint(
-                check=Q(
+                condition=Q(
                     media_type=MediaTypes.SEASON.value,
                     season_number__isnull=False,
                     episode_number__isnull=True,
@@ -118,7 +118,7 @@ class Item(CalendarTriggerMixin, models.Model):
             ),
             # Enforces that episode items must have both season and episode numbers
             CheckConstraint(
-                check=Q(
+                condition=Q(
                     media_type=MediaTypes.EPISODE.value,
                     season_number__isnull=False,
                     episode_number__isnull=False,
@@ -128,7 +128,7 @@ class Item(CalendarTriggerMixin, models.Model):
             ),
             # Prevents season/episode numbers from being set on non-TV media types
             CheckConstraint(
-                check=Q(
+                condition=Q(
                     ~Q(
                         media_type__in=[
                             MediaTypes.SEASON.value,
@@ -143,12 +143,12 @@ class Item(CalendarTriggerMixin, models.Model):
             ),
             # Validate source choices
             CheckConstraint(
-                check=Q(source__in=Sources.values),
+                condition=Q(source__in=Sources.values),
                 name="%(app_label)s_%(class)s_source_valid",
             ),
             # Validate media_type choices
             CheckConstraint(
-                check=Q(media_type__in=MediaTypes.values),
+                condition=Q(media_type__in=MediaTypes.values),
                 name="%(app_label)s_%(class)s_media_type_valid",
             ),
         ]
