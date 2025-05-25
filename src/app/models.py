@@ -1306,20 +1306,6 @@ class Episode(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     repeats = models.PositiveIntegerField(default=0)
 
-    class Meta:
-        """Limit the uniqueness of episodes.
-
-        Only one episode per season can have the same episode number.
-        """
-
-        ordering = ["related_season", "item"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["related_season", "item"],
-                name="%(app_label)s_episode_unique_season_item",
-            ),
-        ]
-
     def __str__(self):
         """Return the season and episode number."""
         return self.item.__str__()
