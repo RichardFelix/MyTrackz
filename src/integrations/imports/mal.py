@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 import app
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -99,12 +99,12 @@ def add_media_list(response, media_type, user):
                 progress = list_status["num_episodes_watched"]
                 repeats = list_status["num_times_rewatched"]
                 if list_status["is_rewatching"]:
-                    status = Media.Status.REPEATING.value
+                    status = Status.REPEATING.value
             else:
                 progress = list_status["num_chapters_read"]
                 repeats = list_status["num_times_reread"]
                 if list_status["is_rereading"]:
-                    status = Media.Status.REPEATING.value
+                    status = Status.REPEATING.value
 
             try:
                 image_url = content["node"]["main_picture"]["large"]
@@ -158,12 +158,12 @@ def parse_mal_date(date_str):
 def get_status(status):
     """Convert the status from MyAnimeList to the status used in the app."""
     status_mapping = {
-        "completed": Media.Status.COMPLETED.value,
-        "reading": Media.Status.IN_PROGRESS.value,
-        "watching": Media.Status.IN_PROGRESS.value,
-        "plan_to_watch": Media.Status.PLANNING.value,
-        "plan_to_read": Media.Status.PLANNING.value,
-        "on_hold": Media.Status.PAUSED.value,
-        "dropped": Media.Status.DROPPED.value,
+        "completed": Status.COMPLETED.value,
+        "reading": Status.IN_PROGRESS.value,
+        "watching": Status.IN_PROGRESS.value,
+        "plan_to_watch": Status.PLANNING.value,
+        "plan_to_read": Status.PLANNING.value,
+        "on_hold": Status.PAUSED.value,
+        "dropped": Status.DROPPED.value,
     }
     return status_mapping[status]

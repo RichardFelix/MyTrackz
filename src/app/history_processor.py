@@ -4,7 +4,7 @@ from django.template.defaultfilters import pluralize
 from django.utils import formats, timezone
 
 from app import helpers, media_type_config
-from app.models import Media, MediaTypes
+from app.models import MediaTypes, Status
 
 
 def process_history_entries(history_records, media_type):
@@ -173,7 +173,7 @@ def apply_date_status_integration(changes):
     if (
         date_changes["start_date"]
         and status_change
-        and status_change["new"] == Media.Status.IN_PROGRESS.value
+        and status_change["new"] == Status.IN_PROGRESS.value
     ):
         date_changes["start_date"]["description"] = (
             f"Started on {format_datetime(date_changes['start_date']['new'])}"
@@ -184,7 +184,7 @@ def apply_date_status_integration(changes):
     if (
         date_changes["end_date"]
         and status_change
-        and status_change["new"] == Media.Status.COMPLETED.value
+        and status_change["new"] == Status.COMPLETED.value
     ):
         date_changes["end_date"]["description"] = (
             f"Finished on {format_datetime(date_changes['end_date']['new'])}"
@@ -223,15 +223,15 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         if field_name == "status":
             verb = media_type_config.get_verb(media_type, past_tense=False)
             action = "Marked as"
-            if new_value == Media.Status.IN_PROGRESS.value:
+            if new_value == Status.IN_PROGRESS.value:
                 return f"{action} currently {verb}ing"
-            if new_value == Media.Status.COMPLETED.value:
+            if new_value == Status.COMPLETED.value:
                 return f"{action} finished {verb}ing"
-            if new_value == Media.Status.PLANNING.value:
+            if new_value == Status.PLANNING.value:
                 return f"Added to {verb}ing list"
-            if new_value == Media.Status.DROPPED.value:
+            if new_value == Status.DROPPED.value:
                 return f"{action} dropped"
-            if new_value == Media.Status.PAUSED.value:
+            if new_value == Status.PAUSED.value:
                 return f"{action} paused {verb}ing"
 
         if field_name == "score":
@@ -263,32 +263,32 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
         # Status transitions
         transitions = {
             (
-                Media.Status.PLANNING.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PLANNING.value,
+                Status.IN_PROGRESS.value,
             ): f"Currently {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.COMPLETED.value,
+                Status.IN_PROGRESS.value,
+                Status.COMPLETED.value,
             ): f"Finished {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
             ): f"Paused {verb}ing",
             (
-                Media.Status.PAUSED.value,
-                Media.Status.IN_PROGRESS.value,
+                Status.PAUSED.value,
+                Status.IN_PROGRESS.value,
             ): f"Resumed {verb}ing",
             (
-                Media.Status.IN_PROGRESS.value,
-                Media.Status.DROPPED.value,
+                Status.IN_PROGRESS.value,
+                Status.DROPPED.value,
             ): f"Stopped {verb}ing",
             (
-                Media.Status.COMPLETED.value,
-                Media.Status.REPEATING.value,
+                Status.COMPLETED.value,
+                Status.REPEATING.value,
             ): f"Started re{verb}ing",
             (
-                Media.Status.REPEATING.value,
-                Media.Status.COMPLETED.value,
+                Status.REPEATING.value,
+                Status.COMPLETED.value,
             ): f"Finished re{verb}ing",
         }
         return transitions.get(

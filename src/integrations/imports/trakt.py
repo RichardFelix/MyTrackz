@@ -6,7 +6,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
@@ -383,7 +383,7 @@ class TraktImporter:
                 user=self.user,
                 repeats=n_watches,
                 end_date=watched_at,
-                status=Media.Status.COMPLETED.value,
+                status=Status.COMPLETED.value,
             )
 
             self._add_to_bulk_media(MediaTypes.MOVIE.value, extra_obj, n_watches)
@@ -395,7 +395,7 @@ class TraktImporter:
                 item=item,
                 user=self.user,
                 end_date=watched_at,
-                status=Media.Status.COMPLETED.value,
+                status=Status.COMPLETED.value,
             )
 
             self._add_to_bulk_media(MediaTypes.MOVIE.value, original_obj, n_watches=0)
@@ -463,7 +463,7 @@ class TraktImporter:
             tv_obj = app.models.TV(
                 item=tv_item,
                 user=self.user,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
             self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
@@ -484,7 +484,7 @@ class TraktImporter:
                 item=season_item,
                 user=self.user,
                 related_tv=tv_obj,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
             self._add_to_bulk_media(MediaTypes.SEASON.value, season_obj, n_watches=0)
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
@@ -560,11 +560,11 @@ class TraktImporter:
     ):
         """Update completion status for season and TV show if applicable."""
         if episode_number == season_metadata["max_progress"]:
-            season_obj.status = Media.Status.COMPLETED.value
+            season_obj.status = Status.COMPLETED.value
 
             last_season = tv_metadata.get("last_episode_season")
             if last_season and last_season == season_number:
-                tv_obj.status = Media.Status.COMPLETED.value
+                tv_obj.status = Status.COMPLETED.value
 
     def process_watchlist(self):
         """Process watchlist from Trakt."""
@@ -577,7 +577,7 @@ class TraktImporter:
                 self._process_generic_entry(
                     entry,
                     "watchlist",
-                    {"status": Media.Status.PLANNING.value},
+                    {"status": Status.PLANNING.value},
                 )
             except Exception as e:
                 msg = f"Error processing watchlist entry: {entry}"
@@ -735,7 +735,7 @@ class TraktImporter:
             tv_obj = app.models.TV(
                 item=tv_item,
                 user=self.user,
-                status=Media.Status.IN_PROGRESS.value,
+                status=Status.IN_PROGRESS.value,
             )
             self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]

@@ -6,7 +6,7 @@ from django.db import models
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from app.models import Anime, Item, Manga, Media, MediaTypes, Sources
+from app.models import Anime, Item, Manga, MediaTypes, Sources, Status
 from events.models import Event
 from events.notifications import (
     format_notification,
@@ -64,31 +64,31 @@ class NotificationTests(TestCase):
         Anime.objects.create(
             item=self.anime_item,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Anime.objects.create(
             item=self.anime_item,
             user=self.user2,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Anime.objects.create(
             item=self.anime_item,
             user=self.user3,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Manga.objects.create(
             item=self.manga_item,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         Manga.objects.create(
             item=self.manga_item,
             user=self.user2,
-            status=Media.Status.PAUSED.value,
+            status=Status.PAUSED.value,
         )
 
         # Create events
@@ -149,7 +149,7 @@ class NotificationTests(TestCase):
         Anime.objects.create(
             item=item2,
             user=self.user1,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
         )
 
         # Create event for the second item

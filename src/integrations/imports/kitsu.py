@@ -6,7 +6,7 @@ from django.apps import apps
 from django.conf import settings
 
 import app
-from app.models import Item, Media, MediaTypes, Sources
+from app.models import Item, MediaTypes, Sources, Status
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -185,7 +185,7 @@ def process_entry(
     )
 
     if attributes["reconsuming"]:
-        instance.status = Media.Status.REPEATING.value
+        instance.status = Status.REPEATING.value
 
     return instance
 
@@ -300,10 +300,10 @@ def get_rating(rating):
 def get_status(status):
     """Convert the status from Kitsu to the status used in the app."""
     status_mapping = {
-        "completed": Media.Status.COMPLETED.value,
-        "current": Media.Status.IN_PROGRESS.value,
-        "planned": Media.Status.PLANNING.value,
-        "on_hold": Media.Status.PAUSED.value,
-        "dropped": Media.Status.DROPPED.value,
+        "completed": Status.COMPLETED.value,
+        "current": Status.IN_PROGRESS.value,
+        "planned": Status.PLANNING.value,
+        "on_hold": Status.PAUSED.value,
+        "dropped": Status.DROPPED.value,
     }
     return status_mapping[status]

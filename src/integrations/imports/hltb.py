@@ -8,7 +8,7 @@ from django.utils import timezone
 
 import app
 import app.providers
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -162,18 +162,18 @@ def format_notes(row):
 def determine_status(row):
     """Determine media status based on row data."""
     status_mapping = {
-        "Completed": Media.Status.COMPLETED,
-        "Playing": Media.Status.IN_PROGRESS,
-        "Backlog": Media.Status.PLANNING,
-        "Replay": Media.Status.REPEATING,
-        "Retired": Media.Status.DROPPED,
+        "Completed": Status.COMPLETED,
+        "Playing": Status.IN_PROGRESS,
+        "Backlog": Status.PLANNING,
+        "Replay": Status.REPEATING,
+        "Retired": Status.DROPPED,
     }
 
     for field, status in status_mapping.items():
         if row[field] == "X":
             return status.value
 
-    return Media.Status.COMPLETED.value
+    return Status.COMPLETED.value
 
 
 def parse_hltb_date(date_str):

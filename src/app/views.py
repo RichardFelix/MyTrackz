@@ -18,7 +18,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import helpers, history_processor
 from app import statistics as stats
 from app.forms import ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, Media, MediaTypes, Season, Sources
+from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
@@ -555,7 +555,7 @@ def episode_handler(request):
             item=item,
             user=request.user,
             score=None,
-            status=Media.Status.IN_PROGRESS.value,
+            status=Status.IN_PROGRESS.value,
             notes="",
         )
 

@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from unidecode import unidecode
 
 from app import media_type_config
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 
 register = template.Library()
 
@@ -81,7 +81,7 @@ def media_type_readable_plural(media_type):
 @register.filter
 def media_status_readable(media_status):
     """Return the readable media status."""
-    return Media.Status(media_status).label
+    return Status(media_status).label
 
 
 @register.filter

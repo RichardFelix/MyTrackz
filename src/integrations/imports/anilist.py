@@ -5,7 +5,7 @@ from django.apps import apps
 from django.utils import timezone
 
 import app
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -162,7 +162,7 @@ def process_status_list(bulk_media, status_list, media_type, user, warnings):
                 )
             else:
                 if content["status"] == "CURRENT":
-                    status = Media.Status.IN_PROGRESS.value
+                    status = Status.IN_PROGRESS.value
                 else:
                     status = content["status"].capitalize()
                 notes = content["notes"] or ""

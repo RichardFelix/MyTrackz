@@ -17,7 +17,7 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 from app import media_type_config
-from app.models import TV, BasicMedia, Episode, Media, MediaTypes, Season
+from app.models import TV, BasicMedia, Episode, MediaTypes, Season, Status
 from app.templatetags import app_tags
 
 logger = logging.getLogger(__name__)
@@ -160,13 +160,13 @@ def get_status_distribution(user_media):
     distribution = {}
     total_completed = 0
     # Define status order to ensure consistent stacking
-    status_order = list(Media.Status.values)
+    status_order = list(Status.values)
     for media_type, media_list in user_media.items():
         status_counts = dict.fromkeys(status_order, 0)
         counts = media_list.values("status").annotate(count=models.Count("id"))
         for count_data in counts:
             status_counts[count_data["status"]] = count_data["count"]
-            if count_data["status"] == Media.Status.COMPLETED.value:
+            if count_data["status"] == Status.COMPLETED.value:
                 total_completed += count_data["count"]
 
         distribution[media_type] = status_counts
@@ -293,22 +293,22 @@ def get_score_distribution(user_media):
 def get_status_color(status):
     """Get the color for the status of the media."""
     colors = {
-        Media.Status.IN_PROGRESS.value: media_type_config.get_stats_color(
+        Status.IN_PROGRESS.value: media_type_config.get_stats_color(
             MediaTypes.EPISODE.value,
         ),
-        Media.Status.COMPLETED.value: media_type_config.get_stats_color(
+        Status.COMPLETED.value: media_type_config.get_stats_color(
             MediaTypes.TV.value,
         ),
-        Media.Status.REPEATING.value: media_type_config.get_stats_color(
+        Status.REPEATING.value: media_type_config.get_stats_color(
             MediaTypes.SEASON.value,
         ),
-        Media.Status.PLANNING.value: media_type_config.get_stats_color(
+        Status.PLANNING.value: media_type_config.get_stats_color(
             MediaTypes.ANIME.value,
         ),
-        Media.Status.PAUSED.value: media_type_config.get_stats_color(
+        Status.PAUSED.value: media_type_config.get_stats_color(
             MediaTypes.MOVIE.value,
         ),
-        Media.Status.DROPPED.value: media_type_config.get_stats_color(
+        Status.DROPPED.value: media_type_config.get_stats_color(
             MediaTypes.MANGA.value,
         ),
     }

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 import app
-from app.models import Media, MediaTypes, Sources
+from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations import helpers
 from integrations.helpers import MediaImportError, MediaImportUnexpectedError
@@ -226,7 +226,7 @@ def process_seasons_and_episodes(
 
         # Prepare Season instance for bulk creation
         season_status = (
-            Media.Status.COMPLETED.value
+            Status.COMPLETED.value
             if season_number != season_numbers[-1]
             else tv_instance.status
         )
@@ -401,14 +401,14 @@ def process_anime_list(anime_list, user, bulk_media, warnings):
 def get_status(status):
     """Map SIMKL status to internal status."""
     status_mapping = {
-        "completed": Media.Status.COMPLETED.value,
-        "watching": Media.Status.IN_PROGRESS.value,
-        "plantowatch": Media.Status.PLANNING.value,
-        "hold": Media.Status.PAUSED.value,
-        "dropped": Media.Status.DROPPED.value,
+        "completed": Status.COMPLETED.value,
+        "watching": Status.IN_PROGRESS.value,
+        "plantowatch": Status.PLANNING.value,
+        "hold": Status.PAUSED.value,
+        "dropped": Status.DROPPED.value,
     }
 
-    return status_mapping.get(status, Media.Status.IN_PROGRESS.value)
+    return status_mapping.get(status, Status.IN_PROGRESS.value)
 
 
 def get_date(date_str):
@@ -430,6 +430,6 @@ def get_start_date(anime):
 
 def get_end_date(anime_status, last_watched_at):
     """Get the end date based on the anime status."""
-    if anime_status == Media.Status.COMPLETED.value:
+    if anime_status == Status.COMPLETED.value:
         return get_date(last_watched_at)
     return None
