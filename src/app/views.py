@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @require_GET
 def home(request):
-    """Home page with media items in progress and repeating."""
+    """Home page with media items in progress."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     media_type_to_load = request.GET.get("load_media_type")
     items_limit = 14

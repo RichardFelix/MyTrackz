@@ -282,14 +282,6 @@ def format_description(field_name, old_value, new_value, media_type=None):  # no
                 Status.IN_PROGRESS.value,
                 Status.DROPPED.value,
             ): f"Stopped {verb}ing",
-            (
-                Status.COMPLETED.value,
-                Status.REPEATING.value,
-            ): f"Started re{verb}ing",
-            (
-                Status.REPEATING.value,
-                Status.COMPLETED.value,
-            ): f"Finished re{verb}ing",
         }
         return transitions.get(
             (old_value, new_value),

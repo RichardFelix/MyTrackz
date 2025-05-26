@@ -299,9 +299,6 @@ def get_status_color(status):
         Status.COMPLETED.value: media_type_config.get_stats_color(
             MediaTypes.TV.value,
         ),
-        Status.REPEATING.value: media_type_config.get_stats_color(
-            MediaTypes.SEASON.value,
-        ),
         Status.PLANNING.value: media_type_config.get_stats_color(
             MediaTypes.ANIME.value,
         ),

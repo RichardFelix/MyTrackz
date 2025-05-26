@@ -14,7 +14,6 @@ from django.db.models import (
     Max,
     Prefetch,
     Q,
-    Sum,
     UniqueConstraint,
 )
 from django.db.models.functions import Cast
@@ -409,10 +408,7 @@ class MediaManager(models.Manager):
             media_list = self.get_media_list(
                 user=user,
                 media_type=media_type,
-                status_filter=[
-                    Status.IN_PROGRESS.value,
-                    Status.REPEATING.value,
-                ],
+                status_filter=Status.IN_PROGRESS.value,
                 sort_filter=None,
             )
 
@@ -660,7 +656,6 @@ class Status(models.TextChoices):
 
     COMPLETED = "Completed", "Completed"
     IN_PROGRESS = "In progress", "In Progress"
-    REPEATING = "Repeating", "Repeating"
     PLANNING = "Planning", "Planning"
     PAUSED = "Paused", "Paused"
     DROPPED = "Dropped", "Dropped"
@@ -677,9 +672,11 @@ class Media(models.Model):
             "progress_changed",
             "user",
             "related_tv",
+            "created_at",
         ],
     )
 
+    created_at = models.DateTimeField(auto_now_add=True)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     score = models.DecimalField(
@@ -700,7 +697,6 @@ class Media(models.Model):
         choices=Status.choices,
         default=Status.COMPLETED.value,
     )
-    repeats = models.PositiveIntegerField(default=0)
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
@@ -762,9 +758,6 @@ class Media(models.Model):
 
             if max_progress:
                 self.progress = max_progress
-
-            if self.tracker.previous("status") == Status.REPEATING.value:
-                self.repeats += 1
 
         self.item.fetch_releases(delay=True)
 
@@ -863,18 +856,6 @@ class TV(Media):
         )
 
         return f"S{latest_episode['season']:02d}E{latest_episode['episode']:02d}"
-
-    @property
-    def repeats(self):
-        """Return the number of max repeated episodes in the TV show."""
-        return max(
-            (
-                season.repeats
-                for season in self.seasons.all()
-                if season.item.season_number != 0
-            ),
-            default=0,
-        )
 
     @property
     def start_date(self):
@@ -1017,29 +998,15 @@ class Season(Media):
     @property
     def progress(self):
         """Return the current episode number of the season."""
-        # continue initial watch
-        if self.status == Status.REPEATING.value:
-            # sort by repeats and then by episode_number
-            sorted_episodes = sorted(
-                self.episodes.all(),
-                key=lambda e: (e.repeats, e.item.episode_number),
-                reverse=True,
-            )
-        else:
-            sorted_episodes = sorted(
-                self.episodes.all(),
-                key=lambda e: e.item.episode_number,
-                reverse=True,
-            )
+        sorted_episodes = sorted(
+            self.episodes.all(),
+            key=lambda e: e.item.episode_number,
+            reverse=True,
+        )
 
         if sorted_episodes:
             return sorted_episodes[0].item.episode_number
         return 0
-
-    @property
-    def repeats(self):
-        """Return the number of max repeated episodes in the season."""
-        return max((episodes.repeats for episodes in self.episodes.all()), default=0)
 
     @property
     def start_date(self):
@@ -1091,32 +1058,18 @@ class Season(Media):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
 
-        try:
-            episode = Episode.objects.get(
-                related_season=self,
-                item=item,
-            )
-            episode.end_date = end_date
-            episode.repeats += 1
-            episode.save()
-            logger.info(
-                "%s rewatched successfully.",
-                episode,
-            )
-        except Episode.DoesNotExist:
-            # from the form, end_date is a string
-            if end_date == "None":
-                end_date = None
+        if end_date == "None":
+            end_date = None
 
-            episode = Episode.objects.create(
-                related_season=self,
-                item=item,
-                end_date=end_date,
-            )
-            logger.info(
-                "%s created successfully.",
-                episode,
-            )
+        episode = Episode.objects.create(
+            related_season=self,
+            item=item,
+            end_date=end_date,
+        )
+        logger.info(
+            "%s created successfully.",
+            episode,
+        )
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
@@ -1124,57 +1077,33 @@ class Season(Media):
 
     def unwatch(self, episode_number):
         """Unwatch the episode instance."""
-        try:
-            item = self.get_episode_item(episode_number)
+        item = self.get_episode_item(episode_number)
 
-            episode = Episode.objects.get(
-                related_season=self,
-                item=item,
-            )
+        episodes = Episode.objects.filter(
+            related_season=self,
+            item=item,
+        ).order_by("-end_date")
 
-            if episode.repeats > 0:
-                # Get the historical records for this episode
-                history = episode.history.all()
+        episode = episodes.first()
 
-                if history.count() > 1:
-                    # Get the previous historical record (second latest)
-                    previous_record = history[1]
-
-                    # Revert to previous state without creating new history
-                    episode.repeats = previous_record.repeats
-                    episode.end_date = previous_record.end_date
-                    episode.save_without_historical_record()
-
-                    # Delete the latest historical record (the one we're reverting from)
-                    latest_record = history.first()
-                    latest_record.delete()
-
-                    logger.info(
-                        "%s reverted to previous state (repeats: %s)",
-                        episode,
-                        episode.repeats,
-                    )
-                else:
-                    # Fallback to original behavior if no previous history exists
-                    episode.repeats -= 1
-                    episode.save_without_historical_record(update_fields=["repeats"])
-                    logger.info(
-                        "%s watch count decreased (no history to revert).",
-                        episode,
-                    )
-            else:
-                episode.delete()
-                logger.info(
-                    "%s deleted successfully.",
-                    episode,
-                )
-
-        except Episode.DoesNotExist:
+        if episode is None:
             logger.warning(
-                "Episode %sE%s does not exist.",
-                self,
-                episode_number,
+                "Episode %s does not exist.",
+                self.item,
             )
+            return
+
+        # Get count before deletion for logging
+        remaining_count = episodes.count() - 1
+
+        episode.delete()
+        logger.info(
+            "Deleted %s S%02dE%02d (%d remaining instances)",
+            self.item.title,
+            self.item.season_number,
+            episode_number,
+            remaining_count,
+        )
 
     def get_tv(self):
         """Get related TV instance for a season and create it if it doesn't exist."""
@@ -1299,9 +1228,10 @@ class Episode(models.Model):
 
     history = HistoricalRecords(
         cascade_delete_history=True,
-        excluded_fields=["item", "related_season"],
+        excluded_fields=["item", "related_season", "created_at"],
     )
 
+    created_at = models.DateTimeField(auto_now_add=True)
     item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
     related_season = models.ForeignKey(
         Season,
@@ -1309,7 +1239,6 @@ class Episode(models.Model):
         related_name="episodes",
     )
     end_date = models.DateTimeField(null=True, blank=True)
-    repeats = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         """Return the season and episode number."""
@@ -1325,10 +1254,7 @@ class Episode(models.Model):
         self.related_season.related_tv.progress_changed = now
         self.related_season.related_tv.save(update_fields=["progress_changed"])
 
-        if self.related_season.status in (
-            Status.IN_PROGRESS.value,
-            Status.REPEATING.value,
-        ):
+        if self.related_season.status == Status.IN_PROGRESS.value:
             season_number = self.item.season_number
             tv_with_seasons_metadata = providers.services.get_media_metadata(
                 "tv_with_seasons",
@@ -1338,29 +1264,15 @@ class Episode(models.Model):
             )
             season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
             max_progress = len(season_metadata["episodes"])
-            total_repeats = self.related_season.episodes.aggregate(
-                total_repeats=Sum("repeats"),
-            )["total_repeats"]
 
             # clear prefetch cache to get the updated episodes
             self.related_season.refresh_from_db()
 
             season_just_completed = False
-            if (
-                self.related_season.status == Status.IN_PROGRESS.value
-                and self.related_season.progress == max_progress
-            ):
+            if self.related_season.progress == max_progress:
                 self.related_season.status = Status.COMPLETED.value
                 self.related_season.save_base(update_fields=["status"])
                 season_just_completed = True
-
-            else:
-                total_watches = self.related_season.progress + total_repeats
-
-                if total_watches >= max_progress * (self.related_season.repeats + 1):
-                    self.related_season.status = Status.COMPLETED.value
-                    self.related_season.save_base(update_fields=["status"])
-                    season_just_completed = True
 
             if season_just_completed:
                 last_season = tv_with_seasons_metadata["related"]["seasons"][-1][

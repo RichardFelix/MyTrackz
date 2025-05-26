@@ -45,7 +45,6 @@ class MediaStatusChoices(models.TextChoices):
     ALL = "All", "All"
     COMPLETED = Status.COMPLETED.value, Status.COMPLETED.label
     IN_PROGRESS = Status.IN_PROGRESS.value, Status.IN_PROGRESS.label
-    REPEATING = Status.REPEATING.value, Status.REPEATING.label
     PLANNING = Status.PLANNING.value, Status.PLANNING.label
     PAUSED = Status.PAUSED.value, Status.PAUSED.label
     DROPPED = Status.DROPPED.value, Status.DROPPED.label

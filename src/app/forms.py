@@ -204,7 +204,6 @@ class MediaForm(forms.ModelForm):
             "score",
             "progress",
             "status",
-            "repeats",
             "start_date",
             "end_date",
             "notes",
@@ -214,15 +213,11 @@ class MediaForm(forms.ModelForm):
                 attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
             ),
             "progress": forms.NumberInput(attrs={"min": 0}),
-            "repeats": forms.NumberInput(attrs={"min": 0}),
             "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "notes": forms.Textarea(
                 attrs={"placeholder": "Add any notes or comments..."},
             ),
-        }
-        labels = {
-            "repeats": "Number of Repeats",
         }
 
 
@@ -238,7 +233,6 @@ class MangaForm(MediaForm):
                 f"Progress "
                 f"({media_type_config.get_unit(MediaTypes.MANGA.value, short=False)}s)"
             ),
-            "repeats": "Number of Rereads",
         }
 
 
@@ -260,7 +254,6 @@ class MovieForm(MediaForm):
         model = Movie
         fields = [
             "score",
-            "repeats",
             "status",
             "start_date",
             "end_date",
@@ -281,9 +274,6 @@ class GameForm(MediaForm):
         """Bind form to model."""
 
         model = Game
-        labels = {
-            "repeats": "Number of Replays",
-        }
 
 
 class BookForm(MediaForm):
@@ -298,7 +288,6 @@ class BookForm(MediaForm):
                 f"Progress "
                 f"({media_type_config.get_unit(MediaTypes.BOOK.value, short=False)}s)"
             ),
-            "repeats": "Number of Rereads",
         }
 
 
@@ -314,7 +303,6 @@ class ComicForm(MediaForm):
                 f"Progress "
                 f"({media_type_config.get_unit(MediaTypes.COMIC.value, short=False)}s)"
             ),
-            "repeats": "Number of Rereads",
         }
 
 
@@ -351,7 +339,7 @@ class EpisodeForm(forms.ModelForm):
         """Bind form to model."""
 
         model = Episode
-        fields = ("end_date", "repeats")
+        fields = ("end_date",)
         widgets = {
             "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),

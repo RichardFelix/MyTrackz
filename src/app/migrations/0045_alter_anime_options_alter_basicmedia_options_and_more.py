@@ -64,11 +64,20 @@ def convert_media_repeats_to_instances(apps, schema_editor):
                 previous_repeats = current_repeats
 
             if media_obj.status == 'Repeating':
-                media_obj.status = 'In progress'
-                media_obj.repeats = 0
-                media_obj.save()
-            else:
-                media_obj.delete()
+                new_instance = Media(
+                    item=media_obj.item,
+                    user=media_obj.user,
+                    score=media_obj.score,
+                    progress=media_obj.progress,
+                    status='In progress',
+                    repeats=0,
+                    start_date=media_obj.start_date,
+                    end_date=media_obj.end_date,
+                    notes=media_obj.notes
+                )
+                new_instance.save()
+            
+            media_obj.delete()
 
 
 class Migration(migrations.Migration):

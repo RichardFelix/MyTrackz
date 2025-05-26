@@ -117,24 +117,6 @@ class HistoryProcessorTests(TestCase):
             "Stopped watching",
         )
         self.assertEqual(
-            format_description(
-                "status",
-                Status.COMPLETED.value,
-                Status.REPEATING.value,
-                MediaTypes.MOVIE.value,
-            ),
-            "Started rewatching",
-        )
-        self.assertEqual(
-            format_description(
-                "status",
-                Status.REPEATING.value,
-                Status.COMPLETED.value,
-                MediaTypes.MANGA.value,
-            ),
-            "Finished rereading",
-        )
-        self.assertEqual(
             format_description("status", "Custom1", "Custom2", MediaTypes.TV.value),
             "Changed status from Custom1 to Custom2",
         )

@@ -169,7 +169,7 @@ class MediaManagerTests(TestCase):
         self.manga = Manga.objects.create(
             item=self.manga_item,
             user=self.user,
-            status=Status.REPEATING.value,
+            status=Status.IN_PROGRESS.value,
             score=10,
             progress=100,
         )
@@ -812,7 +812,7 @@ class MediaManagerTests(TestCase):
             items_limit=5,
         )
 
-        # Should include anime, game, and manga (in progress or repeating)
+        # Should include anime, game, and manga (in progress)
         self.assertIn(MediaTypes.ANIME.value, in_progress)
         self.assertIn(MediaTypes.GAME.value, in_progress)
         self.assertIn(MediaTypes.MANGA.value, in_progress)
@@ -965,19 +965,6 @@ class MediaModel(TestCase):
             26,
         )
 
-    def test_completed_from_repeating(self):
-        """When completed from repeating, repeats should be incremented."""
-        self.anime.status = Status.REPEATING.value
-        self.anime.save()
-
-        self.anime.status = Status.COMPLETED.value
-        self.anime.save()
-
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).repeats,
-            1,
-        )
-
     def test_progress_is_max(self):
         """When progress is maximum number of episodes.
 
@@ -993,20 +980,6 @@ class MediaModel(TestCase):
         )
         self.assertIsNotNone(
             Anime.objects.get(item__media_id="1", user=self.user).end_date,
-        )
-
-    def test_progress_is_max_from_repeating(self):
-        """When progress is maximum number of episodes and status is repeating.
-
-        Repeat should be incremented.
-        """
-        self.anime.status = Status.REPEATING.value
-        self.anime.save()
-        self.anime.progress = 26
-        self.anime.save()
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).repeats,
-            1,
         )
 
     def test_progress_bigger_than_max(self):
