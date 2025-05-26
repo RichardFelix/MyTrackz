@@ -709,13 +709,7 @@ class Media(models.Model):
         """Meta options for the model."""
 
         abstract = True
-        ordering = ["-score"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["item", "user"],
-                name="%(app_label)s_%(class)s_unique_item_user",
-            ),
-        ]
+        ordering = ["user", "item"]
 
     def __str__(self):
         """Return the title of the media."""
@@ -814,6 +808,17 @@ class TV(Media):
 
     tracker = FieldTracker()
     progress_changed = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["user", "item"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "item"],
+                name="%(app_label)s_%(class)s_unique_item_user",
+            ),
+        ]
 
     @tracker  # postpone field reset until after the save
     def save(self, *args, **kwargs):
