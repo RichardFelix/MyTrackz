@@ -48,7 +48,7 @@ def _is_supported_event(event_type):
 
 def _is_valid_user(payload, user):
     incoming_username = payload["Account"]["title"].strip().lower()
-    
+
     stored_usernames = [
         u.strip().lower() for u in (user.plex_usernames or "").split(",") if u.strip()
     ]
