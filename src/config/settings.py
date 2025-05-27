@@ -44,9 +44,9 @@ def secret(key, default=undefined, **kwargs):
             return Config(RepositorySecret(path.parent))(path.stem, default, **kwargs)
         return Config(RepositorySecret())(file, default, **kwargs)
     except (
-            FileNotFoundError,
-            IsADirectoryError,
-            UndefinedValueError,
+        FileNotFoundError,
+        IsADirectoryError,
+        UndefinedValueError,
     ) as err:
         msg = f"File from {key} not found. Please check the path and filename."
         raise UndefinedValueError(msg) from err
@@ -56,7 +56,11 @@ def secret(key, default=undefined, **kwargs):
 # See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET", default=secret("SECRET_FILE"))
+SECRET_KEY = config(
+    "SECRET",
+    default=secret("SECRET_FILE", default="ifx7bdUWo5EwC2NQNihjRjOrW00Cdv5Y"),
+)
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=False, cast=bool)
@@ -284,7 +288,7 @@ AUTH_USER_MODEL = "users.User"
 # Yamtrack settings
 
 # For CSV imports
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 
 VERSION = config("VERSION", default="dev")
 
@@ -298,16 +302,20 @@ REQUEST_TIMEOUT = 120  # seconds
 PER_PAGE = 24
 
 TMDB_API = config(
-    "TMDB_API", default=secret(
-        "TMDB_API_FILE", "61572be02f0a068658828f6396aacf60",
+    "TMDB_API",
+    default=secret(
+        "TMDB_API_FILE",
+        "61572be02f0a068658828f6396aacf60",
     ),
 )
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
 MAL_API = config(
-    "MAL_API", default=secret(
-        "MAL_API_FILE", "25b5581dafd15b3e7d583bb79e9a1691",
+    "MAL_API",
+    default=secret(
+        "MAL_API_FILE",
+        "25b5581dafd15b3e7d583bb79e9a1691",
     ),
 )
 MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
@@ -315,19 +323,24 @@ MAL_NSFW = config("MAL_NSFW", default=False, cast=bool)
 MU_NSFW = config("MU_NSFW", default=False, cast=bool)
 
 IGDB_ID = config(
-    "IGDB_ID", default=secret(
-        "IGDB_ID_FILE", "8wqmm7x1n2xxtnz94lb8mthadhtgrt",
+    "IGDB_ID",
+    default=secret(
+        "IGDB_ID_FILE",
+        "8wqmm7x1n2xxtnz94lb8mthadhtgrt",
     ),
 )
 IGDB_SECRET = config(
-    "IGDB_SECRET", default=secret(
-        "IGDB_SECRET_FILE", "ovbq0hwscv58hu46yxn50hovt4j8kj",
+    "IGDB_SECRET",
+    default=secret(
+        "IGDB_SECRET_FILE",
+        "ovbq0hwscv58hu46yxn50hovt4j8kj",
     ),
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 HARDCOVER_API = config(
-    "HARDCOVER_API", default=secret(
+    "HARDCOVER_API",
+    default=secret(
         "HARDCOVER_API_FILE",
         "Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIYXJkY292ZXIiLCJ2ZXJzaW9uIjoiOCIsImp0"
         "aSI6ImJhNGNjZmUwLTgwZmQtNGI3NC1hZDdhLTlkNDM5ZTA5YWMzOSIsImFwcGxpY2F0aW9uSWQi"
@@ -341,25 +354,30 @@ HARDCOVER_API = config(
 )
 
 COMICVINE_API = config(
-    "COMICVINE_API", default=secret(
-        "COMICVINE_API_FILE", "cdab0706269e4bca03a096fbc39920dadf7e4992",
+    "COMICVINE_API",
+    default=secret(
+        "COMICVINE_API_FILE",
+        "cdab0706269e4bca03a096fbc39920dadf7e4992",
     ),
 )
 
 TRAKT_API = config(
-    "TRAKT_API", default=secret(
+    "TRAKT_API",
+    default=secret(
         "TRAKT_API_FILE",
         "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
     ),
 )
 SIMKL_ID = config(
-    "SIMKL_ID", default=secret(
+    "SIMKL_ID",
+    default=secret(
         "SIMKL_ID_FILE",
         "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
     ),
 )
 SIMKL_SECRET = config(
-    "SIMKL_SECRET", default=secret(
+    "SIMKL_SECRET",
+    default=secret(
         "SIMKL_SECRET_FILE",
         "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
     ),
@@ -475,8 +493,10 @@ SOCIAL_PROVIDERS = config("SOCIAL_PROVIDERS", default="", cast=Csv())
 INSTALLED_APPS += SOCIAL_PROVIDERS
 
 SOCIALACCOUNT_PROVIDERS = config(
-    "SOCIALACCOUNT_PROVIDERS", default=secret(
-        "SOCIALACCOUNT_PROVIDERS_FILE", default="{}",
+    "SOCIALACCOUNT_PROVIDERS",
+    default=secret(
+        "SOCIALACCOUNT_PROVIDERS_FILE",
+        default="{}",
     ),
     cast=json.loads,
 )
