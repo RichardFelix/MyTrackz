@@ -569,7 +569,43 @@ class MediaManager(models.Manager):
             tv_episodes = released_episodes.get(tv.item.media_id, {})
             tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
 
+
     def get_media(
+        self,
+        media_type,
+        user,
+        instance_id,
+    ):
+        """Get user media object given the media type and item."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        params = self._get_media_params(
+            media_type,
+            user,
+            instance_id,
+        )
+
+        try:
+            return model.objects.get(**params)
+        except model.DoesNotExist:
+            return None
+
+    def _get_media_params(
+        self,
+        media_type,
+        user,
+        instance_id,
+    ):
+        """Get the common filter parameters for media queries."""
+        params = {"id": instance_id}
+
+        if media_type == MediaTypes.EPISODE.value:
+            params["related_season__user"] = user
+        else:
+            params["user"] = user
+
+        return params
+
+    def filter_media(
         self,
         user,
         media_id,
@@ -580,7 +616,7 @@ class MediaManager(models.Manager):
     ):
         """Get user media object given the media type and item."""
         model = apps.get_model(app_label="app", model_name=media_type)
-        params = self._get_media_params(
+        params = self._filter_media_params(
             media_type,
             media_id,
             source,
@@ -594,7 +630,7 @@ class MediaManager(models.Manager):
         except model.DoesNotExist:
             return None
 
-    def get_media_prefetch(
+    def filter_media_prefetch(
         self,
         user,
         media_id,
@@ -605,7 +641,7 @@ class MediaManager(models.Manager):
     ):
         """Get user media object with prefetch_related applied."""
         model = apps.get_model(app_label="app", model_name=media_type)
-        params = self._get_media_params(
+        params = self._filter_media_params(
             media_type,
             media_id,
             source,
@@ -622,7 +658,7 @@ class MediaManager(models.Manager):
             return queryset[0]
         return None
 
-    def _get_media_params(
+    def _filter_media_params(
         self,
         media_type,
         media_id,
@@ -705,7 +741,7 @@ class Media(models.Model):
         """Meta options for the model."""
 
         abstract = True
-        ordering = ["user", "item"]
+        ordering = ["user", "item", "-created_at"]
 
     def __str__(self):
         """Return the title of the media."""
@@ -1196,7 +1232,7 @@ class Season(Media):
 
         image = settings.IMG_NONE
         for episode in season_metadata["episodes"]:
-            if episode["episode_number"] == episode_number:
+            if episode["episode_number"] == int(episode_number):
                 if episode.get("still_path"):
                     image = (
                         f"https://image.tmdb.org/t/p/original{episode['still_path']}"
@@ -1239,6 +1275,11 @@ class Episode(models.Model):
         related_name="episodes",
     )
     end_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["related_season", "item__episode_number", "-created_at"]
 
     def __str__(self):
         """Return the season and episode number."""

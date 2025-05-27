@@ -151,14 +151,15 @@ def list_detail(request, list_id):
         else:
             filter_kwargs["user"] = request.user
         entries = model.objects.filter(**filter_kwargs).select_related("item")
-        media_by_item_id.update({entry.item_id: entry for entry in entries})
+
+        for entry in entries:
+            if entry.item_id not in media_by_item_id:
+                media_by_item_id[entry.item_id] = entry
 
     # Annotate items with media objects
     for item in items_page:
         if media := media_by_item_id.get(item.id):
             item.media = media
-            item.watched = True
-            item.repeats = media.repeats
 
     # Base context for both full and partial responses
     context = {

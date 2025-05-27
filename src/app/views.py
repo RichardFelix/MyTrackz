@@ -63,7 +63,7 @@ def progress_edit(request):
     media_type = item.media_type
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.get_media_prefetch(
+    media = BasicMedia.objects.filter_media_prefetch(
         request.user,
         item.media_id,
         item.media_type,
@@ -194,7 +194,7 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
-    user_media = BasicMedia.objects.get_media_prefetch(
+    user_media = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         media_type,
@@ -220,7 +220,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-    user_media = BasicMedia.objects.get_media_prefetch(
+    user_media = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         MediaTypes.SEASON.value,
@@ -228,11 +228,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         season_number=season_number,
     )
 
-    episodes_in_db = (
-        user_media.episodes.all().values("item__episode_number", "end_date", "repeats")
-        if user_media
-        else []
-    )
+    episodes_in_db = user_media.episodes.all()
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
@@ -257,7 +253,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 @require_POST
 def update_media_score(request, source, media_type, media_id, season_number=None):
     """Update the user's score for a media item."""
-    media = BasicMedia.objects.get_media(
+    media = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,
@@ -406,7 +402,7 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
-    media = BasicMedia.objects.get_media(
+    media = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,
@@ -446,7 +442,7 @@ def media_save(request):
     media_type = request.POST["media_type"]
     season_number = request.POST.get("season_number")
 
-    instance = BasicMedia.objects.get_media(
+    instance = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,
@@ -495,17 +491,13 @@ def media_save(request):
 @require_POST
 def media_delete(request):
     """Delete media data from the database."""
-    media_id = request.POST["media_id"]
-    source = request.POST["source"]
+    instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
-    season_number = request.POST.get("season_number")
 
     media = BasicMedia.objects.get_media(
-        request.user,
-        media_id,
         media_type,
-        source,
-        season_number=season_number,
+        request.user,
+        instance_id,
     )
     if media:
         media.delete()
@@ -517,7 +509,7 @@ def media_delete(request):
 
 
 @require_POST
-def episode_handler(request):
+def episode_save(request):
     """Handle the creation, deletion, and updating of episodes for a season."""
     media_id = request.POST["media_id"]
     season_number = request.POST["season_number"]
@@ -561,14 +553,11 @@ def episode_handler(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    if "unwatch" in request.POST:
-        related_season.unwatch(episode_number)
-    elif "watch" in request.POST:
-        end_date = timezone.make_aware(
-            timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
-            timezone=timezone.get_current_timezone(),
-        )
-        related_season.watch(episode_number, end_date)
+    end_date = timezone.make_aware(
+        timezone.datetime.strptime(request.POST["date"], "%Y-%m-%dT%H:%M"),
+        timezone=timezone.get_current_timezone(),
+    )
+    related_season.watch(episode_number, end_date)
 
     return helpers.redirect_back(request)
 
@@ -704,7 +693,7 @@ def history_modal(
     episode_number=None,
 ):
     """Return the history page for a media item."""
-    media = BasicMedia.objects.get_media(
+    media = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,

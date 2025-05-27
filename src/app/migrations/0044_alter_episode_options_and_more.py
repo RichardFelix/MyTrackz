@@ -9,10 +9,9 @@ def convert_repeats_to_instances(apps, schema_editor):
     episodes_with_repeats = Episode.objects.filter(repeats__gt=0)
 
     for episode in episodes_with_repeats:
-        # Get historical records sorted by history_date (newest first)
         history = HistoricalEpisode.objects.filter(
             id=episode.id
-        ).order_by('-history_date')
+        ).order_by('history_date')
 
         # Create new episodes for each historical record including the current one
         for historical_record in history:

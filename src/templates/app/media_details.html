@@ -507,7 +507,7 @@
                         <div x-data="{ trackOpen: false }">
                           <button @click="trackOpen = true"
                                   class="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition duration-300 cursor-pointer">
-                            {% if episode.watched %}
+                            {% if episode.history %}
                               <svg xmlns="http://www.w3.org/2000/svg"
                                    width="16"
                                    height="16"
@@ -612,10 +612,10 @@
                     </div>
                     <p class="text-sm text-gray-300 line-clamp-2 text-justify text-pretty">{{ episode.overview }}</p>
                   </div>
-                  {% if episode.watched %}
+                  {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2">
-                      Last watched: {{ episode.end_date|date:"DATETIME_FORMAT" }}
-                      {% if episode.repeats > 0 %}• Watched {{ episode.repeats|add:"1" }} times{% endif %}
+                      Last watched: {{ episode.history.0.end_date|date:"DATETIME_FORMAT" }}
+                      {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                     </p>
                   {% endif %}
                 </div>
