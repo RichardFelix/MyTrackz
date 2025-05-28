@@ -15,11 +15,10 @@ def process_payload(payload, user):
     logger.debug("Received Plex webhook payload: %s", json.dumps(payload, indent=2))
     event_type = payload.get("event")
     if not _is_supported_event(event_type):
-        logger.info("Ignoring Plex webhook event: %s", event_type)
+        logger.info("Ignoring Plex webhook event type: %s", event_type)
         return
 
     if not _is_valid_user(payload, user):
-        logger.info("Ignoring Plex webhook event for user: %s", user)
         return
 
     ids = _extract_external_ids(payload)
@@ -48,19 +47,20 @@ def _is_supported_event(event_type):
 
 def _is_valid_user(payload, user):
     incoming_username = payload["Account"]["title"].strip().lower()
-    logger.info("Received webhook from plex user: %s", incoming_username)
 
     stored_usernames = [
         u.strip().lower() for u in (user.plex_usernames or "").split(",") if u.strip()
     ]
 
-    logger.info(
-        "Stored Plex usernames for user %s: %s",
-        user.username,
-        stored_usernames,
-    )
+    is_valid = incoming_username in stored_usernames
 
-    return incoming_username in stored_usernames
+    if not is_valid:
+        logger.info(
+            "Plex username %s does not match any of: %s",
+            incoming_username,
+            stored_usernames,
+        )
+    return is_valid
 
 
 def _extract_external_ids(payload):
@@ -94,12 +94,21 @@ def _get_media_type(payload):
 
 def _process_tv(payload, user, ids):
     title = payload["Metadata"]["grandparentTitle"]
-    media_id = _find_tv_media_id(ids)
+    media_id, season_number, episode_number = _find_tv_media_id(ids)
+
     if not media_id:
         logger.info("No TMDB ID found for TV show: %s", title)
         return
+
+    if not season_number or not episode_number:
+        logger.info(
+            "Could not match TV show episode for %s with TMDB ID %s",
+            title,
+            media_id,
+        )
+        return
     logger.info("Detected TV show: %s", title)
-    handle_tv_episode(media_id, payload, user)
+    handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
 
 def _find_tv_media_id(ids):
@@ -115,7 +124,11 @@ def _find_tv_media_id(ids):
                 response.get("tv_episode_results")
                 and len(response["tv_episode_results"]) > 0
             ):
-                return response["tv_episode_results"][0]["show_id"]
+                result = response["tv_episode_results"][0]
+                show_id = result.get("show_id")
+                season_number = result.get("season_number")
+                episode_number = result.get("episode_number")
+                return show_id, season_number, episode_number
     return None
 
 
@@ -134,7 +147,7 @@ def _process_movie(payload, user, ids):
         if media_id:
             handle_movie(media_id, payload, user)
         else:
-            logger.info("No TMDB ID found for movie: %s", title)
+            logger.info("No matching TMDB ID found for movie: %s", title)
     else:
         logger.info("No TMDB ID or IMDB ID found for movie: %s", title)
 
@@ -171,7 +184,13 @@ def handle_movie(media_id, payload, user):
         },
     )
 
-    if not created:
+    if created:
+        logger.info(
+            "Created new movie instance for user %s: %s",
+            user.username,
+            movie_metadata["title"],
+        )
+    else:
         movie_instance.progress = progress
 
         if movie_played:
@@ -201,12 +220,16 @@ def handle_movie(media_id, payload, user):
 
         movie_instance.save()
 
+        logger.info(
+            "Updated movie instance for user %s: %s (status: %s)",
+            user.username,
+            movie_metadata["title"],
+            movie_instance.status,
+        )
 
-def handle_tv_episode(media_id, payload, user):
+
+def handle_tv_episode(media_id, season_number, episode_number, payload, user):
     """Add a TV show episode as watched."""
-    season_number = payload["Metadata"]["parentIndex"]
-    episode_number = payload["Metadata"]["index"]
-
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
         [season_number],
@@ -231,13 +254,25 @@ def handle_tv_episode(media_id, payload, user):
         },
     )
 
-    if not created and tv_instance.status not in (
+    if created:
+        logger.info(
+            "Created new TV instance for user %s: %s",
+            user.username,
+            tv_metadata["title"],
+        )
+    elif not created and tv_instance.status not in (
         Media.Status.COMPLETED.value,
         Media.Status.REPEATING.value,
         Media.Status.IN_PROGRESS.value,
     ):
         tv_instance.status = Media.Status.IN_PROGRESS.value
         tv_instance.save()
+        logger.info(
+            "Updated TV instance for user %s: %s (status: %s)",
+            user.username,
+            tv_metadata["title"],
+            tv_instance.status,
+        )
 
     season_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
@@ -259,13 +294,27 @@ def handle_tv_episode(media_id, payload, user):
         },
     )
 
-    if not created and season_instance.status not in (
+    if created:
+        logger.info(
+            "Created new season instance for user %s: %s S%d",
+            user.username,
+            tv_metadata["title"],
+            season_number,
+        )
+    elif not created and season_instance.status not in (
         Media.Status.COMPLETED.value,
         Media.Status.REPEATING.value,
         Media.Status.IN_PROGRESS.value,
     ):
         season_instance.status = Media.Status.IN_PROGRESS.value
         season_instance.save()
+        logger.info(
+            "Updated season instance for user %s: %s %d (status: %s)",
+            user.username,
+            tv_metadata["title"],
+            season_number,
+            season_instance.status,
+        )
 
     episode_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
@@ -279,16 +328,27 @@ def handle_tv_episode(media_id, payload, user):
         },
     )
 
-    now = timezone.now().replace(second=0, microsecond=0)
-    episode, created = app.models.Episode.objects.get_or_create(
-        item=episode_item,
-        related_season=season_instance,
-        defaults={
-            "end_date": now,
-        },
-    )
+    episode_played = payload["event"] == "media.scrobble"
 
-    if not created:
-        episode.end_date = now
-        episode.repeats += 1
-        episode.save()
+    if episode_played:
+        now = timezone.now().replace(second=0, microsecond=0)
+        episode, created = app.models.Episode.objects.get_or_create(
+            item=episode_item,
+            related_season=season_instance,
+            defaults={
+                "end_date": now,
+            },
+        )
+
+        if not created:
+            episode.end_date = now
+            episode.repeats += 1
+            episode.save()
+
+        logger.info(
+            "Marked episode as played for user %s: %s S%d E%d",
+            user.username,
+            tv_metadata["title"],
+            season_number,
+            episode_number,
+        )

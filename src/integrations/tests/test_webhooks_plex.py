@@ -37,8 +37,6 @@ class PlexWebhookTests(TestCase):
             "Metadata": {
                 "type": "episode",
                 "grandparentTitle": "Friends",
-                "index": 1,
-                "parentIndex": 1,
                 "Guid": [
                     {
                         "id": "imdb://tt0583459",
