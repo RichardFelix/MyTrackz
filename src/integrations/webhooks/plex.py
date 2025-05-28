@@ -48,10 +48,17 @@ def _is_supported_event(event_type):
 
 def _is_valid_user(payload, user):
     incoming_username = payload["Account"]["title"].strip().lower()
+    logger.info("Received webhook from plex user: %s", incoming_username)
 
     stored_usernames = [
         u.strip().lower() for u in (user.plex_usernames or "").split(",") if u.strip()
     ]
+
+    logger.info(
+        "Stored Plex usernames for user %s: %s",
+        user.username,
+        stored_usernames,
+    )
 
     return incoming_username in stored_usernames
 
