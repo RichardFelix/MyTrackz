@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0046_remove_anime_repeats_remove_basicmedia_repeats_and_more'),
+        ('app', '0047_remove_anime_repeats_remove_basicmedia_repeats_and_more'),
     ]
 
     operations = [

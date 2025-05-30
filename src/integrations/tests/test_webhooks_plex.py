@@ -37,8 +37,6 @@ class PlexWebhookTests(TestCase):
             "Metadata": {
                 "type": "episode",
                 "grandparentTitle": "Friends",
-                "index": 1,
-                "parentIndex": 1,
                 "Guid": [
                     {
                         "id": "imdb://tt0583459",
@@ -248,6 +246,7 @@ class PlexWebhookTests(TestCase):
             ("testuser", " testuser ", True),  # Whitespace handling
             ("testuser", "testuser2", False),  # Different username
             ("testuser1,testuser2", "testuser1", True),  # First in list
+            ("testuser1, testuser2", "testuser1", True), # comma and space
             ("testuser1,testuser2", "testuser3", False),  # Not in list
         ]
 

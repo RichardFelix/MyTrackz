@@ -83,7 +83,7 @@ def convert_media_repeats_to_instances(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0044_alter_episode_options_and_more'),
+        ('app', '0045_alter_episode_options_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

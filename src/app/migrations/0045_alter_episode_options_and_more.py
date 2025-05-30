@@ -29,7 +29,7 @@ def convert_repeats_to_instances(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0043_remove_historicalanime_progress_changed_and_more'),
+        ('app', '0044_fix_episode_images'),
     ]
 
     operations = [

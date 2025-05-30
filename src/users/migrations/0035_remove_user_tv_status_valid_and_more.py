@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0046_remove_anime_repeats_remove_basicmedia_repeats_and_more'),
+        ('app', '0047_remove_anime_repeats_remove_basicmedia_repeats_and_more'),
         ('auth', '0012_alter_user_first_name_max_length'),
         ('users', '0034_user_plex_usernames'),
     ]
