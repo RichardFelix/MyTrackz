@@ -229,8 +229,8 @@ class MediaManager(models.Manager):
         model = apps.get_model(app_label="app", model_name=media_type)
         queryset = model.objects.filter(user=user.id)
 
-        if users.models.MediaStatusChoices.ALL not in status_filter:
-            queryset = queryset.filter(status__in=status_filter)
+        if status_filter != users.models.MediaStatusChoices.ALL:
+            queryset = queryset.filter(status=status_filter)
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)

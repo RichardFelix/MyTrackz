@@ -120,13 +120,14 @@ def media_list(request, media_type):
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
-    status_filters = [MediaStatusChoices.ALL] if not status_filter else [status_filter]
+    if not status_filter:
+        status_filter = MediaStatusChoices.ALL
 
     # Get media list with filters applied
     media_queryset = BasicMedia.objects.get_media_list(
         user=request.user,
         media_type=media_type,
-        status_filter=status_filters,
+        status_filter=status_filter,
         sort_filter=sort_filter,
         search=search_query,
     )
