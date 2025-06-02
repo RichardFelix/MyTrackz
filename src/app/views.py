@@ -229,7 +229,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         season_number=season_number,
     )
 
-    episodes_in_db = user_media.episodes.all()
+    episodes_in_db = user_media.episodes.all() if user_media else []
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
