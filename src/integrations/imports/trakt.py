@@ -4,6 +4,7 @@ from collections import defaultdict
 import requests
 from django.apps import apps
 from django.conf import settings
+from simple_history.utils import bulk_create_with_history
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -47,7 +48,7 @@ class TraktImporter:
         self.to_delete = defaultdict(set)
 
         # Track bulk creation lists for each media type
-        self.bulk_media = defaultdict(lambda: [[]])
+        self.bulk_media = defaultdict(list)
 
         # Track media instances being created
         self.media_instances = defaultdict(dict)
@@ -96,12 +97,12 @@ class TraktImporter:
         self._bulk_create_media()
 
         imported_counts = {
-            MediaTypes.TV.value: len(self.media_instances[MediaTypes.TV.value]),
-            MediaTypes.SEASON.value: len(self.media_instances[MediaTypes.SEASON.value]),
+            MediaTypes.TV.value: len(self.bulk_media[MediaTypes.TV.value]),
+            MediaTypes.SEASON.value: len(self.bulk_media[MediaTypes.SEASON.value]),
             MediaTypes.EPISODE.value: len(
-                self.media_instances[MediaTypes.EPISODE.value],
+                self.bulk_media[MediaTypes.EPISODE.value],
             ),
-            MediaTypes.MOVIE.value: len(self.media_instances[MediaTypes.MOVIE.value]),
+            MediaTypes.MOVIE.value: len(self.bulk_media[MediaTypes.MOVIE.value]),
         }
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
 
@@ -109,45 +110,35 @@ class TraktImporter:
 
     def _bulk_create_media(self):
         """Bulk create all media objects."""
-        for media_type, bulk_list in self.bulk_media.items():
-            if not bulk_list or not bulk_list[0]:
+        for media_type, bulk_media in self.bulk_media.items():
+            if not bulk_media:
                 continue
 
             model = apps.get_model(app_label="app", model_name=media_type)
 
             logger.info("Bulk importing %s", media_type)
 
-            for i, bulk_media in enumerate(bulk_list):
-                if not bulk_media:
-                    continue
-
-                # Update references for seasons and episodes
-                if media_type == MediaTypes.SEASON.value:
-                    logger.info("Updating references for season to existing TV shows")
-                    helpers.update_season_references(bulk_media, self.user)
-                elif media_type == MediaTypes.EPISODE.value:
-                    logger.info(
-                        "Updating references for episodes to existing TV seasons",
-                    )
-                    helpers.update_episode_references(bulk_media, self.user)
-
+            # Update references for seasons and episodes
+            if media_type == MediaTypes.SEASON.value:
+                logger.info("Updating references for season to existing TV shows")
+                helpers.update_season_references(bulk_media, self.user)
+            elif media_type == MediaTypes.EPISODE.value:
                 logger.info(
-                    "Bulk importing %s list %s of %s",
-                    media_type,
-                    i + 1,
-                    len(bulk_list),
+                    "Updating references for episodes to existing TV seasons",
                 )
+                helpers.update_episode_references(bulk_media, self.user)
 
-                helpers.bulk_create_update_with_history(
-                    bulk_media,
-                    model,
-                    user=self.user,
-                )
+            bulk_create_with_history(
+                bulk_media,
+                model,
+                batch_size=500,
+                default_user=self.user,
+            )
 
     def cleanup_existing_media(self):
         """Delete existing media if in overwrite mode."""
-        for media_type, obj_ids in self.to_delete.items():
-            if obj_ids:
+        for media_type, media_ids in self.to_delete.items():
+            if media_ids:
                 logger.info(
                     "Deleting %s objects for user %s in overwrite mode",
                     media_type,
@@ -155,7 +146,7 @@ class TraktImporter:
                 )
                 model = apps.get_model(app_label="app", model_name=media_type)
                 model.objects.filter(
-                    id__in=obj_ids,
+                    item__media_id__in=media_ids,
                     user=self.user,
                 ).delete()
 
@@ -335,20 +326,9 @@ class TraktImporter:
                 media_type,
                 key,
             )
-            obj_id = self.existing_media[media_type][key].id
-            self.to_delete[media_type].add(obj_id)
+            self.to_delete[media_type].add(key)
 
         return True
-
-    def _add_to_bulk_media(self, media_type, obj, n_watches):
-        """Add a media object to the bulk creation list."""
-        try:
-            self.bulk_media[media_type][n_watches].append(obj)
-        except IndexError:
-            # If the list index is out of range, create a new list
-            self.bulk_media[media_type].append([obj])
-
-        return obj
 
     def process_watched_movie(self, entry):
         """Process a single movie watch event."""
@@ -370,36 +350,23 @@ class TraktImporter:
 
         key = f"{tmdb_id}"
 
+        movie_obj = app.models.Movie(
+            item=item,
+            user=self.user,
+            end_date=watched_at,
+            status=Status.COMPLETED.value,
+        )
+
         if key in self.media_instances[MediaTypes.MOVIE.value]:
             logger.info(
                 "Existing movie found: %s, adding another watch entry",
                 movie["title"],
             )
-
-            n_watches = len(self.media_instances[MediaTypes.MOVIE.value][key])
-
-            extra_obj = app.models.Movie(
-                item=item,
-                user=self.user,
-                repeats=n_watches,
-                end_date=watched_at,
-                status=Status.COMPLETED.value,
-            )
-
-            self._add_to_bulk_media(MediaTypes.MOVIE.value, extra_obj, n_watches)
-
-            # Update the watch count
-            self.media_instances[MediaTypes.MOVIE.value][key].append(extra_obj)
+            self.media_instances[MediaTypes.MOVIE.value][key].append(movie_obj)
         else:
-            original_obj = app.models.Movie(
-                item=item,
-                user=self.user,
-                end_date=watched_at,
-                status=Status.COMPLETED.value,
-            )
+            self.media_instances[MediaTypes.MOVIE.value][key] = [movie_obj]
 
-            self._add_to_bulk_media(MediaTypes.MOVIE.value, original_obj, n_watches=0)
-            self.media_instances[MediaTypes.MOVIE.value][key] = [original_obj]
+        self.bulk_media[MediaTypes.MOVIE.value].append(movie_obj)
 
     def _get_episode_image(self, episode_number, season_metadata):
         """Extract episode image URL from season metadata."""
@@ -465,7 +432,7 @@ class TraktImporter:
                 user=self.user,
                 status=Status.IN_PROGRESS.value,
             )
-            self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
+            self.bulk_media[MediaTypes.TV.value].append(tv_obj)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
             tv_obj = self.media_instances[MediaTypes.TV.value][tv_key][0]
@@ -486,7 +453,7 @@ class TraktImporter:
                 related_tv=tv_obj,
                 status=Status.IN_PROGRESS.value,
             )
-            self._add_to_bulk_media(MediaTypes.SEASON.value, season_obj, n_watches=0)
+            self.bulk_media[MediaTypes.SEASON.value].append(season_obj)
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
             season_obj = self.media_instances[MediaTypes.SEASON.value][season_key][0]
@@ -505,6 +472,12 @@ class TraktImporter:
         )
 
         ep_key = f"{tmdb_id}:{season_number}:{episode_number}"
+
+        episode_obj = app.models.Episode(
+            item=episode_item,
+            related_season=season_obj,
+            end_date=watched_at,
+        )
         if ep_key in self.media_instances[MediaTypes.EPISODE.value]:
             logger.info(
                 "Existing episode found: %s S%sE%s, adding another watch entry",
@@ -512,32 +485,11 @@ class TraktImporter:
                 season_number,
                 episode_number,
             )
-
-            n_watches = len(self.media_instances[MediaTypes.EPISODE.value][ep_key])
-            extra_obj = app.models.Episode(
-                item=episode_item,
-                related_season=season_obj,
-                repeats=n_watches,
-                end_date=watched_at,
-            )
-
-            self._add_to_bulk_media(
-                MediaTypes.EPISODE.value,
-                extra_obj,
-                n_watches,
-            )
-
-            # Update the watch count
-            self.media_instances[MediaTypes.EPISODE.value][ep_key].append(extra_obj)
+            self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
         else:
-            original_obj = app.models.Episode(
-                item=episode_item,
-                related_season=season_obj,
-                end_date=watched_at,
-            )
+            self.media_instances[MediaTypes.EPISODE.value][ep_key] = [episode_obj]
 
-            self._add_to_bulk_media(MediaTypes.EPISODE.value, original_obj, n_watches=0)
-            self.media_instances[MediaTypes.EPISODE.value][ep_key] = [original_obj]
+        self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
 
         # Update status if this is the last episode
         self._update_completion_status(
@@ -707,7 +659,7 @@ class TraktImporter:
                 **defaults,
             )
 
-            self._add_to_bulk_media(media_type, media_obj, n_watches=0)
+            self.bulk_media[media_type].append(media_obj)
             self.media_instances[media_type][key] = [media_obj]
 
     def _get_tv_obj(self, tmdb_id, media_data):
@@ -737,7 +689,7 @@ class TraktImporter:
                 user=self.user,
                 status=Status.IN_PROGRESS.value,
             )
-            self._add_to_bulk_media(MediaTypes.TV.value, tv_obj, n_watches=0)
+            self.bulk_media[MediaTypes.TV.value].append(tv_obj)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         return tv_obj
 
