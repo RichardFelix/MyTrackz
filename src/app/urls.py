@@ -21,12 +21,7 @@ urlpatterns = [
         name="season_details",
     ),
     path(
-        "update-score/<source:source>/<media_type:media_type>/<str:media_id>",
-        views.update_media_score,
-        name="update_media_score",
-    ),
-    path(
-        "update-score/<source:source>/<media_type:media_type>/<str:media_id>/<int:season_number>",
+        "update-score/<media_type:media_type>/<int:instance_id>",
         views.update_media_score,
         name="update_media_score",
     ),

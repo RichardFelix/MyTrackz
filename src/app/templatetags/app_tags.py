@@ -240,7 +240,7 @@ def media_view_url(view_name, media):
 
 
 @register.simple_tag
-def component_id(component_type, media):
+def component_id(component_type, media, instance_id=None):
     """Return the component ID for both metadata and model object cases."""
     is_dict = isinstance(media, dict)
 
@@ -261,6 +261,10 @@ def component_id(component_type, media):
             component_id += f"-{media.season_number}"
         if media.episode_number is not None:
             component_id += f"-{media.episode_number}"
+
+    # Add instance id if provided
+    if instance_id:
+        component_id += f"-{instance_id}"
 
     return component_id
 

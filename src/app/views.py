@@ -195,17 +195,19 @@ def media_search(request):
 def media_details(request, source, media_type, media_id, title):  # noqa: ARG001 title for URL
     """Return the details page for a media item."""
     media_metadata = services.get_media_metadata(media_type, media_id, source)
-    user_media = BasicMedia.objects.filter_media_prefetch(
+    user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         media_type,
         source,
     )
+    current_instance = user_medias[0] if user_medias else None
 
     context = {
         "media": media_metadata,
         "media_type": media_type,
-        "user_media": user_media,
+        "user_medias": user_medias,
+        "current_instance": current_instance,
     }
     return render(request, "app/media_details.html", context)
 
@@ -221,7 +223,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     )
     season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
 
-    user_media = BasicMedia.objects.filter_media_prefetch(
+    user_medias = BasicMedia.objects.filter_media_prefetch(
         request.user,
         media_id,
         MediaTypes.SEASON.value,
@@ -229,7 +231,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         season_number=season_number,
     )
 
-    episodes_in_db = user_media.episodes.all() if user_media else []
+    current_instance = user_medias[0] if user_medias else None
+    episodes_in_db = current_instance.episodes.all() if current_instance else []
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(
@@ -246,29 +249,22 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
         "media_type": MediaTypes.SEASON.value,
-        "user_media": user_media,
+        "user_medias": user_medias,
+        "current_instance": current_instance,
     }
     return render(request, "app/media_details.html", context)
 
 
 @require_POST
-def update_media_score(request, source, media_type, media_id, season_number=None):
+def update_media_score(request, media_type, instance_id):
     """Update the user's score for a media item."""
-    media = BasicMedia.objects.filter_media(
-        request.user,
-        media_id,
+    media = BasicMedia.objects.get_media(
         media_type,
-        source,
-        season_number=season_number,
+        request.user,
+        instance_id,
     )
 
-    if not media:
-        msg = "Media not found for user"
-        raise ValueError(msg)
-
-    # Update the score
     score = float(request.POST.get("score"))
-
     media.score = score
     media.save()
     logger.info(
@@ -403,19 +399,22 @@ def track_modal(
     season_number=None,
 ):
     """Return the tracking form for a media item."""
-    media = BasicMedia.objects.filter_media(
-        request.user,
-        media_id,
-        media_type,
-        source,
-        season_number=season_number,
-    )
+    instance_id = request.GET.get("instance_id")
+    if instance_id:
+        media = BasicMedia.objects.get_media(
+            media_type,
+            request.user,
+            instance_id,
+        )
+    else:
+        media = None
 
     initial_data = {
         "media_id": media_id,
         "source": source,
         "media_type": media_type,
         "season_number": season_number,
+        "instance_id": instance_id,
     }
 
     if media_type == MediaTypes.GAME.value and media:
@@ -442,16 +441,15 @@ def media_save(request):
     source = request.POST["source"]
     media_type = request.POST["media_type"]
     season_number = request.POST.get("season_number")
+    instance_id = request.POST.get("instance_id")
 
-    instance = BasicMedia.objects.filter_media(
-        request.user,
-        media_id,
-        media_type,
-        source,
-        season_number=season_number,
-    )
-
-    if not instance:
+    if instance_id:
+        instance = BasicMedia.objects.get_media(
+            media_type,
+            request.user,
+            instance_id,
+        )
+    else:
         metadata = services.get_media_metadata(
             media_type,
             media_id,

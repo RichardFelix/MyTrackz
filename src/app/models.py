@@ -569,7 +569,6 @@ class MediaManager(models.Manager):
             tv_episodes = released_episodes.get(tv.item.media_id, {})
             tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
 
-
     def get_media(
         self,
         media_type,
@@ -605,31 +604,6 @@ class MediaManager(models.Manager):
 
         return params
 
-    def filter_media(
-        self,
-        user,
-        media_id,
-        media_type,
-        source,
-        season_number=None,
-        episode_number=None,
-    ):
-        """Get user media object given the media type and item."""
-        model = apps.get_model(app_label="app", model_name=media_type)
-        params = self._filter_media_params(
-            media_type,
-            media_id,
-            source,
-            user,
-            season_number,
-            episode_number,
-        )
-
-        try:
-            return model.objects.get(**params)
-        except model.DoesNotExist:
-            return None
-
     def filter_media_prefetch(
         self,
         user,
@@ -654,9 +628,7 @@ class MediaManager(models.Manager):
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 
-        if queryset:
-            return queryset[0]
-        return None
+        return queryset
 
     def _filter_media_params(
         self,
@@ -794,13 +766,6 @@ class Media(models.Model):
 
             if max_progress:
                 self.progress = max_progress
-
-            previous_repeating = (
-                self.tracker.previous("status") == self.Status.REPEATING.value
-            )
-            repeat_count_not_updated = self.repeats == self.tracker.previous("repeats")
-            if previous_repeating and repeat_count_not_updated:
-                self.repeats += 1
 
         self.item.fetch_releases(delay=True)
 
@@ -1286,7 +1251,12 @@ class Episode(models.Model):
     class Meta:
         """Meta options for the model."""
 
-        ordering = ["related_season", "item__episode_number", "-created_at"]
+        ordering = [
+            "related_season",
+            "item__episode_number",
+            "-end_date",
+            "-created_at",
+        ]
 
     def __str__(self):
         """Return the season and episode number."""
