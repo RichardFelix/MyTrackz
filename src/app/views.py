@@ -407,7 +407,15 @@ def track_modal(
             instance_id,
         )
     else:
-        media = None
+        # no specific instance, try to find the first one
+        user_medias = BasicMedia.objects.filter_media(
+            request.user,
+            media_id,
+            media_type,
+            source,
+            season_number=season_number,
+        )
+        media = user_medias.first()
 
     initial_data = {
         "media_id": media_id,

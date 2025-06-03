@@ -604,6 +604,28 @@ class MediaManager(models.Manager):
 
         return params
 
+    def filter_media(
+        self,
+        user,
+        media_id,
+        media_type,
+        source,
+        season_number=None,
+        episode_number=None,
+    ):
+        """Filter media objects based on parameters."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        params = self._filter_media_params(
+            media_type,
+            media_id,
+            source,
+            user,
+            season_number,
+            episode_number,
+        )
+
+        return model.objects.filter(**params)
+
     def filter_media_prefetch(
         self,
         user,
@@ -613,7 +635,7 @@ class MediaManager(models.Manager):
         season_number=None,
         episode_number=None,
     ):
-        """Get user media object with prefetch_related applied."""
+        """Filter user media object with prefetch_related applied."""
         model = apps.get_model(app_label="app", model_name=media_type)
         params = self._filter_media_params(
             media_type,
