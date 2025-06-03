@@ -57,48 +57,34 @@ def home(request):
 
 
 @require_POST
-def progress_edit(request):
+def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
-    item = Item.objects.get(id=request.POST["item"])
-    media_type = item.media_type
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.filter_media_prefetch(
+    media = BasicMedia.objects.get_media_prefetch(
+        media_type,
         request.user,
-        item.media_id,
-        item.media_type,
-        item.source,
-        season_number=item.season_number,
+        instance_id,
     )
 
-    if media:
-        if operation == "increase":
-            media.increase_progress()
-        elif operation == "decrease":
-            media.decrease_progress()
+    if operation == "increase":
+        media.increase_progress()
+    elif operation == "decrease":
+        media.decrease_progress()
 
-        if media_type == MediaTypes.SEASON.value:
-            # clear prefetch cache to get the updated episodes
-            media.refresh_from_db()
-            prefetch_related_objects([media], "episodes")
+    if media_type == MediaTypes.SEASON.value:
+        # clear prefetch cache to get the updated episodes
+        media.refresh_from_db()
+        prefetch_related_objects([media], "episodes")
 
-        context = {
-            "media": media,
-        }
-        return render(
-            request,
-            "app/components/progress_changer.html",
-            context,
-        )
-
-    messages.error(
+    context = {
+        "media": media,
+    }
+    return render(
         request,
-        "Media item was deleted before trying to change progress",
+        "app/components/progress_changer.html",
+        context,
     )
-
-    response = HttpResponse()
-    response["HX-Redirect"] = reverse("home")
-    return response
 
 
 @require_GET

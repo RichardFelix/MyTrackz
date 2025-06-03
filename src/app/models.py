@@ -588,6 +588,27 @@ class MediaManager(models.Manager):
         except model.DoesNotExist:
             return None
 
+    def get_media_prefetch(
+        self,
+        media_type,
+        user,
+        instance_id,
+    ):
+        """Get user media object with prefetch_related applied."""
+        model = apps.get_model(app_label="app", model_name=media_type)
+        params = self._get_media_params(
+            media_type,
+            user,
+            instance_id,
+        )
+
+        queryset = model.objects.filter(**params)
+
+        queryset = self._apply_prefetch_related(queryset, media_type)
+        self.annotate_max_progress(queryset, media_type)
+
+        return queryset[0]
+
     def _get_media_params(
         self,
         media_type,
@@ -636,17 +657,14 @@ class MediaManager(models.Manager):
         episode_number=None,
     ):
         """Filter user media object with prefetch_related applied."""
-        model = apps.get_model(app_label="app", model_name=media_type)
-        params = self._filter_media_params(
-            media_type,
-            media_id,
-            source,
+        queryset = self.filter_media(
             user,
+            media_id,
+            media_type,
+            source,
             season_number,
             episode_number,
         )
-
-        queryset = model.objects.filter(**params)
         queryset = self._apply_prefetch_related(queryset, media_type)
         self.annotate_max_progress(queryset, media_type)
 

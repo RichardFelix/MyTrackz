@@ -45,7 +45,11 @@ urlpatterns = [
         views.track_modal,
         name="track_modal",
     ),
-    path("progress_edit", views.progress_edit, name="progress_edit"),
+    path(
+        "progress_edit/<media_type:media_type>/<int:instance_id>",
+        views.progress_edit,
+        name="progress_edit",
+    ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
     path("episode_save", views.episode_save, name="episode_save"),
