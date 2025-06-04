@@ -392,6 +392,8 @@ def track_modal(
             request.user,
             instance_id,
         )
+    elif request.GET.get("is_create"):
+        media = None
     else:
         # no specific instance, try to find the first one
         user_medias = BasicMedia.objects.filter_media(

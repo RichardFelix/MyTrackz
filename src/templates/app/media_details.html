@@ -280,7 +280,7 @@
             <div x-data="{ trackOpen: false }">
               <button class="p-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors cursor-pointer"
                       hx-get="{% media_view_url 'track_modal' media %}"
-                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "title": "{{ media.title }}{% if media.season_title %} S{{ media.season_number }}{% endif %}"}'
+                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true, "title": "{{ media.title }}{% if media.season_title %} S{{ media.season_number }}{% endif %}"}'
                       hx-target="#{% component_id 'track' media %}"
                       hx-trigger="click once"
                       @click="trackOpen = true"
@@ -343,6 +343,11 @@
           </div>
 
           {% if user_medias|length > 1 %}
+            <div class="flex items-center my-4">
+              <div class="flex-1 h-px bg-gray-600"></div>
+              <span class="px-3 text-xs text-gray-500 uppercase tracking-wide">Previous</span>
+              <div class="flex-1 h-px bg-gray-600"></div>
+            </div>
             {% for user_media in user_medias|slice:"1:" %}
               <div class="bg-[#2a2f35] p-4 rounded-lg">
                 <div class="flex items-center justify-between mb-2">
@@ -400,6 +405,10 @@
                 </div>
 
                 <div class="space-y-2">
+                  <div class="text-xs text-gray-400">
+                    Status: {{ user_media.status|media_status_readable }}
+                  </div>
+
                   {% if media.media_type != MediaTypes.MOVIE.value %}
                     <div class="text-xs text-gray-400">
                       Progress: {{ user_media.progress }} {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
