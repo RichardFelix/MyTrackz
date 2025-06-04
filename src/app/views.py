@@ -688,7 +688,7 @@ def history_modal(
     episode_number=None,
 ):
     """Return the history page for a media item."""
-    media = BasicMedia.objects.filter_media(
+    user_medias = BasicMedia.objects.filter_media(
         request.user,
         media_id,
         media_type,
@@ -697,19 +697,25 @@ def history_modal(
         episode_number=episode_number,
     )
 
+    total_medias = user_medias.count()
     timeline_entries = []
-    if media and (history := media.history.all()):
-        timeline_entries = history_processor.process_history_entries(
-            history,
-            media_type,
-        )
-
+    for index, media in enumerate(user_medias, start=1):
+        if history := media.history.all():
+            media_entry_number = total_medias - index + 1
+            timeline_entries.extend(
+                history_processor.process_history_entries(
+                    history,
+                    media_type,
+                    media_entry_number,
+                ),
+            )
     return render(
         request,
         "app/components/fill_history.html",
         {
             "media_type": media_type,
             "timeline": timeline_entries,
+            "total_medias": total_medias,
             "return_url": request.GET["return_url"],
         },
     )
