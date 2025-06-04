@@ -22,8 +22,7 @@ from app.models import (
     Sources,
     Status,
 )
-from integrations import helpers
-from integrations.imports import anilist, hltb, kitsu, mal, simkl, yamtrack
+from integrations.imports import anilist, helpers, hltb, kitsu, mal, simkl, yamtrack
 from integrations.imports.trakt import TraktImporter, importer
 
 mock_path = Path(__file__).resolve().parent / "mock_data"

@@ -2,15 +2,13 @@ import logging
 from collections import defaultdict
 
 import requests
-from django.apps import apps
 from django.conf import settings
-from simple_history.utils import bulk_create_with_history
 
 import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
-from integrations import helpers
-from integrations.helpers import MediaImportError, MediaImportUnexpectedError
+from integrations.imports import helpers
+from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
 
@@ -42,47 +40,22 @@ class TraktImporter:
         self.warnings = []
 
         # Track existing media to handle "new" mode correctly
-        self.existing_media = self._get_existing_media()
+        self.existing_media = helpers.get_existing_media(user)
 
         # Track media IDs to delete in overwrite mode
-        self.to_delete = defaultdict(set)
+        self.to_delete = defaultdict(lambda: defaultdict(set))
 
         # Track bulk creation lists for each media type
         self.bulk_media = defaultdict(list)
 
         # Track media instances being created
-        self.media_instances = defaultdict(dict)
+        self.media_instances = defaultdict(lambda: defaultdict(list))
 
         logger.info(
             "Initialized Trakt importer for user %s with mode %s",
             username,
             mode,
         )
-
-    def _get_existing_media(self):
-        """Get all existing media for the user to check against during import."""
-        existing = {
-            MediaTypes.TV.value: {},
-            MediaTypes.MOVIE.value: {},
-        }
-
-        # Get existing TV shows
-        for tv in app.models.TV.objects.filter(user=self.user).select_related("item"):
-            existing[MediaTypes.TV.value][tv.item.media_id] = tv
-
-        # Get existing movies
-        for movie in app.models.Movie.objects.filter(user=self.user).select_related(
-            "item",
-        ):
-            existing[MediaTypes.MOVIE.value][movie.item.media_id] = movie
-
-        logger.info(
-            "Found existing: %s TV shows, %s movies",
-            len(existing[MediaTypes.TV.value]),
-            len(existing[MediaTypes.MOVIE.value]),
-        )
-
-        return existing
 
     def import_data(self):
         """Import all user data from Trakt."""
@@ -91,64 +64,16 @@ class TraktImporter:
         self.process_ratings()
         self.process_comments()
 
-        self.cleanup_existing_media()
-
-        # Bulk create all media
-        self._bulk_create_media()
+        helpers.cleanup_existing_media(self.to_delete, self.user)
+        helpers.bulk_create_media(self.bulk_media, self.user)
 
         imported_counts = {
-            MediaTypes.TV.value: len(self.bulk_media[MediaTypes.TV.value]),
-            MediaTypes.SEASON.value: len(self.bulk_media[MediaTypes.SEASON.value]),
-            MediaTypes.EPISODE.value: len(
-                self.bulk_media[MediaTypes.EPISODE.value],
-            ),
-            MediaTypes.MOVIE.value: len(self.bulk_media[MediaTypes.MOVIE.value]),
+            media_type: len(media_list)
+            for media_type, media_list in self.bulk_media.items()
         }
         deduplicated_messages = "\n".join(dict.fromkeys(self.warnings))
 
         return imported_counts, deduplicated_messages
-
-    def _bulk_create_media(self):
-        """Bulk create all media objects."""
-        for media_type, bulk_media in self.bulk_media.items():
-            if not bulk_media:
-                continue
-
-            model = apps.get_model(app_label="app", model_name=media_type)
-
-            logger.info("Bulk importing %s", media_type)
-
-            # Update references for seasons and episodes
-            if media_type == MediaTypes.SEASON.value:
-                logger.info("Updating references for season to existing TV shows")
-                helpers.update_season_references(bulk_media, self.user)
-            elif media_type == MediaTypes.EPISODE.value:
-                logger.info(
-                    "Updating references for episodes to existing TV seasons",
-                )
-                helpers.update_episode_references(bulk_media, self.user)
-
-            bulk_create_with_history(
-                bulk_media,
-                model,
-                batch_size=500,
-                default_user=self.user,
-            )
-
-    def cleanup_existing_media(self):
-        """Delete existing media if in overwrite mode."""
-        for media_type, media_ids in self.to_delete.items():
-            if media_ids:
-                logger.info(
-                    "Deleting %s objects for user %s in overwrite mode",
-                    media_type,
-                    self.user,
-                )
-                model = apps.get_model(app_label="app", model_name=media_type)
-                model.objects.filter(
-                    item__media_id__in=media_ids,
-                    user=self.user,
-                ).delete()
 
     def _make_api_request(self, url):
         """Make a request to the Trakt API with proper headers."""
@@ -305,31 +230,6 @@ class TraktImporter:
 
         return item
 
-    def _should_process_media(self, media_type, tmdb_id):
-        """Determine if a media item should be processed based on mode."""
-        key = f"{tmdb_id}"
-        exists = key in self.existing_media[media_type]
-
-        if self.mode == "new" and exists:
-            # In "new" mode, skip if media already exists
-            logger.debug(
-                "Skipping existing %s: %s (mode: new)",
-                media_type,
-                key,
-            )
-            return False
-
-        if self.mode == "overwrite" and exists:
-            # In "overwrite" mode, add to the deletion list
-            logger.debug(
-                "Adding existing %s to deletion list: %s (mode: overwrite)",
-                media_type,
-                key,
-            )
-            self.to_delete[media_type].add(key)
-
-        return True
-
     def process_watched_movie(self, entry):
         """Process a single movie watch event."""
         movie = entry["movie"]
@@ -338,7 +238,14 @@ class TraktImporter:
             return
 
         # Check if we should process this movie based on mode
-        if not self._should_process_media(MediaTypes.MOVIE.value, tmdb_id):
+        if not helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            MediaTypes.MOVIE.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        ):
             return
 
         metadata = self._get_metadata(MediaTypes.MOVIE.value, tmdb_id, movie["title"])
@@ -357,15 +264,7 @@ class TraktImporter:
             status=Status.COMPLETED.value,
         )
 
-        if key in self.media_instances[MediaTypes.MOVIE.value]:
-            logger.info(
-                "Existing movie found: %s, adding another watch entry",
-                movie["title"],
-            )
-            self.media_instances[MediaTypes.MOVIE.value][key].append(movie_obj)
-        else:
-            self.media_instances[MediaTypes.MOVIE.value][key] = [movie_obj]
-
+        self.media_instances[MediaTypes.MOVIE.value][key].append(movie_obj)
         self.bulk_media[MediaTypes.MOVIE.value].append(movie_obj)
 
     def _get_episode_image(self, episode_number, season_metadata):
@@ -385,7 +284,14 @@ class TraktImporter:
             return
 
         # Check if we should process this episode based on mode
-        if not self._should_process_media(MediaTypes.TV.value, tmdb_id):
+        if not helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            MediaTypes.TV.value,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        ):
             return
 
         # Extract episode data
@@ -478,17 +384,7 @@ class TraktImporter:
             related_season=season_obj,
             end_date=watched_at,
         )
-        if ep_key in self.media_instances[MediaTypes.EPISODE.value]:
-            logger.info(
-                "Existing episode found: %s S%sE%s, adding another watch entry",
-                show["title"],
-                season_number,
-                episode_number,
-            )
-            self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
-        else:
-            self.media_instances[MediaTypes.EPISODE.value][ep_key] = [episode_obj]
-
+        self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
         self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
 
         # Update status if this is the last episode
@@ -626,7 +522,14 @@ class TraktImporter:
         parent_type = (
             MediaTypes.TV.value if media_type == MediaTypes.SEASON.value else media_type
         )
-        if not self._should_process_media(parent_type, tmdb_id):
+        if not helpers.should_process_media(
+            self.existing_media,
+            self.to_delete,
+            parent_type,
+            Sources.TMDB.value,
+            tmdb_id,
+            self.mode,
+        ):
             return
 
         metadata = self._get_metadata(

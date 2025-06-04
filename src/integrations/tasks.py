@@ -7,7 +7,7 @@ import events
 from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
-from integrations import helpers
+from integrations.imports import helpers
 from integrations.imports import anilist, hltb, kitsu, mal, simkl, trakt, yamtrack
 
 logger = logging.getLogger(__name__)
