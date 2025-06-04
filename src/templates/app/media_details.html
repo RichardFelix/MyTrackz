@@ -405,13 +405,14 @@
                 </div>
 
                 <div class="space-y-2">
-                  <div class="text-xs text-gray-400">
-                    Status: {{ user_media.status|media_status_readable }}
-                  </div>
+                  <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
 
                   {% if media.media_type != MediaTypes.MOVIE.value %}
                     <div class="text-xs text-gray-400">
-                      Progress: {{ user_media.progress }} {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
+                      Progress: {{ user_media.formatted_progress }}
+                      {% if media.media_type != MediaTypes.GAME.value %}
+                        {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
+                      {% endif %}
                     </div>
                   {% endif %}
 
