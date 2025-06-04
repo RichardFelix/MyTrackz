@@ -571,15 +571,15 @@ class MediaManager(models.Manager):
 
     def get_media(
         self,
-        media_type,
         user,
+        media_type,
         instance_id,
     ):
         """Get user media object given the media type and item."""
         model = apps.get_model(app_label="app", model_name=media_type)
         params = self._get_media_params(
-            media_type,
             user,
+            media_type,
             instance_id,
         )
 
@@ -590,8 +590,8 @@ class MediaManager(models.Manager):
 
     def get_media_prefetch(
         self,
-        media_type,
         user,
+        media_type,
         instance_id,
     ):
         """Get user media object with prefetch_related applied."""
@@ -611,8 +611,8 @@ class MediaManager(models.Manager):
 
     def _get_media_params(
         self,
-        media_type,
         user,
+        media_type,
         instance_id,
     ):
         """Get the common filter parameters for media queries."""

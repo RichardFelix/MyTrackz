@@ -62,8 +62,8 @@ def progress_edit(request, media_type, instance_id):
     operation = request.POST["operation"]
 
     media = BasicMedia.objects.get_media_prefetch(
-        media_type,
         request.user,
+        media_type,
         instance_id,
     )
 
@@ -245,8 +245,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 def update_media_score(request, media_type, instance_id):
     """Update the user's score for a media item."""
     media = BasicMedia.objects.get_media(
-        media_type,
         request.user,
+        media_type,
         instance_id,
     )
 
@@ -388,8 +388,8 @@ def track_modal(
     instance_id = request.GET.get("instance_id")
     if instance_id:
         media = BasicMedia.objects.get_media(
-            media_type,
             request.user,
+            media_type,
             instance_id,
         )
     elif request.GET.get("is_create"):
@@ -441,8 +441,8 @@ def media_save(request):
 
     if instance_id:
         instance = BasicMedia.objects.get_media(
-            media_type,
             request.user,
+            media_type,
             instance_id,
         )
     else:
@@ -490,8 +490,8 @@ def media_delete(request):
     media_type = request.POST["media_type"]
 
     media = BasicMedia.objects.get_media(
-        media_type,
         request.user,
+        media_type,
         instance_id,
     )
     if media:
