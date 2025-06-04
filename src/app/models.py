@@ -1046,15 +1046,34 @@ class Season(Media):
     @property
     def progress(self):
         """Return the current episode number of the season."""
-        sorted_episodes = sorted(
-            self.episodes.all(),
-            key=lambda e: e.item.episode_number,
-            reverse=True,
-        )
+        episodes = self.episodes.all()
+        if not episodes:
+            return 0
 
-        if sorted_episodes:
-            return sorted_episodes[0].item.episode_number
-        return 0
+        if self.status == Status.IN_PROGRESS.value:
+            # Calculate repeat counts for each episode number
+            episode_counts = {}
+            for ep in episodes:
+                ep_num = ep.item.episode_number
+                episode_counts[ep_num] = episode_counts.get(ep_num, 0) + 1
+
+            # Sort by repeat count then episode_number
+            sorted_episodes = sorted(
+                episodes,
+                key=lambda e: (
+                    -episode_counts[e.item.episode_number],
+                    -e.item.episode_number,
+                ),
+            )
+        else:
+            # Default sorting by episode_number
+            sorted_episodes = sorted(
+                episodes,
+                key=lambda e: -e.item.episode_number,
+            )
+
+        logger.info("Sorted episodes: %s", sorted_episodes)
+        return sorted_episodes[0].item.episode_number
 
     @property
     def start_date(self):
