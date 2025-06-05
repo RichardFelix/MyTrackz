@@ -597,8 +597,8 @@ class MediaManager(models.Manager):
         """Get user media object with prefetch_related applied."""
         model = apps.get_model(app_label="app", model_name=media_type)
         params = self._get_media_params(
-            media_type,
             user,
+            media_type,
             instance_id,
         )
 
