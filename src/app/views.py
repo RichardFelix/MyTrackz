@@ -724,10 +724,6 @@ def history_modal(
 @require_http_methods(["DELETE"])
 def delete_history_record(request, media_type, history_id):
     """Delete a specific history record."""
-    # Episode history can be deleted only by removing watched count
-    if media_type == MediaTypes.EPISODE.value:
-        return HttpResponse("Invalid media type", status=400)
-
     try:
         historical_model = apps.get_model(
             app_label="app",
