@@ -1072,7 +1072,6 @@ class Season(Media):
                 key=lambda e: -e.item.episode_number,
             )
 
-        logger.info("Sorted episodes: %s", sorted_episodes)
         return sorted_episodes[0].item.episode_number
 
     @property
