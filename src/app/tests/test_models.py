@@ -239,7 +239,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[Status.IN_PROGRESS.value],
+            status_filter=Status.IN_PROGRESS.value,
             sort_filter="score",
         )
 
@@ -250,7 +250,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -264,7 +264,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
             search="Cowboy",
         )
@@ -275,7 +275,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
             search="Naruto",
         )
@@ -330,7 +330,7 @@ class MediaManagerTests(TestCase):
         tv_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.TV.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -354,7 +354,7 @@ class MediaManagerTests(TestCase):
         season_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.SEASON.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -518,7 +518,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.MOVIE.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="title",
         )
 
@@ -549,7 +549,7 @@ class MediaManagerTests(TestCase):
         media_list = manager.get_media_list(
             user=self.user,
             media_type=MediaTypes.ANIME.value,
-            status_filter=[MediaStatusChoices.ALL],
+            status_filter=MediaStatusChoices.ALL,
             sort_filter="score",
         )
 
@@ -872,9 +872,8 @@ class MediaManagerTests(TestCase):
         # Test getting a TV show
         tv = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.TV.value,
-            source=Sources.TMDB.value,
+            instance_id=self.tv.id,
         )
 
         self.assertEqual(tv, self.tv)
@@ -882,10 +881,8 @@ class MediaManagerTests(TestCase):
         # Test getting a season
         season = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.SEASON.value,
-            source=Sources.TMDB.value,
-            season_number=1,
+            instance_id=self.season1.id,
         )
 
         self.assertEqual(season, self.season1)
@@ -893,11 +890,8 @@ class MediaManagerTests(TestCase):
         # Test getting an episode
         episode = manager.get_media(
             user=self.user,
-            media_id="1668",
             media_type=MediaTypes.EPISODE.value,
-            source=Sources.TMDB.value,
-            season_number=1,
-            episode_number=1,
+            instance_id=self.season1.episodes.first().id,
         )
 
         self.assertIsNotNone(episode)
@@ -906,10 +900,57 @@ class MediaManagerTests(TestCase):
         # Test getting a non-existent media
         non_existent = manager.get_media(
             user=self.user,
+            media_type=MediaTypes.MOVIE.value,
+            instance_id=9999,  # Non-existent ID
+        )
+
+        self.assertIsNone(non_existent)
+
+    def test_filter_media(self):
+        """Test the filter_media method."""
+        manager = MediaManager()
+
+        # Test getting a TV show
+        tv = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.TV.value,
+            source=Sources.TMDB.value,
+        ).first()
+
+        self.assertEqual(tv, self.tv)
+
+        # Test getting a season
+        season = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.SEASON.value,
+            source=Sources.TMDB.value,
+            season_number=1,
+        ).first()
+
+        self.assertEqual(season, self.season1)
+
+        # Test getting an episode
+        episode = manager.filter_media(
+            user=self.user,
+            media_id="1668",
+            media_type=MediaTypes.EPISODE.value,
+            source=Sources.TMDB.value,
+            season_number=1,
+            episode_number=1,
+        ).first()
+
+        self.assertIsNotNone(episode)
+        self.assertEqual(episode.item.episode_number, 1)
+
+        # Test getting a non-existent media
+        non_existent = manager.filter_media(
+            user=self.user,
             media_id="9999",
             media_type=MediaTypes.MOVIE.value,
             source=Sources.TMDB.value,
-        )
+        ).first()
 
         self.assertIsNone(non_existent)
 
@@ -1258,18 +1299,20 @@ class SeasonModel(TestCase):
             item=episode_item,
         )
         self.assertEqual(episode.end_date, datetime(2023, 6, 3, 0, 0, tzinfo=UTC))
-        self.assertEqual(episode.repeats, 0)
 
         # Test rewatching the same episode
         self.season.watch(3, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
 
         # Check if the episode was updated
-        episode = Episode.objects.get(
+        episodes = Episode.objects.filter(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.end_date, datetime(2023, 6, 4, 0, 0, tzinfo=UTC))
-        self.assertEqual(episode.repeats, 1)
+        self.assertEqual(
+            episodes.first().end_date,
+            datetime(2023, 6, 4, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(episodes.count(), 2)
 
     @patch("app.models.Season.get_episode_item")
     def test_watch_with_none_date(self, mock_get_episode_item):
@@ -1348,18 +1391,22 @@ class SeasonModel(TestCase):
             related_season=self.season,
             item=episode_item,
             end_date=datetime(2023, 6, 3, 0, 0, tzinfo=UTC),
-            repeats=2,
+        )
+        Episode.objects.create(
+            related_season=self.season,
+            item=episode_item,
+            end_date=datetime(2024, 6, 3, 0, 0, tzinfo=UTC),
         )
 
         # Test unwatching the episode
         self.season.unwatch(3)
 
         # Check if the episode's repeats were decreased
-        episode = Episode.objects.get(
+        episodes = Episode.objects.filter(
             related_season=self.season,
             item=episode_item,
         )
-        self.assertEqual(episode.repeats, 1)
+        self.assertEqual(episodes.count(), 1)
 
     @patch("app.models.Season.get_episode_item")
     def test_unwatch_nonexistent_episode(self, mock_get_episode_item):

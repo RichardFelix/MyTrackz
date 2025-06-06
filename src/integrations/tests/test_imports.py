@@ -8,7 +8,6 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
-import integrations
 from app.models import (
     TV,
     Anime,
@@ -22,7 +21,15 @@ from app.models import (
     Sources,
     Status,
 )
-from integrations.imports import anilist, helpers, hltb, kitsu, mal, simkl, yamtrack
+from integrations.imports import (
+    anilist,
+    helpers,
+    hltb,
+    kitsu,
+    mal,
+    simkl,
+    yamtrack,
+)
 from integrations.imports.trakt import TraktImporter, importer
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -54,13 +61,16 @@ class ImportMAL(TestCase):
         mock_request.side_effect = [anime_mock, manga_mock]
 
         mal.importer("bloodthirstiness", self.user, "new")
-        self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
-        self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 5)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 3)
+
         self.assertEqual(
-            Anime.objects.get(
+            Anime.objects.filter(
                 user=self.user,
                 item__title="Ama Gli Animali",
-            ).item.image,
+            )
+            .first()
+            .item.image,
             settings.IMG_NONE,
         )
         self.assertEqual(
@@ -75,7 +85,7 @@ class ImportMAL(TestCase):
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
-            integrations.helpers.MediaImportError,
+            helpers.MediaImportError,
             mal.importer,
             "fhdsufdsu",
             self.user,
@@ -100,20 +110,22 @@ class ImportAniList(TestCase):
 
         anilist.importer("bloodthirstiness", self.user, "new")
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
-        self.assertEqual(Manga.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 3)
         self.assertEqual(
             Anime.objects.get(user=self.user, item__title="FLCL").status,
             Status.PAUSED.value,
         )
         self.assertEqual(
-            Manga.objects.get(user=self.user, item__title="One Punch-Man").score,
+            Manga.objects.filter(user=self.user, item__title="One Punch-Man")
+            .first()
+            .score,
             9,
         )
 
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
-            integrations.helpers.MediaImportError,
+            helpers.MediaImportError,
             anilist.importer,
             "fhdsufdsu",
             self.user,
@@ -175,13 +187,15 @@ class ImportKitsu(TestCase):
         with Path(mock_path / "import_kitsu_manga.json").open() as file:
             self.sample_manga_response = json.load(file)
 
+        self.importer = kitsu.KitsuImporter("testuser", self.user, "new")
+
     @patch("app.providers.services.api_request")
     def test_get_kitsu_id(self, mock_api_request):
         """Test getting Kitsu ID from username."""
         mock_api_request.return_value = {
             "data": [{"id": "12345"}],
         }
-        kitsu_id = kitsu.get_kitsu_id("testuser")
+        kitsu_id = self.importer._get_kitsu_id("testuser")
         self.assertEqual(kitsu_id, "12345")
 
     @patch("app.providers.services.api_request")
@@ -197,27 +211,26 @@ class ImportKitsu(TestCase):
             self.user,
             "new",
         )
-
-        self.assertEqual(imported_counts[MediaTypes.ANIME.value], 5)
-        self.assertEqual(imported_counts[MediaTypes.MANGA.value], 5)
+        self.assertEqual(imported_counts[MediaTypes.ANIME.value], 6)
+        self.assertEqual(imported_counts[MediaTypes.MANGA.value], 6)
         self.assertEqual(warning_message, "")
 
         # Check if the media was imported
-        self.assertEqual(Anime.objects.count(), 5)
+        self.assertEqual(Anime.objects.count(), 6)
 
     def test_get_rating(self):
         """Test getting rating from Kitsu."""
-        self.assertEqual(kitsu.get_rating(20), 10)
-        self.assertEqual(kitsu.get_rating(10), 5)
-        self.assertEqual(kitsu.get_rating(1), 0.5)
-        self.assertIsNone(kitsu.get_rating(None))
+        self.assertEqual(self.importer._get_rating(20), 10)
+        self.assertEqual(self.importer._get_rating(10), 5)
+        self.assertEqual(self.importer._get_rating(1), 0.5)
+        self.assertIsNone(self.importer._get_rating(None))
 
     def test_get_status(self):
         """Test getting status from Kitsu."""
-        self.assertEqual(kitsu.get_status("completed"), Status.COMPLETED.value)
-        self.assertEqual(kitsu.get_status("current"), Status.IN_PROGRESS.value)
-        self.assertEqual(kitsu.get_status("planned"), Status.PLANNING.value)
-        self.assertEqual(kitsu.get_status("on_hold"), Status.PAUSED.value)
+        self.assertEqual(self.importer._get_status("completed"), Status.COMPLETED.value)
+        self.assertEqual(self.importer._get_status("current"), Status.IN_PROGRESS.value)
+        self.assertEqual(self.importer._get_status("planned"), Status.PLANNING.value)
+        self.assertEqual(self.importer._get_status("on_hold"), Status.PAUSED.value)
 
     def test_process_entry(self):
         """Test processing an entry from Kitsu."""
@@ -233,21 +246,20 @@ class ImportKitsu(TestCase):
             if item["type"] == "mappings"
         }
 
-        instance = kitsu.process_entry(
+        self.importer._process_entry(
             entry,
             MediaTypes.ANIME.value,
             media_lookup,
             mapping_lookup,
-            None,
-            self.user,
         )
+
+        instance = self.importer.bulk_media[MediaTypes.ANIME.value][0]
 
         self.assertEqual(instance.item.media_id, "1")
         self.assertIsInstance(instance, Anime)
         self.assertEqual(instance.score, 9)
         self.assertEqual(instance.progress, 26)
         self.assertEqual(instance.status, Status.COMPLETED.value)
-        self.assertEqual(instance.repeats, 1)
         self.assertEqual(instance.notes, "Great series!")
 
 
@@ -273,17 +285,16 @@ class ImportTrakt(TestCase):
             "image": "movie_image.jpg",
         }
 
-        trakt_importer = TraktImporter("testuser", self.user, "new")
+        trakt_importer = TraktImporter("test", self.user, "new")
         trakt_importer.process_watched_movie(movie_entry)
 
         # Check that the movie was added to bulk media
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]), 1)
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 1)
         self.assertEqual(len(trakt_importer.media_instances[MediaTypes.MOVIE.value]), 1)
 
         # Process the same movie again to test repeat handling
         trakt_importer.process_watched_movie(movie_entry)
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 2)
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value][1]), 1)
 
     @patch("integrations.imports.trakt.TraktImporter._get_metadata")
     def test_process_watched_episode(self, mock_get_metadata):
@@ -319,14 +330,13 @@ class ImportTrakt(TestCase):
         trakt_importer.process_watched_episode(episode_entry)
 
         # Check that all objects were added to bulk media
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value][0]), 1)
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.SEASON.value][0]), 1)
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value][0]), 1)
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value]), 1)
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.SEASON.value]), 1)
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value]), 1)
 
         # Process the same episode again to test repeat handling
         trakt_importer.process_watched_episode(episode_entry)
         self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value]), 2)
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.EPISODE.value][1]), 1)
 
     @patch("integrations.imports.trakt.TraktImporter._make_api_request")
     @patch("integrations.imports.trakt.TraktImporter._get_metadata")
@@ -347,8 +357,8 @@ class ImportTrakt(TestCase):
         trakt_importer.process_watchlist()
 
         # Check that TV was added to bulk media with planning status
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value][0]), 1)
-        tv_obj = trakt_importer.bulk_media[MediaTypes.TV.value][0][0]
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.TV.value]), 1)
+        tv_obj = trakt_importer.bulk_media[MediaTypes.TV.value][0]
         self.assertEqual(tv_obj.status, Status.PLANNING.value)
 
     @patch("integrations.imports.trakt.TraktImporter._make_api_request")
@@ -371,8 +381,8 @@ class ImportTrakt(TestCase):
         trakt_importer.process_ratings()
 
         # Check that movie was added to bulk media with score
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]), 1)
-        movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0][0]
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 1)
+        movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
         self.assertEqual(movie_obj.score, 8)
 
     @patch("integrations.imports.trakt.TraktImporter._make_api_request")
@@ -407,8 +417,8 @@ class ImportTrakt(TestCase):
         self.assertIn("?page=2&limit=1000", calls[1].args[0])  # Second page
 
         # Check that movie was added to bulk media with comment
-        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]), 1)
-        movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0][0]
+        self.assertEqual(len(trakt_importer.bulk_media[MediaTypes.MOVIE.value]), 1)
+        movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
         self.assertEqual(movie_obj.notes, "Great movie!")
 
     @patch("integrations.imports.trakt.TraktImporter.import_data")
@@ -429,8 +439,9 @@ class ImportSimkl(TestCase):
         """Create user for the tests."""
         credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**credentials)
+        self.importer = simkl.SimklImporter("testuser", self.user, "new")
 
-    @patch("integrations.imports.simkl.get_user_list")
+    @patch("integrations.imports.simkl.SimklImporter._get_user_list")
     def test_importer(
         self,
         user_list,
@@ -512,23 +523,29 @@ class ImportSimkl(TestCase):
 
     def test_get_status(self):
         """Test mapping SIMKL status to internal status."""
-        self.assertEqual(simkl.get_status("completed"), Status.COMPLETED.value)
-        self.assertEqual(simkl.get_status("watching"), Status.IN_PROGRESS.value)
-        self.assertEqual(simkl.get_status("plantowatch"), Status.PLANNING.value)
-        self.assertEqual(simkl.get_status("hold"), Status.PAUSED.value)
-        self.assertEqual(simkl.get_status("dropped"), Status.DROPPED.value)
+        self.assertEqual(self.importer._get_status("completed"), Status.COMPLETED.value)
         self.assertEqual(
-            simkl.get_status("unknown"),
+            self.importer._get_status("watching"),
+            Status.IN_PROGRESS.value,
+        )
+        self.assertEqual(
+            self.importer._get_status("plantowatch"),
+            Status.PLANNING.value,
+        )
+        self.assertEqual(self.importer._get_status("hold"), Status.PAUSED.value)
+        self.assertEqual(self.importer._get_status("dropped"), Status.DROPPED.value)
+        self.assertEqual(
+            self.importer._get_status("unknown"),
             Status.IN_PROGRESS.value,
         )  # Default case
 
     def test_get_date(self):
         """Test getting date from SIMKL."""
         self.assertEqual(
-            simkl.get_date("2023-01-01T00:00:00Z"),
+            self.importer._get_date("2023-01-01T00:00:00Z"),
             datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
         )
-        self.assertIsNone(simkl.get_date(None))
+        self.assertIsNone(self.importer._get_date(None))
 
 
 class HelpersTest(TestCase):
@@ -615,61 +632,6 @@ class HelpersTest(TestCase):
 
         # Check if reference was updated
         self.assertEqual(new_episode.related_season.id, season.id)
-
-    def test_bulk_chunk_import_new(self):
-        """Test bulk importing new records."""
-        # Create test data
-        item = Item.objects.create(
-            media_id="1",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test Show",
-        )
-
-        # Create bulk media list
-        bulk_media = [
-            TV(item=item, user=self.user, status=Status.PLANNING.value),
-            TV(
-                item=Item.objects.create(
-                    media_id="2",
-                    source=Sources.TMDB.value,
-                    media_type=MediaTypes.TV.value,
-                    title="Test Show 2",
-                ),
-                user=self.user,
-                status=Status.COMPLETED.value,
-            ),
-        ]
-
-        # Test import
-        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "new")
-
-        # Check results
-        self.assertEqual(num_imported, 2)
-        self.assertEqual(TV.objects.count(), 2)
-
-    def test_bulk_chunk_import_overwrite(self):
-        """Test bulk importing with overwrite mode."""
-        # Create existing record
-        item = Item.objects.create(
-            media_id="1",
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.TV.value,
-            title="Test Show",
-        )
-        TV.objects.create(item=item, user=self.user, status=Status.PLANNING.value)
-
-        # Create bulk media list with updated status
-        bulk_media = [
-            TV(item=item, user=self.user, status=Status.COMPLETED.value),
-        ]
-
-        # Test import
-        num_imported = helpers.bulk_chunk_import(bulk_media, TV, self.user, "overwrite")
-
-        # Check results
-        self.assertEqual(num_imported, 1)
-        self.assertEqual(TV.objects.get(item=item).status, Status.COMPLETED.value)
 
     @patch("django.contrib.messages.error")
     def test_create_import_schedule(self, mock_messages):

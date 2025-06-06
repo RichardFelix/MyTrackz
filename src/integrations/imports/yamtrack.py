@@ -83,8 +83,12 @@ class YamtrackImporter:
         """Process a single row from the CSV file."""
         media_type = row["media_type"]
 
-        season_number = row["season_number"] if row["season_number"] != "" else None
-        episode_number = row["episode_number"] if row["episode_number"] != "" else None
+        season_number = (
+            int(row["season_number"]) if row["season_number"] != "" else None
+        )
+        episode_number = (
+            int(row["episode_number"]) if row["episode_number"] != "" else None
+        )
 
         if row["progress"] == "":
             row["progress"] = 0

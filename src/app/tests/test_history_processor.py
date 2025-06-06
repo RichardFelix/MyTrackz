@@ -172,24 +172,6 @@ class HistoryProcessorTests(TestCase):
             "Progress set to 10 chapters",
         )
 
-    def test_format_description_repeats(self):
-        """Test format_description for repeat count changes."""
-        # Repeat increment
-        self.assertEqual(
-            format_description("repeats", 0, 1, MediaTypes.TV.value),
-            "Finished watching again for the 2nd time",
-        )
-        self.assertEqual(
-            format_description("repeats", 1, 2, MediaTypes.BOOK.value),
-            "Finished reading again for the 3rd time",
-        )
-
-        # Repeat adjustment
-        self.assertEqual(
-            format_description("repeats", 2, 1, MediaTypes.GAME.value),
-            "Adjusted repeat count from 2 to 1",
-        )
-
     def test_format_description_notes(self):
         """Test format_description for notes changes."""
         # Initial notes

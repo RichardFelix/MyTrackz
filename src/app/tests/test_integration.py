@@ -2,7 +2,7 @@ import os
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.utils import timezone
+from django.utils import formats, timezone
 from playwright.sync_api import expect, sync_playwright
 
 
@@ -62,7 +62,10 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).click()
         self.page.get_by_role("link", name="Breaking Bad S1").click()
 
-        today = timezone.localtime().strftime("%b %d, %Y")
+        today = formats.date_format(
+            timezone.localdate(),
+            "DATE_FORMAT",
+        )
         expect(self.page.get_by_role("main")).to_contain_text(f"Last watched: {today}")
 
     def test_tv_completed(self):

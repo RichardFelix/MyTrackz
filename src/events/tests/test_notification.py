@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.test import TestCase, override_settings
-from django.utils import timezone
+from django.utils import formats, timezone
 
 from app.models import Anime, Item, Manga, MediaTypes, Sources, Status
 from events.models import Event
@@ -577,7 +577,10 @@ class NotificationTests(TestCase):
 
         # Check the title contains today's date
         title = mock_send_notifications.call_args[1]["title"]
-        today_str = today.strftime("%b %d, %Y")
+        today_str = formats.date_format(
+            today.date(),
+            "DATE_FORMAT",
+        )
         self.assertIn(today_str, title)
 
         # Verify the result message
