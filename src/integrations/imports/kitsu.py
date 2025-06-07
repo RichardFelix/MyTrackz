@@ -205,7 +205,11 @@ class KitsuImporter:
         ) or kitsu_metadata["attributes"].get("chapterCount")
 
         # Handle completed repeats
-        if attributes["reconsumeCount"] >= 1:
+        repeats_count = attributes["reconsumeCount"]
+        if attributes["reconsuming"] and repeats_count == 0:
+            repeats_count = 1
+
+        if repeats_count >= 1:
             for _ in range(attributes["reconsumeCount"]):
                 self.bulk_media[media_type].append(
                     model(

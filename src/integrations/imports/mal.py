@@ -128,21 +128,6 @@ class MyAnimeListImporter:
         list_status = content["list_status"]
         status = self._get_status(list_status["status"])
 
-        if media_type == MediaTypes.ANIME.value:
-            progress = list_status["num_episodes_watched"]
-            repeats = list_status["num_times_rewatched"]
-            if list_status["is_rewatching"]:
-                if repeats == 0:
-                    repeats = 1
-                status = Status.IN_PROGRESS.value
-        else:
-            progress = list_status["num_chapters_read"]
-            repeats = list_status["num_times_reread"]
-            if list_status["is_rereading"]:
-                if repeats == 0:
-                    repeats = 1
-                status = Status.IN_PROGRESS.value
-
         try:
             image_url = content["node"]["main_picture"]["large"]
         except KeyError:
@@ -172,6 +157,21 @@ class MyAnimeListImporter:
         model = apps.get_model(app_label="app", model_name=media_type)
 
         # Handle completed repeats
+        if media_type == MediaTypes.ANIME.value:
+            progress = list_status["num_episodes_watched"]
+            repeats = list_status["num_times_rewatched"]
+            if list_status["is_rewatching"]:
+                if repeats == 0:
+                    repeats = 1
+                status = Status.IN_PROGRESS.value
+        else:
+            progress = list_status["num_chapters_read"]
+            repeats = list_status["num_times_reread"]
+            if list_status["is_rereading"]:
+                if repeats == 0:
+                    repeats = 1
+                status = Status.IN_PROGRESS.value
+
         if repeats >= 1:
             for _ in range(repeats):
                 max_progress = content["node"].get("num_episodes") or content[
