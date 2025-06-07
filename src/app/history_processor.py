@@ -111,7 +111,7 @@ def collect_creation_changes(new_record, history_model, media_type):
         "other_changes": [],
     }
 
-    for field in history_model._meta.get_fields():  # noqa: SLF001
+    for field in history_model._meta.get_fields():
         if (
             field.name.startswith("history_")
             or field.name in ["id"]

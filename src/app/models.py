@@ -381,7 +381,7 @@ class MediaManager(models.Manager):
             )
 
         # Handle sorting by Item fields
-        item_fields = [f.name for f in Item._meta.fields]  # noqa: SLF001
+        item_fields = [f.name for f in Item._meta.fields]
         if sort_filter in item_fields:
             if sort_filter == "title":
                 # Case-insensitive title sorting
