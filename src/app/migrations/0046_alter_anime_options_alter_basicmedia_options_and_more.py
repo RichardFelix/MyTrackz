@@ -14,7 +14,7 @@ def convert_media_repeats_to_instances(apps, schema_editor):
 
         # Get all objects with status completed with repeats > 0 or status repeating
         media_objects = Media.objects.filter(
-            models.Q(status='Completed', repeats__gt=0) | 
+            models.Q(repeats__gt=0) | 
             models.Q(status='Repeating')
         )
 
@@ -25,58 +25,133 @@ def convert_media_repeats_to_instances(apps, schema_editor):
                 status='Completed'
             ).order_by('history_date')
 
-            if not completed_history.exists():
-                continue
 
-            # Group by repeat number and get only the newest instance for each repeat count
-            repeat_groups = {}
-            for record in completed_history:
-                repeat_count = record.repeats
-                if repeat_count not in repeat_groups or record.history_date > repeat_groups[repeat_count].history_date:
-                    repeat_groups[repeat_count] = record
+            if completed_history.exists():
+                # Group by repeat number and get only the newest instance for each repeat count
+                repeat_groups = {}
+                for record in completed_history:
+                    repeat_count = record.repeats
+                    if repeat_count not in repeat_groups or record.history_date > repeat_groups[repeat_count].history_date:
+                        repeat_groups[repeat_count] = record
 
-            # Sort by repeat number to process in order
-            sorted_records = sorted(repeat_groups.values(), key=lambda x: x.repeats)
+                # Sort by repeat number to process in order
+                sorted_records = sorted(repeat_groups.values(), key=lambda x: x.repeats)
 
-            previous_repeats = 0
-            for record in sorted_records:
-                current_repeats = record.repeats
+                previous_repeats = 0
+                zero_created = False
+                for record in sorted_records:
+                    current_repeats = record.repeats
 
-                if current_repeats == 0 and previous_repeats == 0:
-                    instances_to_create = 1
-                else:
-                    instances_to_create = current_repeats - previous_repeats
+                    if current_repeats == 0 and previous_repeats == 0:
+                        instances_to_create = 1
+                        zero_created = True
+                    else:
+                        instances_to_create = current_repeats - previous_repeats
+                        if zero_created:
+                            instances_to_create -= 1
 
-                for _ in range(instances_to_create):
-                    new_instance = Media(
+                    for _ in range(instances_to_create):
+                        new_instance = Media.objects.create(
+                            item=media_obj.item,
+                            user=media_obj.user,
+                            score=record.score,
+                            progress=record.progress,
+                            status='Completed',
+                            repeats=0,
+                            start_date=record.start_date,
+                            end_date=record.end_date,
+                            notes=record.notes
+                        )
+
+                        HistoricalMedia.objects.create(
+                            id=new_instance.id,
+                            history_date=record.history_date,
+                            history_type='+',
+                            history_user=record.history_user,
+                            score=record.score,
+                            progress=record.progress,
+                            status='Completed',
+                            repeats=0,
+                            start_date=record.start_date,
+                            end_date=record.end_date,
+                            notes=record.notes,
+                        )
+
+                    previous_repeats = current_repeats
+                    
+            else:
+                status_date = HistoricalMedia.objects.filter(
+                    id=media_obj.id,
+                    status=media_obj.status
+                ).order_by('history_date').first().history_date
+
+                repeats_count = media_obj.repeats
+                if media_obj.status == 'Repeating' and repeats_count == 0:
+                    repeats_count = 1
+
+                for _ in range(repeats_count):
+                    new_instance = Media.objects.create(
                         item=media_obj.item,
                         user=media_obj.user,
-                        score=record.score,
-                        progress=record.progress,
+                        score=media_obj.score,
+                        progress=media_obj.progress,
                         status='Completed',
                         repeats=0,
-                        start_date=record.start_date,
-                        end_date=record.end_date,
-                        notes=record.notes
+                        start_date=media_obj.start_date,
+                        end_date=media_obj.end_date,
+                        notes=media_obj.notes
                     )
-                    new_instance.save()
 
-                previous_repeats = current_repeats
+                    HistoricalMedia.objects.create(
+                        id=new_instance.id,
+                        history_date=status_date,
+                        history_type='+',
+                        history_user=media_obj.user,
+                        score=media_obj.score,
+                        progress=media_obj.progress,
+                        status='Completed',
+                        repeats=0,
+                        start_date=media_obj.start_date,
+                        end_date=media_obj.end_date,
+                        notes=media_obj.notes,
+                    )
 
             if media_obj.status == 'Repeating':
-                new_instance = Media(
-                    item=media_obj.item,
-                    user=media_obj.user,
-                    score=media_obj.score,
-                    progress=media_obj.progress,
-                    status='In progress',
-                    repeats=0,
-                    start_date=media_obj.start_date,
-                    end_date=media_obj.end_date,
-                    notes=media_obj.notes
-                )
-                new_instance.save()
-            
+                status = 'In progress'
+            else:
+                status = media_obj.status
+
+            status_date = HistoricalMedia.objects.filter(
+                id=media_obj.id,
+                status=media_obj.status
+            ).order_by('history_date').first().history_date
+
+            new_instance = Media.objects.create(
+                item=media_obj.item,
+                user=media_obj.user,
+                score=media_obj.score,
+                progress=media_obj.progress,
+                status=status,
+                repeats=0,
+                start_date=media_obj.start_date,
+                end_date=media_obj.end_date,
+                notes=media_obj.notes
+            )
+
+            HistoricalMedia.objects.create(
+                id=new_instance.id,
+                history_date=status_date,
+                history_type='+',
+                history_user=media_obj.user,
+                score=media_obj.score,
+                progress=media_obj.progress,
+                status=status,
+                repeats=0,
+                start_date=media_obj.start_date,
+                end_date=media_obj.end_date,
+                notes=media_obj.notes,
+            )
+        
             media_obj.delete()
 
 

@@ -23,6 +23,15 @@ def convert_repeats_to_instances(apps, schema_editor):
             )
             new_episode.save()
 
+            HistoricalEpisode.objects.create(
+                id=new_episode.id,
+                history_date=historical_record.history_date,
+                history_type='+',
+                history_user=historical_record.history_user,
+                end_date=historical_record.end_date,
+                repeats=0,
+            )
+
         # Delete the original episode
         episode.delete()
 
