@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from datetime import UTC
 
 import requests
 from django.apps import apps
@@ -82,6 +83,7 @@ class AniListImporter:
                             month
                             day
                         }
+                        updatedAt
                         repeat
                         notes
                     }
@@ -113,6 +115,7 @@ class AniListImporter:
                             month
                             day
                         }
+                        updatedAt
                         repeat
                         notes
                     }
@@ -202,6 +205,11 @@ class AniListImporter:
             },
         )
         model = apps.get_model(app_label="app", model_name=media_type)
+        updated_at = (
+            timezone.now()
+            if content["updatedAt"] == 0
+            else timezone.datetime.fromtimestamp(content["updatedAt"], tz=UTC)
+        )
 
         repeats_count = content["repeat"]
         if content["status"] == "REPEATING" and repeats_count == 0:
@@ -212,18 +220,19 @@ class AniListImporter:
                 max_progress = content["media"].get("episodes") or content["media"].get(
                     "chapters",
                 )
-                self.bulk_media[media_type].append(
-                    model(
-                        item=item,
-                        user=self.user,
-                        score=content["score"],
-                        progress=max_progress or 0,
-                        status=Status.COMPLETED.value,
-                        start_date=self._get_date(content["startedAt"]),
-                        end_date=self._get_date(content["completedAt"]),
-                        notes=content["notes"] or "",
-                    ),
+
+                instance = model(
+                    item=item,
+                    user=self.user,
+                    score=content["score"],
+                    progress=max_progress or 0,
+                    status=Status.IN_PROGRESS.value,
+                    start_date=self._get_date(content["startedAt"]),
+                    end_date=None,
+                    notes=content["notes"] or "",
                 )
+                instance._history_date = updated_at
+                self.bulk_media[media_type].append(instance)
 
         instance = model(
             item=item,
@@ -235,6 +244,7 @@ class AniListImporter:
             end_date=self._get_date(content["completedAt"]),
             notes=content["notes"] or "",
         )
+        instance._history_date = updated_at
 
         self.bulk_media[media_type].append(instance)
 

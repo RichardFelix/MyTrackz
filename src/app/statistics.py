@@ -384,15 +384,21 @@ def time_line_sort_key(media):
 
 def get_activity_data(user, start_date, end_date):
     """Get daily activity counts for the last year."""
-    if start_date is None:
-        start_date = user.date_joined
     if end_date is None:
         end_date = timezone.localtime()
 
-    # Get the Monday of the week containing start_date (for grid alignment)
-    start_date_aligned = start_date - datetime.timedelta(days=start_date.weekday())
+    start_date_aligned = get_aligned_monday(start_date)
 
     combined_data = get_filtered_historical_data(start_date_aligned, end_date, user)
+
+    # update start_date values from historical records if not provided
+    if start_date is None:
+        dates = [item["date"] for item in combined_data]
+        start_date = datetime.datetime.combine(
+            min(dates) if dates else timezone.localdate(),
+            datetime.time.min,
+        )
+        start_date_aligned = get_aligned_monday(start_date)
 
     # Aggregate counts by date
     date_counts = {}
@@ -467,6 +473,15 @@ def get_activity_data(user, start_date, end_date):
     }
 
 
+def get_aligned_monday(datetime_obj):
+    """Get the Monday of the week containing the given date."""
+    if datetime_obj is None:
+        return None
+
+    days_to_subtract = datetime_obj.weekday()  # 0=Monday, 6=Sunday
+    return datetime_obj - datetime.timedelta(days=days_to_subtract)
+
+
 def get_level(count):
     """Calculate intensity level (0-4) based on count."""
     thresholds = [0, 3, 6, 9]
@@ -481,17 +496,24 @@ def get_filtered_historical_data(start_date, end_date, user):
     historical_models = BasicMedia.objects.get_historical_models()
     combined_data = []
     local_timezone = timezone.get_current_timezone()
+
     for model_name in historical_models:
         historical_model = apps.get_model("app", model_name)
 
-        # Filter historical records
+        # Start with base query
+        query = historical_model.objects.filter(
+            history_user_id=user,
+        )
+
+        # Add date filters conditionally
+        if start_date is not None:
+            query = query.filter(history_date__date__gte=start_date)
+        if end_date is not None:
+            query = query.filter(history_date__date__lte=end_date)
+
+        # Annotate and aggregate
         data = (
-            historical_model.objects.filter(
-                history_user_id=user,
-                history_date__date__gte=start_date,
-                history_date__date__lte=end_date,
-            )
-            .annotate(
+            query.annotate(
                 date=TruncDate("history_date", tzinfo=local_timezone),
             )
             .values("date")

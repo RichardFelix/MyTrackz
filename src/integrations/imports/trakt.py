@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import requests
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -263,6 +264,7 @@ class TraktImporter:
             end_date=watched_at,
             status=Status.COMPLETED.value,
         )
+        movie_obj._history_date = parse_datetime(watched_at)
 
         self.media_instances[MediaTypes.MOVIE.value][key].append(movie_obj)
         self.bulk_media[MediaTypes.MOVIE.value].append(movie_obj)
@@ -338,6 +340,7 @@ class TraktImporter:
                 user=self.user,
                 status=Status.IN_PROGRESS.value,
             )
+            tv_obj._history_date = parse_datetime(watched_at)
             self.bulk_media[MediaTypes.TV.value].append(tv_obj)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         else:
@@ -359,6 +362,7 @@ class TraktImporter:
                 related_tv=tv_obj,
                 status=Status.IN_PROGRESS.value,
             )
+            season_obj._history_date = parse_datetime(watched_at)
             self.bulk_media[MediaTypes.SEASON.value].append(season_obj)
             self.media_instances[MediaTypes.SEASON.value][season_key] = [season_obj]
         else:
@@ -384,6 +388,7 @@ class TraktImporter:
             related_season=season_obj,
             end_date=watched_at,
         )
+        episode_obj._history_date = parse_datetime(watched_at)
         self.media_instances[MediaTypes.EPISODE.value][ep_key].append(episode_obj)
         self.bulk_media[MediaTypes.EPISODE.value].append(episode_obj)
 
@@ -474,6 +479,7 @@ class TraktImporter:
                 entry_type,
             )
             self._process_media_item(
+                entry,
                 entry["movie"],
                 MediaTypes.MOVIE.value,
                 app.models.Movie,
@@ -486,6 +492,7 @@ class TraktImporter:
                 entry_type,
             )
             self._process_media_item(
+                entry,
                 entry["show"],
                 MediaTypes.TV.value,
                 app.models.TV,
@@ -499,6 +506,7 @@ class TraktImporter:
                 entry_type,
             )
             self._process_media_item(
+                entry,
                 entry["show"],
                 MediaTypes.SEASON.value,
                 app.models.Season,
@@ -508,6 +516,7 @@ class TraktImporter:
 
     def _process_media_item(
         self,
+        entry,
         media_data,
         media_type,
         model_class,
@@ -541,8 +550,14 @@ class TraktImporter:
         if not metadata:
             return
 
+        updated_at = parse_datetime(
+            entry.get("listed_at")
+            or entry.get("rated_at")
+            or entry["comment"].get("updated_at"),
+        )
+
         if media_type == MediaTypes.SEASON.value:
-            tv_obj = self._get_tv_obj(tmdb_id, media_data)
+            tv_obj = self._get_tv_obj(tmdb_id, media_data, updated_at)
             if not tv_obj:
                 return
             defaults["related_tv"] = tv_obj
@@ -561,11 +576,11 @@ class TraktImporter:
                 user=self.user,
                 **defaults,
             )
-
+            media_obj._history_date = updated_at
             self.bulk_media[media_type].append(media_obj)
             self.media_instances[media_type][key] = [media_obj]
 
-    def _get_tv_obj(self, tmdb_id, media_data):
+    def _get_tv_obj(self, tmdb_id, media_data, updated_at):
         """Get or create a TV object for the given season."""
         tv_metadata = self._get_metadata(
             MediaTypes.TV.value,
@@ -592,6 +607,7 @@ class TraktImporter:
                 user=self.user,
                 status=Status.IN_PROGRESS.value,
             )
+            tv_obj._history_date = updated_at
             self.bulk_media[MediaTypes.TV.value].append(tv_obj)
             self.media_instances[MediaTypes.TV.value][tv_key] = [tv_obj]
         return tv_obj

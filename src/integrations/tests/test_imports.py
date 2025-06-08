@@ -82,6 +82,17 @@ class ImportMAL(TestCase):
             7,
         )
 
+        self.assertEqual(
+            Anime.objects.filter(
+                user=self.user,
+                item__title="Chainsaw Man",
+            )
+            .first()
+            .history.first()
+            .history_date,
+            datetime(2022, 12, 28, 19, 20, 54, tzinfo=UTC),
+        )
+
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
         self.assertRaises(
@@ -121,6 +132,12 @@ class ImportAniList(TestCase):
             .score,
             9,
         )
+        self.assertEqual(
+            Anime.objects.get(user=self.user, item__title="FLCL")
+            .history.first()
+            .history_date,
+            datetime(2025, 6, 4, 10, 11, 17, tzinfo=UTC),
+        )
 
     def test_user_not_found(self):
         """Test that an error is raised if the user is not found."""
@@ -140,12 +157,11 @@ class ImportYamtrack(TestCase):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-
-    def test_import_yamtrack(self):
-        """Basic test importing media from Yamtrack."""
         with Path(mock_path / "import_yamtrack.csv").open("rb") as file:
-            yamtrack.importer(file, self.user, "new")
+            self.import_results = yamtrack.importer(file, self.user, "new")
 
+    def test_import_counts(self):
+        """Test basic counts of imported media."""
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 1)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 1)
         self.assertEqual(TV.objects.filter(user=self.user).count(), 1)
@@ -156,6 +172,29 @@ class ImportYamtrack(TestCase):
             24,
         )
 
+    def test_historical_records(self):
+        """Test historical records creation during import."""
+        anime = Anime.objects.filter(user=self.user).first()
+        self.assertEqual(anime.history.count(), 1)
+        self.assertEqual(
+            anime.history.first().history_date,
+            datetime(2024, 2, 9, 10, 0, 0, tzinfo=UTC),
+        )
+
+        movie = Movie.objects.filter(user=self.user).first()
+        self.assertEqual(movie.history.count(), 1)
+        self.assertEqual(
+            movie.history.first().history_date,
+            datetime(2024, 2, 9, 15, 30, 0, tzinfo=UTC),
+        )
+
+        tv = TV.objects.filter(user=self.user).first()
+        self.assertEqual(tv.history.count(), 1)
+        self.assertEqual(
+            tv.history.first().history_date,
+            datetime(2024, 2, 9, 12, 0, 0, tzinfo=UTC),
+        )
+
 
 class ImportHowLongToBeat(TestCase):
     """Test importing media from HowLongToBeat CSV."""
@@ -164,13 +203,21 @@ class ImportHowLongToBeat(TestCase):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-
-    def test_import_hltb(self):
-        """Basic test importing media from HowLongToBeat."""
         with Path(mock_path / "import_hltb_game.csv").open("rb") as file:
-            hltb.importer(file, self.user, "new")
+            self.import_results = hltb.importer(file, self.user, "new")
 
+    def test_import_counts(self):
+        """Test basic counts of imported games."""
         self.assertEqual(Game.objects.filter(user=self.user).count(), 1)
+
+    def test_historical_records(self):
+        """Test historical records creation during import."""
+        game = Game.objects.filter(user=self.user).first()
+        self.assertEqual(game.history.count(), 1)
+        self.assertEqual(
+            game.history.first().history_date,
+            datetime(2024, 2, 9, 15, 54, 48, tzinfo=UTC),
+        )
 
 
 class ImportKitsu(TestCase):
@@ -217,6 +264,11 @@ class ImportKitsu(TestCase):
 
         # Check if the media was imported
         self.assertEqual(Anime.objects.count(), 6)
+        self.assertEqual(Manga.objects.count(), 6)
+        self.assertEqual(
+            Anime.objects.get(item__title="Test Anime 2").history.first().history_date,
+            datetime(2024, 4, 8, 16, 16, 59, 18000, tzinfo=UTC),
+        )
 
     def test_get_rating(self):
         """Test getting rating from Kitsu."""
@@ -343,6 +395,7 @@ class ImportTrakt(TestCase):
     def test_process_watchlist(self, mock_get_metadata, mock_make_request):
         """Test processing a watchlist entry."""
         watchlist_entry = {
+            "listed_at": "2023-01-01T00:00:00.000Z",
             "type": "show",
             "show": {"title": "Watchlist Show", "ids": {"tmdb": 54321}},
         }
@@ -366,6 +419,7 @@ class ImportTrakt(TestCase):
     def test_process_ratings(self, mock_get_metadata, mock_make_request):
         """Test processing a rating entry."""
         rating_entry = {
+            "rated_at": "2023-01-01T00:00:00.000Z",
             "type": "movie",
             "movie": {"title": "Rated Movie", "ids": {"tmdb": 238}},
             "rating": 8,
@@ -394,7 +448,10 @@ class ImportTrakt(TestCase):
             {
                 "type": "movie",
                 "movie": {"title": "Commented Movie", "ids": {"tmdb": 123}},
-                "comment": {"comment": "Great movie!"},
+                "comment": {
+                    "comment": "Great movie!",
+                    "updated_at": "2023-01-01T00:00:00.000Z",
+                },
             },
         ]
 
@@ -451,6 +508,7 @@ class ImportSimkl(TestCase):
         user_list.return_value = {
             "shows": [
                 {
+                    "last_watched_at": "2023-01-02T00:00:00Z",
                     "show": {"title": "Breaking Bad", "ids": {"tmdb": 1396}},
                     "status": "watching",
                     "user_rating": 8,
@@ -468,6 +526,7 @@ class ImportSimkl(TestCase):
             ],
             "movies": [
                 {
+                    "added_to_watchlist_at": "2023-01-01T00:00:00Z",
                     "movie": {"title": "Perfect Blue", "ids": {"tmdb": 10494}},
                     "status": "completed",
                     "user_rating": 9,
@@ -477,6 +536,7 @@ class ImportSimkl(TestCase):
             ],
             "anime": [
                 {
+                    "added_to_watchlist_at": "2023-01-01T00:00:00Z",
                     "show": {"title": "Example Anime", "ids": {"mal": 1}},
                     "status": "plantowatch",
                     "user_rating": 7,

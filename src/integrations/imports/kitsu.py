@@ -5,6 +5,7 @@ from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
+from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -199,6 +200,7 @@ class KitsuImporter:
             return
 
         model = apps.get_model(app_label="app", model_name=media_type)
+        updated_at = parse_datetime(attributes["updatedAt"])
 
         max_progress = kitsu_metadata["attributes"].get(
             "episodeCount",
@@ -211,18 +213,18 @@ class KitsuImporter:
 
         if repeats_count >= 1:
             for _ in range(attributes["reconsumeCount"]):
-                self.bulk_media[media_type].append(
-                    model(
-                        item=item,
-                        user=self.user,
-                        score=self._get_rating(attributes["ratingTwenty"]),
-                        progress=max_progress or attributes["progress"],
-                        status=Status.COMPLETED.value,
-                        start_date=attributes["startedAt"],
-                        end_date=attributes["finishedAt"],
-                        notes=attributes["notes"] or "",
-                    ),
+                instance = model(
+                    item=item,
+                    user=self.user,
+                    score=self._get_rating(attributes["ratingTwenty"]),
+                    progress=max_progress or attributes["progress"],
+                    status=Status.COMPLETED.value,
+                    start_date=attributes["startedAt"],
+                    end_date=attributes["finishedAt"],
+                    notes=attributes["notes"] or "",
                 )
+                instance._history_date = updated_at
+                self.bulk_media[media_type].append(instance)
 
         instance = model(
             item=item,
@@ -238,6 +240,7 @@ class KitsuImporter:
         if attributes["reconsuming"]:
             instance.status = Status.IN_PROGRESS.value
 
+        instance._history_date = updated_at
         self.bulk_media[media_type].append(instance)
 
     def _fetch_media_from_related_url(self, relationship, media_type):

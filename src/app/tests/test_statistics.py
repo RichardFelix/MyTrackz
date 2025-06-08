@@ -869,8 +869,10 @@ class StatisticsTests(TestCase):
 
         # Create mock historical data for first model
         mock_historical_model1 = MagicMock()
-        filter_chain1 = mock_historical_model1.objects.filter.return_value
-        annotate_chain1 = filter_chain1.annotate.return_value
+        user_chain1 = mock_historical_model1.objects.filter.return_value
+        start_date_chain1 = user_chain1.filter.return_value
+        end_date_chain1 = start_date_chain1.filter.return_value
+        annotate_chain1 = end_date_chain1.annotate.return_value
         values_chain1 = annotate_chain1.values.return_value
         values_chain1.annotate.return_value = [
             {"date": datetime.date(2025, 1, 5), "count": 3},
@@ -879,8 +881,10 @@ class StatisticsTests(TestCase):
 
         # Create mock historical data for second model
         mock_historical_model2 = MagicMock()
-        filter_chain2 = mock_historical_model2.objects.filter.return_value
-        annotate_chain2 = filter_chain2.annotate.return_value
+        user_chain2 = mock_historical_model2.objects.filter.return_value
+        start_date_chain2 = user_chain2.filter.return_value
+        end_date_chain2 = start_date_chain2.filter.return_value
+        annotate_chain2 = end_date_chain2.annotate.return_value
         values_chain2 = annotate_chain2.values.return_value
         values_chain2.annotate.return_value = [
             {"date": datetime.date(2025, 2, 15), "count": 1},
@@ -921,17 +925,35 @@ class StatisticsTests(TestCase):
 
         # Verify the filter calls were made correctly
         for model_mock in [mock_historical_model1, mock_historical_model2]:
-            filter_kwargs = model_mock.objects.filter.call_args[1]
-            self.assertEqual(filter_kwargs["history_user_id"], self.user)
-            self.assertEqual(filter_kwargs["history_date__date__gte"], start_date)
-            self.assertEqual(filter_kwargs["history_date__date__lte"], end_date)
+            # Check first filter call (history_user_id)
+            first_filter_kwargs = model_mock.objects.filter.call_args[1]
+            self.assertEqual(first_filter_kwargs["history_user_id"], self.user)
+
+            # Check second filter call (start_date)
+            user_chain = model_mock.objects.filter.return_value
+            start_date_filter_kwargs = user_chain.filter.call_args[1]
+            self.assertEqual(
+                start_date_filter_kwargs["history_date__date__gte"],
+                start_date,
+            )
+
+            # Check third filter call (end_date)
+            start_date_chain = user_chain.filter.return_value
+            end_date_filter_kwargs = start_date_chain.filter.call_args[1]
+            self.assertEqual(
+                end_date_filter_kwargs["history_date__date__lte"],
+                end_date,
+            )
 
             # Verify the annotation and values calls
-            model_mock.objects.filter.return_value.annotate.assert_called_once()
-            filter_annotate = model_mock.objects.filter.return_value.annotate
-            filter_annotate.return_value.values.assert_called_once_with("date")
-            values_return = filter_annotate.return_value.values.return_value
-            values_return.annotate.assert_called_once_with(count=Count("id"))
+            end_date_chain = start_date_chain.filter.return_value
+            end_date_chain.annotate.assert_called_once()
+
+            annotate_chain = end_date_chain.annotate.return_value
+            annotate_chain.values.assert_called_once_with("date")
+
+            values_chain = annotate_chain.values.return_value
+            values_chain.annotate.assert_called_once_with(count=Count("id"))
 
     def test_calculate_day_of_week_stats(self):
         """Test the calculate_day_of_week_stats function."""

@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from csv import DictReader
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.apps import apps
 from django.utils import timezone
@@ -252,7 +252,14 @@ class HowLongToBeatImporter:
         completionist = self._format_time(row["Completionist"])
 
         model = apps.get_model(app_label="app", model_name=MediaTypes.GAME.value)
-        return model(
+        updated_at = datetime.strptime(
+            row["Updated"],
+            "%Y-%m-%d %H:%M:%S",
+        ).replace(
+            tzinfo=UTC,
+        )
+
+        instance = model(
             item=item,
             user=self.user,
             score=int(row["Review"]) / 10,
@@ -269,3 +276,5 @@ class HowLongToBeatImporter:
             end_date=self._parse_hltb_date(row["Completion Date"]),
             notes=self._format_notes(row),
         )
+        instance._history_date = updated_at
+        return instance

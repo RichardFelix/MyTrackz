@@ -6,6 +6,7 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -155,6 +156,7 @@ class MyAnimeListImporter:
         )
 
         model = apps.get_model(app_label="app", model_name=media_type)
+        updated_at = parse_datetime(list_status.get("updated_at"))
 
         # Handle completed repeats
         if media_type == MediaTypes.ANIME.value:
@@ -179,18 +181,19 @@ class MyAnimeListImporter:
                 ].get(
                     "num_chapters",
                 )
-                self.bulk_media[media_type].append(
-                    model(
-                        item=item,
-                        user=self.user,
-                        score=list_status["score"],
-                        progress=max_progress or 0,
-                        status=Status.COMPLETED.value,
-                        start_date=self._parse_mal_date(list_status.get("start_date")),
-                        end_date=self._parse_mal_date(list_status.get("finish_date")),
-                        notes=list_status["comments"],
-                    ),
+                instance = model(
+                    item=item,
+                    user=self.user,
+                    score=list_status["score"],
+                    progress=max_progress or 0,
+                    status=Status.COMPLETED.value,
+                    start_date=self._parse_mal_date(list_status.get("start_date")),
+                    end_date=self._parse_mal_date(list_status.get("finish_date")),
+                    notes=list_status["comments"],
                 )
+
+                instance._history_date = updated_at
+                self.bulk_media[media_type].append(instance)
 
         # Add current status entry
         instance = model(
@@ -203,6 +206,7 @@ class MyAnimeListImporter:
             end_date=self._parse_mal_date(list_status.get("finish_date")),
             notes=list_status["comments"],
         )
+        instance._history_date = updated_at
         self.bulk_media[media_type].append(instance)
 
     def _parse_mal_date(self, date_str):

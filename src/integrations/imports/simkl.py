@@ -210,6 +210,7 @@ class SimklImporter:
                     score=tv["user_rating"],
                     notes=tv["memo"]["text"] if tv["memo"] != {} else "",
                 )
+                tv_instance._history_date = self._get_history_date(tv)
                 self.bulk_media[MediaTypes.TV.value].append(tv_instance)
                 existing_tv_ids.add(tmdb_id)
 
@@ -260,6 +261,7 @@ class SimklImporter:
                 related_tv=tv_instance,
                 status=season_status,
             )
+            season_instance._history_date = self._get_history_date(tv)
             self.bulk_media[MediaTypes.SEASON.value].append(season_instance)
 
             # Process episodes
@@ -280,7 +282,10 @@ class SimklImporter:
                 episode_instance = app.models.Episode(
                     item=episode_item,
                     related_season=season_instance,
-                    end_date=episode["watched_at"],
+                    end_date=self._get_date(episode.get("watched_at")),
+                )
+                episode_instance._history_date = parse_datetime(
+                    episode.get("watched_at"),
                 )
                 self.bulk_media[MediaTypes.EPISODE.value].append(episode_instance)
 
@@ -354,10 +359,11 @@ class SimklImporter:
                     user=self.user,
                     status=movie_status,
                     score=movie["user_rating"],
-                    start_date=self._get_date(movie["last_watched_at"]),
-                    end_date=self._get_date(movie["last_watched_at"]),
+                    start_date=self._get_date(movie.get("last_watched_at")),
+                    end_date=self._get_date(movie.get("last_watched_at")),
                     notes=movie["memo"]["text"] if movie["memo"] != {} else "",
                 )
+                movie_instance._history_date = self._get_history_date(movie)
                 self.bulk_media[MediaTypes.MOVIE.value].append(movie_instance)
                 existing_movie_ids.add(tmdb_id)
 
@@ -430,9 +436,14 @@ class SimklImporter:
                     score=anime["user_rating"],
                     progress=anime["watched_episodes_count"],
                     start_date=self._get_start_date(anime),
-                    end_date=self._get_end_date(anime_status, anime["last_watched_at"]),
+                    end_date=self._get_end_date(
+                        anime_status,
+                        anime.get("last_watched_at"),
+                    ),
                     notes=anime["memo"]["text"] if anime["memo"] != {} else "",
                 )
+                anime_instance._history_date = self._get_history_date(anime)
+
                 self.bulk_media[MediaTypes.ANIME.value].append(anime_instance)
                 existing_anime_ids.add(mal_id)
 
@@ -464,7 +475,7 @@ class SimklImporter:
         """Get the start date based on earliest watched episode."""
         if "seasons" in anime:
             episodes = anime["seasons"][0]["episodes"]
-            dates = [self._get_date(episode["watched_at"]) for episode in episodes]
+            dates = [self._get_date(episode.get("watched_at")) for episode in episodes]
             return min(dates) if dates else None
 
         return None
@@ -474,3 +485,9 @@ class SimklImporter:
         if anime_status == Status.COMPLETED.value:
             return self._get_date(last_watched_at)
         return None
+
+    def _get_history_date(self, entry):
+        """Get the history date from the entry."""
+        if entry.get("last_watched_at"):
+            return parse_datetime(entry.get("last_watched_at"))
+        return parse_datetime(entry.get("added_to_watchlist_at"))
