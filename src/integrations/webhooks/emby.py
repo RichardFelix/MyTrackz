@@ -11,28 +11,27 @@ logger = logging.getLogger(__name__)
 
 
 def process_payload(payload, user):
-    """Process a Plex webhook payload."""
-    logger.debug("Received Plex webhook payload: %s", json.dumps(payload, indent=2))
-    event_type = payload.get("event")
-    if not _is_supported_event(event_type):
-        logger.info("Ignoring Plex webhook event type: %s", event_type)
-        return
+    """Process a Emby webhook payload."""
+    logger.debug(
+        "Processing Emby webhook payload: %s",
+        json.dumps(payload, indent=2),
+    )
 
-    if not _is_valid_user(payload, user):
+    event_type = payload["Event"]
+    if not _is_supported_event(event_type):
+        logger.info("Ignoring Emby webhook event type: %s", event_type)
         return
 
     ids = _extract_external_ids(payload)
-    logger.debug("TMDB Episode ID: %s", ids["tmdb_id"])
-    logger.debug("IMDB Episode ID: %s", ids["imdb_id"])
-    logger.debug("TVDB Episode ID: %s", ids["tvdb_id"])
+    logger.debug("Extracted IDs from payload: %s", ids)
+
+    if not any(ids.values()):
+        logger.info("Ignoring Emby webhook call because no ID was found.")
+        return
 
     media_type = _get_media_type(payload)
     if not media_type:
-        logger.info("Ignoring Plex media type: %s", payload["Metadata"].get("type"))
-        return
-
-    if not any(ids.values()):
-        logger.info("Ignoring Plex webhook call because no ID was found.")
+        logger.info("Ignoring Emby media type: %s", payload["Item"].get("Type"))
         return
 
     if media_type == MediaTypes.TV.value:
@@ -41,73 +40,65 @@ def process_payload(payload, user):
         _process_movie(payload, user, ids)
 
 
-def _is_supported_event(event_type):
-    return event_type in ("media.scrobble", "media.play")
+def _process_movie(payload, user, ids):
+    title = payload["Item"]["Name"]
+    year = payload["Item"]["ProductionYear"]
 
-
-def _is_valid_user(payload, user):
-    incoming_username = payload["Account"]["title"].strip().lower()
-
-    stored_usernames = [
-        u.strip().lower() for u in (user.plex_usernames or "").split(",") if u.strip()
-    ]
-
-    is_valid = incoming_username in stored_usernames
-
-    if not is_valid:
-        logger.info(
-            "Plex username %s does not match any of: %s",
-            incoming_username,
-            stored_usernames,
+    logger.info("Detected movie: %s (%d)", title, year)
+    if ids["tmdb_id"]:
+        logger.debug("Processing movie with TMDB ID: %s", ids["tmdb_id"])
+        handle_movie(ids["tmdb_id"], payload, user)
+    elif ids["imdb_id"]:
+        logger.debug("Processing movie with IMDB ID: %s", ids["imdb_id"])
+        response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
+        media_id = (
+            response["movie_results"][0]["id"]
+            if response.get("movie_results")
+            else None
         )
-    return is_valid
+        if media_id:
+            logger.debug("TMDB ID found: %s", media_id)
+            handle_movie(media_id, payload, user)
 
-
-def _extract_external_ids(payload):
-    guids = payload["Metadata"].get("Guid", [])
-
-    def get_id(prefix):
-        return next(
-            (
-                guid["id"].replace(f"{prefix}://", "")
-                for guid in guids
-                if guid["id"].startswith(f"{prefix}://")
-            ),
-            None,
-        )
-
-    return {
-        "tmdb_id": get_id("tmdb"),
-        "imdb_id": get_id("imdb"),
-        "tvdb_id": get_id("tvdb"),
-    }
-
-
-def _get_media_type(payload):
-    meta_type = payload["Metadata"].get("type")
-    if meta_type == "episode":
-        return MediaTypes.TV.value
-    if meta_type == "movie":
-        return MediaTypes.MOVIE.value
-    return None
+        else:
+            logger.info("No matching TMDB ID found for movie: %s (%d)", title, year)
+    else:
+        logger.info("No TMDB ID or IMDB ID found for movie: %s (%d)", title, year)
 
 
 def _process_tv(payload, user, ids):
-    title = payload["Metadata"]["grandparentTitle"]
+    series_title = payload["Item"]["SeriesName"]
+    episode_name = payload["Item"]["Name"]
     media_id, season_number, episode_number = _find_tv_media_id(ids)
 
     if not media_id:
-        logger.info("No TMDB ID found for TV show: %s", title)
+        logger.info(
+            "No TMDB ID found for TV show: %s S%02dE%02d - %s",
+            series_title,
+            int(season_number),
+            int(episode_number),
+            episode_name,
+        )
         return
 
     if not season_number or not episode_number:
         logger.info(
-            "Could not match TV show episode for %s with TMDB ID %s",
-            title,
+            "Could not match TV show episode for %s S%02dE%02d - %s with TMDB ID %s",
+            series_title,
+            int(season_number),
+            int(episode_number),
+            episode_name,
             media_id,
         )
         return
-    logger.info("Detected TV show: %s", title)
+
+    logger.info(
+        "Detected TV show: %s S%02dE%02d - %s",
+        series_title,
+        int(season_number),
+        int(episode_number),
+        episode_name,
+    )
     handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
 
@@ -132,31 +123,32 @@ def _find_tv_media_id(ids):
     return None
 
 
-def _process_movie(payload, user, ids):
-    title = payload["Metadata"]["title"]
-    logger.info("Detected movie: %s", title)
-    if ids["tmdb_id"]:
-        handle_movie(ids["tmdb_id"], payload, user)
-    elif ids["imdb_id"]:
-        response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
-        media_id = (
-            response["movie_results"][0]["id"]
-            if response.get("movie_results")
-            else None
-        )
-        if media_id:
-            handle_movie(media_id, payload, user)
-        else:
-            logger.info("No matching TMDB ID found for movie: %s", title)
-    else:
-        logger.info("No TMDB ID or IMDB ID found for movie: %s", title)
+def _get_media_type(payload):
+    meta_type = payload["Item"].get("Type")
+    if meta_type == "Episode":
+        return MediaTypes.TV.value
+    if meta_type == "Movie":
+        return MediaTypes.MOVIE.value
+    return None
+
+
+def _is_supported_event(event_type):
+    return event_type in ("playback.start", "playback.stop")
+
+
+def _extract_external_ids(payload):
+    provider_ids = payload["Item"].get("ProviderIds", {})
+    return {
+        "tmdb_id": provider_ids.get("Tmdb"),
+        "imdb_id": provider_ids.get("Imdb"),
+        "tvdb_id": provider_ids.get("Tvdb"),
+    }
 
 
 def handle_movie(media_id, payload, user):
     """Handle movie object from payload."""
     movie_metadata = app.providers.tmdb.movie(media_id)
 
-    # Get or create the movie item
     movie_item, _ = app.models.Item.objects.get_or_create(
         media_id=media_id,
         source=Sources.TMDB.value,
@@ -174,7 +166,9 @@ def handle_movie(media_id, payload, user):
 
     current_instance = movie_instances.first()
 
-    movie_played = payload["event"] == "media.scrobble"
+    movie_played = (
+        payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True
+    )
     progress = 1 if movie_played else 0
     now = timezone.now().replace(second=0, microsecond=0)
 
@@ -208,6 +202,7 @@ def handle_movie(media_id, payload, user):
 
 def handle_tv_episode(media_id, season_number, episode_number, payload, user):
     """Add a TV show episode as watched."""
+    episode_name = payload["Item"]["Name"]
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
         [season_number],
@@ -304,7 +299,9 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         },
     )
 
-    episode_played = payload["event"] == "media.scrobble"
+    episode_played = (
+        payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True
+    )
 
     if episode_played:
         now = timezone.now().replace(second=0, microsecond=0)
@@ -315,9 +312,10 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
         )
 
         logger.info(
-            "Marked episode as played for user %s: %s S%d E%d",
+            "Marked episode as played for user %s: %s S%02dE%02d - %s",
             user.username,
             tv_metadata["title"],
-            season_number,
-            episode_number,
+            int(season_number),
+            int(episode_number),
+            episode_name,
         )
