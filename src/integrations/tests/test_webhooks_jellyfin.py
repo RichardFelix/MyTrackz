@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
+from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
 
 
 class JellyfinWebhookTests(TestCase):
@@ -262,3 +263,73 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.count(), 2)
         self.assertEqual(movie[0].status, Status.COMPLETED.value)
         self.assertEqual(movie[1].status, Status.COMPLETED.value)
+
+    def test_extract_external_ids(self):
+        """Test extracting external IDs from provider payload."""
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {
+                    "Tmdb": "603",
+                    "Tvdb": "169",
+                },
+            },
+        }
+
+        expected = {
+            "tmdb_id": "603",
+            "imdb_id": None,
+            "tvdb_id": "169",
+        }
+
+        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_empty(self):
+        """Test handling empty provider payload."""
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+                "ProviderIds": {},
+            },
+        }
+
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+
+        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)
+
+    def test_extract_external_ids_missing(self):
+        """Test handling missing ProviderIds."""
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Type": "Movie",
+                "Name": "The Matrix",
+                "ProductionYear": 1999,
+            },
+        }
+        expected = {
+            "tmdb_id": None,
+            "imdb_id": None,
+            "tvdb_id": None,
+        }
+
+        result = JellyfinWebhookProcessor()._extract_external_ids(payload)
+        if result != expected:
+            msg = f"Expected {expected}, got {result}"
+            raise AssertionError(msg)

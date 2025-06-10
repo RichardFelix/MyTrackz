@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
-from integrations.webhooks.emby import _extract_external_ids
+from integrations.webhooks.emby import EmbyWebhookProcessor
 
 
 class EmbyWebhookTests(TestCase):
@@ -358,7 +358,7 @@ class EmbyWebhookTests(TestCase):
             "tvdb_id": "169",
         }
 
-        result = _extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
@@ -384,7 +384,7 @@ class EmbyWebhookTests(TestCase):
             "tvdb_id": None,
         }
 
-        result = _extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)
@@ -408,7 +408,7 @@ class EmbyWebhookTests(TestCase):
             "tvdb_id": None,
         }
 
-        result = _extract_external_ids(payload)
+        result = EmbyWebhookProcessor()._extract_external_ids(payload)
         if result != expected:
             msg = f"Expected {expected}, got {result}"
             raise AssertionError(msg)

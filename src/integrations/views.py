@@ -236,7 +236,8 @@ def jellyfin_webhook(request, token):
         return HttpResponse(status=401)
 
     payload = json.loads(request.body)
-    jellyfin.process_payload(payload, user)
+    processor = jellyfin.JellyfinWebhookProcessor()
+    processor.process_payload(payload, user)
     return HttpResponse(status=200)
 
 
@@ -265,7 +266,8 @@ def plex_webhook(request, token):
         return HttpResponse("Missing payload", status=400)
 
     payload = json.loads(data)
-    plex.process_payload(payload, user)
+    processor = plex.PlexWebhookProcessor()
+    processor.process_payload(payload, user)
     return HttpResponse(status=200)
 
 
@@ -292,5 +294,6 @@ def emby_webhook(request, token):
         return HttpResponse("Missing payload", status=400)
 
     payload = json.loads(data)
-    emby.process_payload(payload, user)
+    processor = emby.EmbyWebhookProcessor()
+    processor.process_payload(payload, user)
     return HttpResponse(status=200)

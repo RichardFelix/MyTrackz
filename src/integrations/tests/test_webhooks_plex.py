@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
-from integrations.webhooks.plex import _extract_external_ids
+from integrations.webhooks.plex import PlexWebhookProcessor
 
 
 class PlexWebhookTests(TestCase):
@@ -388,7 +388,7 @@ class PlexWebhookTests(TestCase):
         }
 
         # Execute
-        result = _extract_external_ids(payload)
+        result = PlexWebhookProcessor()._extract_external_ids(payload)
 
         # Assert
         expected = {
@@ -405,7 +405,7 @@ class PlexWebhookTests(TestCase):
         """Test handling of missing or empty data."""
         payload = {"Metadata": {"Guid": []}}
 
-        result = _extract_external_ids(payload)
+        result = PlexWebhookProcessor()._extract_external_ids(payload)
 
         expected = {
             "tmdb_id": None,
