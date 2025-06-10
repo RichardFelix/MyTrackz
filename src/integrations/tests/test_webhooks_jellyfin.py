@@ -123,6 +123,41 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
 
+    def test_anime_episode_mark_played(self):
+        """Test webhook handles anime episode mark played event."""
+        payload = {
+            "Event": "MarkPlayed",
+            "Item": {
+                "Type": "Episode",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 1,
+                "UserData": {"Played": True},
+            },
+            "Series": {
+                "Name": "Frieren: Beyond Journey's End",
+                "ProviderIds": {
+                    "Tvdb": "424536",
+                    "Tmdb": "209867",
+                },
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="52991",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
+
     def test_ignored_event_types(self):
         """Test webhook ignores irrelevant event types."""
         payload = {
@@ -162,41 +197,6 @@ class JellyfinWebhookTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Movie.objects.count(), 0)
-
-    def test_anime_episode_mark_played(self):
-        """Test webhook handles anime episode mark played event."""
-        payload = {
-            "Event": "MarkPlayed",
-            "Item": {
-                "Type": "Episode",
-                "ParentIndexNumber": 1,
-                "IndexNumber": 1,
-                "UserData": {"Played": True},
-            },
-            "Series": {
-                "Name": "Frieren: Beyond Journey's End",
-                "ProviderIds": {
-                    "Tvdb": "424536",
-                    "Tmdb": "209867",
-                },
-            },
-        }
-
-        response = self.client.post(
-            self.url,
-            data=json.dumps(payload),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 200)
-
-        # Verify anime was created and marked as in progress
-        anime = Anime.objects.get(
-            item__media_id="52991",
-            user=self.user,
-        )
-        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
-        self.assertEqual(anime.progress, 1)
 
     def test_mark_unplayed(self):
         """Test webhook handles unplayed marks."""

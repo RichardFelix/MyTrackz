@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Status
+from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
 from integrations.webhooks.plex import _extract_external_ids
 
 
@@ -127,6 +127,94 @@ class PlexWebhookTests(TestCase):
         )
         self.assertEqual(movie.status, Status.COMPLETED.value)
         self.assertEqual(movie.progress, 1)
+
+    def test_anime_movie_mark_played(self):
+        """Test webhook handles movie mark played event."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "movie",
+                "title": "Perfect Blue",
+                "Guid": [
+                    {
+                        "id": "imdb://tt0156887",
+                    },
+                    {
+                        "id": "tmdb://10494",
+                    },
+                    {
+                        "id": "tvdb://3807",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify movie was created and marked as completed
+        movie = Anime.objects.get(
+            item__media_id="437",
+            user=self.user,
+        )
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+
+    def test_anime_episode_mark_played(self):
+        """Test webhook handles anime episode mark played event."""
+        payload = {
+            "event": "media.scrobble",
+            "Account": {
+                "title": "testuser",
+            },
+            "Metadata": {
+                "type": "episode",
+                "grandparentTitle": "Frieren: Beyond Journey's End",
+                "Guid": [
+                    {
+                        "id": "imdb://tt23861604",
+                    },
+                    {
+                        "id": "tmdb://3946240",
+                    },
+                    {
+                        "id": "tvdb://9350138",
+                    },
+                ],
+            },
+        }
+
+        data = {
+            "payload": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="52991",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
 
     def test_ignored_event_types(self):
         """Test webhook ignores irrelevant event types."""

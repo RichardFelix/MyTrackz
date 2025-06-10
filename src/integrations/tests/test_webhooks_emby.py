@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from app.models import TV, Episode, Item, MediaTypes, Movie, Season, Status
+from app.models import TV, Anime, Episode, Item, MediaTypes, Movie, Season, Status
 from integrations.webhooks.emby import _extract_external_ids
 
 
@@ -77,6 +77,47 @@ class EmbyWebhookTests(TestCase):
         )
         self.assertIsNotNone(episode.end_date)
 
+    def test_anime_episode_mark_played(self):
+        """Test webhook handles anime episode mark played event."""
+        payload = {
+            "Event": "playback.stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "The Journey's End",
+                "ProductionYear": 2003,
+                "ProviderIds": {
+                    "Tvdb": "9350138",
+                    "Imdb": "tt23861604",
+                },
+                "SeriesName": "Frieren: Beyond Journey's End",
+                "IndexNumber": 1,
+                "ParentIndexNumber": 1,
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify anime was created and marked as in progress
+        anime = Anime.objects.get(
+            item__media_id="52991",
+            user=self.user,
+        )
+        self.assertEqual(anime.status, Status.IN_PROGRESS.value)
+        self.assertEqual(anime.progress, 1)
+
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
@@ -113,6 +154,45 @@ class EmbyWebhookTests(TestCase):
         # Verify movie was created and marked as completed
         movie = Movie.objects.get(
             item__media_id="603",
+            user=self.user,
+        )
+        self.assertEqual(movie.status, Status.COMPLETED.value)
+        self.assertEqual(movie.progress, 1)
+
+    def test_anime_movie_mark_played(self):
+        """Test webhook handles movie mark played event."""
+        payload = {
+            "Event": "playback.stop",
+            "Item": {
+                "Type": "Movie",
+                "Name": "Perfect Blue",
+                "ProductionYear": 1997,
+                "ProviderIds": {
+                    "Imdb": "tt0156887",
+                    "Tmdb": "10494",
+                    "Tvdb": "3807",
+                },
+            },
+            "PlaybackInfo": {
+                "PlayedToCompletion": True,
+            },
+        }
+
+        data = {
+            "data": json.dumps(payload),
+        }
+
+        response = self.client.post(
+            self.url,
+            data=data,
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        # Verify movie was created and marked as completed
+        movie = Anime.objects.get(
+            item__media_id="437",
             user=self.user,
         )
         self.assertEqual(movie.status, Status.COMPLETED.value)

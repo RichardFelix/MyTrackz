@@ -50,6 +50,7 @@ def process_payload(payload, user):
 
         if tvdb_id and user.anime_enabled:
             tvdb_id = int(tvdb_id)
+
             mal_id, episode_offset = get_mal_id_from_tvdb(
                 mapping_data,
                 tvdb_id,

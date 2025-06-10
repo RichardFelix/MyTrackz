@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.core.cache import cache
 from django.utils import timezone
 
 import app
@@ -107,6 +108,27 @@ def _process_tv(payload, user, ids):
             media_id,
         )
         return
+
+    tvdb_id = app.providers.tmdb.tv_with_seasons(
+        media_id,
+        [season_number],
+    )["tvdb_id"]
+
+    if tvdb_id and user.anime_enabled:
+        tvdb_id = int(tvdb_id)
+        mapping_data = fetch_mapping_data()
+
+        mal_id, episode_offset = get_mal_id_from_tvdb(
+            mapping_data,
+            tvdb_id,
+            season_number,
+            episode_number,
+        )
+        if mal_id:
+            logger.info("Detected anime: %s", title)
+            handle_anime(mal_id, episode_offset, payload, user)
+            return
+
     logger.info("Detected TV show: %s", title)
     handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
@@ -134,9 +156,18 @@ def _find_tv_media_id(ids):
 
 def _process_movie(payload, user, ids):
     title = payload["Metadata"]["title"]
-    logger.info("Detected movie: %s", title)
     if ids["tmdb_id"]:
-        handle_movie(ids["tmdb_id"], payload, user)
+        tmdb_id = int(ids["tmdb_id"])
+        mapping_data = fetch_mapping_data()
+        mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+        if mal_id and user.anime_enabled:
+            logger.info("Detected anime movie: %s", title)
+            handle_anime(mal_id, 1, payload, user)
+            return
+
+        logger.info("Detected movie: %s", title)
+        handle_movie(tmdb_id, payload, user)
+
     elif ids["imdb_id"]:
         response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
         media_id = (
@@ -145,6 +176,7 @@ def _process_movie(payload, user, ids):
             else None
         )
         if media_id:
+            logger.info("Detected movie: %s", title)
             handle_movie(media_id, payload, user)
         else:
             logger.info("No matching TMDB ID found for movie: %s", title)
@@ -321,3 +353,92 @@ def handle_tv_episode(media_id, season_number, episode_number, payload, user):
             season_number,
             episode_number,
         )
+
+
+def handle_anime(media_id, episode_number, payload, user):
+    """Add an anime episode as watched."""
+    anime_metadata = app.providers.mal.anime(media_id)
+    anime_item, _ = app.models.Item.objects.get_or_create(
+        media_id=media_id,
+        source=Sources.MAL.value,
+        media_type=MediaTypes.ANIME.value,
+        defaults={
+            "title": anime_metadata["title"],
+            "image": anime_metadata["image"],
+        },
+    )
+
+    anime_instances = app.models.Anime.objects.filter(
+        item=anime_item,
+        user=user,
+    )
+
+    current_instance = anime_instances.first()
+
+    episode_played = payload["event"] == "media.scrobble"
+    if not episode_played:
+        episode_number = max(0, episode_number - 1)
+
+    if current_instance and current_instance.status != Status.COMPLETED.value:
+        current_instance.progress = episode_number
+        current_instance.status = Status.IN_PROGRESS.value
+        current_instance.save()
+    else:
+        app.models.Anime.objects.create(
+            item=anime_item,
+            user=user,
+            progress=episode_number,
+            status=Status.IN_PROGRESS.value,
+        )
+
+
+def fetch_mapping_data():
+    """Fetch the anime mapping data from GitHub."""
+    data = cache.get("jellyfin_anime_mapping")
+
+    if data is None:
+        url = "https://raw.githubusercontent.com/Kometa-Team/Anime-IDs/refs/heads/master/anime_ids.json"
+        data = app.providers.services.api_request("GITHUB", "GET", url)
+        cache.set("jellyfin_anime_mapping", data)
+
+    return data
+
+
+def get_mal_id_from_tvdb(mapping_data, tvdb_id, season_number, episode_number):
+    """Find the appropriate MAL ID based on TVDB id."""
+    matching_entries = [
+        entry
+        for entry in mapping_data.values()
+        if entry.get("tvdb_id") == tvdb_id
+        and entry.get("tvdb_season") == season_number
+        and "mal_id" in entry
+    ]
+
+    if not matching_entries:
+        return None, None
+
+    # Sort entries by epoffset
+    matching_entries.sort(key=lambda x: x.get("tvdb_epoffset", 0))
+
+    # Find the appropriate entry based on episode number
+    for i, entry in enumerate(matching_entries):
+        current_offset = entry.get("tvdb_epoffset", 0)
+        next_offset = float("inf")
+
+        if i < len(matching_entries) - 1:
+            next_offset = matching_entries[i + 1].get("tvdb_epoffset", float("inf"))
+
+        if episode_number > current_offset and (
+            episode_number <= next_offset or next_offset == float("inf")
+        ):
+            return entry["mal_id"], episode_number - current_offset
+
+    return None, None
+
+
+def get_mal_id_from_tmdb_movie(mapping_data, tmdb_movie_id):
+    """Find the MAL ID for a given TMDB movie ID."""
+    for entry in mapping_data.values():
+        if entry.get("tmdb_movie_id") == tmdb_movie_id and "mal_id" in entry:
+            return entry["mal_id"]
+    return None
