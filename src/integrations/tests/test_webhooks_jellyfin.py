@@ -29,13 +29,13 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Type": "Episode",
-                "ParentIndexNumber": 1,
-                "IndexNumber": 1,
+                "Name": "The One Where Monica Gets a Roommate",
+                "ProviderIds": {
+                    "Tvdb": "303821",
+                    "Imdb": "tt0583459",
+                },
+                "SeriesName": "Friends",
                 "UserData": {"Played": True},
-            },
-            "Series": {
-                "Name": "Friends",
-                "ProviderIds": {"Tmdb": "1668"},
             },
         }
 
@@ -73,6 +73,7 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Name": "The Matrix",
+                "ProductionYear": 1999,
                 "Type": "Movie",
                 "ProviderIds": {"Tmdb": "603"},
                 "UserData": {"Played": True},
@@ -101,6 +102,7 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Name": "Perfect Blue",
+                "ProductionYear": 1997,
                 "Type": "Movie",
                 "ProviderIds": {"Tmdb": "10494"},
                 "UserData": {"Played": True},
@@ -129,16 +131,13 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Type": "Episode",
-                "ParentIndexNumber": 1,
-                "IndexNumber": 1,
-                "UserData": {"Played": True},
-            },
-            "Series": {
-                "Name": "Frieren: Beyond Journey's End",
+                "Name": "The Journey's End",
                 "ProviderIds": {
-                    "Tvdb": "424536",
-                    "Tmdb": "209867",
+                    "Tvdb": "9350138",
+                    "Imdb": "tt23861604",
                 },
+                "UserData": {"Played": True},
+                "SeriesName": "Frieren: Beyond Journey's End",
             },
         }
 
@@ -205,6 +204,7 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Name": "The Matrix",
+                "ProductionYear": 1999,
                 "Type": "Movie",
                 "ProviderIds": {"Tmdb": "603"},
                 "UserData": {"Played": False},
@@ -236,6 +236,7 @@ class JellyfinWebhookTests(TestCase):
             "Event": "MarkPlayed",
             "Item": {
                 "Type": "Movie",
+                "ProductionYear": 1999,
                 "Name": "The Matrix",
                 "ProviderIds": {"Tmdb": "603"},
                 "UserData": {"Played": True},

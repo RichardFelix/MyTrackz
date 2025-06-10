@@ -37,8 +37,6 @@ class EmbyWebhookTests(TestCase):
                     "Imdb": "tt0583459",
                 },
                 "SeriesName": "Friends",
-                "IndexNumber": 1,
-                "ParentIndexNumber": 1,
             },
             "PlaybackInfo": {
                 "PlayedToCompletion": True,
@@ -90,8 +88,6 @@ class EmbyWebhookTests(TestCase):
                     "Imdb": "tt23861604",
                 },
                 "SeriesName": "Frieren: Beyond Journey's End",
-                "IndexNumber": 1,
-                "ParentIndexNumber": 1,
             },
             "PlaybackInfo": {
                 "PlayedToCompletion": True,

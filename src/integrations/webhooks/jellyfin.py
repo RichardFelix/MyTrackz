@@ -23,57 +23,135 @@ def process_payload(payload, user):
         logger.info("Ignoring Jellyfin webhook event: %s", event_type)
         return
 
-    if payload["Item"]["Type"] == "Episode":
-        media_type = MediaTypes.TV.value
-        tmdb_id = payload["Series"]["ProviderIds"].get("Tmdb")
-    elif payload["Item"]["Type"] == "Movie":
-        media_type = MediaTypes.MOVIE.value
-        tmdb_id = payload["Item"]["ProviderIds"].get("Tmdb")
-    else:
-        logger.info("Ignoring Jellyfin media event: %s", payload["Item"]["Type"])
+    ids = _extract_external_ids(payload)
+    logger.debug("Extracted IDs from payload: %s", ids)
+
+    if not any(ids.values()):
+        logger.info("Ignoring Jellyfin webhook call because no ID was found.")
         return
 
-    if tmdb_id is None:
+    media_type = _get_media_type(payload)
+    if not media_type:
+        logger.info("Ignoring Jellyfin media type: %s", payload["Item"].get("Type"))
+        return
+
+    if media_type == MediaTypes.TV.value:
+        _process_tv(payload, user, ids)
+
+    elif media_type == MediaTypes.MOVIE.value:
+        _process_movie(payload, user, ids)
+
+
+def _get_media_type(payload):
+    meta_type = payload["Item"].get("Type")
+    if meta_type == "Episode":
+        return MediaTypes.TV.value
+    if meta_type == "Movie":
+        return MediaTypes.MOVIE.value
+    return None
+
+
+def _process_movie(payload, user, ids):
+    title = payload["Item"]["Name"]
+    year = payload["Item"]["ProductionYear"]
+
+    if ids["tmdb_id"]:
+        tmdb_id = int(ids["tmdb_id"])
+        mapping_data = fetch_mapping_data()
+        mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+        if mal_id and user.anime_enabled:
+            logger.info("Detected anime movie: %s (%d)", title, year)
+            handle_anime(mal_id, 1, payload, user)
+            return
+
+        logger.info("Detected movie: %s (%d)", title, year)
+        handle_movie(tmdb_id, payload, user)
+    elif ids["imdb_id"]:
+        logger.debug("Processing movie with IMDB ID: %s", ids["imdb_id"])
+        response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
+        media_id = (
+            response["movie_results"][0]["id"]
+            if response.get("movie_results")
+            else None
+        )
+        if media_id:
+            logger.debug("TMDB ID found: %s", media_id)
+            handle_movie(media_id, payload, user)
+        else:
+            logger.info("No matching TMDB ID found for movie: %s (%d)", title, year)
+    else:
+        logger.info("No TMDB ID or IMDB ID found for movie: %s (%d)", title, year)
+
+
+def _process_tv(payload, user, ids):
+    series_title = payload["Item"]["SeriesName"]
+    episode_name = payload["Item"]["Name"]
+    media_id, season_number, episode_number = _find_tv_media_id(ids)
+
+    if not media_id:
         logger.info(
-            "Ignoring Jellyfin webhook call because no TMDB ID was found.",
+            "No TMDB ID found for TV show: %s S%02dE%02d - %s",
+            series_title,
+            int(season_number),
+            int(episode_number),
+            episode_name,
         )
         return
 
-    tmdb_id = int(tmdb_id)
-    mapping_data = fetch_mapping_data()
+    if not season_number or not episode_number:
+        logger.info(
+            "Could not match TV show episode for %s S%02dE%02d - %s with TMDB ID %s",
+            series_title,
+            int(season_number),
+            int(episode_number),
+            episode_name,
+            media_id,
+        )
+        return
 
-    if media_type == MediaTypes.TV.value:
-        season_number = payload["Item"]["ParentIndexNumber"]
-        episode_number = payload["Item"]["IndexNumber"]
-        tvdb_id = payload["Series"]["ProviderIds"].get("Tvdb")
-        title = payload["Series"]["Name"]
+    tvdb_id = app.providers.tmdb.tv_with_seasons(
+        media_id,
+        [season_number],
+    )["tvdb_id"]
 
-        if tvdb_id and user.anime_enabled:
-            tvdb_id = int(tvdb_id)
+    if tvdb_id and user.anime_enabled:
+        tvdb_id = int(tvdb_id)
+        mapping_data = fetch_mapping_data()
 
-            mal_id, episode_offset = get_mal_id_from_tvdb(
-                mapping_data,
-                tvdb_id,
-                season_number,
-                episode_number,
+        mal_id, episode_offset = get_mal_id_from_tvdb(
+            mapping_data,
+            tvdb_id,
+            season_number,
+            episode_number,
+        )
+        if mal_id:
+            logger.info(
+                "Detected anime: %s S%02dE%02d - %s",
+                series_title,
+                int(season_number),
+                int(episode_number),
+                episode_name,
             )
-            if mal_id:
-                logger.info("Detected anime: %s", title)
-                handle_anime(mal_id, episode_offset, payload, user)
-                return
+            handle_anime(mal_id, episode_offset, payload, user)
+            return
 
-        logger.info("Detected TV show: %s", title)
-        handle_tv_episode(tmdb_id, payload, user)
+    logger.info(
+        "Detected TV show: %s S%02dE%02d - %s",
+        series_title,
+        int(season_number),
+        int(episode_number),
+        episode_name,
+    )
+    handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
-    elif media_type == MediaTypes.MOVIE.value:
-        title = payload["Item"]["Name"]
-        mal_id = get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
-        if mal_id and user.anime_enabled:
-            logger.info("Detected anime movie: %s", title)
-            handle_anime(mal_id, 1, payload, user)
-        else:
-            logger.info("Detected movie: %s", title)
-            handle_movie(tmdb_id, payload, user)
+
+def _extract_external_ids(payload):
+    provider_ids = payload["Item"].get("ProviderIds", {})
+    return {
+        "tmdb_id": provider_ids.get("Tmdb"),
+        "imdb_id": provider_ids.get("Imdb"),
+        "tvdb_id": provider_ids.get("Tvdb"),
+    }
 
 
 def handle_anime(media_id, episode_number, payload, user):
@@ -158,11 +236,8 @@ def handle_movie(media_id, payload, user):
         )
 
 
-def handle_tv_episode(media_id, payload, user):
+def handle_tv_episode(media_id, season_number, episode_number, payload, user):
     """Add a TV show episode as watched."""
-    season_number = payload["Item"]["ParentIndexNumber"]
-    episode_number = payload["Item"]["IndexNumber"]
-
     tv_metadata = app.providers.tmdb.tv_with_seasons(
         media_id,
         [season_number],
@@ -297,4 +372,25 @@ def get_mal_id_from_tmdb_movie(mapping_data, tmdb_movie_id):
     for entry in mapping_data.values():
         if entry.get("tmdb_movie_id") == tmdb_movie_id and "mal_id" in entry:
             return entry["mal_id"]
+    return None
+
+
+def _find_tv_media_id(ids):
+    for ext_id, ext_type in [(ids["imdb_id"], "imdb_id"), (ids["tvdb_id"], "tvdb_id")]:
+        if ext_id:
+            response = app.providers.tmdb.find(ext_id, ext_type)
+            logger.debug(
+                "%s response: %s",
+                ext_type.upper(),
+                json.dumps(response, indent=2),
+            )
+            if (
+                response.get("tv_episode_results")
+                and len(response["tv_episode_results"]) > 0
+            ):
+                result = response["tv_episode_results"][0]
+                show_id = result.get("show_id")
+                season_number = result.get("season_number")
+                episode_number = result.get("episode_number")
+                return show_id, season_number, episode_number
     return None
