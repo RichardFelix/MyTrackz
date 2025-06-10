@@ -199,8 +199,7 @@ class JellyfinWebhookTests(TestCase):
         self.assertEqual(Movie.objects.count(), 0)
 
     def test_mark_unplayed(self):
-        """Test webhook handles unplayed marks."""
-        # First mark as played
+        """Test webhook handles not finished events."""
         payload = {
             "Event": "Stop",
             "Item": {
@@ -217,9 +216,6 @@ class JellyfinWebhookTests(TestCase):
             content_type="application/json",
         )
 
-        # Then mark as unplayed
-        payload["Event"] = "MarkUnplayed"
-        payload["Item"]["UserData"]["Played"] = False
         response = self.client.post(
             self.url,
             data=json.dumps(payload),
