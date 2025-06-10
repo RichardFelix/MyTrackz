@@ -266,11 +266,6 @@ class BaseWebhookProcessor:
                 related_season=season_instance,
                 end_date=timezone.now().replace(second=0, microsecond=0),
             )
-        elif self._is_unplayed(payload):
-            app.models.Episode.objects.filter(
-                item=episode_item,
-                related_season=season_instance,
-            ).delete()
 
     def _handle_anime(self, media_id, episode_number, payload, user):
         """Handle anime playback event."""
@@ -305,8 +300,4 @@ class BaseWebhookProcessor:
 
     def _is_played(self, payload):
         """Check if media is marked as played."""
-        raise NotImplementedError
-
-    def _is_unplayed(self, payload):
-        """Check if media is marked as unplayed."""
         raise NotImplementedError

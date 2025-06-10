@@ -65,6 +65,3 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
 
     def _is_played(self, payload):
         return payload["event"] == "media.scrobble"
-
-    def _is_unplayed(self, _):
-        return False  # Plex doesn't have an unplayed event in webhooks

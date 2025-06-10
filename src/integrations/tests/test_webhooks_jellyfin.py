@@ -27,7 +27,7 @@ class JellyfinWebhookTests(TestCase):
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Episode",
                 "Name": "The One Where Monica Gets a Roommate",
@@ -71,7 +71,7 @@ class JellyfinWebhookTests(TestCase):
     def test_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Name": "The Matrix",
                 "ProductionYear": 1999,
@@ -100,7 +100,7 @@ class JellyfinWebhookTests(TestCase):
     def test_anime_movie_mark_played(self):
         """Test webhook handles movie mark played event."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Name": "Perfect Blue",
                 "ProductionYear": 1997,
@@ -129,7 +129,7 @@ class JellyfinWebhookTests(TestCase):
     def test_anime_episode_mark_played(self):
         """Test webhook handles anime episode mark played event."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Episode",
                 "Name": "The Journey's End",
@@ -181,7 +181,7 @@ class JellyfinWebhookTests(TestCase):
     def test_missing_tmdb_id(self):
         """Test webhook handles missing TMDB ID gracefully."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Movie",
                 "ProviderIds": {},
@@ -202,7 +202,7 @@ class JellyfinWebhookTests(TestCase):
         """Test webhook handles unplayed marks."""
         # First mark as played
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Name": "The Matrix",
                 "ProductionYear": 1999,
@@ -234,7 +234,7 @@ class JellyfinWebhookTests(TestCase):
     def test_repeated_watch(self):
         """Test webhook handles repeated watches."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Movie",
                 "ProductionYear": 1999,
@@ -267,7 +267,7 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids(self):
         """Test extracting external IDs from provider payload."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",
@@ -293,7 +293,7 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids_empty(self):
         """Test handling empty provider payload."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",
@@ -316,7 +316,7 @@ class JellyfinWebhookTests(TestCase):
     def test_extract_external_ids_missing(self):
         """Test handling missing ProviderIds."""
         payload = {
-            "Event": "MarkPlayed",
+            "Event": "Stop",
             "Item": {
                 "Type": "Movie",
                 "Name": "The Matrix",

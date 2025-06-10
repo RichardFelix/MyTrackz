@@ -42,6 +42,3 @@ class EmbyWebhookProcessor(BaseWebhookProcessor):
 
     def _is_played(self, payload):
         return payload.get("PlaybackInfo", {}).get("PlayedToCompletion", False) is True
-
-    def _is_unplayed(self, _):
-        return False  # Emby doesn't have an unplayed event in webhooks

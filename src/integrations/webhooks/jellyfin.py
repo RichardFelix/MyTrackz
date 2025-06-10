@@ -42,6 +42,3 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
 
     def _is_played(self, payload):
         return payload["Item"]["UserData"]["Played"]
-
-    def _is_unplayed(self, payload):
-        return payload["Event"] == "MarkUnplayed"
