@@ -390,19 +390,19 @@ class Metadata(TestCase):
 
     def test_hardcover_book(self):
         """Test the metadata method for books from Hardcover."""
-        response = hardcover.book("379760")
-        self.assertEqual(response["title"], "1984")
-        self.assertEqual(response["details"]["author"], "George Orwell")
-        self.assertEqual(response["details"]["publisher"], "Signet Classic")
-        self.assertEqual(response["details"]["publish_date"], "1949-01-01")
-        self.assertEqual(response["details"]["number_of_pages"], 328)
-        self.assertEqual(response["details"]["format"], "Mass Market Paperback")
+        response = hardcover.book("377193")
+        self.assertEqual(response["title"], "The Great Gatsby")
+        self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
+        self.assertEqual(response["details"]["publisher"], "imusti")
+        self.assertEqual(response["details"]["publish_date"], "1920-06-01")
+        self.assertEqual(response["details"]["number_of_pages"], 180)
+        self.assertEqual(response["details"]["format"], "Paperback")
         # Testing that we have some of the expected genres
         self.assertIn("Fiction", response["genres"])
-        self.assertIn("Dystopian", response["genres"])
+        self.assertIn("Young Adult", response["genres"])
         self.assertIn("Classics", response["genres"])
         # Rating is approximately 4.21 * 2 = 8.42
-        self.assertAlmostEqual(response["score"], 8.4, delta=0.1)
+        self.assertAlmostEqual(response["score"], 7.4, delta=0.1)
 
     def test_hardcover_book_unknown(self):
         """Test the metadata method for books from Hardcover with minimal data."""
