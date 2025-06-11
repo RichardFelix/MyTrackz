@@ -133,9 +133,17 @@
 
       {# Description #}
       <div class="mb-6">
-        <p class="text-gray-300 text-justify text-pretty {% if media.media_type == MediaTypes.SEASON.value %}line-clamp-4{% else %}line-clamp-5{% endif %}">
-          {{ media.synopsis|linebreaksbr|safe }}
-        </p>
+        <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.synopsisText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
+             x-init="$nextTick(() => checkClamp())">
+          <p x-ref="synopsisText"
+             :class="isExpanded ? '' : '{% if media.media_type == MediaTypes.SEASON.value %}line-clamp-4{% else %}line-clamp-5{% endif %}'"
+             class="text-gray-300 text-justify text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
+          <button x-show="isClamped"
+                  @click="isExpanded = !isExpanded"
+                  class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
+            <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+          </button>
+        </div>
 
         {% if current_instance.notes %}
           <div class="my-3 border-t border-gray-700"></div>
@@ -151,13 +159,23 @@
                  stroke-linecap="round"
                  stroke-linejoin="round"
                  class="w-5 h-5 mr-2 text-yellow-400 flex-shrink-0 mt-0.5">
-              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z"></path>
+              <path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2-2V8Z"></path>
               <path d="M15 3v4a2 2 0 0 0 2 2h4"></path>
             </svg>
             <div class="font-medium text-gray-400 mb-1">YOUR NOTES</div>
           </div>
 
-          <p class="text-gray-300 italic line-clamp-2">"{{ current_instance.notes|linebreaksbr }}"</p>
+          <div x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
+               x-init="$nextTick(() => checkClamp())">
+            <p x-ref="notesText"
+               :class="isExpanded ? '' : 'line-clamp-2'"
+               class="text-gray-300 italic">"{{ current_instance.notes|linebreaksbr }}"</p>
+            <button x-show="isClamped"
+                    @click="isExpanded = !isExpanded"
+                    class="text-indigo-400 hover:text-indigo-300 text-xs mt-1 focus:outline-none transition-colors cursor-pointer">
+              <span x-text="isExpanded ? 'Show less' : 'Read more'"></span>
+            </button>
+          </div>
         {% endif %}
       </div>
 
@@ -362,10 +380,9 @@
                 Show Repeats ({{ user_medias|length|add:"-1" }})
               </button>
 
-              <div x-show="showRepeats" x-collapse class="space-y-2 mt-4">
+              <div x-show="showRepeats" class="space-y-2 mt-4">
                 {% for user_media in user_medias|slice:"1:" %}
                   <div class="bg-[#2a2f35] p-4 rounded-lg">
-                    <!-- Rest of your existing repeat media template -->
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -442,8 +459,9 @@
 
                       {% if user_media.notes %}
                         <div class="flex items-start mt-3"
-                             x-data="{ isExpanded: false, isClamped: false, checkClamp() { const element = this.$refs.notesText; this.isClamped = element.scrollHeight > element.clientHeight; } }"
-                             x-init="$nextTick(() => checkClamp())">
+                             x-data="{ isExpanded:false, isClamped:false, measure(){ const el = this.$refs.notesText; this.isClamped = el.scrollHeight > el.clientHeight }, rafMeasure(){ requestAnimationFrame(() => this.measure()) }, reset(){ this.isExpanded = false; this.$nextTick(() => this.rafMeasure()) } }"
+                             x-init="rafMeasure(); $watch('showRepeats', v => { if (v) reset() })">
+
                           <svg xmlns="http://www.w3.org/2000/svg"
                                width="24"
                                height="24"
@@ -642,10 +660,10 @@
                 <img src="{{ IMG_NONE }}"
                      alt="E{{ episode.episode_number }}"
                      data-src="{{ episode.image }}"
-                     class="lazyload md:w-64 md:max-h-40 flex-shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
-                <div class="p-4 flex-1 flex flex-col">
+                     class="lazyload md:w-64 md:h-40 flex-shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}">
+                <div class="py-3 flex-1 flex flex-col">
                   <div class="flex-1">
-                    <div class="flex justify-between items-start mb-2 space-x-2">
+                    <div class="flex justify-between items-start mb-2 space-x-2 px-4">
                       <div>
                         <h2 class="text-xl font-semibold mb-1 line-clamp-1">{{ episode.title }}</h2>
                         <p class="text-sm text-gray-400">
@@ -760,10 +778,12 @@
                         </div>
                       </div>
                     </div>
-                    <p class="text-sm text-gray-300 line-clamp-2 text-justify text-pretty">{{ episode.overview }}</p>
+                    <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
+                      <p class="text-sm text-gray-300 leading-relaxed text-justify text-pretty">{{ episode.overview }}</p>
+                    </div>
                   </div>
                   {% if episode.history %}
-                    <p class="text-xs text-gray-400 mt-2">
+                    <p class="text-xs text-gray-400 mt-2 px-4">
                       Last watched: {{ episode.history.0.end_date|date:"DATETIME_FORMAT" }}
                       {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                     </p>
