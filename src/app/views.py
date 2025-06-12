@@ -413,8 +413,19 @@ def track_modal(
         "instance_id": instance_id,
     }
 
-    if media_type == MediaTypes.GAME.value and media:
-        initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+    if media:
+        title = media.item
+        if media_type == MediaTypes.GAME.value:
+            initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
+    else:
+        title = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+        )["title"]
+        if media_type == MediaTypes.SEASON.value:
+            title += f" S{season_number}"
 
     form = get_form_class(media_type)(instance=media, initial=initial_data)
 
@@ -422,7 +433,7 @@ def track_modal(
         request,
         "app/components/fill_track.html",
         {
-            "title": media.item if media else request.GET["title"],
+            "title": title,
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],
