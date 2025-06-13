@@ -18,5 +18,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(update_repeating_status),
+        migrations.RunPython(update_repeating_status, reverse_code=migrations.RunPython.noop),
     ]
