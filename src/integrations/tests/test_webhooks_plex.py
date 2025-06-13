@@ -38,6 +38,8 @@ class PlexWebhookTests(TestCase):
             "Metadata": {
                 "type": "episode",
                 "grandparentTitle": "Friends",
+                "index": 1,
+                "parentIndex": 1,
                 "Guid": [
                     {
                         "id": "imdb://tt0583459",
@@ -182,6 +184,8 @@ class PlexWebhookTests(TestCase):
             "Metadata": {
                 "type": "episode",
                 "grandparentTitle": "Frieren: Beyond Journey's End",
+                "index": 1,
+                "parentIndex": 1,
                 "Guid": [
                     {
                         "id": "imdb://tt23861604",

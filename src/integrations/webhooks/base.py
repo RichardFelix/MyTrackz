@@ -21,6 +21,14 @@ class BaseWebhookProcessor:
         """Process webhook payload."""
         raise NotImplementedError
 
+    def _is_supported_event(self, event_type):
+        """Check if event type is supported."""
+        raise NotImplementedError
+
+    def _is_played(self, payload):
+        """Check if media is marked as played."""
+        raise NotImplementedError
+
     def _extract_external_ids(self, payload):
         """Extract external IDs from payload."""
         raise NotImplementedError
@@ -29,8 +37,8 @@ class BaseWebhookProcessor:
         """Get media type from payload."""
         raise NotImplementedError
 
-    def _is_supported_event(self, event_type):
-        """Check if event type is supported."""
+    def _get_media_title(self, payload):
+        """Get media title from payload."""
         raise NotImplementedError
 
     def _process_media(self, payload, user, ids):
@@ -40,6 +48,9 @@ class BaseWebhookProcessor:
             logger.info("Ignoring unsupported media type")
             return
 
+        title = self._get_media_title(payload)
+        logger.info("Received webhook for %s: %s", media_type, title)
+
         if media_type == MediaTypes.TV.value:
             self._process_tv(payload, user, ids)
         elif media_type == MediaTypes.MOVIE.value:
@@ -48,7 +59,7 @@ class BaseWebhookProcessor:
     def _process_tv(self, payload, user, ids):
         media_id, season_number, episode_number = self._find_tv_media_id(ids)
         if not media_id:
-            logger.info("No TMDB ID found for TV show")
+            logger.info("No matching TMDB ID found for TV show")
             return
 
         tvdb_id = app.providers.tmdb.tv_with_seasons(media_id, [season_number])[
@@ -64,10 +75,16 @@ class BaseWebhookProcessor:
                 episode_number,
             )
             if mal_id:
-                logger.info("Detected anime")
+                logger.info("Detected anime episode with MAL ID: %s", mal_id)
                 self._handle_anime(mal_id, episode_offset, payload, user)
                 return
 
+        logger.info(
+            "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
+            media_id,
+            season_number,
+            episode_number,
+        )
         self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
 
     def _process_movie(self, payload, user, ids):
@@ -75,19 +92,27 @@ class BaseWebhookProcessor:
             tmdb_id = int(ids["tmdb_id"])
             mapping_data = self._fetch_mapping_data()
             mal_id = self._get_mal_id_from_tmdb_movie(mapping_data, tmdb_id)
+
             if mal_id and user.anime_enabled:
-                logger.info("Detected anime movie")
+                logger.info("Detected anime movie with MAL ID: %s", mal_id)
                 self._handle_anime(mal_id, 1, payload, user)
                 return
 
-            logger.info("Detected movie")
+            logger.info("Detected movie via TMDB ID: %s", tmdb_id)
             self._handle_movie(tmdb_id, payload, user)
         elif ids["imdb_id"]:
+            logger.info("No TMDB ID found, looking up via IMDB ID: %s", ids["imdb_id"])
+
             response = app.providers.tmdb.find(ids["imdb_id"], "imdb_id")
             if response.get("movie_results"):
                 media_id = response["movie_results"][0]["id"]
-                logger.info("Detected movie via IMDB")
+                logger.info("Found matching TMDB ID: %s", media_id)
                 self._handle_movie(media_id, payload, user)
+            else:
+                logger.info("No matching TMDB ID found for IMDB ID: %s", ids["imdb_id"])
+        else:
+            logger.info("No TMDB or IMDB ID found for movie, skipping processing")
+            return
 
     def _find_tv_media_id(self, ids):
         """Find TV media ID from external IDs."""
@@ -183,6 +208,10 @@ class BaseWebhookProcessor:
                 current_instance.start_date = now
                 current_instance.status = Status.IN_PROGRESS.value
             current_instance.save()
+            logger.info(
+                "Updated existing movie instance to status: %s",
+                current_instance.status,
+            )
         else:
             app.models.Movie.objects.create(
                 item=movie_item,
@@ -193,6 +222,10 @@ class BaseWebhookProcessor:
                 else Status.IN_PROGRESS.value,
                 start_date=now if not movie_played else None,
                 end_date=now if movie_played else None,
+            )
+            logger.info(
+                "Created new movie instance with status: %s",
+                Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
             )
 
     def _handle_tv_episode(
@@ -217,18 +250,22 @@ class BaseWebhookProcessor:
             },
         )
 
-        tv_instance, created = app.models.TV.objects.get_or_create(
+        tv_instance, tv_created = app.models.TV.objects.get_or_create(
             item=tv_item,
             user=user,
             defaults={"status": Status.IN_PROGRESS.value},
         )
 
-        if not created and tv_instance.status not in (
-            Status.COMPLETED.value,
-            Status.IN_PROGRESS.value,
-        ):
+        if tv_created:
+            logger.info("Created new TV instance: %s", tv_metadata["title"])
+        elif tv_instance.status != Status.IN_PROGRESS.value:
             tv_instance.status = Status.IN_PROGRESS.value
             tv_instance.save()
+            logger.info(
+                "Updated TV instance status to %s: %s",
+                Status.IN_PROGRESS.value,
+                tv_metadata["title"],
+            )
 
         season_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -241,30 +278,49 @@ class BaseWebhookProcessor:
             },
         )
 
-        season_instance, _ = app.models.Season.objects.get_or_create(
+        season_instance, season_created = app.models.Season.objects.get_or_create(
             item=season_item,
             user=user,
             related_tv=tv_instance,
             defaults={"status": Status.IN_PROGRESS.value},
         )
 
-        episode_item, _ = app.models.Item.objects.get_or_create(
-            media_id=media_id,
-            source=Sources.TMDB.value,
-            media_type=MediaTypes.EPISODE.value,
-            season_number=season_number,
-            episode_number=episode_number,
-            defaults={
-                "title": tv_metadata["title"],
-                "image": season_metadata["image"],
-            },
-        )
+        if season_created:
+            logger.info(
+                "Created new season instance: %s S%02d",
+                tv_metadata["title"],
+                season_number,
+            )
+        elif season_instance.status != Status.IN_PROGRESS.value:
+            season_instance.status = Status.IN_PROGRESS.value
+            season_instance.save()
+            logger.info(
+                "Updated season instance status to %s: %s S%02d",
+                Status.IN_PROGRESS.value,
+                tv_metadata["title"],
+                season_number,
+            )
+
+        episode_item = season_instance.get_episode_item(episode_number, season_metadata)
 
         if self._is_played(payload):
             app.models.Episode.objects.create(
                 item=episode_item,
                 related_season=season_instance,
                 end_date=timezone.now().replace(second=0, microsecond=0),
+            )
+            logger.info(
+                "Marked episode as played: %s S%02dE%02d",
+                tv_metadata["title"],
+                season_number,
+                episode_number,
+            )
+        else:
+            logger.info(
+                "Episode not marked as played: %s S%02dE%02d",
+                tv_metadata["title"],
+                season_number,
+                episode_number,
             )
 
     def _handle_anime(self, media_id, episode_number, payload, user):
@@ -286,18 +342,37 @@ class BaseWebhookProcessor:
         if not self._is_played(payload):
             episode_number = max(0, episode_number - 1)
 
+        now = timezone.now().replace(second=0, microsecond=0)
+        is_completed = episode_number == anime_metadata["max_progress"]
+        status = Status.COMPLETED.value if is_completed else Status.IN_PROGRESS.value
+
         if current_instance and current_instance.status != Status.COMPLETED.value:
             current_instance.progress = episode_number
-            current_instance.status = Status.IN_PROGRESS.value
+
+            if is_completed:
+                current_instance.end_date = now
+                current_instance.status = status
+            elif current_instance.status != Status.IN_PROGRESS.value:
+                current_instance.start_date = now
+                current_instance.status = status
+
             current_instance.save()
+            logger.info(
+                "Updated existing anime instance to status: %s with progress %d",
+                current_instance.status,
+                episode_number,
+            )
         else:
             app.models.Anime.objects.create(
                 item=anime_item,
                 user=user,
                 progress=episode_number,
-                status=Status.IN_PROGRESS.value,
+                status=status,
+                start_date=now if not is_completed else None,
+                end_date=now if is_completed else None,
             )
-
-    def _is_played(self, payload):
-        """Check if media is marked as played."""
-        raise NotImplementedError
+            logger.info(
+                "Created new anime instance with status: %s and progress %d",
+                status,
+                episode_number,
+            )
