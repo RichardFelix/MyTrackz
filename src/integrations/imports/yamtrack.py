@@ -143,9 +143,9 @@ class YamtrackImporter:
         )
 
         if form.is_valid():
-            progress_changed = row.get("progress_changed")
-            if progress_changed:
-                form.instance._history_date = parse_datetime(progress_changed)
+            progressed_at = row.get("progressed_at")
+            if progressed_at:
+                form.instance._history_date = parse_datetime(progressed_at)
             self.bulk_media[media_type].append(form.instance)
         else:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"

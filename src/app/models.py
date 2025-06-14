@@ -494,7 +494,7 @@ class MediaManager(models.Manager):
             media_list,
             key=lambda x: (
                 primary_sort_function(x),
-                -timezone.datetime.timestamp(x.progress_changed),
+                -timezone.datetime.timestamp(x.progressed_at),
                 x.item.title.lower(),
             ),
         )
@@ -717,7 +717,7 @@ class Media(models.Model):
         inherit=True,
         excluded_fields=[
             "item",
-            "progress_changed",
+            "progressed_at",
             "user",
             "related_tv",
             "created_at",
@@ -739,7 +739,7 @@ class Media(models.Model):
         ],
     )
     progress = models.PositiveIntegerField(default=0)
-    progress_changed = MonitorField(monitor="progress")
+    progressed_at = MonitorField(monitor="progress")
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -848,7 +848,6 @@ class TV(Media):
     """Model for TV shows."""
 
     tracker = FieldTracker()
-    progress_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         """Meta options for the model."""
@@ -904,6 +903,16 @@ class TV(Media):
         )
 
         return f"S{latest_episode['season']:02d}E{latest_episode['episode']:02d}"
+
+    @property
+    def progressed_at(self):
+        """Return the date when the last episode was watched."""
+        dates = [
+            season.progressed_at
+            for season in self.seasons.all()
+            if season.progressed_at and season.item.season_number != 0
+        ]
+        return max(dates) if dates else None
 
     @property
     def start_date(self):
@@ -1001,7 +1010,6 @@ class Season(Media):
     )
 
     tracker = FieldTracker()
-    progress_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         """Limit the uniqueness of seasons.
@@ -1073,6 +1081,16 @@ class Season(Media):
             )
 
         return sorted_episodes[0].item.episode_number
+
+    @property
+    def progressed_at(self):
+        """Return the date when the last episode was watched."""
+        dates = [
+            episode.end_date
+            for episode in self.episodes.all()
+            if episode.end_date is not None
+        ]
+        return max(dates) if dates else None
 
     @property
     def start_date(self):
@@ -1323,12 +1341,6 @@ class Episode(models.Model):
     def save(self, *args, **kwargs):
         """Save the episode instance."""
         super().save(*args, **kwargs)
-
-        now = timezone.now()
-        self.related_season.progress_changed = now
-        self.related_season.save(update_fields=["progress_changed"])
-        self.related_season.related_tv.progress_changed = now
-        self.related_season.related_tv.save(update_fields=["progress_changed"])
 
         if self.related_season.status == Status.IN_PROGRESS.value:
             season_number = self.item.season_number
