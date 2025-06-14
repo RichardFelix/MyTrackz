@@ -494,7 +494,9 @@ class MediaManager(models.Manager):
             media_list,
             key=lambda x: (
                 primary_sort_function(x),
-                -timezone.datetime.timestamp(x.progressed_at),
+                -timezone.datetime.timestamp(
+                    x.progressed_at if x.progressed_at is not None else x.created_at,
+                ),
                 x.item.title.lower(),
             ),
         )
