@@ -201,13 +201,17 @@ class BaseWebhookProcessor:
 
         if current_instance and current_instance.status != Status.COMPLETED.value:
             current_instance.progress = progress
+
             if movie_played:
                 current_instance.end_date = now
                 current_instance.status = Status.COMPLETED.value
+                current_instance.save()
+
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
                 current_instance.status = Status.IN_PROGRESS.value
-            current_instance.save()
+                current_instance.save()
+
             logger.info(
                 "Updated existing movie instance to status: %s",
                 current_instance.status,
@@ -352,11 +356,13 @@ class BaseWebhookProcessor:
             if is_completed:
                 current_instance.end_date = now
                 current_instance.status = status
+                current_instance.save()
+
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
                 current_instance.status = status
+                current_instance.save()
 
-            current_instance.save()
             logger.info(
                 "Updated existing anime instance to status: %s with progress %d",
                 current_instance.status,
