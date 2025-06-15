@@ -40,11 +40,17 @@ def slug(arg1):
     urlencode the special characters first.
     e.g Anime: 31687
     """
-    cleaned = template.defaultfilters.slugify(unidecode(arg1))
+    cleaned = template.defaultfilters.slugify(arg1)
     if cleaned == "":
-        return template.defaultfilters.slugify(
+        cleaned = template.defaultfilters.slugify(
             template.defaultfilters.urlencode(unidecode(arg1)),
         )
+        if cleaned == "":
+            cleaned = template.defaultfilters.urlencode(unidecode(arg1))
+
+            if cleaned == "":
+                cleaned = template.defaultfilters.urlencode(arg1)
+
     return cleaned
 
 
