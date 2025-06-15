@@ -1,3 +1,4 @@
+import ast
 import json
 import zoneinfo
 from datetime import datetime
@@ -25,14 +26,12 @@ def get_client_ip(request):
 
 def process_task_result(task):
     """Process task result based on status and format appropriately."""
-    try:
-        if isinstance(task.task_kwargs, str):
-            kwargs = json.loads(task.task_kwargs)
-        else:
-            kwargs = task.task_kwargs
-        mode = kwargs.get("mode", "new")  # Default to 'new' if not specified
-    except (TypeError, json.JSONDecodeError, AttributeError):
-        mode = "new"
+    if isinstance(task.task_kwargs, str):
+        kwargs = ast.literal_eval(json.loads(task.task_kwargs))
+    else:
+        kwargs = task.task_kwargs
+
+    mode = kwargs.get("mode", "new")  # Default to 'new' if not specified
 
     mode = "Only New Items" if mode == "new" else "Overwrite Existing"
 
