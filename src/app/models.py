@@ -831,13 +831,13 @@ class Media(models.Model):
         """Increase the progress of the media by one."""
         self.progress += 1
         self.save()
-        logger.info("Watched %s E%s", self, self.progress)
+        logger.info("Incresed progress of %s to %s", self, self.progress)
 
     def decrease_progress(self):
         """Decrease the progress of the media by one."""
         self.progress -= 1
         self.save()
-        logger.info("Unwatched %s E%s", self, self.progress + 1)
+        logger.info("Decreased progress of %s to %s", self, self.progress)
 
 
 class BasicMedia(Media):
