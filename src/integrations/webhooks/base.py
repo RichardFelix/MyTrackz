@@ -168,7 +168,8 @@ class BaseWebhookProcessor:
             )
 
             if current_offset < episode_number <= next_offset:
-                return entry["mal_id"], episode_number - current_offset
+                mal_id = self._parse_mal_id(entry["mal_id"])
+                return mal_id, episode_number - current_offset
 
         return None, None
 
@@ -176,8 +177,17 @@ class BaseWebhookProcessor:
         """Find MAL ID from TMDB movie mapping."""
         for entry in mapping_data.values():
             if entry.get("tmdb_movie_id") == tmdb_movie_id and "mal_id" in entry:
-                return entry["mal_id"]
+                return self._parse_mal_id(entry["mal_id"])
         return None
+
+    def _parse_mal_id(self, mal_id):
+        """Parse MAL ID from potentially comma-separated string.
+
+        mal_id: Either a single ID (int) or comma-separated string of IDs
+        """
+        if isinstance(mal_id, str) and "," in mal_id:
+            return mal_id.split(",")[0].strip()
+        return mal_id
 
     def _handle_movie(self, media_id, payload, user):
         """Handle movie playback event."""
