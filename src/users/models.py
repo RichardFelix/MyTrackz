@@ -501,7 +501,6 @@ class User(AbstractUser):
                     "status": task.status,
                     "summary": processed_task.summary,
                     "errors": processed_task.errors,
-                    "mode": processed_task.mode,
                 },
             )
 
