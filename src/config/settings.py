@@ -182,8 +182,20 @@ if config("DB_HOST", default=None):
             "USER": config("DB_USER", default=secret("DB_USER_FILE")),
             "PASSWORD": config("DB_PASSWORD", default=secret("DB_PASSWORD_FILE")),
             "PORT": config("DB_PORT"),
+            "OPTIONS": {
+                "pool": True,
+            },
         },
     }
+
+    sslmode = config("DB_SSL_MODE", default=None)
+    if sslmode:
+        DATABASES["default"]["OPTIONS"]["sslmode"] = sslmode
+
+    sslcertmode = config("DB_SSL_CERT_MODE", default=None)
+    if sslcertmode:
+        DATABASES["default"]["OPTIONS"]["sslcertmode"] = sslcertmode
+
 else:
     DATABASES = {
         "default": {
@@ -191,7 +203,6 @@ else:
             "NAME": BASE_DIR / "db" / "db.sqlite3",
         },
     }
-
 
 # Cache
 # https://docs.djangoproject.com/en/stable/topics/cache/
@@ -229,14 +240,14 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
-        "requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "INFO",
+        "requests_ratelimiter.requests_ratelimiter": {
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "psycopg": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "DEBUG" if DEBUG else "WARNING",
         },
     },
     "formatters": {
