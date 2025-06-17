@@ -1257,9 +1257,6 @@ class Season(Media):
         """Create or add a repeat to an episode of the season."""
         item = self.get_episode_item(episode_number)
 
-        if end_date == "None":
-            end_date = None
-
         episode = Episode.objects.create(
             related_season=self,
             item=item,

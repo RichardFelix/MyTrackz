@@ -3,7 +3,7 @@ from pathlib import Path
 from django import template
 from django.conf import settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import formats, timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
@@ -52,6 +52,22 @@ def slug(arg1):
                 cleaned = template.defaultfilters.urlencode(arg1)
 
     return cleaned
+
+
+@register.filter
+def date_tracker_format(date):
+    """Format a datetime object to a readable string."""
+    if not date:
+        return None
+
+    local_dt = timezone.localtime(date)
+
+    date_format = "DATETIME_FORMAT" if settings.TRACK_TIME else "DATE_FORMAT"
+
+    return formats.date_format(
+        local_dt,
+        date_format,
+    )
 
 
 @register.filter

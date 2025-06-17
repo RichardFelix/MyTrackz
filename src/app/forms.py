@@ -214,8 +214,12 @@ class MediaForm(forms.ModelForm):
                 attrs={"min": 0, "max": 10, "step": 0.1, "placeholder": "0-10"},
             ),
             "progress": forms.NumberInput(attrs={"min": 0}),
-            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
-            "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "start_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+            if settings.TRACK_TIME
+            else forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateTimeInput(attrs={"type": "datetime-local"})
+            if settings.TRACK_TIME
+            else forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(
                 attrs={"placeholder": "Add any notes or comments...", "rows": "5"},
             ),
@@ -342,6 +346,18 @@ class EpisodeForm(forms.ModelForm):
         model = Episode
         fields = ("end_date",)
         widgets = {
-            "item": forms.HiddenInput(),
             "end_date": forms.DateInput(attrs={"type": "date"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the form."""
+        super().__init__(*args, **kwargs)
+
+        if settings.TRACK_TIME:
+            self.fields["end_date"].widget = forms.DateTimeInput(
+                attrs={"type": "datetime-local"},
+            )
+        else:
+            self.fields["end_date"].widget = forms.DateInput(
+                attrs={"type": "date"},
+            )

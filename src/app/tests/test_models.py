@@ -1474,7 +1474,7 @@ class SeasonModel(TestCase):
         mock_get_episode_item.return_value = episode_item
 
         # Test watching with None date
-        self.season.watch(3, "None")
+        self.season.watch(3, None)
 
         # Check if the episode was created with None date
         episode = Episode.objects.get(
