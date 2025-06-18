@@ -788,18 +788,12 @@ class Media(models.Model):
                 if self.progress == max_progress:
                     self.status = Status.COMPLETED.value
 
+                    now = timezone.now().replace(second=0, microsecond=0)
+                    self.end_date = now
+
     def process_status(self):
         """Update fields depending on the status of the media."""
-        now = timezone.now().replace(second=0, microsecond=0)
-
-        if self.status == Status.IN_PROGRESS.value:
-            if not self.start_date:
-                self.start_date = now
-
-        elif self.status == Status.COMPLETED.value:
-            if not self.end_date:
-                self.end_date = now
-
+        if self.status == Status.COMPLETED.value:
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,

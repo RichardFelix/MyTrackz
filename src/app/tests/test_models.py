@@ -961,26 +961,6 @@ class MediaModel(TestCase):
             status=Status.PLANNING.value,
         )
 
-    def test_completed_no_end(self):
-        """When completed, if not specified end_date, it should be the current date."""
-        self.anime.status = Status.COMPLETED.value
-        self.anime.save()
-
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).end_date.date(),
-            timezone.now().date(),
-        )
-
-    def test_completed_end(self):
-        """When completed, if specified end_date, it should be the specified date."""
-        self.anime.status = Status.COMPLETED.value
-        self.anime.end_date = datetime(2023, 6, 1, 0, 0, tzinfo=UTC)
-        self.anime.save()
-        self.assertEqual(
-            Anime.objects.get(item__media_id="1", user=self.user).end_date,
-            datetime(2023, 6, 1, 0, 0, tzinfo=UTC),
-        )
-
     def test_completed_progress(self):
         """When completed, the progress should be the total number of episodes."""
         self.anime.status = Status.COMPLETED.value
