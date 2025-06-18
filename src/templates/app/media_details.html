@@ -137,7 +137,7 @@
              x-init="$nextTick(() => checkClamp())">
           <p x-ref="synopsisText"
              :class="isExpanded ? '' : '{% if media.media_type == MediaTypes.SEASON.value %}line-clamp-4{% else %}line-clamp-5{% endif %}'"
-             class="text-gray-300 text-justify text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
+             class="text-gray-300 text-pretty">{{ media.synopsis|linebreaksbr|safe }}</p>
           <button x-show="isClamped"
                   @click="isExpanded = !isExpanded"
                   class="text-indigo-400 hover:text-indigo-300 text-sm mt-2 focus:outline-none transition-colors cursor-pointer">
@@ -784,7 +784,7 @@
                       </div>
                     </div>
                     <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                      <p class="text-sm text-gray-300 leading-relaxed text-justify text-pretty">{{ episode.overview }}</p>
+                      <p class="text-sm text-gray-300 leading-relaxed text-pretty">{{ episode.overview }}</p>
                     </div>
                   </div>
                   {% if episode.history %}
