@@ -89,7 +89,7 @@ for url in URLS:
     ALLOWED_HOSTS.append(urlparse(url).hostname)
 
 if BASE_URL:
-    CSRF_COOKIE_PATH = BASE_URL + '/'
+    CSRF_COOKIE_PATH = BASE_URL + "/"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -513,7 +513,7 @@ ACCOUNT_FORMS = {
 
 if BASE_URL:
     ACCOUNT_LOGOUT_REDIRECT_URL = f"{BASE_URL}/accounts/login/?loggedout=1"
-    SESSION_COOKIE_PATH = BASE_URL + '/'
+    SESSION_COOKIE_PATH = BASE_URL + "/"
 
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
