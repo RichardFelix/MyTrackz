@@ -215,17 +215,22 @@ class BaseWebhookProcessor:
             if movie_played:
                 current_instance.end_date = now
                 current_instance.status = Status.COMPLETED.value
-                current_instance.save()
 
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
                 current_instance.status = Status.IN_PROGRESS.value
-                current_instance.save()
 
-            logger.info(
-                "Updated existing movie instance to status: %s",
-                current_instance.status,
-            )
+            if current_instance.tracker.changed():
+                current_instance.save()
+                logger.info(
+                    "Updated existing movie instance to status: %s",
+                    current_instance.status,
+                )
+            else:
+                logger.info(
+                    "No changes detected for existing movie instance: %s",
+                    current_instance.item,
+                )
         else:
             app.models.Movie.objects.create(
                 item=movie_item,
@@ -366,18 +371,23 @@ class BaseWebhookProcessor:
             if is_completed:
                 current_instance.end_date = now
                 current_instance.status = status
-                current_instance.save()
 
             elif current_instance.status != Status.IN_PROGRESS.value:
                 current_instance.start_date = now
                 current_instance.status = status
-                current_instance.save()
 
-            logger.info(
-                "Updated existing anime instance to status: %s with progress %d",
-                current_instance.status,
-                episode_number,
-            )
+            if current_instance.tracker.changed():
+                current_instance.save()
+                logger.info(
+                    "Updated existing anime instance to status: %s with progress %d",
+                    current_instance.status,
+                    episode_number,
+                )
+            else:
+                logger.info(
+                    "No changes detected for existing anime instance: %s",
+                    current_instance.item,
+                )
         else:
             app.models.Anime.objects.create(
                 item=anime_item,
