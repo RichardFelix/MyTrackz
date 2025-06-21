@@ -560,8 +560,7 @@ def get_tvmaze_episode_map(tvdb_id):
                 key = f"{season_num}_{episode_num}"
                 tvmaze_map[key] = ep.get("airstamp")
 
-    # Cache the processed map for 24 hours
-    cache.set(cache_key, tvmaze_map, timeout=86400)
+    cache.set(cache_key, tvmaze_map)
     logger.info(
         "%s - Cached TVMaze episode map with %d entries",
         tvdb_id,
