@@ -354,6 +354,7 @@ def get_timeline(user_media):
                 month_year = f"{month_name} {year}"
 
                 timeline[month_year].append(media)
+
     # Convert to sorted dictionary with media sorted by start date
     # Create a list sorted by year and month in reverse order
     sorted_items = []
@@ -370,15 +371,15 @@ def get_timeline(user_media):
     result = {}
     for month_year, media_list, _, _ in sorted_items:
         # Sort the media list using our custom sort key
-        result[month_year] = sorted(media_list, key=time_line_sort_key)
+        result[month_year] = sorted(media_list, key=time_line_sort_key, reverse=True)
     return result
 
 
 def time_line_sort_key(media):
     """Sort media items in the timeline."""
-    if media.start_date is not None:
-        return timezone.localdate(media.start_date)
-    return timezone.localdate(media.end_date)
+    if media.end_date is not None:
+        return timezone.localdate(media.end_date)
+    return timezone.localdate(media.start_date)
 
 
 def get_activity_data(user, start_date, end_date):
