@@ -60,7 +60,7 @@ class MediaTypes(models.TextChoices):
 
 
 class Item(CalendarTriggerMixin, models.Model):
-    """Model for items in custom lists."""
+    """Model to store basic information about media items."""
 
     media_id = models.CharField(max_length=20)
     source = models.CharField(
