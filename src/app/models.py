@@ -1462,7 +1462,7 @@ class Episode(models.Model):
         self.related_season.refresh_from_db()
 
         season_just_completed = False
-        if self.related_season.progress == max_progress:
+        if self.item.episode_number == max_progress:
             self.related_season.status = Status.COMPLETED.value
             bulk_update_with_history(
                 [self.related_season],
