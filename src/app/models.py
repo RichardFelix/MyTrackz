@@ -181,40 +181,42 @@ class Item(CalendarTriggerMixin, models.Model):
 
     def fetch_releases(self, delay):
         """Fetch releases for the item."""
-        if not self._disable_calendar_triggers:
-            if self.media_type == MediaTypes.SEASON.value:
-                # Get or create the TV item for this season
-                try:
-                    tv_item = Item.objects.get(
-                        media_id=self.media_id,
-                        source=self.source,
-                        media_type=MediaTypes.TV.value,
-                    )
-                except Item.DoesNotExist:
-                    # Get metadata for the TV show
-                    tv_metadata = providers.services.get_media_metadata(
-                        MediaTypes.TV.value,
-                        self.media_id,
-                        self.source,
-                    )
-                    tv_item = Item.objects.create(
-                        media_id=self.media_id,
-                        source=self.source,
-                        media_type=MediaTypes.TV.value,
-                        title=tv_metadata["title"],
-                        image=tv_metadata["image"],
-                    )
-                    logger.info("Created TV item %s for season %s", tv_item, self)
+        if self._disable_calendar_triggers:
+            return
 
-                # Process the TV item instead of the season
-                items_to_process = [tv_item]
-            else:
-                items_to_process = [self]
+        if self.media_type == MediaTypes.SEASON.value:
+            # Get or create the TV item for this season
+            try:
+                tv_item = Item.objects.get(
+                    media_id=self.media_id,
+                    source=self.source,
+                    media_type=MediaTypes.TV.value,
+                )
+            except Item.DoesNotExist:
+                # Get metadata for the TV show
+                tv_metadata = providers.services.get_media_metadata(
+                    MediaTypes.TV.value,
+                    self.media_id,
+                    self.source,
+                )
+                tv_item = Item.objects.create(
+                    media_id=self.media_id,
+                    source=self.source,
+                    media_type=MediaTypes.TV.value,
+                    title=tv_metadata["title"],
+                    image=tv_metadata["image"],
+                )
+                logger.info("Created TV item %s for season %s", tv_item, self)
 
-            if delay:
-                events.tasks.reload_calendar.delay(items_to_process=items_to_process)
-            else:
-                events.tasks.reload_calendar(items_to_process=items_to_process)
+            # Process the TV item instead of the season
+            items_to_process = [tv_item]
+        else:
+            items_to_process = [self]
+
+        if delay:
+            events.tasks.reload_calendar.delay(items_to_process=items_to_process)
+        else:
+            events.tasks.reload_calendar(items_to_process=items_to_process)
 
 
 class MediaManager(models.Manager):
