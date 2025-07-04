@@ -1,7 +1,6 @@
 import logging
 import time
 
-import fakeredis
 import requests
 from django.conf import settings
 from pyrate_limiter import RedisBucket
@@ -27,6 +26,8 @@ logger = logging.getLogger(__name__)
 def get_redis_connection():
     """Return a Redis connection pool."""
     if settings.TESTING:
+        import fakeredis  # noqa: PLC0415
+
         return fakeredis.FakeStrictRedis().connection_pool
     return ConnectionPool.from_url(settings.REDIS_URL)
 
