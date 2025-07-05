@@ -10,13 +10,16 @@ from django.core.validators import (
 from django.db import models
 from django.db.models import (
     CheckConstraint,
+    Count,
+    F,
     IntegerField,
     Max,
     Prefetch,
     Q,
     UniqueConstraint,
+    Window,
 )
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, RowNumber
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -236,6 +239,18 @@ class MediaManager(models.Manager):
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)
+
+        queryset = queryset.annotate(
+            repeats=Window(
+                expression=Count("id"),
+                partition_by=[F("item")],
+            ),
+            row_number=Window(
+                expression=RowNumber(),
+                partition_by=[F("item")],
+                order_by=F("created_at").desc(),
+            ),
+        ).filter(row_number=1)
 
         queryset = queryset.select_related("item")
         queryset = self._apply_prefetch_related(queryset, media_type)
