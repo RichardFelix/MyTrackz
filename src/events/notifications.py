@@ -133,9 +133,6 @@ def send_notifications(events, users, title):
     logger.info("Found %s events for notification", event_count)
     logger.info("Found %s eligible users", users.count())
 
-    if not events.exists():
-        return {"event_count": 0, "event_ids": []}
-
     # Create event lookup for quick access
     events_by_item_and_content = {}
     event_ids = []
