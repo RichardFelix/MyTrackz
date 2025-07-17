@@ -661,6 +661,103 @@ class ImportSimkl(TestCase):
         )
         self.assertIsNone(self.importer._get_date(None))
 
+    @patch("integrations.imports.simkl.SimklImporter._get_user_list")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_season_status_logic_with_completed_seasons(
+        self,
+        mock_tv_with_seasons,
+        mock_user_list,
+    ):
+        """Test that seasons are marked as completed when all episodes are watched."""
+        # Mock TMDB metadata response
+        mock_tv_with_seasons.return_value = {
+            "title": "Breaking Bad",
+            "image": "https://image.tmdb.org/t/p/w500/test.jpg",
+            "season/1": {
+                "image": "https://image.tmdb.org/t/p/w500/season1.jpg",
+                "max_progress": 7,
+                "episodes": [
+                    {"episode_number": 1, "still_path": "/ep1.jpg"},
+                    {"episode_number": 2, "still_path": "/ep2.jpg"},
+                    {"episode_number": 3, "still_path": "/ep3.jpg"},
+                    {"episode_number": 4, "still_path": "/ep4.jpg"},
+                    {"episode_number": 5, "still_path": "/ep5.jpg"},
+                    {"episode_number": 6, "still_path": "/ep6.jpg"},
+                    {"episode_number": 7, "still_path": "/ep7.jpg"},
+                ],
+            },
+            "season/2": {
+                "image": "https://image.tmdb.org/t/p/w500/season2.jpg",
+                "max_progress": 13,
+            },
+        }
+
+        mock_user_list.return_value = {
+            "shows": [
+                {
+                    "last_watched_at": "2023-01-15T00:00:00Z",
+                    "show": {"title": "Breaking Bad", "ids": {"tmdb": 1396}},
+                    "status": "watching",  # TV show is still in progress
+                    "user_rating": 9,
+                    "seasons": [
+                        {
+                            "number": 1,
+                            "episodes": [
+                                {"number": 1, "watched_at": "2023-01-01T00:00:00Z"},
+                                {"number": 2, "watched_at": "2023-01-02T00:00:00Z"},
+                                {"number": 3, "watched_at": "2023-01-03T00:00:00Z"},
+                                {"number": 4, "watched_at": "2023-01-04T00:00:00Z"},
+                                {"number": 5, "watched_at": "2023-01-05T00:00:00Z"},
+                                {"number": 6, "watched_at": "2023-01-06T00:00:00Z"},
+                                {"number": 7, "watched_at": "2023-01-07T00:00:00Z"},
+                            ],
+                        },
+                    ],
+                    "memo": {},
+                },
+            ],
+            "movies": [],
+            "anime": [],
+        }
+
+        imported_counts, warnings = simkl.importer("token", self.user, "new")
+
+        # Verify import counts
+        self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
+        self.assertEqual(imported_counts[MediaTypes.SEASON.value], 1)
+        self.assertEqual(
+            imported_counts[MediaTypes.EPISODE.value],
+            7,
+        )
+
+        # Check TV show status
+        tv_item = Item.objects.get(media_type=MediaTypes.TV.value)
+        tv_obj = TV.objects.get(item=tv_item)
+        self.assertEqual(tv_obj.status, Status.IN_PROGRESS.value)
+
+        # Check Season 1 - should be COMPLETED because all 7 episodes are watched
+        season1_item = Item.objects.get(
+            media_type=MediaTypes.SEASON.value,
+            season_number=1,
+        )
+        season1_obj = Season.objects.get(item=season1_item)
+        self.assertEqual(
+            season1_obj.status,
+            Status.COMPLETED.value,
+            "Season 1 should be completed when all episodes are watched",
+        )
+
+        # Verify all episodes were created correctly
+        season1_episodes = Episode.objects.filter(
+            item__season_number=1,
+            item__media_type=MediaTypes.EPISODE.value,
+        )
+        self.assertEqual(season1_episodes.count(), 7)
+
+        # Verify episode dates are set correctly
+        for episode in season1_episodes:
+            self.assertIsNotNone(episode.end_date)
+
 
 class HelpersTest(TestCase):
     """Test helper functions for imports."""
