@@ -66,7 +66,11 @@ class BaseWebhookProcessor:
             "tvdb_id"
         ]
 
-        if tvdb_id and user.anime_enabled:
+        if not tvdb_id:
+            logger.info("No TVDB ID found for TMDB ID: %s", media_id)
+            return
+
+        if user.anime_enabled:
             mapping_data = self._fetch_mapping_data()
             mal_id, episode_offset = self._get_mal_id_from_tvdb(
                 mapping_data,
