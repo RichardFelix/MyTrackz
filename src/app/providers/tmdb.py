@@ -116,9 +116,10 @@ def find(external_id, external_source):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        cache.set(cache_key, data)
+        cache.set(cache_key, response)
+        return response
 
-    return response
+    return data
 
 
 def movie(media_id):
