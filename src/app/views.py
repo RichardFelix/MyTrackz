@@ -173,7 +173,12 @@ def media_search(request):
 
     data = services.search(media_type, query, page, source)
 
-    context = {"data": data, "source": source, "media_type": media_type, "layout": layout}
+    context = {
+        "data": data,
+        "source": source,
+        "media_type": media_type,
+        "layout": layout,
+    }
 
     return render(request, "app/search.html", context)
 
