@@ -8,10 +8,12 @@ from django.utils.dateparse import parse_datetime
 
 import app
 from app.models import MediaTypes, Sources
+from app import media_type_config
 from app.providers import services
 from app.templatetags import app_tags
 from integrations.imports import helpers
-from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
+from integrations.imports.helpers import (MediaImportError,
+                                          MediaImportUnexpectedError)
 
 logger = logging.getLogger(__name__)
 
@@ -165,12 +167,70 @@ class YamtrackImporter:
         if row["source"] == Sources.MANUAL.value and row["image"] == "":
             row["image"] = settings.IMG_NONE
         else:
-            metadata = services.get_media_metadata(
-                media_type,
-                row["media_id"],
-                row["source"],
-                [season_number],
-                episode_number,
+            try:
+                if row["media_id"] is not None and row["media_id"] != "":
+                    metadata = services.get_media_metadata(
+                        media_type,
+                        row["media_id"],
+                        row["source"],
+                        season_number,
+                        episode_number,
+                    )
+                    row["title"] = metadata["title"]
+                    row["image"] = metadata["image"]
+                else:
+                    searchquery = row["title"]
+                    metadata = services.search(
+                        media_type,
+                        searchquery,
+                        1,
+                        media_type_config.get_default_source_name(media_type)
+                    )
+                    row["title"] = metadata["results"][0]["title"]
+                    logger.info(f"Added title from {media_type_config.get_default_source_name(media_type)}: {row['title']}")
+                    row["source"] = metadata["results"][0]["source"]
+                    row["media_id"] = metadata["results"][0]["media_id"]
+                    logger.info(f"Obtained media id : {row['media_id']}")
+                    
+                    row["media_type"] = media_type
+                    row["image"] = metadata["results"][0]["image"]
+            except services.ProviderAPIError as e:
+                self.warnings.append(
+                    f"Failed to fetch metadata for {row['media_id']}: {e!s}",
+                )
+                raise
+
+    def _handle_missing_book_metadata(self, row, media_type):
+        """Handle missing metadata by fetching from provider - 
+        Format #isbn,providerid,provider,title,read_start,read_end """
+        try:
+            searchquery = row["title"]
+            if row["source"] != "":
+                metadata = services.get_media_metadata(
+                    media_type,
+                    row["media_id"],
+                    row["source"],
+                )
+                row["title"] = metadata["title"]
+                row["image"] = metadata["image"]
+            else:
+                metadata = services.search(
+                    media_type,
+                    searchquery,
+                    1,
+                    Sources.HARDCOVER.value,
+                )
+                row["title"] = metadata["results"][0]["title"]
+                logger.info(f"Added title from harcover: {row['title']}")
+                row["source"] = Sources.HARDCOVER.value
+                row["media_id"] = metadata["results"][0]["media_id"]
+                logger.info(f"Obtained media id harcover: {row['media_id']}")
+                
+                row["media_type"] = media_type
+                row["image"] = metadata["results"][0]["image"]
+        except services.ProviderAPIError as e:
+            self.warnings.append(
+                f"Failed to fetch metadata for {row['media_id']}: {e!s}",
             )
-            row["title"] = metadata["title"]
-            row["image"] = metadata["image"]
+            raise
+
