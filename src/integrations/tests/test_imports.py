@@ -8,10 +8,21 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
-from app.models import (TV, Anime, Book, Episode, Game, Item, Manga,
-                        MediaTypes, Movie, Season, Sources, Status)
-from integrations.imports import (anilist, helpers, hltb, kitsu, mal, simkl,
-                                  yamtrack)
+from app.models import (
+    TV,
+    Anime,
+    Book,
+    Episode,
+    Game,
+    Item,
+    Manga,
+    MediaTypes,
+    Movie,
+    Season,
+    Sources,
+    Status,
+)
+from integrations.imports import anilist, helpers, hltb, kitsu, mal, simkl, yamtrack
 from integrations.imports.trakt import TraktImporter, importer
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -230,6 +241,46 @@ class ImportYamtrack(TestCase):
             # Verify the row was modified as expected
             self.assertNotEqual(row["title"], original_row["title"])
             self.assertNotEqual(row["image"], original_row["image"])
+
+
+class ImportYamtrackPartials(TestCase):
+    """Test importing yamtrack media with no ID."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        with Path(mock_path / "import_yamtrack_partials.csv").open("rb") as file:
+            self.import_results = yamtrack.importer(file, self.user, "new")
+
+    def test_import_counts(self):
+        """Test basic counts of imported media."""
+        self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_end_dates(self):
+        """Test end dates during import."""
+        book = Book.objects.filter(user=self.user).first()
+        self.assertEqual(book.history.count(), 1)
+        bookqs = Book.objects.filter(
+            user=self.user,
+            item__title="Warlock",
+        ).order_by("-end_date")
+        books = list(bookqs)
+
+        self.assertEqual(len(books), 3)
+        self.assertEqual(
+            books[0].end_date,
+            datetime(2024, 5, 9, 0, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            books[1].end_date,
+            datetime(2024, 4, 9, 0, 0, 0, tzinfo=UTC),
+        )
+        self.assertEqual(
+            books[2].end_date,
+            datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
+        )
 
 
 class ImportHowLongToBeat(TestCase):
@@ -898,46 +949,3 @@ class HelpersTest(TestCase):
 
         schedule = CrontabSchedule.objects.first()
         self.assertEqual(schedule.day_of_week, "*/2")
-class ImportYamtrackPartials(TestCase):
-    """Test importing yamtrack media with no ID."""
-
-    def setUp(self):
-        """Create user for the tests."""
-        self.credentials = {"username": "test", "password": "12345"}
-        self.user = get_user_model().objects.create_user(**self.credentials)
-        with Path(mock_path / "import_yamtrack_partials.csv").open("rb") as file:
-            self.import_results =yamtrack.importer(file, self.user, "new")
-
-    def test_import_counts(self):
-        """Test basic counts of imported media."""
-        self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
-        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
-        
-
-    def test_historical_records(self):
-        """Test historical records creation during import."""
-        book = Book.objects.filter(user=self.user).first()
-        self.assertEqual(book.history.count(), 1)
-        #self.assertEqual(
-        #    book.history.first().history_date,
-        #    datetime(2005, 4, 1, 0, 0, 0, tzinfo=UTC),
-        #)
-        bookqs = Book.objects.filter(
-            user=self.user,
-            item__title="Warlock",
-            ).order_by("-end_date")
-        books = list(bookqs)
-        
-        self.assertEqual(len(books),3)
-        self.assertEqual(
-            books[0].end_date,
-            datetime(2024, 5, 9, 0, 0, 0, tzinfo=UTC),
-        )
-        self.assertEqual(
-            books[1].end_date,
-            datetime(2024, 4, 9, 0, 0, 0, tzinfo=UTC),
-        )
-        self.assertEqual(
-            books[2].end_date,
-            datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
-        )
