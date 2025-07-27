@@ -468,7 +468,8 @@ class User(AbstractUser):
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
         import_tasks = {
-            "trakt": "Import from Trakt",
+            "trakt": "Import from Trakt",  # Deprecated in favor of OAuth
+            "trakt_oauth": "Import from Trakt via OAuth",
             "simkl": "Import from SIMKL",
             "myanimelist": "Import from MyAnimeList",
             "anilist": "Import from AniList",
@@ -486,7 +487,9 @@ class User(AbstractUser):
         task_results = TaskResult.objects.filter(
             task_kwargs__contains=task_result_filter_text,
             task_name__in=import_tasks.values(),
-        ).order_by("-date_done")  # Most recent first
+        ).order_by(
+            "-date_done",
+        )  # Most recent first
 
         # Build results list
         results = []

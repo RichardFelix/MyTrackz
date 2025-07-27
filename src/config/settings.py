@@ -391,6 +391,15 @@ TRAKT_API = config(
         "b4d9702b11cfaddf5e863001f68ce9d4394b678926e8a3f64d47bf69a55dd0fe",
     ),
 )
+
+TRAKT_API_SECRET = config(
+    "TRAKT_API_SECRET",
+    default=secret(
+        "TRAKT_API_SECRET_FILE",
+        "UNSET",
+    ),
+)
+
 SIMKL_ID = config(
     "SIMKL_ID",
     default=secret(
@@ -504,7 +513,8 @@ else:
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
 ACCOUNT_LOGOUT_REDIRECT_URL = config(
-    "ACCOUNT_LOGOUT_REDIRECT_URL", default="/accounts/login/?loggedout=1",
+    "ACCOUNT_LOGOUT_REDIRECT_URL",
+    default="/accounts/login/?loggedout=1",
 )
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_USER_MODEL_EMAIL_FIELD = None

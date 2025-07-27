@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 import users
 from integrations import exports, tasks
-from integrations.imports import helpers, simkl
+from integrations.imports import helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @require_POST
 def import_trakt(request):
-    """View for importing anime and manga data from Trakt."""
+    """View for importing data from Trakt. Deprecated in favor of OAuth."""
     username = request.POST.get("user")
     if not username:
         messages.error(request, "Trakt username is required.")
@@ -45,6 +45,50 @@ def import_trakt(request):
             frequency,
             import_time,
             "Trakt",
+        )
+    return redirect("import_data")
+
+
+@require_POST
+def trakt_oauth(request):
+    """View for initiating Trakt OAuth2 authorization flow."""
+    redirect_uri = request.build_absolute_uri(reverse("import_trakt_oauth"))
+    url = "https://trakt.tv/oauth/authorize"
+    state = {
+        "trakt_import_mode": request.POST["mode"],
+        "trakt_import_frequency": request.POST["frequency"],
+        "trakt_import_time": request.POST["time"],
+    }
+    return redirect(
+        f"{url}?client_id={settings.TRAKT_API}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}",
+    )
+
+
+@require_GET
+def import_trakt_oauth(request):
+    """View for getting the Trakt OAuth2 token."""
+    oauth_callback = trakt.handle_oauth_callback(request)
+
+    enc_token = helpers.encrypt(oauth_callback["refresh_token"])
+    frequency = oauth_callback["state"]["trakt_import_frequency"]
+    mode = oauth_callback["state"]["trakt_import_mode"]
+    import_time = oauth_callback["state"]["trakt_import_time"]
+
+    if frequency == "once":
+        tasks.import_trakt_oauth.delay(
+            token=enc_token,
+            user_id=request.user.id,
+            mode=mode,
+        )
+        messages.info(request, "The task to import media from Trakt has been queued.")
+    else:
+        helpers.create_import_schedule(
+            enc_token,
+            request,
+            mode,
+            frequency,
+            import_time,
+            "Trakt via OAuth",
         )
     return redirect("import_data")
 

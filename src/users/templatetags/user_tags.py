@@ -27,6 +27,10 @@ def source_display(source_name):
             "name": "Kitsu",
             "logo": "https://kitsu.app/favicon-194x194-2f4dbec5ffe82b8f61a3c6d28a77bc6e.png",
         },
+        "trakt_oauth": {
+            "name": "Trakt via OAuth",
+            "logo": "https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg",
+        },
         "trakt": {
             "name": "Trakt",
             "logo": "https://trakt.tv/assets/logos/logomark.square.gradient-b644b16c38ff775861b4b1f58c1230f6a097a2466ab33ae00445a505c33fcb91.svg",

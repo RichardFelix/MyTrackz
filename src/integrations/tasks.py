@@ -63,8 +63,15 @@ def import_media(importer_func, identifier, user_id, mode):
 
 @shared_task(name="Import from Trakt")
 def import_trakt(username, user_id, mode):
-    """Celery task for importing media data from Trakt."""
+    """Celery task for importing media data from Trakt. Deprecated in favor of OAuth."""
     return import_media(trakt.importer, username, user_id, mode)
+
+
+@shared_task(name="Import from Trakt via OAuth")
+def import_trakt_oauth(username, user_id, mode):
+    """Celery task for importing media data from Trakt using OAuth."""
+    token_dec = helpers.decrypt(username)
+    return import_media(trakt.importer_oauth, token_dec, user_id, mode)
 
 
 @shared_task(name="Import from SIMKL")
