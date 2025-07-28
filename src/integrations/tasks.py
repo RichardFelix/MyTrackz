@@ -9,6 +9,7 @@ from app.models import MediaTypes
 from app.templatetags import app_tags
 from integrations.imports import (
     anilist,
+    goodreads,
     helpers,
     hltb,
     kitsu,
@@ -102,3 +103,9 @@ def import_yamtrack(file, user_id, mode):
 def import_hltb(file, user_id, mode):
     """Celery task for importing media data from HowLongToBeat."""
     return import_media(hltb.importer, file, user_id, mode)
+
+
+@shared_task(name="Import from GoodReads")
+def import_goodreads(file, user_id, mode):
+    """Celery task for importing media data from GoodReads."""
+    return import_media(goodreads.importer, file, user_id, mode)

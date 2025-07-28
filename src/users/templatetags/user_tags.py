@@ -51,6 +51,7 @@ def source_display(source_name):
             "name": "HowLongToBeat",
             "logo": "https://howlongtobeat.com/img/icons/favicon-96x96.png",
         },
+        "goodreads": {"name": "GoodReads", "logo": static("img/logo-goodreads.svg")},
     }
 
     # Get source info or use defaults if source not found

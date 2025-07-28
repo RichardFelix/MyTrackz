@@ -22,7 +22,7 @@ from app.models import (
     Sources,
     Status,
 )
-from integrations.imports import anilist, helpers, hltb, kitsu, mal, simkl, yamtrack
+from integrations.imports import anilist, goodreads, helpers, hltb, kitsu, mal, simkl, yamtrack
 from integrations.imports.trakt import TraktImporter, importer
 
 mock_path = Path(__file__).resolve().parent / "mock_data"
@@ -790,6 +790,26 @@ class ImportSimkl(TestCase):
         # Verify episode dates are set correctly
         for episode in season1_episodes:
             self.assertIsNotNone(episode.end_date)
+
+
+class ImportGoodreads(TestCase):
+    """Test importing media from GoodReads CSV."""
+
+    def setUp(self):
+        """Create user for the tests."""
+        self.credentials = {"username": "test", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
+        with Path(mock_path / "import_goodreads.csv").open("rb") as file:
+            self.import_results = goodreads.importer(file, self.user, "new")
+
+    def test_import_counts(self):
+        """Test basic counts of imported books."""
+        self.assertEqual(Book.objects.filter(user=self.user).count(), 3)
+
+    def test_historical_records(self):
+        """Test historical records creation during import."""
+        book = Book.objects.filter(user=self.user).first()
+        self.assertEqual(book.history.count(), 1)
 
 
 class HelpersTest(TestCase):
