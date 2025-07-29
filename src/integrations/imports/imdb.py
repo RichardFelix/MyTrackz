@@ -271,11 +271,6 @@ class IMDBImporter:
         # Parse user rating (0-10 scale)
         rating = self._parse_rating(row.get("Your Rating", ""))
 
-        # Parse dates
-        date_created = self._parse_date(row.get("Created", ""))
-        date_modified = self._parse_date(row.get("Modified", ""))
-        date_rated = self._parse_date(row.get("Date Rated", ""))
-
         # Determine status - if user rated it, they completed it
         status = Status.COMPLETED.value if rating is not None else Status.PLANNING.value
 
@@ -286,15 +281,18 @@ class IMDBImporter:
             "status": status,
         }
 
-        most_recent_date = None
+        # Parse dates
+        date_created = self._parse_date(row.get("Created", ""))
+        date_modified = self._parse_date(row.get("Modified", ""))
+        date_rated = self._parse_date(row.get("Date Rated", ""))
+
+        # filter out None dates
+        dates = [date_created, date_modified, date_rated]
+        most_recent_date = max(date for date in dates if date)
 
         # Movies can have progress and end_date set directly.
         # TV shows manage their own progress and dates through episodes.
         if media_type == MediaTypes.MOVIE.value and status == Status.COMPLETED.value:
-            # filter out None dates
-            dates = [date_created, date_modified, date_rated]
-            most_recent_date = max(date for date in dates if date)
-
             params["progress"] = 1
             params["end_date"] = most_recent_date
 
@@ -302,7 +300,7 @@ class IMDBImporter:
 
         # Set history date for proper tracking
         if date_rated:
-            instance._history_date = most_recent_date
+            instance._history_date = most_recent_date or timezone.now()
 
         return instance
 
