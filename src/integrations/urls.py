@@ -3,14 +3,8 @@ from django.urls import path
 from integrations import views
 
 urlpatterns = [
-    # Deprecated in favor of OAuth
+    path("trakt-oauth", views.trakt_oauth, name="trakt_oauth"),
     path("import/trakt", views.import_trakt, name="import_trakt"),
-    path("import/trakt/oauth", views.trakt_oauth, name="trakt_oauth"),
-    path(
-        "import/trakt/oauth/callback",
-        views.import_trakt_oauth,
-        name="import_trakt_oauth",
-    ),
     path("simkl-oauth", views.simkl_oauth, name="simkl_oauth"),
     path("import/simkl", views.import_simkl, name="import_simkl"),
     path("import/mal", views.import_mal, name="import_mal"),

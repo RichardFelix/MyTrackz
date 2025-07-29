@@ -468,8 +468,7 @@ class User(AbstractUser):
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""
         import_tasks = {
-            "trakt": "Import from Trakt",  # Deprecated in favor of OAuth
-            "trakt_oauth": "Import from Trakt via OAuth",
+            "trakt": "Import from Trakt",
             "simkl": "Import from SIMKL",
             "myanimelist": "Import from MyAnimeList",
             "anilist": "Import from AniList",

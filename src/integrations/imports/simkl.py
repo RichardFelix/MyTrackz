@@ -35,7 +35,7 @@ def get_token(request):
     }
 
     try:
-        request = app.providers.services.api_request(
+        token_response = app.providers.services.api_request(
             "SIMKL",
             "POST",
             url,
@@ -48,7 +48,32 @@ def get_token(request):
             raise MediaImportError(msg) from error
         raise
 
-    return request["access_token"]
+    return {
+        "access_token": token_response["access_token"],
+        "username": get_username(token_response["access_token"]),
+    }
+
+
+def get_username(token):
+    """Get the username from SIMKL using the provided token."""
+    try:
+        user_info = app.providers.services.api_request(
+            "SIMKL",
+            "POST",
+            "https://api.simkl.com/users/settings",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "simkl-api-key": settings.SIMKL_ID,
+                "Content-Type": "application/json",
+            },
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid SIMKL secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return user_info["account"]["id"]
 
 
 def importer(token, user, mode):

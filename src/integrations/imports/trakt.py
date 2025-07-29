@@ -32,11 +32,11 @@ def handle_oauth_callback(request):
         "client_secret": settings.TRAKT_API_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": f"{scheme}://{domain}/import/trakt/oauth/callback",
+        "redirect_uri": f"{scheme}://{domain}/import/trakt",
     }
 
     try:
-        request = app.providers.services.api_request(
+        token_response = app.providers.services.api_request(
             "TRAKT",
             "POST",
             url,
@@ -50,8 +50,36 @@ def handle_oauth_callback(request):
 
     return {
         "state": state,
-        "refresh_token": request["refresh_token"],
+        "refresh_token": token_response["refresh_token"],
+        "username": get_username_from_oauth(token_response["access_token"]),
     }
+
+
+def get_username_from_oauth(access_token):
+    """View for getting the Trakt OAuth2 username."""
+    url = "https://api.trakt.tv/users/me"
+
+    headers = {
+        "Content-Type": "application/json",
+        "trakt-api-version": "2",
+        "trakt-api-key": settings.TRAKT_API,
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    try:
+        request = app.providers.services.api_request(
+            "TRAKT",
+            "GET",
+            url,
+            headers=headers,
+        )
+    except services.ProviderAPIError as error:
+        if error.status_code == requests.codes.unauthorized:
+            msg = "Invalid Trakt secret key."
+            raise MediaImportError(msg) from error
+        raise
+
+    return request["username"]
 
 
 def get_access_token(refresh_token):
@@ -63,7 +91,7 @@ def get_access_token(refresh_token):
         "client_secret": settings.TRAKT_API_SECRET,
         "refresh_token": refresh_token,
         "grant_type": "refresh_token",
-        "redirect_uri": f"{settings.BASE_URL}/import/trakt/oauth/callback",
+        "redirect_uri": f"{settings.BASE_URL}/import/trakt",
     }
 
     try:
@@ -82,16 +110,12 @@ def get_access_token(refresh_token):
     return request["access_token"]
 
 
-def importer(username, user, mode):
-    """Import the user's data from Trakt. DEPRECATED: Use importer_oauth instead."""
-    trakt_importer = TraktImporter(username, user, mode)
-    return trakt_importer.import_data()
-
-
-def importer_oauth(token, user, mode):
+def importer(token, user, mode, username=None):
     """Import the user's data from Trakt using OAuth."""
     # Use "me" as Trakt username for OAuth authenticated user
-    trakt_importer = TraktImporter("me", user, mode, refresh_token=token)
+    if username is None:
+        username = "me"
+    trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
     return trakt_importer.import_data()
 
 
