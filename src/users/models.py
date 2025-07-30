@@ -475,6 +475,7 @@ class User(AbstractUser):
             "kitsu": "Import from Kitsu",
             "yamtrack": "Import from Yamtrack",
             "hltb": "Import from HowLongToBeat",
+            "steam": "Import from Steam",
             "imdb": "Import from IMDB",
             "goodreads": "Import from GoodReads",
         }

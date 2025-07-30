@@ -55,6 +55,10 @@ def source_display(source_name):
             "name": "IMDB",
             "logo": static("img/imdb-logo.png"),
         },
+        "steam": {
+            "name": "Steam",
+            "logo": "https://store.steampowered.com/favicon.ico",
+        },
         "goodreads": {"name": "GoodReads", "logo": static("img/logo-goodreads.svg")},
     }
 
