@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 
 import app
-from app.models import MediaTypes, Sources, Status
+from app.models import Item, MediaTypes, Sources, Status
 from app.providers import services
 from app.providers.igdb import ExternalGameSource, external_game
 from integrations.imports import helpers
@@ -120,13 +120,16 @@ class SteamImporter:
                 if "games" not in response["response"]:
                     # User might have private profile or no games
                     logger.warning(
-                        "No games found in Steam response for user %s", self.steam_id,
+                        "No games found in Steam response for user %s",
+                        self.steam_id,
                     )
                     return []
 
                 games = response["response"]["games"]
                 logger.info(
-                    "Found %d games for Steam user %s", len(games), self.steam_id,
+                    "Found %d games for Steam user %s",
+                    len(games),
+                    self.steam_id,
                 )
                 return games  # noqa: TRY300
 
@@ -138,11 +141,13 @@ class SteamImporter:
 
                 if e.response.status_code == http_too_many_requests:
                     if attempt < max_retries - 1:
-                        delay = base_delay * (2 ** attempt)
+                        delay = base_delay * (2**attempt)
                         logger.warning(
                             "Steam API rate limited (429). "
                             "Retrying in %d seconds (attempt %d/%d)",
-                            delay, attempt + 1, max_retries,
+                            delay,
+                            attempt + 1,
+                            max_retries,
                         )
                         time.sleep(delay)
                         continue
@@ -171,11 +176,6 @@ class SteamImporter:
         playtime_forever = game_data.get("playtime_forever", 0)  # in minutes
         playtime_2weeks = game_data.get("playtime_2weeks", 0)  # in minutes
 
-        img_icon_url = game_data.get("img_icon_url", "")
-        image_url = ""
-        if img_icon_url:
-            image_url = f"http://media.steampowered.com/steamcommunity/public/images/apps/{appid}/{img_icon_url}.jpg"
-
         try:
             # Try to match with IGDB
             igdb_game = self._match_with_igdb(name, appid)
@@ -197,12 +197,12 @@ class SteamImporter:
                     source=Sources.IGDB.value,
                     media_type=MediaTypes.GAME.value,
                     defaults={
-                        "title": igdb_game.get("title", name),
-                        "image": igdb_game.get("image", image_url),
+                        "title": igdb_game["title"],
+                        "image": igdb_game["image"],
                     },
                 )
             else:
-                manual_media_id = f"steam_{appid}"
+                manual_media_id = Item.generate_manual_id(MediaTypes.GAME.value)
                 if not helpers.should_process_media(
                     self.existing_media,
                     self.to_delete,
@@ -212,6 +212,12 @@ class SteamImporter:
                     self.mode,
                 ):
                     return
+
+                img_icon_url = game_data.get("img_icon_url")
+                if img_icon_url:
+                    image_url = f"http://media.steampowered.com/steamcommunity/public/images/apps/{appid}/{img_icon_url}.jpg"
+                else:
+                    image_url = settings.IMG_NONE
 
                 # Create manual entry if no IGDB match
                 item, _ = app.models.Item.objects.get_or_create(
@@ -234,10 +240,7 @@ class SteamImporter:
                 status=status,
                 score=None,
                 progress=playtime_forever,
-                notes=(
-                    f"Imported from Steam. Total playtime: "
-                    f"{playtime_forever // 60}h {playtime_forever % 60}m"
-                ),
+                notes="Imported from Steam",
                 start_date=None,
                 end_date=None,
             )
@@ -274,7 +277,6 @@ class SteamImporter:
         try:
             # Try to find IGDB game by Steam App ID using external_game endpoint
 
-
             igdb_game_id = external_game(steam_appid, ExternalGameSource.STEAM)
 
             if igdb_game_id:
@@ -298,7 +300,7 @@ class SteamImporter:
                         "source": Sources.IGDB.value,
                         "media_type": MediaTypes.GAME.value,
                         "title": game_details.get("title", game_name),
-                        "image": game_details.get("image", ""),
+                        "image": game_details["image"],
                     }
 
         except (ValueError, KeyError, TypeError) as e:
