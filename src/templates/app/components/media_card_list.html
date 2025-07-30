@@ -22,46 +22,14 @@
 
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
             <span class="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="16"
-                   height="16"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round"
-                   class="w-4 h-4">
-                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-              </svg>
+              {% icon item.media_type is_active=False extra_classes="w-4 h-4" %}
               {{ item.media_type|media_type_readable }}
             </span>
 
-            {% if item.release_date %}
-              <span class="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="16"
-                     height="16"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4">
-                  <path d="M8 2v4"></path>
-                  <path d="M16 2v4"></path>
-                  <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                  <path d="M3 10h18"></path>
-                </svg>
-                {{ item.release_date|date:"Y" }}
-              </span>
-            {% endif %}
-
             <span class="flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg"
-                   width="16"
-                   height="16"
+                   width="24"
+                   height="24"
                    viewBox="0 0 24 24"
                    fill="none"
                    stroke="currentColor"
@@ -76,29 +44,6 @@
               </svg>
               {{ item.media_type|default_source }}
             </span>
-
-            {% if media.start_date or media.end_date %}
-              <span class="flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                     width="16"
-                     height="16"
-                     viewBox="0 0 24 24"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     class="w-4 h-4">
-                  <path d="M8 2v4"></path>
-                  <path d="M16 2v4"></path>
-                  <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                  <path d="M3 10h18"></path>
-                </svg>
-                {% if media.start_date %}{{ media.start_date|date:"SHORT_DATE_FORMAT" }}{% endif %}
-                {% if media.start_date and media.end_date %}-{% endif %}
-                {% if media.end_date %}{{ media.end_date|date:"SHORT_DATE_FORMAT" }}{% endif %}
-              </span>
-            {% endif %}
           </div>
         </div>
 
