@@ -945,6 +945,16 @@ class ImportGoodreads(TestCase):
         book = Book.objects.filter(user=self.user).first()
         self.assertEqual(book.history.count(), 1)
 
+    def test_stored_progress(self):
+        """Test progress of imported books."""
+        read_book = Book.objects.get(status=Status.COMPLETED.value)
+        self.assertEqual(read_book.status, Status.COMPLETED.value)
+        self.assertEqual(read_book.progress, 994)
+
+        read_book = Book.objects.get(status=Status.IN_PROGRESS.value)
+        self.assertEqual(read_book.status, Status.IN_PROGRESS.value)
+        self.assertEqual(read_book.progress, 0)
+
 
 class HelpersTest(TestCase):
     """Test helper functions for imports."""

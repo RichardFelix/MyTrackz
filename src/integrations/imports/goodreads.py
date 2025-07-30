@@ -66,9 +66,7 @@ class GoodReadsImporter:
             try:
                 self._process_row(row)
             except services.ProviderAPIError:
-                error_msg = (
-                    f"Error processing entry with ID {row['media_id']} "
-                )
+                error_msg = f"Error processing entry with ID {row['media_id']} "
                 self.warnings.append(error_msg)
                 continue
             except Exception as error:
@@ -124,7 +122,10 @@ class GoodReadsImporter:
     def _search_book(self, row, source):
         """Search for game and return result if found."""
         results = services.search(
-            MediaTypes.BOOK.value, row["ISBN"], 1, source.value,
+            MediaTypes.BOOK.value,
+            row["ISBN"],
+            1,
+            source.value,
         ).get(
             "results",
             [],
@@ -133,7 +134,10 @@ class GoodReadsImporter:
             return results[0]
 
         results = services.search(
-            MediaTypes.BOOK.value, row["Title"], 1, source.value,
+            MediaTypes.BOOK.value,
+            row["Title"],
+            1,
+            source.value,
         ).get(
             "results",
             [],
@@ -181,13 +185,20 @@ class GoodReadsImporter:
     def _create_media_instance(self, item, row):
         """Create media instance with all parameters."""
         model = apps.get_model(app_label="app", model_name=MediaTypes.BOOK.value)
+        book_status = self._determine_status(row)
+        book_progress = (
+            int(row["Number of Pages"])
+            if book_status is Status.COMPLETED.value
+            and row["Number of Pages"].isnumeric()
+            else 0
+        )
 
         return model(
             item=item,
             user=self.user,
             score=int(row["My Rating"]) / 5,
-            progress=0,
-            status=self._determine_status(row),
+            progress=book_progress,
+            status=book_status,
             end_date=self._parse_goodreads_date(row["Date Read"]),
             notes=row["Private Notes"],
         )
