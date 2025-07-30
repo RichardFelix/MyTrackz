@@ -139,8 +139,8 @@
                   <path d="M12 16v-4" />
                   <path d="M12 8h.01" />
                 </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Trakt profile URL:
+                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
+                  Find it on your Trakt profile URL:
                   <br>
                   trakt.tv/users/<span class="text-indigo-400">username-slug</span>
                 </div>
@@ -248,8 +248,8 @@
                   <path d="M12 16v-4" />
                   <path d="M12 8h.01" />
                 </svg>
-                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 invisible group-hover:visible shadow-lg">
-                  Found in your Kitsu profile URL:
+                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
+                  Find it on your Kitsu profile URL:
                   <br>
                   kitsu.app/users/<span class="text-indigo-400">1234567</span>
                 </div>
@@ -349,7 +349,7 @@
             <input type="hidden" name="time" x-model="importTime">
             <input type="hidden" name="mode" x-model="importMode">
             <div class="relative flex-1">
-              <input placeholder="Steam ID (64-bit)"
+              <input placeholder="Steam 64-bit ID"
                      name="user"
                      class="w-full py-2 px-3 bg-[#2a2f35] rounded-l-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                      type="text">
@@ -363,16 +363,16 @@
                      stroke-width="2"
                      stroke-linecap="round"
                      stroke-linejoin="round"
-                     class="w-4 h-4 text-gray-400 cursor-help">
+                     class="w-4 h-4 text-gray-400">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 16v-4" />
                   <path d="M12 8h.01" />
                 </svg>
-                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-4 opacity-0 pointer-events-auto"></div>
-                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-60 p-3 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-200 delay-150 hover:opacity-100 hover:pointer-events-auto">
-                  Your 64-bit Steam ID. Find it at:
-                  <br><br>
-                  <a href="https://steamidfinder.com" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">steamidfinder.com</a> or in your Steam profile URL. Your profile must be public.
+                <div class="absolute bottom-full mb-2 w-60 p-2 bg-[#2a2f35] rounded-md text-xs text-gray-300 shadow-lg border border-gray-600  invisible group-hover:visible">
+                  Find it on your Steam account details page under your username.
+                  <br>
+                  <br>
+                  Your profile must be public if the API key you are using is not linked to the steamid you are requesting.
                 </div>
               </div>
             </div>
@@ -391,7 +391,9 @@
           <p class="text-sm text-gray-400 mb-3"
              x-text="importFrequency === 'once' ? 'Import movies and TV shows from your ratings' : 'File uploads are not available for periodic imports'">
           </p>
-          <form method="post" action="{% url 'import_imdb' %}" enctype="multipart/form-data">
+          <form method="post"
+                action="{% url 'import_imdb' %}"
+                enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" name="frequency" x-model="importFrequency">
             <input type="hidden" name="time" x-model="importTime">
@@ -399,7 +401,11 @@
             <label class="flex items-center justify-center w-full px-4 py-2 text-sm rounded-md transition-colors"
                    :class="importFrequency === 'once' ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer' : 'bg-gray-600 text-gray-400 cursor-not-allowed'"
                    :disabled="importFrequency !== 'once'">
-              <input name="imdb_csv" accept=".csv" class="hidden" type="file" :disabled="importFrequency !== 'once'"
+              <input name="imdb_csv"
+                     accept=".csv"
+                     class="hidden"
+                     type="file"
+                     :disabled="importFrequency !== 'once'"
                      @change="importFrequency === 'once' && $el.form.submit()">
               Select CSV File
             </label>
@@ -432,7 +438,7 @@
             </label>
           </form>
         </div>
-      
+
       </div>
     </div>
 
