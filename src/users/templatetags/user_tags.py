@@ -57,7 +57,7 @@ def source_display(source_name):
         },
         "steam": {
             "name": "Steam",
-            "logo": "https://store.steampowered.com/favicon.ico",
+            "logo": static("img/steam-logo.ico"),
         },
         "goodreads": {"name": "GoodReads", "logo": static("img/logo-goodreads.svg")},
     }
