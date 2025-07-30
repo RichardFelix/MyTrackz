@@ -170,7 +170,7 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
                 source.name,
             )
 
-        cache.set(cache_key, data, 3600)  # Cache for 1 hour
+        cache.set(cache_key, data)
 
     return data
 
