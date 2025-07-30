@@ -55,6 +55,7 @@ def source_display(source_name):
             "name": "IMDB",
             "logo": static("img/imdb-logo.png"),
         },
+        "goodreads": {"name": "GoodReads", "logo": static("img/logo-goodreads.svg")},
     }
 
     # Get source info or use defaults if source not found

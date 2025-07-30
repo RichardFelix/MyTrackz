@@ -476,6 +476,7 @@ class User(AbstractUser):
             "yamtrack": "Import from Yamtrack",
             "hltb": "Import from HowLongToBeat",
             "imdb": "Import from IMDB",
+            "goodreads": "Import from GoodReads",
         }
 
         # Reverse mapping to get source from task name
