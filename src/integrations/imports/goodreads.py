@@ -193,12 +193,23 @@ class GoodReadsImporter:
             else 0
         )
 
-        return model(
+        # Parse dates
+        date_created = self._parse_goodreads_date(row.get("Date Added", ""))
+        date_rated = self._parse_goodreads_date(row.get("Date Read", ""))
+
+        # filter out None dates
+        dates = [date_created, date_rated]
+        most_recent_date = max(date for date in dates if date)
+
+        instance = model(
             item=item,
             user=self.user,
-            score=int(row["My Rating"]) / 5,
+            score=None if row["My Rating"] == "0" else int(row["My Rating"]) * 2,
             progress=book_progress,
             status=book_status,
-            end_date=self._parse_goodreads_date(row["Date Read"]),
+            end_date=date_rated,
             notes=row["Private Notes"],
         )
+        instance._history_date = most_recent_date or timezone.now()
+
+        return instance
