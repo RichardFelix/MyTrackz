@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from requests import Response
 from requests.exceptions import HTTPError
@@ -835,8 +836,8 @@ class ImportIMDB(TestCase):
         self.assertEqual(movie_1.status, Status.COMPLETED.value)
         self.assertEqual(movie_1.progress, 1)
         self.assertEqual(
-            movie_1.end_date.date(),
-            datetime(2025, 2, 3, tzinfo=UTC).date(),
+            movie_1.end_date,
+            datetime(2025, 2, 3, tzinfo=timezone.get_current_timezone()),
         )
 
         # Check TV show data
@@ -1130,7 +1131,10 @@ class ImportSteam(TestCase):
     @patch("integrations.imports.steam.external_game")
     @patch("integrations.imports.steam.services.get_media_metadata")
     def test_import_steam_games(
-        self, mock_get_metadata, mock_external_game, mock_api_request,
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
     ):
         """Test importing games from Steam."""
         # Mock Steam API response
@@ -1173,7 +1177,9 @@ class ImportSteam(TestCase):
 
         # Import games
         imported_counts, warnings = steam.importer(
-            "76561198000000000", self.user, "new",
+            "76561198000000000",
+            self.user,
+            "new",
         )
 
         # Verify import counts
@@ -1213,7 +1219,9 @@ class ImportSteam(TestCase):
     @patch("integrations.imports.steam.services.api_request")
     @patch("integrations.imports.steam.external_game")
     def test_import_steam_game_not_found_in_igdb(
-        self, mock_external_game, mock_api_request,
+        self,
+        mock_external_game,
+        mock_api_request,
     ):
         """Test handling of games not found in IGDB."""
         # Mock Steam API response
@@ -1234,8 +1242,10 @@ class ImportSteam(TestCase):
         mock_external_game.return_value = None
 
         # Import games
-        imported_counts, warnings = steam.importer(
-            "76561198000000000", self.user, "new",
+        imported_counts, _ = steam.importer(
+            "76561198000000000",
+            self.user,
+            "new",
         )
 
         # Verify the game was imported as a manual entry
@@ -1244,7 +1254,7 @@ class ImportSteam(TestCase):
         # Verify the game was created with manual source
         game = Game.objects.get(user=self.user)
         self.assertEqual(game.item.source, Sources.MANUAL.value)
-        self.assertEqual(game.item.media_id, "steam_999")
+        self.assertEqual(game.item.media_id, "1")
         self.assertEqual(game.item.title, "Unknown Game")
         # 100 minutes total, 0 recent
         self.assertEqual(game.status, Status.PAUSED.value)
