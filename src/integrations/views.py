@@ -16,35 +16,54 @@ from django.views.decorators.http import require_GET, require_POST
 
 import users
 from integrations import exports, tasks
-from integrations.imports import helpers, simkl
+from integrations.imports import helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
 
 
 @require_POST
-def import_trakt(request):
-    """View for importing anime and manga data from Trakt."""
-    username = request.POST.get("user")
-    if not username:
-        messages.error(request, "Trakt username is required.")
-        return redirect("import_data")
+def trakt_oauth(request):
+    """View for initiating Trakt OAuth2 authorization flow."""
+    redirect_uri = request.build_absolute_uri(reverse("import_trakt"))
+    url = "https://trakt.tv/oauth/authorize"
+    state = {
+        "trakt_import_mode": request.POST["mode"],
+        "trakt_import_frequency": request.POST["frequency"],
+        "trakt_import_time": request.POST["time"],
+    }
+    return redirect(
+        f"{url}?client_id={settings.TRAKT_API}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}",
+    )
 
-    mode = request.POST["mode"]
-    frequency = request.POST["frequency"]
+
+@require_GET
+def import_trakt(request):
+    """View for getting the Trakt OAuth2 token."""
+    oauth_callback = trakt.handle_oauth_callback(request)
+
+    enc_token = helpers.encrypt(oauth_callback["refresh_token"])
+    frequency = oauth_callback["state"]["trakt_import_frequency"]
+    mode = oauth_callback["state"]["trakt_import_mode"]
+    import_time = oauth_callback["state"]["trakt_import_time"]
 
     if frequency == "once":
-        tasks.import_trakt.delay(username=username, user_id=request.user.id, mode=mode)
+        tasks.import_trakt.delay(
+            token=enc_token,
+            user_id=request.user.id,
+            mode=mode,
+            username=oauth_callback["username"],
+        )
         messages.info(request, "The task to import media from Trakt has been queued.")
     else:
-        import_time = request.POST["time"]
         helpers.create_import_schedule(
-            username,
+            oauth_callback["username"],
             request,
             mode,
             frequency,
             import_time,
             "Trakt",
+            token=enc_token,
         )
     return redirect("import_data")
 
@@ -68,23 +87,24 @@ def simkl_oauth(request):
 @require_GET
 def import_simkl(request):
     """View for getting the SIMKL OAuth2 token."""
-    token = simkl.get_token(request)
-    enc_token = helpers.encrypt(token)
+    oauth_callback = simkl.get_token(request)
+    enc_token = helpers.encrypt(oauth_callback["access_token"])
     frequency = request.session.pop("simkl_import_frequency")
     mode = request.session.pop("simkl_import_mode")
     import_time = request.session.pop("simkl_import_time")
 
     if frequency == "once":
-        tasks.import_simkl.delay(username=enc_token, user_id=request.user.id, mode=mode)
+        tasks.import_simkl.delay(token=enc_token, user_id=request.user.id, mode=mode)
         messages.info(request, "The task to import media from Simkl has been queued.")
     else:
         helpers.create_import_schedule(
-            enc_token,
+            oauth_callback["username"],
             request,
             mode,
             frequency,
             import_time,
             "SIMKL",
+            token=enc_token,
         )
 
     return redirect("import_data")

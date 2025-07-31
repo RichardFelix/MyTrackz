@@ -489,7 +489,9 @@ class User(AbstractUser):
         task_results = TaskResult.objects.filter(
             task_kwargs__contains=task_result_filter_text,
             task_name__in=import_tasks.values(),
-        ).order_by("-date_done")  # Most recent first
+        ).order_by(
+            "-date_done",
+        )  # Most recent first
 
         # Build results list
         results = []

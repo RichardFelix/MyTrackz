@@ -3,6 +3,7 @@ from django.urls import path
 from integrations import views
 
 urlpatterns = [
+    path("trakt-oauth", views.trakt_oauth, name="trakt_oauth"),
     path("import/trakt", views.import_trakt, name="import_trakt"),
     path("simkl-oauth", views.simkl_oauth, name="simkl_oauth"),
     path("import/simkl", views.import_simkl, name="import_simkl"),
