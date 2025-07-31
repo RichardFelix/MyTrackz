@@ -190,7 +190,15 @@ def bulk_create_media(bulk_media_list, user):
         )
 
 
-def create_import_schedule(username, request, mode, frequency, import_time, source):
+def create_import_schedule(
+    username,
+    request,
+    mode,
+    frequency,
+    import_time,
+    source,
+    token=None,
+):
     """Create an import schedule."""
     try:
         import_time = (
@@ -218,18 +226,27 @@ def create_import_schedule(username, request, mode, frequency, import_time, sour
         day_of_week="*" if frequency == "daily" else "*/2",
         timezone=timezone.get_default_timezone(),
     )
+
+    if token is None:
+        kwargs = {
+            "username": username,
+            "user_id": request.user.id,
+            "mode": mode,
+        }
+    else:
+        kwargs = {
+            "username": username,
+            "user_id": request.user.id,
+            "mode": mode,
+            "token": token,
+        }
+
     # Create new periodic task
     PeriodicTask.objects.create(
         name=task_name,
         task=f"Import from {source}",
         crontab=crontab,
-        kwargs=json.dumps(
-            {
-                "username": username,
-                "user_id": request.user.id,
-                "mode": mode,
-            },
-        ),
+        kwargs=json.dumps(kwargs),
         start_time=timezone.now(),
     )
     messages.success(request, f"{source} import task scheduled.")

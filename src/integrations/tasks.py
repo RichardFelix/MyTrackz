@@ -52,12 +52,24 @@ def format_import_message(imported_counts, warning_messages=None):
     return info_message
 
 
-def import_media(importer_func, identifier, user_id, mode):
+def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
     """Handle the import process for different media services."""
     user = get_user_model().objects.get(id=user_id)
 
     with disable_fetch_releases():
-        imported_counts, warnings = importer_func(identifier, user, mode)
+        if oauth_username is None:
+            imported_counts, warnings = importer_func(
+                identifier,
+                user,
+                mode,
+            )
+        else:
+            imported_counts, warnings = importer_func(
+                identifier,
+                user,
+                mode,
+                username=oauth_username,
+            )
 
     events.tasks.reload_calendar.delay()
 
@@ -65,16 +77,19 @@ def import_media(importer_func, identifier, user_id, mode):
 
 
 @shared_task(name="Import from Trakt")
-def import_trakt(username, user_id, mode):
+def import_trakt(user_id, mode, token=None, username=None):
     """Celery task for importing media data from Trakt."""
-    return import_media(trakt.importer, username, user_id, mode)
+    token_dec = None
+    if token is not None:
+        token_dec = helpers.decrypt(token)
+    return import_media(trakt.importer, token_dec, user_id, mode, username)
 
 
 @shared_task(name="Import from SIMKL")
-def import_simkl(username, user_id, mode):
+def import_simkl(token, user_id, mode, username=None):  # noqa: ARG001
     """Celery task for importing media data from SIMKL."""
-    token = helpers.decrypt(username)
-    return import_media(simkl.importer, token, user_id, mode)
+    token_dec = helpers.decrypt(token)
+    return import_media(simkl.importer, token_dec, user_id, mode)
 
 
 @shared_task(name="Import from MyAnimeList")
