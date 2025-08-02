@@ -73,7 +73,7 @@ def get_username(token):
             raise MediaImportError(msg) from error
         raise
 
-    return user_info["account"]["id"]
+    return user_info["user"]["name"]
 
 
 def importer(token, user, mode):
