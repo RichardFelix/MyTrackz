@@ -166,10 +166,10 @@ def import_anilist(request):
 
     if frequency == "once":
         tasks.import_anilist.delay(
-            token=enc_token,
             user_id=request.user.id,
             mode=mode,
             username=oauth_callback["username"],
+            token=enc_token,
         )
         messages.info(request, "AniList import queued.")
     else:
