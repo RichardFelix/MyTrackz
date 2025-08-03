@@ -7,19 +7,8 @@ import events
 from app.mixins import disable_fetch_releases
 from app.models import MediaTypes
 from app.templatetags import app_tags
-from integrations.imports import (
-    anilist,
-    goodreads,
-    helpers,
-    hltb,
-    imdb,
-    kitsu,
-    mal,
-    simkl,
-    steam,
-    trakt,
-    yamtrack,
-)
+from integrations.imports import (anilist, goodreads, helpers, hltb, imdb,
+                                  kitsu, mal, simkl, steam, trakt, yamtrack)
 
 logger = logging.getLogger(__name__)
 ERROR_TITLE = "\n\n\n Couldn't import the following media: \n\n"
@@ -99,9 +88,11 @@ def import_mal(username, user_id, mode):
 
 
 @shared_task(name="Import from AniList")
-def import_anilist(username, user_id, mode):
-    """Celery task for importing anime and manga data from AniList."""
-    return import_media(anilist.importer, username, user_id, mode)
+def import_anilist(user_id, mode, token=None, username=None):
+    token_dec = None
+    if token is not None:
+        token_dec = helpers.decrypt(token)
+    return import_media(anilist.importer, token_dec, user_id, mode, username)
 
 
 @shared_task(name="Import from Kitsu")

@@ -7,15 +7,8 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 from celery.schedules import crontab
-from decouple import (
-    Config,
-    Csv,
-    RepositorySecret,
-    Undefined,
-    UndefinedValueError,
-    config,
-    undefined,
-)
+from decouple import (Config, Csv, RepositorySecret, Undefined,
+                      UndefinedValueError, config, undefined)
 from django.core.cache import CacheKeyWarning
 
 BASE_URL = config("BASE_URL", default=None)
@@ -403,6 +396,22 @@ TRAKT_API_SECRET = config(
         "TRAKT_API_SECRET_FILE",
         "UNSET",
     ),
+)
+
+ANILIST_ID = config(
+    "ANILIST_ID",
+    default=secret(
+        "ANILIST_ID_FILE",
+        "UNSET",
+    )
+)
+
+ANILIST_SECRET = config(
+    "ANILIST_SECRET",
+    default=secret(
+        "ANILIST_SECRET_FILE",
+        "UNSET",
+    )
 )
 
 SIMKL_ID = config(

@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 import users
 from integrations import exports, tasks
-from integrations.imports import helpers, simkl, trakt
+from integrations.imports import anilist, helpers, simkl, trakt
 from integrations.webhooks import emby, jellyfin, plex
 
 logger = logging.getLogger(__name__)
@@ -139,37 +139,47 @@ def import_mal(request):
         )
     return redirect("import_data")
 
-
 @require_POST
-def import_anilist(request):
-    """View for importing anime and manga data from AniList."""
-    username = request.POST.get("user")
-    if not username:
-        messages.error(request, "AniList username is required.")
-        return redirect("import_data")
+def anilist_oauth(request):
+    """Initiate AniList OAuth flow."""
+    redirect_uri = request.build_absolute_uri(reverse("import_anilist"))
+    url = "https://anilist.co/api/v2/oauth/authorize"
+    state = {
+        "anilist_import_mode": request.POST["mode"],
+        "anilist_import_frequency": request.POST["frequency"],
+        "anilist_import_time": request.POST["time"],
+    }
+    return redirect(
+        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}"
+    )
 
-    mode = request.POST["mode"]
-    frequency = request.POST["frequency"]
+@require_GET
+def import_anilist(request):
+    oauth_callback = anilist.get_token(request)
+    enc_token = helpers.encrypt(oauth_callback["access_token"])
+    frequency = oauth_callback["state"]["anilist_import_frequency"]
+    mode = oauth_callback["state"]["anilist_import_mode"]
+    import_time = oauth_callback["state"]["anilist_import_time"]
 
     if frequency == "once":
         tasks.import_anilist.delay(
-            username=username,
+            token=enc_token,
             user_id=request.user.id,
             mode=mode,
+            username=oauth_callback["username"],
         )
-        messages.info(request, "The task to import media from AniList has been queued.")
+        messages.info(request, "AniList import queued.")
     else:
-        import_time = request.POST["time"]
         helpers.create_import_schedule(
-            username,
+            oauth_callback["username"],
             request,
             mode,
             frequency,
             import_time,
             "AniList",
+            token=enc_token,
         )
     return redirect("import_data")
-
 
 @require_POST
 def import_kitsu(request):
