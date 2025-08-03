@@ -139,6 +139,7 @@ def import_mal(request):
         )
     return redirect("import_data")
 
+
 @require_POST
 def anilist_oauth(request):
     """Initiate AniList OAuth flow."""
@@ -152,6 +153,7 @@ def anilist_oauth(request):
     return redirect(
         f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}"
     )
+
 
 @require_GET
 def import_anilist(request):
@@ -180,6 +182,7 @@ def import_anilist(request):
             token=enc_token,
         )
     return redirect("import_data")
+
 
 @require_POST
 def import_kitsu(request):
@@ -277,6 +280,7 @@ def import_steam(request):
             "Steam",
         )
     return redirect("import_data")
+
 
 def import_imdb(request):
     """View for importing data from IMDB."""

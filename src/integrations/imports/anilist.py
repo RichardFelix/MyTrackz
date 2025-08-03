@@ -12,10 +12,10 @@ import app
 from app.models import MediaTypes, Sources, Status
 from app.providers import services
 from integrations.imports import helpers
-from integrations.imports.helpers import (MediaImportError,
-                                          MediaImportUnexpectedError)
+from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
 logger = logging.getLogger(__name__)
+
 
 def get_token(request):
     """View for getting the AniList OAuth2 token."""
@@ -53,9 +53,10 @@ def get_token(request):
         "username": get_username_from_oauth(token_response["access_token"]),
     }
 
+
 def get_username_from_oauth(access_token):
     """Get AniList username from access token."""
-    
+
     query = """
     query {
         Viewer {
@@ -63,12 +64,12 @@ def get_username_from_oauth(access_token):
         }
     }
     """
-    
+
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
-    
+
     try:
         response = app.providers.services.api_request(
             "ANILIST",
@@ -82,8 +83,9 @@ def get_username_from_oauth(access_token):
             msg = "Invalid AniList access token."
             raise MediaImportError(msg) from error
         raise
-    
+
     return response["data"]["Viewer"]["name"]
+
 
 def importer(token, user, mode, username):
     """Import anime and manga ratings from Anilist."""
@@ -207,10 +209,10 @@ class AniListImporter:
                 url,
                 params={"query": query, "variables": variables},
                 headers={
-                    'Authorization': f"Bearer {self.token}",
-                    'Content-Type': 'application/json',
-			        'Accept': 'application/json',
-                }
+                    "Authorization": f"Bearer {self.token}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
             )
         except requests.exceptions.HTTPError as error:
             error_message = error.response.json()["errors"][0].get("message")

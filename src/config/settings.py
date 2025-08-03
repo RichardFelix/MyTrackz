@@ -7,8 +7,15 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 from celery.schedules import crontab
-from decouple import (Config, Csv, RepositorySecret, Undefined,
-                      UndefinedValueError, config, undefined)
+from decouple import (
+    Config,
+    Csv,
+    RepositorySecret,
+    Undefined,
+    UndefinedValueError,
+    config,
+    undefined,
+)
 from django.core.cache import CacheKeyWarning
 
 BASE_URL = config("BASE_URL", default=None)
@@ -356,7 +363,9 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
-    default=secret("STEAM_API_KEY_FILE", ""), # Generate default key https://steamcommunity.com/dev/apikey
+    default=secret(
+        "STEAM_API_KEY_FILE", ""
+    ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 
 HARDCOVER_API = config(
@@ -403,7 +412,7 @@ ANILIST_ID = config(
     default=secret(
         "ANILIST_ID_FILE",
         "UNSET",
-    )
+    ),
 )
 
 ANILIST_SECRET = config(
@@ -411,7 +420,7 @@ ANILIST_SECRET = config(
     default=secret(
         "ANILIST_SECRET_FILE",
         "UNSET",
-    )
+    ),
 )
 
 SIMKL_ID = config(
