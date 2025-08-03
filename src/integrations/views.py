@@ -151,12 +151,13 @@ def anilist_oauth(request):
         "anilist_import_time": request.POST["time"],
     }
     return redirect(
-        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}"
+        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}",
     )
 
 
 @require_GET
 def import_anilist(request):
+    """View for getting the AniList OAuth2 token."""
     oauth_callback = anilist.get_token(request)
     enc_token = helpers.encrypt(oauth_callback["access_token"])
     frequency = oauth_callback["state"]["anilist_import_frequency"]

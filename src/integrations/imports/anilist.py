@@ -56,7 +56,6 @@ def get_token(request):
 
 def get_username_from_oauth(access_token):
     """Get AniList username from access token."""
-
     query = """
     query {
         Viewer {
