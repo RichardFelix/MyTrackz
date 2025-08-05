@@ -5,6 +5,7 @@ from collections import defaultdict
 import requests
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django_celery_beat.models import PeriodicTask
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -89,7 +90,7 @@ def get_access_token(refresh_token):
     params = {
         "client_id": settings.TRAKT_API,
         "client_secret": settings.TRAKT_API_SECRET,
-        "refresh_token": refresh_token,
+        "refresh_token": helpers.decrypt(refresh_token),
         "grant_type": "refresh_token",
         "redirect_uri": f"{settings.BASE_URL}/import/trakt",
     }
@@ -107,14 +108,27 @@ def get_access_token(refresh_token):
             raise MediaImportError(msg) from error
         raise
 
+    # refresh tokens are one time use only
+    update_refresh_token(refresh_token, request["refresh_token"])
     return request["access_token"]
+
+
+def update_refresh_token(old_token, new_token):
+    """Update the refresh token in periodic tasks."""
+    periodic_task = PeriodicTask.objects.filter(
+        task="Import from Trakt",
+        kwargs__contains=f'"token": "{old_token}"',
+    ).first()
+
+    if periodic_task:
+        task_kwargs = json.loads(periodic_task.kwargs)
+        task_kwargs["token"] = helpers.encrypt(new_token)
+        periodic_task.kwargs = json.dumps(task_kwargs)
+        periodic_task.save()
 
 
 def importer(token, user, mode, username=None):
     """Import the user's data from Trakt using OAuth."""
-    # Use "me" as Trakt username for OAuth authenticated user
-    if username is None:
-        username = "me"
     trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
     return trakt_importer.import_data()
 
@@ -183,6 +197,7 @@ class TraktImporter:
         }
         if self.refresh_token:
             try:
+                # already made api_request before, so access_token is set
                 headers["Authorization"] = f"Bearer {self.access_token}"
             except AttributeError:
                 self.access_token = get_access_token(self.refresh_token)
