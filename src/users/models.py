@@ -23,6 +23,7 @@ def generate_token():
 class HomeSortChoices(models.TextChoices):
     """Choices for home page sort options."""
 
+    RECENT = "recent", "Recent"
     UPCOMING = "upcoming", "Upcoming"
     COMPLETION = "completion", "Completion"
     EPISODES_LEFT = "episodes_left", "Episodes Left"
