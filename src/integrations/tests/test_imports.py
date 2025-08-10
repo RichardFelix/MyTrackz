@@ -597,7 +597,11 @@ class ImportSimkl(TestCase):
         """Create user for the tests."""
         credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**credentials)
-        self.importer = simkl.SimklImporter("testuser", self.user, "new")
+        self.importer = simkl.SimklImporter(
+            helpers.encrypt("token"),
+            self.user,
+            "new",
+        )
 
     @patch("integrations.imports.simkl.SimklImporter._get_user_list")
     def test_importer(
@@ -648,11 +652,7 @@ class ImportSimkl(TestCase):
             ],
         }
 
-        imported_counts, warnings = simkl.importer(
-            "token",
-            self.user,
-            "new",
-        )
+        imported_counts, warnings = self.importer.import_data()
 
         # Check the results
         self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
@@ -767,7 +767,7 @@ class ImportSimkl(TestCase):
             "anime": [],
         }
 
-        imported_counts, warnings = simkl.importer("token", self.user, "new")
+        imported_counts, _ = self.importer.import_data()
 
         # Verify import counts
         self.assertEqual(imported_counts[MediaTypes.TV.value], 1)
