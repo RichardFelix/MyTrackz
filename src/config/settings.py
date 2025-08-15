@@ -411,7 +411,7 @@ ANILIST_ID = config(
     "ANILIST_ID",
     default=secret(
         "ANILIST_ID_FILE",
-        "UNSET",
+        "",
     ),
 )
 
@@ -419,7 +419,7 @@ ANILIST_SECRET = config(
     "ANILIST_SECRET",
     default=secret(
         "ANILIST_SECRET_FILE",
-        "UNSET",
+        "",
     ),
 )
 

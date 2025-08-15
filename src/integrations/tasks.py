@@ -97,10 +97,7 @@ def import_mal(username, user_id, mode):
 @shared_task(name="Import from AniList")
 def import_anilist(user_id, mode, token=None, username=None):
     """Celery task for importing media data from AniList."""
-    token_dec = None
-    if token is not None:
-        token_dec = helpers.decrypt(token)
-    return import_media(anilist.importer, token_dec, user_id, mode, username)
+    return import_media(anilist.importer, token, user_id, mode, username)
 
 
 @shared_task(name="Import from Kitsu")

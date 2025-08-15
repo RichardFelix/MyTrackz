@@ -1,4 +1,3 @@
-import json
 import logging
 from collections import defaultdict
 from datetime import UTC
@@ -22,7 +21,6 @@ def get_token(request):
     domain = request.get_host()
     scheme = request.scheme
     code = request.GET["code"]
-    state = json.loads(request.GET["state"])
 
     url = "https://anilist.co/api/v2/oauth/token"
 
@@ -48,7 +46,6 @@ def get_token(request):
         raise
 
     return {
-        "state": state,
         "access_token": token_response["access_token"],
         "username": get_username_from_oauth(token_response["access_token"]),
     }
@@ -104,7 +101,7 @@ class AniListImporter:
             mode (str): Import mode ("new" or "overwrite")
         """
         self.username = username
-        self.token = token
+        self.token = helpers.decrypt(token)
         self.user = user
         self.mode = mode
         self.warnings = []

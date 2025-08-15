@@ -118,6 +118,12 @@ class ImportAniList(TestCase):
         """Create user for the tests."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.importer = anilist.AniListImporter(
+            helpers.encrypt("token"),
+            self.user,
+            "new",
+            "username",
+        )
 
     @patch("requests.Session.post")
     def test_import_anilist(self, mock_request):
@@ -126,7 +132,8 @@ class ImportAniList(TestCase):
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
-        anilist.importer("bloodthirstiness", self.user, "new")
+        self.importer.import_data()
+
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 3)
         self.assertEqual(

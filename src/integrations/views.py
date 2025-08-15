@@ -155,12 +155,16 @@ def anilist_oauth(request):
     redirect_uri = request.build_absolute_uri(reverse("import_anilist"))
     url = "https://anilist.co/api/v2/oauth/authorize"
     state = {
-        "anilist_import_mode": request.POST["mode"],
-        "anilist_import_frequency": request.POST["frequency"],
-        "anilist_import_time": request.POST["time"],
+        "mode": request.POST["mode"],
+        "frequency": request.POST["frequency"],
+        "time": request.POST["time"],
     }
+
+    state_token = secrets.token_urlsafe(32)
+    request.session[state_token] = state
+
     return redirect(
-        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={json.dumps(state)}",
+        f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
 
 
@@ -169,9 +173,11 @@ def import_anilist(request):
     """View for getting the AniList OAuth2 token."""
     oauth_callback = anilist.get_token(request)
     enc_token = helpers.encrypt(oauth_callback["access_token"])
-    frequency = oauth_callback["state"]["anilist_import_frequency"]
-    mode = oauth_callback["state"]["anilist_import_mode"]
-    import_time = oauth_callback["state"]["anilist_import_time"]
+    state_token = request.GET["state"]
+
+    frequency = request.session[state_token]["frequency"]
+    mode = request.session[state_token]["mode"]
+    import_time = request.session[state_token]["time"]
 
     if frequency == "once":
         tasks.import_anilist.delay(
