@@ -9,6 +9,7 @@ from unidecode import unidecode
 
 from app import media_type_config
 from app.models import MediaTypes, Sources, Status
+from app.providers.tmdb import get_readable_duration
 
 register = template.Library()
 
@@ -434,3 +435,7 @@ def get_pagination_range(current_page, total_pages, window):
         result.append(total_pages)
 
     return result
+
+@register.filter
+def readable_duration(value):
+    return get_readable_duration(value)

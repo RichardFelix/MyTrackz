@@ -549,6 +549,7 @@ def process_episodes(season_metadata, episodes_in_db):
                 "title": episode["name"],
                 "overview": episode["overview"],
                 "history": tracked_episodes.get(episode_number, []),
+                "runtime": episode["runtime"],
             },
         )
     return episodes_metadata
