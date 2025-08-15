@@ -73,7 +73,7 @@ def get_username(token):
             raise MediaImportError(msg) from error
         raise
 
-    return user_info["account"]["id"]
+    return user_info["user"]["name"]
 
 
 def importer(token, user, mode):
@@ -95,7 +95,7 @@ class SimklImporter:
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
         """
-        self.token = token
+        self.token = helpers.decrypt(token)
         self.user = user
         self.mode = mode
         self.warnings = []

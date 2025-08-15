@@ -5,6 +5,7 @@ from collections import defaultdict
 import requests
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
+from django_celery_beat.models import PeriodicTask
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -23,7 +24,6 @@ def handle_oauth_callback(request):
     domain = request.get_host()
     scheme = request.scheme
     code = request.GET["code"]
-    state = json.loads(request.GET["state"])
 
     url = "https://api.trakt.tv/oauth/token"
 
@@ -49,7 +49,6 @@ def handle_oauth_callback(request):
         raise
 
     return {
-        "state": state,
         "refresh_token": token_response["refresh_token"],
         "username": get_username_from_oauth(token_response["access_token"]),
     }
@@ -89,7 +88,7 @@ def get_access_token(refresh_token):
     params = {
         "client_id": settings.TRAKT_API,
         "client_secret": settings.TRAKT_API_SECRET,
-        "refresh_token": refresh_token,
+        "refresh_token": helpers.decrypt(refresh_token),
         "grant_type": "refresh_token",
         "redirect_uri": f"{settings.BASE_URL}/import/trakt",
     }
@@ -107,14 +106,27 @@ def get_access_token(refresh_token):
             raise MediaImportError(msg) from error
         raise
 
+    # refresh tokens are one time use only
+    update_refresh_token(refresh_token, request["refresh_token"])
     return request["access_token"]
+
+
+def update_refresh_token(old_token, new_token):
+    """Update the refresh token in periodic tasks."""
+    periodic_task = PeriodicTask.objects.filter(
+        task="Import from Trakt",
+        kwargs__contains=f'"token": "{old_token}"',
+    ).first()
+
+    if periodic_task:
+        task_kwargs = json.loads(periodic_task.kwargs)
+        task_kwargs["token"] = helpers.encrypt(new_token)
+        periodic_task.kwargs = json.dumps(task_kwargs)
+        periodic_task.save()
 
 
 def importer(token, user, mode, username=None):
     """Import the user's data from Trakt using OAuth."""
-    # Use "me" as Trakt username for OAuth authenticated user
-    if username is None:
-        username = "me"
     trakt_importer = TraktImporter(username, user, mode, refresh_token=token)
     return trakt_importer.import_data()
 
@@ -183,6 +195,7 @@ class TraktImporter:
         }
         if self.refresh_token:
             try:
+                # already made api_request before, so access_token is set
                 headers["Authorization"] = f"Bearer {self.access_token}"
             except AttributeError:
                 self.access_token = get_access_token(self.refresh_token)

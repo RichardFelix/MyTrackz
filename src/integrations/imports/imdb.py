@@ -297,10 +297,7 @@ class IMDBImporter:
             params["end_date"] = most_recent_date
 
         instance = model(**params)
-
-        # Set history date for proper tracking
-        if date_rated:
-            instance._history_date = most_recent_date or timezone.now()
+        instance._history_date = most_recent_date or timezone.now()
 
         return instance
 

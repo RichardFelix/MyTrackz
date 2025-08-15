@@ -24,7 +24,7 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
             return
 
         ids = self._extract_external_ids(payload)
-        logger.debug("Extracted IDs from payload: %s", ids)
+        logger.info("Extracted IDs from payload: %s", ids)
 
         if not any(ids.values()):
             logger.warning("Ignoring Jellyfin webhook call because no ID was found.")

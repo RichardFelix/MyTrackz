@@ -227,19 +227,14 @@ def create_import_schedule(
         timezone=timezone.get_default_timezone(),
     )
 
-    if token is None:
-        kwargs = {
-            "username": username,
-            "user_id": request.user.id,
-            "mode": mode,
-        }
-    else:
-        kwargs = {
-            "username": username,
-            "user_id": request.user.id,
-            "mode": mode,
-            "token": token,
-        }
+    kwargs = {
+        "username": username,
+        "user_id": request.user.id,
+        "mode": mode,
+    }
+
+    if token:
+        kwargs["token"] = token
 
     # Create new periodic task
     PeriodicTask.objects.create(
