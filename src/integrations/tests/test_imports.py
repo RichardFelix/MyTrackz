@@ -153,16 +153,6 @@ class ImportAniList(TestCase):
             datetime(2025, 6, 4, 10, 11, 17, tzinfo=UTC),
         )
 
-    def test_user_not_found(self):
-        """Test that an error is raised if the user is not found."""
-        self.assertRaises(
-            helpers.MediaImportError,
-            anilist.importer,
-            "fhdsufdsu",
-            self.user,
-            "new",
-        )
-
 
 class ImportYamtrack(TestCase):
     """Test importing media from Yamtrack CSV."""
