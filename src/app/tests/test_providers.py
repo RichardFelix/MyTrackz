@@ -218,6 +218,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still1.jpg",
                     "name": "Pilot",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
                 {
                     "episode_number": 2,
@@ -225,6 +226,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still2.jpg",
                     "name": "Cat's in the Bag...",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
                 {
                     "episode_number": 3,
@@ -232,6 +234,7 @@ class Metadata(TestCase):
                     "still_path": "/path/to/still3.jpg",
                     "name": "...And the Bag's in the River",
                     "overview": "overview of the episode",
+                    "runtime": 23,
                 },
             ],
         }
