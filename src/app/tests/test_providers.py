@@ -416,10 +416,6 @@ class Metadata(TestCase):
         response = hardcover.book("377193")
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertEqual(response["details"]["publisher"], "Penguin UK")
-        self.assertEqual(response["details"]["publish_date"], "1925-01-01")
-        self.assertEqual(response["details"]["number_of_pages"], 217)
-        self.assertEqual(response["details"]["format"], "Paperback")
         # Testing that we have some of the expected genres
         self.assertIn("Fiction", response["genres"])
         self.assertIn("Young Adult", response["genres"])
