@@ -22,6 +22,8 @@ BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
     FORCE_SCRIPT_NAME = BASE_URL
 
+REDIS_PREFIX = config("REDIS_PREFIX", default=None)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -211,12 +213,14 @@ else:
 # https://docs.djangoproject.com/en/stable/topics/cache/
 CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
+KEY_PREFIX = f"{REDIS_PREFIX}" if REDIS_PREFIX else ""
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
         "VERSION": 10,
+        "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -453,6 +457,12 @@ SELECT2_THEME = "tailwindcss-4"
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_TIMEZONE = TIME_ZONE
+
+if REDIS_PREFIX:
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        "global_keyprefix": f"{REDIS_PREFIX}",
+        "queue_prefix": f"{REDIS_PREFIX}",
+    }
 
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1
