@@ -821,7 +821,7 @@ class ImportIMDB(TestCase):
         imported_counts, warnings = self.import_results
 
         # Check import counts
-        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 4)
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 5)
         self.assertEqual(imported_counts[MediaTypes.TV.value], 2)
 
         # Check that unsupported type was skipped
@@ -896,10 +896,10 @@ class ImportIMDB(TestCase):
             ("TV Mini Series", True),
             ("TV Movie", True),
             ("TV Special", True),
+            ("Video", True),
             ("TV Episode", False),
             ("TV Short", False),
             ("Video Game", False),
-            ("Video", False),
             ("Music Video", False),
             ("Podcast Series", False),
             ("Podcast Episode", False),
