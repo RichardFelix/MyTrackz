@@ -1,6 +1,6 @@
 aiohttp==3.12.15
 apprise==1.9.3
-beautifulsoup4==4.13.4
+beautifulsoup4==4.13.5
 celery==5.5.3
 croniter==6.0.0
 Django==5.2.2
