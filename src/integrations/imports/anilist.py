@@ -109,7 +109,7 @@ class AniListImporter:
 
         if self.token is not None:
             self.token = helpers.decrypt(self.token)
-        
+
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
@@ -204,7 +204,7 @@ class AniListImporter:
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
-        
+
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
 

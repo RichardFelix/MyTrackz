@@ -178,7 +178,7 @@ def import_anilist_private(request):
     if not username:
         messages.error(request, "AniList username is required.")
         return redirect("import_data")
-    
+
     frequency = request.session[state_token]["frequency"]
     mode = request.session[state_token]["mode"]
     import_time = request.session[state_token]["time"]
@@ -215,7 +215,7 @@ def import_anilist_public(request):
     mode = request.POST["mode"]
     frequency = request.POST["frequency"]
     import_time = request.POST["time"]
-    
+
     if frequency == "once":
         tasks.import_anilist.delay(
             user_id=request.user.id,
