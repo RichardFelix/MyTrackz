@@ -185,9 +185,10 @@ class ImportAniList(TestCase):
         self.assertRaises(
             helpers.MediaImportError,
             anilist.importer,
-            "fhdsufdsu",
+            None,
             self.user,
             "new",
+            "fhdsufdsu",
         )
 
 
