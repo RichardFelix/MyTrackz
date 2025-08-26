@@ -29,7 +29,7 @@ def get_token(request):
         "client_secret": settings.ANILIST_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": f"{scheme}://{domain}/import/anilist",
+        "redirect_uri": f"{scheme}://{domain}/import/anilist/private",
     }
 
     try:
@@ -97,15 +97,19 @@ class AniListImporter:
 
         Args:
             username (str): AniList username to import from
+            token (str): Encrypted access token for private imports (optional)
             user: Django user object to import data for
             mode (str): Import mode ("new" or "overwrite")
         """
         self.username = username
-        self.token = helpers.decrypt(token)
+        self.token = token
         self.user = user
         self.mode = mode
         self.warnings = []
 
+        if self.token is not None:
+            self.token = helpers.decrypt(self.token)
+        
         # Track existing media for "new" mode
         self.existing_media = helpers.get_existing_media(user)
 
@@ -196,6 +200,14 @@ class AniListImporter:
         variables = {"userName": self.username}
         url = "https://graphql.anilist.co"
 
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
         logger.info("Fetching anime and manga from AniList account")
 
         try:
@@ -204,11 +216,7 @@ class AniListImporter:
                 "POST",
                 url,
                 params={"query": query, "variables": variables},
-                headers={
-                    "Authorization": f"Bearer {self.token}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                },
+                headers=headers,
             )
         except requests.exceptions.HTTPError as error:
             error_message = error.response.json()["errors"][0].get("message")

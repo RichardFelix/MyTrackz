@@ -152,7 +152,7 @@ def import_mal(request):
 @require_POST
 def anilist_oauth(request):
     """Initiate AniList OAuth flow."""
-    redirect_uri = request.build_absolute_uri(reverse("import_anilist"))
+    redirect_uri = request.build_absolute_uri(reverse("import_anilist_private"))
     url = "https://anilist.co/api/v2/oauth/authorize"
     state = {
         "mode": request.POST["mode"],
@@ -167,14 +167,18 @@ def anilist_oauth(request):
         f"{url}?client_id={settings.ANILIST_ID}&redirect_uri={redirect_uri}&response_type=code&state={state_token}",
     )
 
-
 @require_GET
-def import_anilist(request):
+def import_anilist_private(request):
     """View for getting the AniList OAuth2 token."""
     oauth_callback = anilist.get_token(request)
     enc_token = helpers.encrypt(oauth_callback["access_token"])
     state_token = request.GET["state"]
+    username = oauth_callback["username"]
 
+    if not username:
+        messages.error(request, "AniList username is required.")
+        return redirect("import_data")
+    
     frequency = request.session[state_token]["frequency"]
     mode = request.session[state_token]["mode"]
     import_time = request.session[state_token]["time"]
@@ -183,19 +187,50 @@ def import_anilist(request):
         tasks.import_anilist.delay(
             user_id=request.user.id,
             mode=mode,
-            username=oauth_callback["username"],
+            username=username,
             token=enc_token,
         )
         messages.info(request, "AniList import queued.")
     else:
         helpers.create_import_schedule(
-            oauth_callback["username"],
-            request,
-            mode,
-            frequency,
-            import_time,
-            "AniList",
+            username=username,
+            request=request,
+            mode=mode,
+            frequency=frequency,
+            import_time=import_time,
+            source="AniList",
             token=enc_token,
+        )
+    return redirect("import_data")
+
+
+@require_POST
+def import_anilist_public(request):
+    """View for importing anime and manga data from AniList."""
+    username = request.POST.get("user")
+    if not username:
+        messages.error(request, "AniList username is required.")
+        return redirect("import_data")
+
+    mode = request.POST["mode"]
+    frequency = request.POST["frequency"]
+    import_time = request.POST["time"]
+    
+    if frequency == "once":
+        tasks.import_anilist.delay(
+            user_id=request.user.id,
+            mode=mode,
+            username=username,
+        )
+        messages.info(request, "AniList import queued.")
+    else:
+        helpers.create_import_schedule(
+            username=username,
+            request=request,
+            mode=mode,
+            frequency=frequency,
+            import_time=import_time,
+            source="AniList",
         )
     return redirect("import_data")
 
