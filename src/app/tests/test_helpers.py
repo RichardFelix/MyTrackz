@@ -103,6 +103,15 @@ class EnrichItemsWithUserDataTest(TestCase):
             image="http://example.com/movie.jpg",
         )
 
+        self.season_item = Item.objects.create(
+            media_id="67890",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test TV Show",
+            image="http://example.com/show.jpg",
+            season_number=1,
+        )
+
         # Create user tracking data for the movie
         self.movie_media = BasicMedia.objects.create(
             item=self.movie_item,
