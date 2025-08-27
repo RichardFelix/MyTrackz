@@ -173,6 +173,10 @@ def media_search(request):
 
     data = services.search(media_type, query, page, source)
 
+    # Enrich search results with user tracking data
+    if data.get("results"):
+        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
+
     context = {
         "data": data,
         "source": source,
@@ -194,6 +198,14 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         source,
     )
     current_instance = user_medias[0] if user_medias else None
+
+    # Enrich related items with user tracking data
+    if media_metadata.get("related"):
+        for section_name, related_items in media_metadata["related"].items():
+            if related_items:
+                media_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
+                    request, related_items
+                )
 
     context = {
         "media": media_metadata,
@@ -236,6 +248,22 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata,
             episodes_in_db,
         )
+
+    # Enrich related items with user tracking data
+    if season_metadata.get("related"):
+        for section_name, related_items in season_metadata["related"].items():
+            if related_items:
+                season_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
+                    request, related_items
+                )
+
+    # Also enrich TV show related items if they exist
+    if tv_with_seasons_metadata.get("related"):
+        for section_name, related_items in tv_with_seasons_metadata["related"].items():
+            if related_items:
+                tv_with_seasons_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
+                    request, related_items
+                )
 
     context = {
         "media": season_metadata,
