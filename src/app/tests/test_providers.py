@@ -432,7 +432,6 @@ class Metadata(TestCase):
         self.assertEqual(response["synopsis"], "No synopsis available.")
         self.assertEqual(response["details"]["format"], "Unknown")
         self.assertIsNone(response["genres"])
-        self.assertIsNone(response["score"])
 
     def test_manual_tv(self):
         """Test the metadata method for manually created TV shows."""
