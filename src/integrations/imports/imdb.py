@@ -23,6 +23,7 @@ IMDB_TYPE_MAPPING = {
     "TV Mini Series": MediaTypes.TV,
     "TV Movie": MediaTypes.MOVIE,
     "TV Special": MediaTypes.MOVIE,
+    "Video": MediaTypes.MOVIE,
 }
 
 # IMDB title types we don't support
@@ -30,7 +31,6 @@ UNSUPPORTED_TYPES = {
     "TV Episode",
     "TV Short",
     "Video Game",
-    "Video",
     "Music Video",
     "Podcast Series",
     "Podcast Episode",
