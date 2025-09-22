@@ -1,4 +1,4 @@
-coverage==7.10.6
+coverage==7.10.7
 djlint==1.36.4
 fakeredis==2.31.1
 pytest-django==4.11.1
