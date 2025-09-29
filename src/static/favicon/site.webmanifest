@@ -29,13 +29,13 @@
             "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2",
             "sizes": "2305x1350",
             "type": "image/png",
-            "form_factor": "wide",
             "label": "Home screen showing main navigation and featured content"
         },
         {
             "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/statistics.png",
             "sizes": "2305x1350",
             "type": "image/png",
+            "form_factor": "wide",
             "label": "Dashboard view displaying statistics"
         }
     ],
