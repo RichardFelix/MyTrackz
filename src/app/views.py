@@ -836,3 +836,12 @@ def statistics(request):
     }
 
     return render(request, "app/statistics.html", context)
+
+@require_GET
+def service_worker(request):
+    """Serve the service worker file."""
+    sw_path = os.path.join(settings.STATICFILES_DIRS[0], 'js', 'sw.js')
+    with open(sw_path, 'r') as f:
+        response = HttpResponse(f.read(), content_type='application/javascript')
+        response['Service-Worker-Allowed'] = '/'
+        return response
