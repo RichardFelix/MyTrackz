@@ -1,5 +1,5 @@
 aiohttp==3.12.15
-apprise==1.9.4
+apprise==1.9.5
 beautifulsoup4==4.14.2
 celery==5.5.3
 croniter==6.0.0
