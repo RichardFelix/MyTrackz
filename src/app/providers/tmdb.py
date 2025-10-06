@@ -236,7 +236,7 @@ def tv_with_seasons(media_id, season_numbers):
             if season_key not in response:
                 msg = (
                     f"Season {season_number} not found in {Sources.TMDB.label} "
-                    f"with ID {media_id}."
+                    f"with ID {media_id}"
                 )
                 # Create a new response object with 404 status
                 not_found_response = requests.Response()
