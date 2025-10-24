@@ -254,6 +254,11 @@ class User(AbstractUser):
         default=ListDetailSortChoices.DATE_ADDED,
         choices=ListDetailSortChoices.choices,
     )
+    list_detail_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
 
     notification_urls = models.TextField(
         blank=True,
@@ -369,6 +374,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="list_detail_sort_valid",
                 condition=models.Q(list_detail_sort__in=ListDetailSortChoices.values),
+            ),
+            models.CheckConstraint(
+                name="list_detail_status_valid",
+                condition=models.Q(list_detail_status__in=MediaStatusChoices.values),
             ),
             models.CheckConstraint(
                 name="tv_status_valid",

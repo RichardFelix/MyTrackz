@@ -13,7 +13,7 @@ from app.models import Item, MediaManager, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
-from users.models import ListDetailSortChoices, ListSortChoices
+from users.models import ListDetailSortChoices, ListSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,17 @@ def list_detail(request, list_id):
             request.GET.get("sort"),
         ),
         "media_type": request.GET.get("type", "all"),
+        "status_filter": request.user.update_preference(
+            "list_detail_status",
+            request.GET.get("status"),
+        ),
         "page": int(request.GET.get("page", 1)),
         "search_query": request.GET.get("q", ""),
     }
+
+    # Prepare status filter for database query
+    if not params["status_filter"]:
+        params["status_filter"] = MediaStatusChoices.ALL
 
     # Build and filter base queryset
     items = custom_list.items.all()
@@ -117,6 +125,34 @@ def list_detail(request, list_id):
         items = items.filter(title__icontains=params["search_query"])
     if params["media_type"] != "all":
         items = items.filter(media_type=params["media_type"])
+
+    # Filter by status if specified
+    if params["status_filter"] != MediaStatusChoices.ALL:
+        # Get the list of item IDs that have the specified status for the current user
+        # We need to check across all media types since items can be of different types
+        item_ids_with_status = set()
+
+        for media_type in MediaTypes.values:
+            model = apps.get_model("app", media_type)
+
+            if media_type == MediaTypes.EPISODE.value:
+                # Episodes are linked through seasons
+                matching_items = model.objects.filter(
+                    related_season__user=request.user,
+                    related_season__status=params["status_filter"],
+                    item__in=items,
+                ).values_list("item_id", flat=True)
+            else:
+                matching_items = model.objects.filter(
+                    user=request.user,
+                    status=params["status_filter"],
+                    item__in=items,
+                ).values_list("item_id", flat=True)
+
+            item_ids_with_status.update(matching_items)
+
+        # Filter items to only those with the specified status
+        items = items.filter(id__in=item_ids_with_status)
 
     # Apply sorting
     sort_mapping = {
@@ -176,7 +212,9 @@ def list_detail(request, list_id):
         if items_page.has_next()
         else None,
         "current_sort": params["sort_by"],
+        "current_status": params["status_filter"],
         "sort_choices": ListDetailSortChoices.choices,
+        "status_choices": MediaStatusChoices.choices,
     }
 
     # Additional context for full page render
