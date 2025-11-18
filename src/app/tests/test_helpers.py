@@ -88,9 +88,8 @@ class EnrichItemsWithUserDataTest(TestCase):
 
     def setUp(self):
         """Set up test data."""
-        self.user = get_user_model().objects.create_user(
-            username="testuser", password="testpass"
-        )
+        self.credentials = {"username": "test", "password": "testpass"}
+        self.user = get_user_model().objects.create_user(**self.credentials)
         self.request = MagicMock()
         self.request.user = self.user
 
@@ -172,8 +171,14 @@ class EnrichItemsWithUserDataTest(TestCase):
         # Scenario 2: Existing season without user tracking data
         season_enriched = enriched_items[1]
         self.assertEqual(season_enriched["item"], self.season_item)
-        self.assertEqual(season_enriched["media"], None)  # No user tracking for this season
-        self.assertEqual(season_enriched["title"], "Season 1")  # Should use season_title
+        self.assertEqual(
+            season_enriched["media"],
+            None,
+        )  # No user tracking for this season
+        self.assertEqual(
+            season_enriched["title"],
+            "Season 1",
+        )  # Should use season_title
         self.assertEqual(season_enriched["season_number"], 1)
 
         # Scenario 3: Non-existent movie (raw data)
@@ -182,4 +187,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         self.assertEqual(unknown_movie_enriched["media"], None)
         self.assertEqual(unknown_movie_enriched["title"], "Unknown Movie")
         self.assertEqual(unknown_movie_enriched["media_id"], "99999")
-        self.assertEqual(unknown_movie_enriched["description"], "This movie doesn't exist in our database")
+        self.assertEqual(
+            unknown_movie_enriched["description"],
+            "This movie doesn't exist in our database",
+        )

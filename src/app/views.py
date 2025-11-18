@@ -203,8 +203,11 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
     if media_metadata.get("related"):
         for section_name, related_items in media_metadata["related"].items():
             if related_items:
-                media_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
-                    request, related_items
+                media_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
                 )
 
     context = {
@@ -253,16 +256,22 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
     if season_metadata.get("related"):
         for section_name, related_items in season_metadata["related"].items():
             if related_items:
-                season_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
-                    request, related_items
+                season_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
                 )
 
     # Also enrich TV show related items if they exist
     if tv_with_seasons_metadata.get("related"):
         for section_name, related_items in tv_with_seasons_metadata["related"].items():
             if related_items:
-                tv_with_seasons_metadata["related"][section_name] = helpers.enrich_items_with_user_data(
-                    request, related_items
+                tv_with_seasons_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
                 )
 
     context = {
