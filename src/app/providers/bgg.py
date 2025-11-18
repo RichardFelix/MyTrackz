@@ -16,7 +16,8 @@ Rate Limiting: BGG recommends waiting 5 seconds between requests to avoid 500/50
 
 import logging
 import time
-import xml.etree.ElementTree as ET
+
+import defusedxml.ElementTree as ET
 
 import requests
 from django.conf import settings
