@@ -544,16 +544,18 @@ def media_delete(request):
     """Delete media data from the database."""
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
 
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
-    if media:
+    try:
+        media = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
         media.delete()
         logger.info("%s deleted successfully.", media)
-    else:
+
+    except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)

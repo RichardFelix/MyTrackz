@@ -605,10 +605,7 @@ class MediaManager(models.Manager):
             instance_id,
         )
 
-        try:
-            return model.objects.get(**params)
-        except model.DoesNotExist:
-            return None
+        return model.objects.get(**params)
 
     def get_media_prefetch(
         self,
