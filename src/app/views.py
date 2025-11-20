@@ -263,17 +263,6 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     )
                 )
 
-    # Also enrich TV show related items if they exist
-    if tv_with_seasons_metadata.get("related"):
-        for section_name, related_items in tv_with_seasons_metadata["related"].items():
-            if related_items:
-                tv_with_seasons_metadata["related"][section_name] = (
-                    helpers.enrich_items_with_user_data(
-                        request,
-                        related_items,
-                    )
-                )
-
     context = {
         "media": season_metadata,
         "tv": tv_with_seasons_metadata,
