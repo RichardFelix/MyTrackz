@@ -2855,7 +2855,7 @@
 }
 .select2-container--tailwindcss-4 .select2-selection--multiple .select2-search--inline .select2-search__field {
   margin: calc(var(--spacing) * 0);
-  height: 1.5rem;
+  height: calc(var(--spacing) * 6);
   border-style: var(--tw-border-style);
   border-width: 0px;
   background-color: transparent;
