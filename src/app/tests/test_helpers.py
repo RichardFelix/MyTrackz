@@ -10,7 +10,7 @@ from app.helpers import (
     minutes_to_hhmm,
     redirect_back,
 )
-from app.models import BasicMedia, Item, MediaTypes, Sources, Status
+from app.models import Item, MediaTypes, Movie, Sources, Status
 
 
 class HelpersTest(TestCase):
@@ -95,7 +95,7 @@ class EnrichItemsWithUserDataTest(TestCase):
 
         # Create test items in the database
         self.movie_item = Item.objects.create(
-            media_id="12345",
+            media_id="238",
             source=Sources.TMDB.value,
             media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
@@ -112,7 +112,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         )
 
         # Create user tracking data for the movie
-        self.movie_media = BasicMedia.objects.create(
+        self.movie_media = Movie.objects.create(
             item=self.movie_item,
             user=self.user,
             status=Status.COMPLETED.value,
@@ -124,7 +124,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         raw_items = [
             # Scenario 1: Existing movie with user tracking data
             {
-                "media_id": "12345",
+                "media_id": "238",
                 "source": Sources.TMDB.value,
                 "media_type": MediaTypes.MOVIE.value,
                 "title": "Test Movie",
@@ -159,35 +159,36 @@ class EnrichItemsWithUserDataTest(TestCase):
 
         # Scenario 1: Existing movie with user tracking data
         movie_enriched = enriched_items[0]
-        self.assertEqual(movie_enriched["item"], self.movie_item)
         self.assertEqual(movie_enriched["media"], self.movie_media)
-        self.assertEqual(movie_enriched["title"], "Test Movie")
-        self.assertEqual(movie_enriched["media_id"], "12345")
+        self.assertEqual(movie_enriched["item"]["title"], "Test Movie")
+        self.assertEqual(movie_enriched["item"]["media_id"], "238")
         # Verify additional properties are preserved
-        self.assertEqual(movie_enriched["release_date"], "2023-01-01")
-        self.assertEqual(movie_enriched["rating"], 8.5)
-        self.assertEqual(movie_enriched["genre"], "Action")
+        self.assertEqual(movie_enriched["item"]["release_date"], "2023-01-01")
+        self.assertEqual(movie_enriched["item"]["rating"], 8.5)
+        self.assertEqual(movie_enriched["item"]["genre"], "Action")
 
         # Scenario 2: Existing season without user tracking data
         season_enriched = enriched_items[1]
-        self.assertEqual(season_enriched["item"], self.season_item)
         self.assertEqual(
             season_enriched["media"],
             None,
         )  # No user tracking for this season
         self.assertEqual(
-            season_enriched["title"],
+            season_enriched["item"]["season_title"],
             "Season 1",
         )  # Should use season_title
-        self.assertEqual(season_enriched["season_number"], 1)
+        self.assertEqual(season_enriched["item"]["season_number"], 1)
 
         # Scenario 3: Non-existent movie (raw data)
         unknown_movie_enriched = enriched_items[2]
-        self.assertEqual(unknown_movie_enriched["item"], raw_items[2])
-        self.assertEqual(unknown_movie_enriched["media"], None)
-        self.assertEqual(unknown_movie_enriched["title"], "Unknown Movie")
-        self.assertEqual(unknown_movie_enriched["media_id"], "99999")
         self.assertEqual(
-            unknown_movie_enriched["description"],
+            unknown_movie_enriched["item"]["media_id"],
+            raw_items[2]["media_id"],
+        )
+        self.assertEqual(unknown_movie_enriched["media"], None)
+        self.assertEqual(unknown_movie_enriched["item"]["title"], "Unknown Movie")
+        self.assertEqual(unknown_movie_enriched["item"]["media_id"], "99999")
+        self.assertEqual(
+            unknown_movie_enriched["item"]["description"],
             "This movie doesn't exist in our database",
         )

@@ -853,7 +853,6 @@ class MediaManagerTests(TestCase):
         )  # 11 total - 5 offset
         self.assertEqual(in_progress[MediaTypes.ANIME.value]["total"], 11)
 
-
     def test_get_media(self):
         """Test the get_media method."""
         manager = MediaManager()
@@ -886,14 +885,12 @@ class MediaManagerTests(TestCase):
         self.assertIsNotNone(episode)
         self.assertEqual(episode.item.episode_number, 1)
 
-        # Test getting a non-existent media
-        non_existent = manager.get_media(
-            user=self.user,
-            media_type=MediaTypes.MOVIE.value,
-            instance_id=9999,  # Non-existent ID
-        )
-
-        self.assertIsNone(non_existent)
+        with self.assertRaises(Movie.DoesNotExist):
+            manager.get_media(
+                user=self.user,
+                media_type=MediaTypes.MOVIE.value,
+                instance_id=9999,  # Non-existent ID
+            )
 
     def test_filter_media(self):
         """Test the filter_media method."""
