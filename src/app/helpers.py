@@ -103,14 +103,20 @@ def enrich_items_with_user_data(request, items):
     # Create a lookup dictionary for fast matching
     media_lookup = {}
     for media in media_queryset:
-        key = (media.item.media_id, media.item.source)
+        if media_type == MediaTypes.SEASON.value:
+            key = (media.item.media_id, media.item.source, media.item.season_number)
+        else:
+            key = (media.item.media_id, media.item.source)
 
         media_lookup[key] = media
 
     # Enrich items with matched media
     enriched_items = []
     for item in items:
-        key = (str(item["media_id"]), item["source"])
+        if media_type == MediaTypes.SEASON.value:
+            key = (str(item["media_id"]), item["source"], item.get("season_number"))
+        else:
+            key = (str(item["media_id"]), item["source"])
 
         enriched_item = {
             "item": item,
