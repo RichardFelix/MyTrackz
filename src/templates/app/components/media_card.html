@@ -94,7 +94,7 @@
     {% endif %}
 
     {% if media.score is not None %}
-      <div class="absolute sm:top-2 sm:right-2 sm:left-auto top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+      <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto {% endif %}top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
