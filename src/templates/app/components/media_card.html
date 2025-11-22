@@ -4,7 +4,7 @@
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="relative">
     <img alt="{{ title }}"
-         class="lazyload w-full {% if from_grid %}aspect-[2/3]{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
+         class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item.image != IMG_NONE %}object-cover{% endif %}"
          data-src="{{ item.image }}"
          src="{{ IMG_NONE }}">
 
@@ -94,7 +94,7 @@
     {% endif %}
 
     {% if media.score is not None %}
-      <div class="absolute sm:top-2 sm:right-2 sm:left-auto top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+      <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto {% endif %}top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
         <svg xmlns="http://www.w3.org/2000/svg"
              width="24"
              height="24"
@@ -269,7 +269,7 @@
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
+      <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
            @click.outside="trackOpen = false">
         <div id="{% component_id 'track' item media.id %}"></div>
       </div>

@@ -201,7 +201,7 @@
                         action="{% url 'search' %}"
                         x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
-                      <div class="relative flex-grow">
+                      <div class="relative grow">
                         {# Search input #}
                         <input type="search"
                                name="q"
@@ -251,7 +251,7 @@
                           x-transition:leave="transition ease-in duration-75"
                           x-transition:leave-start="transform opacity-100 scale-100"
                           x-transition:leave-end="transform opacity-0 scale-95"
-                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-[128px]">
+                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
                         <template x-for="type in mediaTypes" :key="type.value">
                           <li @click="selectedType = type; isOpen = false"
                               class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
@@ -304,7 +304,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="w-4 h-4 text-emerald-300 flex-shrink-0">
+                    class="w-4 h-4 text-emerald-300 shrink-0">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                   <path d="m9 11 3 3L22 4"></path>
                 </svg>
@@ -319,7 +319,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="w-4 h-4 text-amber-300 flex-shrink-0">
+                    class="w-4 h-4 text-amber-300 shrink-0">
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path>
                   <path d="M12 9v4"></path>
                   <path d="M12 17h.01"></path>
@@ -335,7 +335,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="w-4 h-4 text-red-300 flex-shrink-0">
+                    class="w-4 h-4 text-red-300 shrink-0">
                   <circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line>
                 </svg>
               {% elif message.tags == "info" %}
@@ -349,7 +349,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="w-4 h-4 text-indigo-300 flex-shrink-0">
+                    class="w-4 h-4 text-indigo-300 shrink-0">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M12 16v-4"></path>
                   <path d="M12 8h.01"></path>
