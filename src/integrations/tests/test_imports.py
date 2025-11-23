@@ -614,15 +614,109 @@ class ImportTrakt(TestCase):
         movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
         self.assertEqual(movie_obj.notes, "Great movie!")
 
-    @patch("integrations.imports.trakt.TraktImporter.import_data")
-    def test_importer_function(self, mock_import_data):
-        """Test the main importer function."""
-        mock_import_data.return_value = (1, 2, 3, 4, "No warnings")
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_public_import_full_flow(
+        self,
+        mock_get_metadata,
+        mock_make_request,
+        mock_get_paginated,
+    ):
+        """Test full import flow with public username (no OAuth)."""
+        # Mock paginated data - history returns movies, comments returns empty
+        mock_get_paginated.side_effect = [
+            [
+                {
+                    "type": "movie",
+                    "movie": {"title": "Public Movie", "ids": {"tmdb": 999}},
+                    "watched_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+            [],  # Empty comments
+        ]
 
-        result = importer("testuser", self.user, "new")
+        # Mock API requests for watchlist and ratings
+        mock_make_request.return_value = []
 
-        # Check that the result is passed through correctly
-        self.assertEqual(result, (1, 2, 3, 4, "No warnings"))
+        # Mock metadata
+        mock_get_metadata.return_value = {
+            "title": "Public Movie",
+            "image": "movie.jpg",
+        }
+
+        # Import with no token (public)
+        imported_counts, _ = importer(None, self.user, "new", "public_user")
+
+        # Verify movie was imported
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_oauth_import_full_flow(
+        self,
+        mock_get_metadata,
+        mock_make_request,
+        mock_get_paginated,
+    ):
+        """Test full import flow with OAuth token."""
+        # Mock paginated data - history returns movies, comments returns empty
+        mock_get_paginated.side_effect = [
+            [
+                {
+                    "type": "movie",
+                    "movie": {"title": "OAuth Movie", "ids": {"tmdb": 888}},
+                    "watched_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+            [],  # Empty comments
+        ]
+
+        # Mock API requests for watchlist and ratings
+        mock_make_request.return_value = []
+
+        # Mock metadata
+        mock_get_metadata.return_value = {
+            "title": "OAuth Movie",
+            "image": "movie.jpg",
+        }
+
+        # Import with encrypted token (OAuth)
+        encrypted_token = helpers.encrypt("test_refresh_token")
+        imported_counts, _ = importer(
+            encrypted_token,
+            self.user,
+            "new",
+            "oauth_user",
+        )
+
+        # Verify movie was imported
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_trakt_importer_with_refresh_token(self):
+        """Test TraktImporter initialization with refresh token."""
+        encrypted_token = helpers.encrypt("test_token")
+        importer = TraktImporter(
+            "testuser",
+            self.user,
+            "new",
+            refresh_token=encrypted_token,
+        )
+
+        self.assertEqual(importer.username, "testuser")
+        self.assertEqual(importer.refresh_token, encrypted_token)
+        self.assertEqual(importer.mode, "new")
+
+    def test_trakt_importer_without_refresh_token(self):
+        """Test TraktImporter initialization without refresh token (public)."""
+        importer = TraktImporter("testuser", self.user, "new", refresh_token=None)
+
+        self.assertEqual(importer.username, "testuser")
+        self.assertIsNone(importer.refresh_token)
+        self.assertEqual(importer.mode, "new")
 
 
 class ImportSimkl(TestCase):
