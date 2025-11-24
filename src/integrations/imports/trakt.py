@@ -237,6 +237,10 @@ class TraktImporter:
                         "User slug can be found in your Trakt profile URL."
                     )
                     raise MediaImportError(msg) from error
+
+                if error.response.status_code == requests.codes.unauthorized:
+                    msg = "This account is set to private, use OAuth import instead."
+                    raise MediaImportError(msg) from error
                 raise
 
             if not page_data:
