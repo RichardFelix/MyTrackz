@@ -12,10 +12,10 @@
       <span class="text-sm text-gray-400">Source:</span>
       <div class="flex gap-x-2">
         {% with source_options=media_type|sources %}
-          {% for source in source_options %}
-            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}&source={{ source.value }}&layout={{ layout }}"
-               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer flex items-center {% if request.GET.source == source.value or source_options|length == 1 %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
-              {{ source.label }}
+          {% for source_option in source_options %}
+            <a href="{% url 'search' %}?q={{ request.GET.q }}&media_type={{ media_type }}&source={{ source_option.value }}&layout={{ layout }}"
+               class="px-3 py-1.5 text-sm rounded-md transition-colors duration-200 cursor-pointer flex items-center {% if source == source_option.value %}bg-indigo-600 text-white{% else %}bg-gray-700 text-gray-300 hover:bg-gray-600{% endif %}">
+              {{ source_option.label }}
             </a>
           {% endfor %}
         {% endwith %}
