@@ -23,14 +23,16 @@ def metadata(media_id, media_type):
         "related": {},
     }
 
-    if media_type == MediaTypes.TV.value:
+    if media_type in {MediaTypes.TV.value, MediaTypes.SEASON.value}:
         season_items = get_season_items(media_id)
         if season_items.count() > 0:
             response["details"]["seasons"] = season_items.count()
 
-    if media_type == MediaTypes.SEASON.value:
         num_episodes = process_seasons(season_items, response)
-        set_max_progress(response, num_episodes, item.media_type)
+        response["max_progress"] = num_episodes
+        response["details"]["episodes"] = num_episodes
+    elif media_type == MediaTypes.MOVIE.value:
+        response["max_progress"] = 1
 
     return response
 
@@ -166,12 +168,3 @@ def build_episodes_response(season_episodes):
         }
         for episode in season_episodes
     ]
-
-
-def set_max_progress(response, num_episodes, media_type):
-    """Set the max progress and episode count in the response."""
-    if num_episodes > 0:
-        response["max_progress"] = num_episodes
-        response["details"]["episodes"] = num_episodes
-    elif media_type == MediaTypes.MOVIE.value:
-        response["max_progress"] = 1
