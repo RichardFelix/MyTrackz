@@ -182,7 +182,7 @@ class YamtrackImporter:
         if row.get("title", "") != "":
             source = row.get("source", "")
             if source == "":
-                source = media_type_config.get_default_source_name(media_type)
+                source = media_type_config.get_default_source_name(media_type).value
 
             metadata = services.search(
                 media_type,

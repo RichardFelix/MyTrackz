@@ -7,7 +7,7 @@ from app.models import MediaTypes, Sources
 MEDIA_TYPE_CONFIG = {
     MediaTypes.TV.value: {
         "sources": [Sources.TMDB],
-        "default_source": Sources.TMDB.label,
+        "default_source": Sources.TMDB,
         "sample_query": "Breaking Bad",
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
@@ -19,7 +19,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.SEASON.value: {
         "sources": [Sources.TMDB],
-        "default_source": Sources.TMDB.label,
+        "default_source": Sources.TMDB,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
         "text_color": "text-purple-400",
@@ -33,7 +33,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.EPISODE.value: {
         "sources": [Sources.TMDB],
-        "default_source": Sources.TMDB.label,
+        "default_source": Sources.TMDB,
         "unicode_icon": "📺",
         "verb": ("watch", "watched"),
         "text_color": "text-indigo-400",
@@ -42,7 +42,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.MOVIE.value: {
         "sources": [Sources.TMDB],
-        "default_source": Sources.TMDB.label,
+        "default_source": Sources.TMDB,
         "sample_query": "The Shawshank Redemption",
         "unicode_icon": "🎬",
         "verb": ("watch", "watched"),
@@ -61,7 +61,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.ANIME.value: {
         "sources": [Sources.MAL],
-        "default_source": Sources.MAL.label,
+        "default_source": Sources.MAL,
         "sample_query": "Perfect Blue",
         "unicode_icon": "🎭",
         "verb": ("watch", "watched"),
@@ -75,7 +75,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.MANGA.value: {
         "sources": [Sources.MAL, Sources.MANGAUPDATES],
-        "default_source": Sources.MAL.label,
+        "default_source": Sources.MAL,
         "sample_query": "Berserk",
         "unicode_icon": "📚",
         "verb": ("read", "read"),
@@ -93,7 +93,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.GAME.value: {
         "sources": [Sources.IGDB],
-        "default_source": Sources.IGDB.label,
+        "default_source": Sources.IGDB,
         "sample_query": "Half-Life",
         "unicode_icon": "🎮",
         "verb": ("play", "played"),
@@ -115,7 +115,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.BOOK.value: {
         "sources": [Sources.HARDCOVER, Sources.OPENLIBRARY],
-        "default_source": Sources.HARDCOVER.label,
+        "default_source": Sources.HARDCOVER,
         "sample_query": "The Great Gatsby",
         "unicode_icon": "📖",
         "verb": ("read", "read"),
@@ -129,7 +129,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.COMIC.value: {
         "sources": [Sources.COMICVINE],
-        "default_source": Sources.COMICVINE.label,
+        "default_source": Sources.COMICVINE,
         "sample_query": "Batman",
         "unicode_icon": "📕",
         "verb": ("read", "read"),
