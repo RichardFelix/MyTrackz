@@ -23,12 +23,14 @@ def metadata(media_id, media_type):
         "related": {},
     }
 
-    season_items = get_season_items(media_id)
-    if season_items.count() > 0:
-        response["details"]["seasons"] = season_items.count()
+    if media_type == MediaTypes.TV.value:
+        season_items = get_season_items(media_id)
+        if season_items.count() > 0:
+            response["details"]["seasons"] = season_items.count()
 
-    num_episodes = process_seasons(season_items, response)
-    set_max_progress(response, num_episodes, item.media_type)
+    if media_type == MediaTypes.SEASON.value:
+        num_episodes = process_seasons(season_items, response)
+        set_max_progress(response, num_episodes, item.media_type)
 
     return response
 
