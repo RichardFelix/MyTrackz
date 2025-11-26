@@ -137,7 +137,7 @@ class SteamImporter:
                 # Define HTTP status codes as constants for better readability
                 http_too_many_requests = 429
                 http_forbidden = 403
-                http_internal_server_error = 500
+                http_bad_request = 400
 
                 if e.response.status_code == http_too_many_requests:
                     if attempt < max_retries - 1:
@@ -156,18 +156,18 @@ class SteamImporter:
                 if e.response.status_code == http_forbidden:
                     msg = "Steam profile is private or invalid"
                     raise MediaImportError(msg) from e
-                if e.response.status_code == http_internal_server_error:
-                    msg = "Steam API returned an internal error"
+                if e.response.status_code == http_bad_request:
+                    msg = "Bad request to Steam API. Please check the Steam ID."
                     raise MediaImportError(msg) from e
                 msg = f"Steam API error: {e.response.status_code}"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
             except requests.RequestException as e:
                 logger.exception("Request error when fetching Steam games")
                 msg = "Failed to connect to Steam API"
-                raise MediaImportError(msg) from e
+                raise MediaImportUnexpectedError(msg) from e
 
         msg = "Steam API request failed after all retries"
-        raise MediaImportError(msg)
+        raise MediaImportUnexpectedError(msg)
 
     def _process_game(self, game_data):
         """Process a single game from Steam API response."""
