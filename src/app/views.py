@@ -15,7 +15,7 @@ from django.utils.dateparse import parse_date
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import helpers, history_processor, media_type_config
+from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
@@ -171,7 +171,7 @@ def media_search(request):
     # only receives source when searching with secondary source
     source = request.GET.get(
         "source",
-        media_type_config.get_default_source_name(media_type).value,
+        config.get_default_source_name(media_type).value,
     )
 
     data = services.search(media_type, query, page, source)
