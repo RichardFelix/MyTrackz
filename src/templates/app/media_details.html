@@ -67,9 +67,7 @@
             <button @click="open = !open"
                     class="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition-colors duration-200 cursor-pointer">
               <span class="text-sm font-medium">{{ media.season_title }}</span>
-              <div class="w-4 h-4" :class="{ 'rotate-180': open }">
-                {% include "app/icons/chevron-down.svg" %}
-              </div>
+              <div class="w-4 h-4" :class="{ 'rotate-180': open }">{% include "app/icons/chevron-down.svg" %}</div>
             </button>
             <div x-show="open"
                  x-transition:enter="transition ease-out duration-200"
@@ -205,19 +203,9 @@
                             hx-trigger="click"
                             hx-swap="none"
                             class="focus:outline-none flex flex-col items-center cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="24"
-                           height="24"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round"
-                           class="w-5 h-5 hover:scale-110 transition-transform"
-                           :class="{ 'text-yellow-400 fill-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
+                      <div :class="{ 'text-yellow-400': {{ rating_value }} <= (isHovering ? hoverRating : rating), 'text-gray-600': {{ rating_value }} > (isHovering ? hoverRating : rating) }">
+                        {% include "app/icons/star.svg" with classes="w-5 h-5 hover:scale-110 transition-transform" %}
+                      </div>
                       <span class="text-xs mt-1 text-gray-400">{{ rating_value }}</span>
                     </button>
                   {% endfor %}
@@ -247,9 +235,7 @@
                       hx-target="#{% component_id 'track' media %}"
                       hx-trigger="click once"
                       @click="trackOpen = true"
-                      title="Add new consumption">
-                {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
-              </button>
+                      title="Add new consumption">{% include "app/icons/plus.svg" with classes="w-4 h-4" %}</button>
 
               {# Track Modal #}
               <div x-show="trackOpen"
@@ -297,9 +283,8 @@
             <div x-data="{ showRepeats: false }">
               <button @click="showRepeats = !showRepeats"
                       class="group flex items-center justify-center w-full px-3 py-2 text-sm text-white bg-gray-600 hover:bg-gray-700 transition-all duration-200 rounded-lg tracking-wide cursor-pointer">
-                <div class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform" :class="{ 'rotate-180': showRepeats }">
-                  {% include "app/icons/chevron-down.svg" %}
-                </div>
+                <div class="lucide lucide-chevron-down w-4 h-4 mr-2 transition-transform"
+                     :class="{ 'rotate-180': showRepeats }">{% include "app/icons/chevron-down.svg" %}</div>
                 Show Repeats ({{ user_medias|length|add:"-1" }})
               </button>
 
@@ -398,9 +383,7 @@
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
-                  @click="listsOpen = true">
-            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
-          </button>
+                  @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
 
           <div x-show="listsOpen"
                @keydown.escape.window="listsOpen = false"
@@ -420,9 +403,7 @@
                   hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
-                  @click="historyOpen = true">
-            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
-          </button>
+                  @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
 
           <div x-show="historyOpen"
                @keydown.escape.window="historyOpen = false"
