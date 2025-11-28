@@ -3,7 +3,7 @@
 <div class="bg-[#2a2f35] rounded-lg overflow-hidden hover:bg-[#39404b] transition-colors duration-200"
      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
   <div class="flex items-center p-4 gap-4">
-    <div class="flex-shrink-0 relative">
+    <div class="shrink-0 relative">
       <a href="{{ item|media_url }}">
         <img alt="{{ title }}"
              class="lazyload w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
@@ -78,7 +78,7 @@
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="w-[38rem] max-h-[90vh] px-4 md:px-0 relative z-60"
+      <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
            @click.outside="trackOpen = false">
         <div id="{% component_id 'track' item media.id %}"></div>
       </div>

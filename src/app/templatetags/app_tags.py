@@ -109,7 +109,7 @@ def media_status_readable(media_status):
 @register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
-    return media_type_config.get_default_source_name(media_type)
+    return media_type_config.get_default_source_name(media_type).label
 
 
 @register.filter

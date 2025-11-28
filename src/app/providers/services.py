@@ -34,10 +34,13 @@ def get_redis_connection():
 
 redis_pool = get_redis_connection()
 
+REDIS_PREFIX = getattr(settings, "REDIS_PREFIX", None)
+bucket_name = f"{REDIS_PREFIX}_api" if REDIS_PREFIX else "api"
+
 session = LimiterSession(
     per_second=5,
     bucket_class=RedisBucket,
-    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": "api"},
+    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": bucket_name},
 )
 
 session.mount("http://", HTTPAdapter(max_retries=3))

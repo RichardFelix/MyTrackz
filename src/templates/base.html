@@ -204,7 +204,7 @@
                         action="{% url 'search' %}"
                         x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
                     <div class="flex">
-                      <div class="relative flex-grow">
+                      <div class="relative grow">
                         {# Search input #}
                         <input type="search"
                                name="q"
@@ -236,7 +236,7 @@
                           x-transition:leave="transition ease-in duration-75"
                           x-transition:leave-start="transform opacity-100 scale-100"
                           x-transition:leave-end="transform opacity-0 scale-95"
-                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-[128px]">
+                          class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
                         <template x-for="type in mediaTypes" :key="type.value">
                           <li @click="selectedType = type; isOpen = false"
                               class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
@@ -280,13 +280,13 @@
               }">
 
               {% if message.tags == 'success' %}
-                {% include "app/icons/states/completed.svg" with classes="w-4 h-4 text-emerald-300 flex-shrink-0" %}
+                {% include "app/icons/states/completed.svg" with classes="w-4 h-4 text-emerald-300 shrink-0" %}
               {% elif message.tags == 'warning' %}
-                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-amber-300 flex-shrink-0" %}
+                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-amber-300 shrink-0" %}
               {% elif message.tags == 'error' %}
-                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-red-300 flex-shrink-0" %}
+                {% include "app/icons/warning.svg" with classes="w-4 h-4 text-red-300 shrink-0" %}
               {% elif message.tags == "info" %}
-                {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 flex-shrink-0" %}
+                {% include "app/icons/info.svg" with classes="w-4 h-4 text-indigo-300 shrink-0" %}
               {% endif %}
 
               <p class="text-sm font-medium flex-1">{{ message }}</p>

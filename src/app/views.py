@@ -15,7 +15,7 @@ from django.utils.dateparse import parse_date
 from django.utils.timezone import datetime
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from app import helpers, history_processor
+from app import helpers, history_processor, media_type_config
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
 from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
@@ -169,9 +169,16 @@ def media_search(request):
     layout = request.GET.get("layout", "grid")
 
     # only receives source when searching with secondary source
-    source = request.GET.get("source")
+    source = request.GET.get(
+        "source",
+        media_type_config.get_default_source_name(media_type).value,
+    )
 
     data = services.search(media_type, query, page, source)
+
+    # Enrich search results with user tracking data
+    if data.get("results"):
+        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
 
     context = {
         "data": data,
@@ -194,6 +201,17 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         source,
     )
     current_instance = user_medias[0] if user_medias else None
+
+    # Enrich related items with user tracking data
+    if media_metadata.get("related"):
+        for section_name, related_items in media_metadata["related"].items():
+            if related_items:
+                media_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
+                )
 
     context = {
         "media": media_metadata,
@@ -236,6 +254,17 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             season_metadata,
             episodes_in_db,
         )
+
+    # Enrich related items with user tracking data
+    if season_metadata.get("related"):
+        for section_name, related_items in season_metadata["related"].items():
+            if related_items:
+                season_metadata["related"][section_name] = (
+                    helpers.enrich_items_with_user_data(
+                        request,
+                        related_items,
+                    )
+                )
 
     context = {
         "media": season_metadata,
@@ -507,16 +536,18 @@ def media_delete(request):
     """Delete media data from the database."""
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
+    model = apps.get_model(app_label="app", model_name=media_type)
 
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
-    if media:
+    try:
+        media = BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
         media.delete()
         logger.info("%s deleted successfully.", media)
-    else:
+
+    except model.DoesNotExist:
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)

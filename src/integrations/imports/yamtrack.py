@@ -172,7 +172,7 @@ class YamtrackImporter:
                 media_type,
                 row["media_id"],
                 row["source"],
-                season_number,
+                [season_number],
                 episode_number,
             )
             row["title"] = metadata["title"]
@@ -182,7 +182,7 @@ class YamtrackImporter:
         if row.get("title", "") != "":
             source = row.get("source", "")
             if source == "":
-                source = media_type_config.get_default_source_name(media_type)
+                source = media_type_config.get_default_source_name(media_type).value
 
             metadata = services.search(
                 media_type,

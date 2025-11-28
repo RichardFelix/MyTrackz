@@ -78,7 +78,10 @@ def import_media(importer_func, identifier, user_id, mode, oauth_username=None):
 
 @shared_task(name="Import from Trakt")
 def import_trakt(user_id, mode, token=None, username=None):
-    """Celery task for importing media data from Trakt."""
+    """Celery task for importing media data from Trakt.
+
+    Can import using either OAuth (token provided) or public username.
+    """
     return import_media(trakt.importer, token, user_id, mode, username)
 
 
@@ -95,9 +98,9 @@ def import_mal(username, user_id, mode):
 
 
 @shared_task(name="Import from AniList")
-def import_anilist(username, user_id, mode):
-    """Celery task for importing anime and manga data from AniList."""
-    return import_media(anilist.importer, username, user_id, mode)
+def import_anilist(user_id, mode, token=None, username=None):
+    """Celery task for importing media data from AniList."""
+    return import_media(anilist.importer, token, user_id, mode, username)
 
 
 @shared_task(name="Import from Kitsu")
@@ -117,15 +120,18 @@ def import_hltb(file, user_id, mode):
     """Celery task for importing media data from HowLongToBeat."""
     return import_media(hltb.importer, file, user_id, mode)
 
+
 @shared_task(name="Import from Steam")
 def import_steam(username, user_id, mode):
     """Celery task for importing game data from Steam."""
     return import_media(steam.importer, username, user_id, mode)
 
+
 @shared_task(name="Import from IMDB")
 def import_imdb(file, user_id, mode):
     """Celery task for importing media data from IMDB."""
     return import_media(imdb.importer, file, user_id, mode)
+
 
 @shared_task(name="Import from GoodReads")
 def import_goodreads(file, user_id, mode):

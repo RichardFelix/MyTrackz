@@ -41,7 +41,7 @@
 
       <!-- Predefined Ranges Tab -->
       <div x-show="activeTab === 'predefined'"
-           class="p-2 max-h-[320px] overflow-y-auto">
+           class="p-2 max-h-80 overflow-y-auto">
         <div class="grid grid-cols-2 gap-2">
           <template x-for="range in predefinedRanges" :key="range.name">
             <button @click="selectPredefinedRange(range.name)"
@@ -64,14 +64,14 @@
               <label class="block text-sm font-medium mb-2 text-gray-300">Start Date</label>
               <input x-model="startDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
                      type="date">
             </div>
             <div>
               <label class="block text-sm font-medium mb-2 text-gray-300">End Date</label>
               <input x-model="endDate"
                      @change="updateDateRange()"
-                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm [color-scheme:dark]"
+                     class="w-full p-2.5 bg-[#39404b] rounded-md text-white border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm scheme-dark"
                      type="date">
             </div>
           </div>
@@ -362,7 +362,7 @@
                   {% for media in media_list %}
                     <div class="bg-[#39404b] p-4 rounded-lg hover:ring-2 hover:ring-indigo-500 transition-all duration-200">
                       <div class="flex items-start gap-4">
-                        <div class="flex-shrink-0 order-0">
+                        <div class="shrink-0 order-0">
                           <a href="{{ media.item|media_url }}">
                             <img alt="{{ media.item }}"
                                  class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.image != IMG_NONE %}object-cover{% endif %} hover:opacity-80 transition-opacity"

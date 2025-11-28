@@ -73,7 +73,7 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         {# Filter by Type #}
         <div class="relative" x-data="{ open: false }">
           <button class="h-10 flex items-center gap-2 px-4 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
@@ -151,10 +151,7 @@
       </div>
     </div>
     {% if items %}
-      <div id="items-grid"
-           class="media-grid">
-        {% include "lists/components/media_grid.html" %}
-      </div>
+      <div id="items-grid" class="media-grid">{% include "lists/components/media_grid.html" %}</div>
     {% else %}
       <div class="flex flex-col items-center justify-center py-16 bg-[#2a2f35] rounded-lg">
         <div class="text-center max-w-md mx-auto p-6">
