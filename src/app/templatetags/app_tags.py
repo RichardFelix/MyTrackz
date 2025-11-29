@@ -7,7 +7,7 @@ from django.utils import formats, timezone
 from django.utils.html import format_html
 from unidecode import unidecode
 
-from app import media_type_config
+from app import config
 from app.models import MediaTypes, Sources, Status
 
 register = template.Library()
@@ -109,37 +109,37 @@ def media_status_readable(media_status):
 @register.filter
 def default_source(media_type):
     """Return the default source for the media type."""
-    return media_type_config.get_default_source_name(media_type)
+    return config.get_default_source_name(media_type).label
 
 
 @register.filter
 def media_past_verb(media_type):
     """Return the past tense verb for the given media type."""
-    return media_type_config.get_verb(media_type, past_tense=True)
+    return config.get_verb(media_type, past_tense=True)
 
 
 @register.filter
 def sample_search(media_type):
     """Return a sample search URL for the given media type using GET parameters."""
-    return media_type_config.get_sample_search_url(media_type)
+    return config.get_sample_search_url(media_type)
 
 
 @register.filter
 def short_unit(media_type):
     """Return the short unit for the media type."""
-    return media_type_config.get_unit(media_type, short=True)
+    return config.get_unit(media_type, short=True)
 
 
 @register.filter
 def long_unit(media_type):
     """Return the long unit for the media type."""
-    return media_type_config.get_unit(media_type, short=False)
+    return config.get_unit(media_type, short=False)
 
 
 @register.filter
 def sources(media_type):
     """Template filter to get source options for a media type."""
-    return media_type_config.get_sources(media_type)
+    return config.get_sources(media_type)
 
 
 @register.simple_tag
@@ -178,7 +178,13 @@ def get_sidebar_media_types(user):
 @register.filter
 def media_color(media_type):
     """Return the color associated with the media type."""
-    return media_type_config.get_text_color(media_type)
+    return config.get_text_color(media_type)
+
+
+@register.filter
+def status_color(status):
+    """Return the color associated with the status."""
+    return config.get_status_text_color(status)
 
 
 @register.filter
@@ -300,7 +306,7 @@ def component_id(component_type, media, instance_id=None):
 @register.simple_tag
 def unicode_icon(name):
     """Return the Unicode icon for the media type."""
-    return media_type_config.get_unicode_icon(name)
+    return config.get_unicode_icon(name)
 
 
 @register.simple_tag
@@ -319,57 +325,7 @@ def icon(name, is_active, extra_classes="w-5 h-5"):
                       {content}
                  </svg>"""
 
-    other_icons = {
-        "home": (
-            """<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-               <polyline points="9 22 9 12 15 12 15 22"></polyline>"""
-        ),
-        "create": (
-            """<circle cx="12" cy="12" r="10"></circle>
-               <path d="M8 12h8"></path>
-               <path d="M12 8v8"></path>"""
-        ),
-        "statistics": (
-            """<line x1="18" x2="18" y1="20" y2="10"></line>
-               <line x1="12" x2="12" y1="20" y2="4"></line>
-               <line x1="6" x2="6" y1="20" y2="14"></line>"""
-        ),
-        "lists": (
-            """<path d="M12 10v6"></path>
-               <path d="M9 13h6"></path>
-               <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9
-               L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>"""
-        ),
-        "calendar": (
-            """<path d="M8 2v4"></path>
-               <path d="M16 2v4"></path>
-               <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-               <path d="M3 10h18"></path>"""
-        ),
-        "settings": (
-            """<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2
-               2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73
-               2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0
-               0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2
-               2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1
-               1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2
-               0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2
-               2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0
-               1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-               <circle cx="12" cy="12" r="3"></circle>"""
-        ),
-        "logout": (
-            """<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-               <polyline points="16 17 21 12 16 7"></polyline>
-               <line x1="21" x2="9" y1="12" y2="12"></line>"""
-        ),
-    }
-
-    if name in MediaTypes.values:
-        content = media_type_config.get_svg_icon(name)
-    else:
-        content = other_icons[name]
-
+    content = config.get_svg_icon(name)
     active_class = "text-indigo-400 " if is_active else ""
 
     svg = base_svg.format(
