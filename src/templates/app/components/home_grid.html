@@ -4,10 +4,12 @@
   <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg transition-all duration-300"
        x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }">
     <div class="relative">
+      <a href="{{ media.item|media_url }}">
       <img alt="{{ media }}"
            class="lazyload w-full aspect-2/3 {% if media.item.image != IMG_NONE %}object-cover{% endif %}"
            data-src="{{ media.item.image }}"
            src="{{ IMG_NONE }}">
+      </a>
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
         <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/80 px-2 py-1.5 rounded-md shadow-md whitespace-nowrap max-w-[98%]">
@@ -24,7 +26,7 @@
         </div>
       {% endif %}
 
-      <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100">
+      <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover-tap:opacity-100 pointer-coarse:hidden">
         <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
 
         <div class="relative flex items-center justify-center space-x-2.5">
