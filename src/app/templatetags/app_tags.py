@@ -145,9 +145,7 @@ def sources(media_type):
 @register.simple_tag
 def get_search_media_types(user):
     """Return available media types for search based on user preferences."""
-    enabled_types = (
-        user.get_enabled_media_types() if user.hide_from_search else MediaTypes.values
-    )
+    enabled_types = user.get_enabled_media_types()
 
     # Filter and format the types for search
     return [

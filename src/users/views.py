@@ -208,21 +208,21 @@ def test_notification(request):
 
 
 @require_http_methods(["GET", "POST"])
-def sidebar(request):
-    """Render the sidebar settings page."""
+def ui_preferences(request):
+    """Render the UI preferences settings page."""
     media_types = MediaTypes.values
     media_types.remove(MediaTypes.EPISODE.value)
 
     if request.method == "GET":
-        return render(request, "users/sidebar.html", {"media_types": media_types})
+        return render(request, "users/ui_preferences.html", {"media_types": media_types})
 
     # Prevent demo users from updating preferences
     if request.user.is_demo:
         messages.error(request, "This section is view-only for demo accounts.")
-        return redirect("sidebar")
+        return redirect("ui_preferences")
 
     # Process form submission
-    request.user.hide_from_search = "hide_disabled" in request.POST
+    request.user.clickable_media_cards = "clickable_media_cards" in request.POST
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     # Update user preferences for each media type
@@ -237,7 +237,7 @@ def sidebar(request):
     request.user.save()
     messages.success(request, "Settings updated.")
 
-    return redirect("sidebar")
+    return redirect("ui_preferences")
 
 
 @require_GET

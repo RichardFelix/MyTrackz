@@ -235,7 +235,10 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
-    hide_from_search = models.BooleanField(default=True)
+    clickable_media_cards = models.BooleanField(
+        default=False,
+        help_text="Hide hover overlay on touch devices",
+    )
 
     calendar_layout = models.CharField(
         max_length=20,
