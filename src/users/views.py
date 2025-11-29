@@ -214,7 +214,11 @@ def ui_preferences(request):
     media_types.remove(MediaTypes.EPISODE.value)
 
     if request.method == "GET":
-        return render(request, "users/ui_preferences.html", {"media_types": media_types})
+        return render(
+            request,
+            "users/ui_preferences.html",
+            {"media_types": media_types},
+        )
 
     # Prevent demo users from updating preferences
     if request.user.is_demo:
@@ -258,10 +262,12 @@ def export_data(request):
     """Render the export data settings page."""
     return render(request, "users/export_data.html")
 
+
 @require_GET
 def advanced(request):
     """Render the advanced settings page."""
     return render(request, "users/advanced.html")
+
 
 @require_GET
 def about(request):
@@ -319,6 +325,7 @@ def update_plex_usernames(request):
         messages.success(request, "Plex usernames updated successfully")
 
     return redirect("integrations")
+
 
 @require_POST
 def clear_search_cache(request):
