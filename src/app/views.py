@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
@@ -868,11 +869,12 @@ def statistics(request):
 
     return render(request, "app/statistics.html", context)
 
+
 @require_GET
-def service_worker(request):
+def service_worker():
     """Serve the service worker file."""
-    sw_path = os.path.join(settings.STATICFILES_DIRS[0], 'js', 'serviceworker.js')
-    with open(sw_path, 'r') as f:
-        response = HttpResponse(f.read(), content_type='application/javascript')
-        response['Service-Worker-Allowed'] = '/'
+    sw_path = Path(settings.STATICFILES_DIRS[0]) / "js" / "serviceworker.js"
+    with sw_path.open() as f:
+        response = HttpResponse(f.read(), content_type="application/javascript")
+        response["Service-Worker-Allowed"] = "/"
         return response
