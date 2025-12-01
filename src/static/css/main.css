@@ -519,6 +519,9 @@
   .ml-6 {
     margin-left: calc(var(--spacing) * 6);
   }
+  .ml-7 {
+    margin-left: calc(var(--spacing) * 7);
+  }
   .ml-auto {
     margin-left: auto;
   }
@@ -1655,6 +1658,9 @@
   }
   .italic {
     font-style: italic;
+  }
+  .underline {
+    text-decoration-line: underline;
   }
   .placeholder-gray-500 {
     &::placeholder {
