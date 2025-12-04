@@ -1,6 +1,7 @@
 from urllib.parse import parse_qsl, urlencode, urlparse
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponseRedirect
@@ -8,8 +9,9 @@ from django.shortcuts import redirect
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, MediaTypes
+from app.models import BasicMedia, MediaTypes, Status
 
+hide_completed = settings.HIDE_COMPLETED
 
 def minutes_to_hhmm(total_minutes):
     """Convert total minutes to HH:MM format."""
@@ -118,9 +120,13 @@ def enrich_items_with_user_data(request, items):
         else:
             key = (str(item["media_id"]), item["source"])
 
+        media_item = media_lookup.get(key)
+        if hide_completed and media_type != MediaTypes.SEASON.value and media_item and media_item.status == Status.COMPLETED.value:
+            continue
+
         enriched_item = {
             "item": item,
-            "media": media_lookup.get(key),
+            "media": media_item,
         }
         enriched_items.append(enriched_item)
 
