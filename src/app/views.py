@@ -211,6 +211,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
+                        section_name
                     )
                 )
 

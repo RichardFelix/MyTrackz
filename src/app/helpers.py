@@ -68,7 +68,7 @@ def format_search_response(page, per_page, total_results, results):
     }
 
 
-def enrich_items_with_user_data(request, items):
+def enrich_items_with_user_data(request, items, section_name = None):
     """Enrich a list of items with user tracking data."""
     if not items:
         return []
@@ -121,7 +121,7 @@ def enrich_items_with_user_data(request, items):
             key = (str(item["media_id"]), item["source"])
 
         media_item = media_lookup.get(key)
-        if hide_completed and media_type != MediaTypes.SEASON.value and media_item and media_item.status == Status.COMPLETED.value:
+        if hide_completed and section_name == "recommendations" and media_item and media_item.status == Status.COMPLETED.value:
             continue
 
         enriched_item = {
