@@ -90,7 +90,10 @@ class ProviderAPIError(Exception):
 
         logger.error("%s error: %s", provider, error.response.text)
 
-        message = f"There was an error contacting the {provider} API"
+        message = (
+            f"There was an error contacting the {provider} API "
+            f"(HTTP {self.status_code})"
+        )
         if details:
             message += f": {details}"
         message += ". Check the logs for more details."
