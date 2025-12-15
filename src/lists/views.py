@@ -234,7 +234,7 @@ def delete(request):
     if custom_list.user_can_delete(request.user):
         custom_list.delete()
         logger.info("%s list deleted successfully.", custom_list)
-        return redirect("/lists")
+        return redirect("lists")
 
     messages.error(request, "You do not have permission to delete this list.")
     return helpers.redirect_back(request)
