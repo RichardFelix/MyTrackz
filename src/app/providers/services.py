@@ -72,7 +72,7 @@ session.mount(
 )
 session.mount(
     "https://api.hardcover.app/v1/graphql",
-    LimiterAdapter(per_minute=55),
+    LimiterAdapter(per_minute=50),
 )
 
 
