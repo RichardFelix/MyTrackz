@@ -75,7 +75,7 @@ class Item(CalendarTriggerMixin, models.Model):
         choices=MediaTypes.choices,
         default=MediaTypes.MOVIE.value,
     )
-    title = models.CharField(max_length=255)
+    title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
@@ -605,10 +605,7 @@ class MediaManager(models.Manager):
             instance_id,
         )
 
-        try:
-            return model.objects.get(**params)
-        except model.DoesNotExist:
-            return None
+        return model.objects.get(**params)
 
     def get_media_prefetch(
         self,

@@ -120,13 +120,47 @@ class ImportAniList(TestCase):
         self.user = get_user_model().objects.create_user(**self.credentials)
 
     @patch("requests.Session.post")
-    def test_import_anilist(self, mock_request):
+    def test_import_anilist_public(self, mock_request):
         """Basic test importing anime and manga from AniList."""
         with Path(mock_path / "import_anilist.json").open() as file:
             anilist_response = json.load(file)
         mock_request.return_value.json.return_value = anilist_response
 
-        anilist.importer("bloodthirstiness", self.user, "new")
+        anilist.importer(None, self.user, "new", "bloodthirstiness")
+
+        self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
+        self.assertEqual(Manga.objects.filter(user=self.user).count(), 3)
+        self.assertEqual(
+            Anime.objects.get(user=self.user, item__title="FLCL").status,
+            Status.PAUSED.value,
+        )
+        self.assertEqual(
+            Manga.objects.filter(user=self.user, item__title="One Punch-Man")
+            .first()
+            .score,
+            9,
+        )
+        self.assertEqual(
+            Anime.objects.get(user=self.user, item__title="FLCL")
+            .history.first()
+            .history_date,
+            datetime(2025, 6, 4, 10, 11, 17, tzinfo=UTC),
+        )
+
+    @patch("requests.Session.post")
+    def test_import_anilist_private(self, mock_request):
+        """Basic test importing anime and manga from AniList."""
+        with Path(mock_path / "import_anilist.json").open() as file:
+            anilist_response = json.load(file)
+        mock_request.return_value.json.return_value = anilist_response
+
+        anilist.importer(
+            helpers.encrypt("token"),
+            self.user,
+            "new",
+            "username",
+        )
+
         self.assertEqual(Anime.objects.filter(user=self.user).count(), 4)
         self.assertEqual(Manga.objects.filter(user=self.user).count(), 3)
         self.assertEqual(
@@ -151,9 +185,10 @@ class ImportAniList(TestCase):
         self.assertRaises(
             helpers.MediaImportError,
             anilist.importer,
-            "fhdsufdsu",
+            None,
             self.user,
             "new",
+            "fhdsufdsu",
         )
 
 
@@ -579,15 +614,109 @@ class ImportTrakt(TestCase):
         movie_obj = trakt_importer.bulk_media[MediaTypes.MOVIE.value][0]
         self.assertEqual(movie_obj.notes, "Great movie!")
 
-    @patch("integrations.imports.trakt.TraktImporter.import_data")
-    def test_importer_function(self, mock_import_data):
-        """Test the main importer function."""
-        mock_import_data.return_value = (1, 2, 3, 4, "No warnings")
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_public_import_full_flow(
+        self,
+        mock_get_metadata,
+        mock_make_request,
+        mock_get_paginated,
+    ):
+        """Test full import flow with public username (no OAuth)."""
+        # Mock paginated data - history returns movies, comments returns empty
+        mock_get_paginated.side_effect = [
+            [
+                {
+                    "type": "movie",
+                    "movie": {"title": "Public Movie", "ids": {"tmdb": 999}},
+                    "watched_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+            [],  # Empty comments
+        ]
 
-        result = importer("testuser", self.user, "new")
+        # Mock API requests for watchlist and ratings
+        mock_make_request.return_value = []
 
-        # Check that the result is passed through correctly
-        self.assertEqual(result, (1, 2, 3, 4, "No warnings"))
+        # Mock metadata
+        mock_get_metadata.return_value = {
+            "title": "Public Movie",
+            "image": "movie.jpg",
+        }
+
+        # Import with no token (public)
+        imported_counts, _ = importer(None, self.user, "new", "public_user")
+
+        # Verify movie was imported
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    @patch("integrations.imports.trakt.TraktImporter._get_paginated_data")
+    @patch("integrations.imports.trakt.TraktImporter._make_api_request")
+    @patch("integrations.imports.trakt.TraktImporter._get_metadata")
+    def test_oauth_import_full_flow(
+        self,
+        mock_get_metadata,
+        mock_make_request,
+        mock_get_paginated,
+    ):
+        """Test full import flow with OAuth token."""
+        # Mock paginated data - history returns movies, comments returns empty
+        mock_get_paginated.side_effect = [
+            [
+                {
+                    "type": "movie",
+                    "movie": {"title": "OAuth Movie", "ids": {"tmdb": 888}},
+                    "watched_at": "2023-01-01T00:00:00.000Z",
+                },
+            ],
+            [],  # Empty comments
+        ]
+
+        # Mock API requests for watchlist and ratings
+        mock_make_request.return_value = []
+
+        # Mock metadata
+        mock_get_metadata.return_value = {
+            "title": "OAuth Movie",
+            "image": "movie.jpg",
+        }
+
+        # Import with encrypted token (OAuth)
+        encrypted_token = helpers.encrypt("test_refresh_token")
+        imported_counts, _ = importer(
+            encrypted_token,
+            self.user,
+            "new",
+            "oauth_user",
+        )
+
+        # Verify movie was imported
+        self.assertEqual(imported_counts[MediaTypes.MOVIE.value], 1)
+        self.assertEqual(Movie.objects.filter(user=self.user).count(), 1)
+
+    def test_trakt_importer_with_refresh_token(self):
+        """Test TraktImporter initialization with refresh token."""
+        encrypted_token = helpers.encrypt("test_token")
+        importer = TraktImporter(
+            "testuser",
+            self.user,
+            "new",
+            refresh_token=encrypted_token,
+        )
+
+        self.assertEqual(importer.username, "testuser")
+        self.assertEqual(importer.refresh_token, encrypted_token)
+        self.assertEqual(importer.mode, "new")
+
+    def test_trakt_importer_without_refresh_token(self):
+        """Test TraktImporter initialization without refresh token (public)."""
+        importer = TraktImporter("testuser", self.user, "new", refresh_token=None)
+
+        self.assertEqual(importer.username, "testuser")
+        self.assertIsNone(importer.refresh_token)
+        self.assertEqual(importer.mode, "new")
 
 
 class ImportSimkl(TestCase):
@@ -1242,22 +1371,21 @@ class ImportSteam(TestCase):
         mock_external_game.return_value = None
 
         # Import games
-        imported_counts, _ = steam.importer(
+        imported_counts, warnings = steam.importer(
             "76561198000000000",
             self.user,
             "new",
         )
 
-        # Verify the game was imported as a manual entry
-        self.assertEqual(imported_counts.get(MediaTypes.GAME.value, 0), 1)
+        # Verify no games were imported (games without IGDB match are skipped)
+        self.assertEqual(imported_counts.get(MediaTypes.GAME.value, 0), 0)
 
-        # Verify the game was created with manual source
-        game = Game.objects.get(user=self.user)
-        self.assertEqual(game.item.source, Sources.MANUAL.value)
-        self.assertEqual(game.item.media_id, "1")
-        self.assertEqual(game.item.title, "Unknown Game")
-        # 100 minutes total, 0 recent
-        self.assertEqual(game.status, Status.PAUSED.value)
+        # Verify a warning was logged
+        self.assertIn("Unknown Game (999)", warnings)
+        self.assertIn(f"Couldn't find a match in {Sources.IGDB.label}", warnings)
+
+        # Verify no game was created
+        self.assertEqual(Game.objects.filter(user=self.user).count(), 0)
 
     def test_determine_game_status_logic(self):
         """Test the status determination logic."""

@@ -22,6 +22,8 @@ BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
     FORCE_SCRIPT_NAME = BASE_URL
 
+REDIS_PREFIX = config("REDIS_PREFIX", default=None)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -211,12 +213,14 @@ else:
 # https://docs.djangoproject.com/en/stable/topics/cache/
 CACHE_TIMEOUT = 86400  # 24 hours
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
+KEY_PREFIX = f"{REDIS_PREFIX}" if REDIS_PREFIX else ""
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "TIMEOUT": CACHE_TIMEOUT,
-        "VERSION": 10,
+        "VERSION": 11,
+        "KEY_PREFIX": KEY_PREFIX,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -363,7 +367,9 @@ IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
 STEAM_API_KEY = config(
     "STEAM_API_KEY",
-    default=secret("STEAM_API_KEY_FILE", ""), # Generate default key https://steamcommunity.com/dev/apikey
+    default=secret(
+        "STEAM_API_KEY_FILE", "",
+    ),  # Generate default key https://steamcommunity.com/dev/apikey
 )
 
 HARDCOVER_API = config(
@@ -405,18 +411,34 @@ TRAKT_API_SECRET = config(
     ),
 )
 
+ANILIST_ID = config(
+    "ANILIST_ID",
+    default=secret(
+        "ANILIST_ID_FILE",
+        "",
+    ),
+)
+
+ANILIST_SECRET = config(
+    "ANILIST_SECRET",
+    default=secret(
+        "ANILIST_SECRET_FILE",
+        "",
+    ),
+)
+
 SIMKL_ID = config(
     "SIMKL_ID",
     default=secret(
         "SIMKL_ID_FILE",
-        "f1df351ddbace7e2c52f0010efdeb1fd59d379d9cdfb88e9a847c68af410db0e",
+        "a973e57e85d94068315d5ac29669d85da8abc0fb7aff1d22e00e04bdf1882578",
     ),
 )
 SIMKL_SECRET = config(
     "SIMKL_SECRET",
     default=secret(
         "SIMKL_SECRET_FILE",
-        "9bb254894a598894bee14f61eafdcdca47622ab346632f951ed7220a3de289b5",
+        "1b548a88ac7884a757cc58a552842913a9337f3cab3a4905836c6dc305dda316",
     ),
 )
 
@@ -453,6 +475,12 @@ SELECT2_THEME = "tailwindcss-4"
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_TIMEZONE = TIME_ZONE
+
+if REDIS_PREFIX:
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        "global_keyprefix": f"{REDIS_PREFIX}",
+        "queue_prefix": f"{REDIS_PREFIX}",
+    }
 
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_WORKER_CONCURRENCY = 1
