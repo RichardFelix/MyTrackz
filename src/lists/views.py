@@ -13,7 +13,7 @@ from app.models import Item, MediaManager, MediaTypes
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
-from users.models import ListDetailSortChoices, ListSortChoices
+from users.models import ListDetailSortChoices, ListSortChoices, MediaStatusChoices
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,10 @@ def list_detail(request, list_id):
             request.GET.get("sort"),
         ),
         "media_type": request.GET.get("type", "all"),
+        "status_filter": request.user.update_preference(
+            "list_detail_status",
+            request.GET.get("status", MediaStatusChoices.ALL),
+        ),
         "page": int(request.GET.get("page", 1)),
         "search_query": request.GET.get("q", ""),
     }
@@ -117,6 +121,45 @@ def list_detail(request, list_id):
         items = items.filter(title__icontains=params["search_query"])
     if params["media_type"] != "all":
         items = items.filter(media_type=params["media_type"])
+
+    # Get distinct media types for filtering by status
+    media_types = items.values_list("media_type", flat=True).distinct()
+    media_by_item_id = {}
+    media_manager = MediaManager()
+
+    # Filter by status if specified
+    if params["status_filter"] != MediaStatusChoices.ALL:
+        # Get the list of item IDs that have the specified status for the current user
+        # We need to check across all media types since items can be of different types
+        item_ids_with_status = set()
+
+        for media_type in media_types:
+            model = apps.get_model("app", media_type)
+
+            if media_type == MediaTypes.EPISODE.value:
+                # Episodes are linked through seasons
+                filter_kwargs = {
+                    "related_season__user": request.user,
+                    "related_season__status": params["status_filter"],
+                    "item__in": [item.id for item in items],
+                }
+            else:
+                filter_kwargs = {
+                    "user": request.user,
+                    "status": params["status_filter"],
+                    "item__in": [item.id for item in items],
+                }
+            queryset = model.objects.filter(**filter_kwargs).select_related("item")
+            queryset = media_manager._apply_prefetch_related(queryset, media_type)
+            media_manager.annotate_max_progress(queryset, media_type)
+
+            # Map media objects by item_id
+            for entry in queryset:
+                media_by_item_id.setdefault(entry.item_id, entry)
+                item_ids_with_status.add(entry.item_id)
+
+        # Filter items to only those with the specified status
+        items = items.filter(id__in=item_ids_with_status)
 
     # Apply sorting
     sort_mapping = {
@@ -136,33 +179,6 @@ def list_detail(request, list_id):
     paginator = Paginator(items, 16)
     items_page = paginator.get_page(params["page"])
 
-    media_by_item_id = {}
-    media_types_in_page = {item.media_type for item in items_page}
-
-    media_manager = MediaManager()
-
-    for media_type in media_types_in_page:
-        model = apps.get_model("app", media_type)
-
-        if media_type == MediaTypes.EPISODE.value:
-            filter_kwargs = {
-                "item_id__in": [item.id for item in items_page],
-                "related_season__user": request.user,
-            }
-        else:
-            filter_kwargs = {
-                "item_id__in": [item.id for item in items_page],
-                "user": request.user,
-            }
-
-        queryset = model.objects.filter(**filter_kwargs).select_related("item")
-        queryset = media_manager._apply_prefetch_related(queryset, media_type)
-        media_manager.annotate_max_progress(queryset, media_type)
-
-        # Map media objects by item_id
-        for entry in queryset:
-            media_by_item_id.setdefault(entry.item_id, entry)
-
     # Annotate items with media objects
     for item in items_page:
         item.media = media_by_item_id.get(item.id)
@@ -176,7 +192,9 @@ def list_detail(request, list_id):
         if items_page.has_next()
         else None,
         "current_sort": params["sort_by"],
+        "current_status": params["status_filter"],
         "sort_choices": ListDetailSortChoices.choices,
+        "status_choices": MediaStatusChoices.choices,
     }
 
     # Additional context for full page render

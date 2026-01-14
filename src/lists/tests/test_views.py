@@ -197,21 +197,42 @@ class ListDetailViewTests(TestCase):
         # Create some items with different media types
         self.movie_item = Item.objects.create(
             media_id="238",
-            source=Sources.TMDB.value,
+            source=Sources.MANUAL.value,
             media_type=MediaTypes.MOVIE.value,
             title="Test Movie",
         )
         self.tv_item = Item.objects.create(
             media_id="1668",
-            source=Sources.TMDB.value,
+            source=Sources.MANUAL.value,
             media_type=MediaTypes.TV.value,
             title="Test TV Show",
         )
         self.anime_item = Item.objects.create(
             media_id="1",
-            source=Sources.MAL.value,
+            source=Sources.MANUAL.value,
             media_type=MediaTypes.ANIME.value,
             title="Test Anime",
+        )
+
+        # Create Movie instance
+        Movie.objects.create(
+            item=self.movie_item,
+            status=Status.COMPLETED.value,
+            user=self.user,
+        )
+
+        # Create TV instance
+        TV.objects.create(
+            item=self.tv_item,
+            status=Status.IN_PROGRESS.value,
+            user=self.user,
+        )
+
+        # Create Anime instance
+        Anime.objects.create(
+            item=self.anime_item,
+            status=Status.PLANNING.value,
+            user=self.user,
         )
 
         # Add items to the list
@@ -238,27 +259,6 @@ class ListDetailViewTests(TestCase):
         """Test the list_detail view."""
         mock_update_preference.return_value = "date_added"
         mock_user_can_view.return_value = True
-
-        # Create Movie instance
-        Movie.objects.create(
-            item=self.movie_item,
-            status=Status.COMPLETED.value,
-            user=self.user,
-        )
-
-        # Create TV instance
-        TV.objects.create(
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            user=self.user,
-        )
-
-        # Create Anime instance
-        Anime.objects.create(
-            item=self.anime_item,
-            status=Status.PLANNING.value,
-            user=self.user,
-        )
 
         # Test the view
         response = self.client.get(reverse("list_detail", args=[self.custom_list.id]))
@@ -296,25 +296,6 @@ class ListDetailViewTests(TestCase):
         mock_update_preference.return_value = "date_added"
         mock_user_can_view.return_value = True
 
-        # Create model instances
-        Movie.objects.create(
-            item=self.movie_item,
-            status=Status.COMPLETED.value,
-            user=self.user,
-        )
-
-        TV.objects.create(
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            user=self.user,
-        )
-
-        Anime.objects.create(
-            item=self.anime_item,
-            status=Status.PLANNING.value,
-            user=self.user,
-        )
-
         # Test the view with media type filter
         response = self.client.get(
             reverse("list_detail", args=[self.custom_list.id])
@@ -331,6 +312,36 @@ class ListDetailViewTests(TestCase):
 
     @patch.object(get_user_model(), "update_preference")
     @patch.object(CustomList, "user_can_view")
+    def test_list_detail_view_filter_by_status(
+            self,
+            mock_user_can_view,
+            mock_update_preference,
+    ):
+        """Test the list_detail view with status filter."""
+        mock_update_preference.return_value = "date_added"
+        mock_user_can_view.return_value = True
+
+        # Test the view with media type filter
+        response = self.client.get(
+            reverse("list_detail", args=[self.custom_list.id])
+            + f"?status={Status.PLANNING.value}",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Check that filters are applied
+        self.assertEqual(
+            response.context["current_status"],
+            Status.PLANNING.value,
+        )
+        # Should only have the PLANNING item of media type ANIME
+        self.assertEqual(len(response.context["items"]), 1)
+        self.assertEqual(
+            response.context["items"][0].media_type,
+            MediaTypes.ANIME.value,
+        )
+
+    @patch.object(get_user_model(), "update_preference")
+    @patch.object(CustomList, "user_can_view")
     def test_list_detail_view_search(
         self,
         mock_user_can_view,
@@ -339,25 +350,6 @@ class ListDetailViewTests(TestCase):
         """Test the list_detail view with search filter."""
         mock_update_preference.return_value = "date_added"
         mock_user_can_view.return_value = True
-
-        # Create model instances
-        Movie.objects.create(
-            item=self.movie_item,
-            status=Status.COMPLETED.value,
-            user=self.user,
-        )
-
-        TV.objects.create(
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            user=self.user,
-        )
-
-        Anime.objects.create(
-            item=self.anime_item,
-            status=Status.PLANNING.value,
-            user=self.user,
-        )
 
         # Test the view with search filter
         response = self.client.get(
@@ -378,25 +370,6 @@ class ListDetailViewTests(TestCase):
     ):
         """Test the list_detail view with different sorting options."""
         mock_user_can_view.return_value = True
-
-        # Create model instances
-        Movie.objects.create(
-            item=self.movie_item,
-            status=Status.COMPLETED.value,
-            user=self.user,
-        )
-
-        TV.objects.create(
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            user=self.user,
-        )
-
-        Anime.objects.create(
-            item=self.anime_item,
-            status=Status.PLANNING.value,
-            user=self.user,
-        )
 
         # Test title sorting
         mock_update_preference.return_value = "title"
@@ -424,25 +397,6 @@ class ListDetailViewTests(TestCase):
         """Test the list_detail view with HTMX request."""
         mock_update_preference.return_value = "date_added"
         mock_user_can_view.return_value = True
-
-        # Create model instances
-        Movie.objects.create(
-            item=self.movie_item,
-            status=Status.COMPLETED.value,
-            user=self.user,
-        )
-
-        TV.objects.create(
-            item=self.tv_item,
-            status=Status.IN_PROGRESS.value,
-            user=self.user,
-        )
-
-        Anime.objects.create(
-            item=self.anime_item,
-            status=Status.PLANNING.value,
-            user=self.user,
-        )
 
         # Make an HTMX request
         response = self.client.get(
