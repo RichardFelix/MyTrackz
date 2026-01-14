@@ -9,7 +9,7 @@
            hx-swap="innerHTML"
            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
            hx-vals='{"item_id": "{{ item.id }}"}'>
-        <div class="flex items-center flex-grow">
+        <div class="flex items-center grow">
           <img alt="{{ item }}"
                class="w-8 h-10 object-cover rounded mr-2"
                src="{{ item.image }}">
