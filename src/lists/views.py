@@ -1,6 +1,5 @@
 import logging
 
-from django.apps import apps
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery
@@ -109,7 +108,7 @@ def list_detail(request, list_id):
         "media_type": request.GET.get("type", "all"),
         "status_filter": request.user.update_preference(
             "list_detail_status",
-            request.GET.get("status", MediaStatusChoices.ALL),
+            request.GET.get("status"),
         ),
         "page": int(request.GET.get("page", 1)),
         "search_query": request.GET.get("q", ""),
@@ -122,44 +121,22 @@ def list_detail(request, list_id):
     if params["media_type"] != "all":
         items = items.filter(media_type=params["media_type"])
 
-    # Get distinct media types for filtering by status
+    # Get distinct media types for filtering
     media_types = items.values_list("media_type", flat=True).distinct()
-    media_by_item_id = {}
     media_manager = MediaManager()
+    media_by_item_id = {}
 
     # Filter by status if specified
     if params["status_filter"] != MediaStatusChoices.ALL:
-        # Get the list of item IDs that have the specified status for the current user
-        # We need to check across all media types since items can be of different types
-        item_ids_with_status = set()
-
-        for media_type in media_types:
-            model = apps.get_model("app", media_type)
-
-            if media_type == MediaTypes.EPISODE.value:
-                # Episodes are linked through seasons
-                filter_kwargs = {
-                    "related_season__user": request.user,
-                    "related_season__status": params["status_filter"],
-                    "item__in": [item.id for item in items],
-                }
-            else:
-                filter_kwargs = {
-                    "user": request.user,
-                    "status": params["status_filter"],
-                    "item__in": [item.id for item in items],
-                }
-            queryset = model.objects.filter(**filter_kwargs).select_related("item")
-            queryset = media_manager._apply_prefetch_related(queryset, media_type)
-            media_manager.annotate_max_progress(queryset, media_type)
-
-            # Map media objects by item_id
-            for entry in queryset:
-                media_by_item_id.setdefault(entry.item_id, entry)
-                item_ids_with_status.add(entry.item_id)
-
+        item_ids = items.values_list("id", flat=True)
+        media_by_item_id = media_manager.fetch_media_for_items(
+            media_types,
+            item_ids,
+            request.user,
+            status_filter=params["status_filter"],
+        )
         # Filter items to only those with the specified status
-        items = items.filter(id__in=item_ids_with_status)
+        items = items.filter(id__in=media_by_item_id.keys())
 
     # Apply sorting
     sort_mapping = {
@@ -175,9 +152,19 @@ def list_detail(request, list_id):
         *sort_mapping.get(params["sort_by"], ["-customlistitem__date_added"]),
     )
 
-    # Paginate and prepare media objects
+    # Paginate
     paginator = Paginator(items, 16)
     items_page = paginator.get_page(params["page"])
+
+    # If no status filter was applied, fetch media objects for paginated items only
+    if params["status_filter"] == MediaStatusChoices.ALL:
+        media_types_in_page = {item.media_type for item in items_page}
+        page_item_ids = [item.id for item in items_page]
+        media_by_item_id = media_manager.fetch_media_for_items(
+            media_types_in_page,
+            page_item_ids,
+            request.user,
+        )
 
     # Annotate items with media objects
     for item in items_page:
@@ -192,7 +179,7 @@ def list_detail(request, list_id):
         if items_page.has_next()
         else None,
         "current_sort": params["sort_by"],
-        "current_status": params["status_filter"],
+        "current_status": params["status_filter"] or MediaStatusChoices.ALL,
         "sort_choices": ListDetailSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
     }

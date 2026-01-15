@@ -6,9 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0051_migrate_simkl_periodoc_tasks'),
-        ('auth', '0012_alter_user_first_name_max_length'),
-        ('users', '0037_remove_user_home_sort_valid_alter_user_home_sort'),
+        ('users', '0039_user_clickable_media_cards'),
     ]
 
     operations = [
@@ -16,15 +14,6 @@ class Migration(migrations.Migration):
             model_name='user',
             name='list_detail_status',
             field=models.CharField(choices=[('All', 'All'), ('Completed', 'Completed'), ('In progress', 'In Progress'), ('Planning', 'Planning'), ('Paused', 'Paused'), ('Dropped', 'Dropped')], default='All', max_length=20),
-        ),
-        migrations.AlterField(
-            model_name='user',
-            name='home_sort',
-            field=models.CharField(choices=[('upcoming', 'Upcoming'), ('recent', 'Recent'), ('completion', 'Completion'), ('episodes_left', 'Episodes Left'), ('title', 'Title')], default='upcoming', max_length=20),
-        ),
-        migrations.AddConstraint(
-            model_name='user',
-            constraint=models.CheckConstraint(condition=models.Q(('home_sort__in', ['upcoming', 'recent', 'completion', 'episodes_left', 'title'])), name='home_sort_valid'),
         ),
         migrations.AddConstraint(
             model_name='user',

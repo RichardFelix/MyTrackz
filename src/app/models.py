@@ -591,6 +591,47 @@ class MediaManager(models.Manager):
             tv_episodes = released_episodes.get(tv.item.media_id, {})
             tv.max_progress = sum(tv_episodes.values()) if tv_episodes else 0
 
+    def fetch_media_for_items(self, media_types, item_ids, user, status_filter=None):
+        """Fetch media objects for given items, optionally filtering by status.
+
+        Args:
+            media_types: Iterable of media type strings to query
+            item_ids: QuerySet or list of item IDs to fetch media for
+            user: User to filter media by
+            status_filter: Optional status value to filter by
+
+        Returns:
+            dict mapping item_id to media object
+        """
+        media_by_item_id = {}
+
+        for media_type in media_types:
+            model = apps.get_model("app", media_type)
+
+            if media_type == MediaTypes.EPISODE.value:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "related_season__user": user,
+                }
+                if status_filter:
+                    filter_kwargs["related_season__status"] = status_filter
+            else:
+                filter_kwargs = {
+                    "item__in": item_ids,
+                    "user": user,
+                }
+                if status_filter:
+                    filter_kwargs["status"] = status_filter
+
+            queryset = model.objects.filter(**filter_kwargs).select_related("item")
+            queryset = self._apply_prefetch_related(queryset, media_type)
+            self.annotate_max_progress(queryset, media_type)
+
+            for entry in queryset:
+                media_by_item_id.setdefault(entry.item_id, entry)
+
+        return media_by_item_id
+
     def get_media(
         self,
         user,

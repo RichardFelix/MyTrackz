@@ -41,11 +41,13 @@
     {% include "lists/components/list_form.html" %}
   </div>
 
-  <div x-data="{ sort: '{{ current_sort }}', type: '{{ request.GET.type|default:'all' }}', status: '{{ current_status }}', query: '{{ request.GET.q|default:'' }}', mediaTypeLabels: {
+  <div x-data="{ sort: '{{ current_sort|escapejs }}', type: '{{ request.GET.type|default:'all'|escapejs }}', status: '{{ current_status|escapejs }}', query: '{{ request.GET.q|default:''|escapejs }}', mediaTypeLabels: {
     {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
     'all': 'All Types' }, statusLabels: {
     {% for value, label in status_choices %}
-      '{{ value }}': '{{ label }}'{% if not forloop.last %},{% endif %}
+      '{{ value }}': '{{ label }}'
+      {% if not forloop.last %},{% endif %}
+
     {% endfor %}
     }, getMediaTypeLabel() { return this.mediaTypeLabels[this.type] || this.type; } }">
 
@@ -238,15 +240,4 @@
 
 {% block js %}
   {{ form.media.js }}
-
-  <script>
-    const mediaTypeLabels = {
-      {% for media_type in media_types %}'{{ media_type }}': '{{ media_type|media_type_readable_plural }}',{% endfor %}
-      'all': 'All Types'
-    };
-    const statusLabels = {
-      {% for value, label in status_choices %}'{{ value }}': '{{ label }}',{% endfor %}
-      'all': 'All Status'
-    };
-  </script>
 {% endblock js %}
