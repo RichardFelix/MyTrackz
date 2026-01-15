@@ -453,6 +453,16 @@
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
           </div>
+          {% if media.external_links %}
+            <div class="mt-4">
+              <h3 class="text-sm font-semibold text-gray-400">EXTERNAL LINKS</h3>
+              {% for name, url in media.external_links.items %}
+                <a href="{{ url }}"
+                   class="text-gray-200 hover:text-indigo-500 transition-colors duration-200 block"
+                   target="_blank">{{ name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
         {% else %}
           <div class="text-gray-200">No details available</div>
         {% endif %}
