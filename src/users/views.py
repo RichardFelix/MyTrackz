@@ -14,6 +14,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
+from users.models import QuickWatchDateChoices
 
 logger = logging.getLogger(__name__)
 
@@ -208,25 +209,32 @@ def test_notification(request):
 
 
 @require_http_methods(["GET", "POST"])
-def ui_preferences(request):
-    """Render the UI preferences settings page."""
+def preferences(request):
+    """Render the preferences settings page."""
     media_types = MediaTypes.values
     media_types.remove(MediaTypes.EPISODE.value)
 
     if request.method == "GET":
         return render(
             request,
-            "users/ui_preferences.html",
-            {"media_types": media_types},
+            "users/preferences.html",
+            {
+                "media_types": media_types,
+                "quick_watch_date_choices": QuickWatchDateChoices.choices,
+            },
         )
 
     # Prevent demo users from updating preferences
     if request.user.is_demo:
         messages.error(request, "This section is view-only for demo accounts.")
-        return redirect("ui_preferences")
+        return redirect("preferences")
 
     # Process form submission
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
+    request.user.quick_watch_date = request.POST.get(
+        "quick_watch_date",
+        QuickWatchDateChoices.CURRENT_DATE,
+    )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     # Update user preferences for each media type
@@ -241,7 +249,7 @@ def ui_preferences(request):
     request.user.save()
     messages.success(request, "Settings updated.")
 
-    return redirect("ui_preferences")
+    return redirect("preferences")
 
 
 @require_GET
