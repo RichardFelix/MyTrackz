@@ -40,6 +40,28 @@
         </div>
       </div>
 
+      {# Quick Watch Date #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">Bulk Completion Date</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">
+              When marking a TV show or season as completed, its episodes will be marked as completed with this date.
+            </p>
+          </div>
+          <select name="quick_watch_date"
+                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {% for choice in quick_watch_date_choices %}
+              <option value="{{ choice.0 }}"
+                      {% if user.quick_watch_date == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
       <div class="border-t border-gray-600 my-5"></div>
 
       {# Media Types Settings #}

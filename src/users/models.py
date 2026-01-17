@@ -82,6 +82,14 @@ class ListDetailSortChoices(models.TextChoices):
     MEDIA_TYPE = "media_type", "Media Type"
 
 
+class QuickWatchDateChoices(models.TextChoices):
+    """Choices for quick watch date behavior when bulk-marking media as completed."""
+
+    CURRENT_DATE = "current_date", "Current Date"
+    RELEASE_DATE = "release_date", "Release Date"
+    NO_DATE = "no_date", "No Date"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -249,6 +257,13 @@ class User(AbstractUser):
         help_text="Hide hover overlay on touch devices",
     )
 
+    # Tracking settings
+    quick_watch_date = models.CharField(
+        max_length=20,
+        default=QuickWatchDateChoices.CURRENT_DATE,
+        choices=QuickWatchDateChoices.choices,
+        help_text="Date to use when bulk-marking media as completed",
+    )
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
@@ -418,6 +433,10 @@ class User(AbstractUser):
                 name="book_status_valid",
                 condition=models.Q(book_status__in=MediaStatusChoices.values),
             ),
+            models.CheckConstraint(
+                name="quick_watch_date_valid",
+                condition=models.Q(quick_watch_date__in=QuickWatchDateChoices.values),
+            ),
         ]
 
     def update_preference(self, field_name, new_value):
@@ -458,6 +477,26 @@ class User(AbstractUser):
             self.save(update_fields=[field_name])
 
         return new_value
+
+    def resolve_watch_date(self, now, release_date):
+        """
+        Resolve the appropriate watch date based on user preference.
+
+        Args:
+            now: Pre-calculated current datetime
+            release_date: The release/air date for the specific media item
+
+        Returns:
+            datetime or None based on user preference
+        """
+        if self.quick_watch_date == QuickWatchDateChoices.NO_DATE:
+            return None
+
+        if self.quick_watch_date == QuickWatchDateChoices.RELEASE_DATE:
+            return release_date  # Will be None if not available in metadata
+
+        # CURRENT_DATE is the default
+        return now
 
     def get_enabled_media_types(self):
         """Return a list of enabled media type values based on user preferences."""

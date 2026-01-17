@@ -1414,6 +1414,8 @@ class Season(Media):
             latest_watched_ep_num = 0
 
         episodes_to_create = []
+
+        # Calculate current time once before the loop
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
@@ -1423,10 +1425,13 @@ class Season(Media):
 
             item = self.get_episode_item(episode["episode_number"], season_metadata)
 
+            # Resolve end_date based on user preference
+            end_date = self.user.resolve_watch_date(now, episode.get("air_date"))
+
             episode_db = Episode(
                 related_season=self,
                 item=item,
-                end_date=now,
+                end_date=end_date,
             )
             episodes_to_create.append(episode_db)
 
