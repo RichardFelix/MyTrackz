@@ -14,7 +14,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
-from users.models import QuickWatchDateChoices
+from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +221,8 @@ def preferences(request):
             {
                 "media_types": media_types,
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
+                "date_format_choices": DateFormatChoices.choices,
+                "time_format_choices": TimeFormatChoices.choices,
             },
         )
 
@@ -234,6 +236,14 @@ def preferences(request):
     request.user.quick_watch_date = request.POST.get(
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,
+    )
+    request.user.date_format = request.POST.get(
+        "date_format",
+        DateFormatChoices.ISO,
+    )
+    request.user.time_format = request.POST.get(
+        "time_format",
+        TimeFormatChoices.HOUR_24,
     )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 

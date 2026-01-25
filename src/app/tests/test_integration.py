@@ -52,8 +52,13 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text("Track Episode")
         self.page.get_by_role("button", name="Air date").click()
         self.page.get_by_role("button", name="Add watch").click()
+        # Episode 1 air date is 2008-01-20
+        expected_airdate = formats.date_format(
+            timezone.datetime(2008, 1, 20, tzinfo=timezone.get_current_timezone()),
+            "DATE_FORMAT",
+        )
         expect(self.page.get_by_role("main")).to_contain_text(
-            "Last watched: Jan. 20, 2008",
+            f"Last watched: {expected_airdate}",
         )
         self.page.get_by_role("link", name="Home").click()
         expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()

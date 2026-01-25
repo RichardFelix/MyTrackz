@@ -374,9 +374,9 @@
                           </h4>
                           <div class="text-sm text-gray-400 mt-1">
                             <p>
-                              {% if media.start_date %}{{ media.start_date|date_tracker_format }}{% endif %}
+                              {% if media.start_date %}{{ media.start_date|datetime_format:user }}{% endif %}
                               {% if media.start_date and media.end_date %}-{% endif %}
-                              {% if media.end_date %}{{ media.end_date|date_tracker_format }}{% endif %}
+                              {% if media.end_date %}{{ media.end_date|datetime_format:user }}{% endif %}
                             </p>
                           </div>
                           {% if media.score is not None %}
@@ -409,7 +409,8 @@
 {% endblock content %}
 
 {% block js %}
-  <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"></script>
+  <script src="{% static 'js/date-range.js' %}{% get_static_file_mtime 'js/date-range.js' %}"
+          data-date-format="{{ user.date_format }}"></script>
 
   <script src="{% static 'js/libraries/chartjs-4.4.9.min.js' %}"></script>
   <script src="{% static 'js/libraries/chartjs-datalabels-2.0.0.min.js' %}"></script>

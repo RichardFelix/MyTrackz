@@ -90,6 +90,22 @@ class QuickWatchDateChoices(models.TextChoices):
     NO_DATE = "no_date", "No Date"
 
 
+class DateFormatChoices(models.TextChoices):
+    """Choices for date format display."""
+
+    ISO = "Y-m-d", "2026-01-18 (ISO)"
+    EUROPEAN = "d/m/Y", "18/01/2026 (EU)"
+    US = "m/d/Y", "01/18/2026 (US)"
+    LONG = "M j, Y", "Jan 18, 2026"
+
+
+class TimeFormatChoices(models.TextChoices):
+    """Choices for time format display."""
+
+    HOUR_24 = "H:i", "14:30 (24-hour)"
+    HOUR_12 = "g:i A", "2:30 PM (12-hour)"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -263,6 +279,18 @@ class User(AbstractUser):
         default=QuickWatchDateChoices.CURRENT_DATE,
         choices=QuickWatchDateChoices.choices,
         help_text="Date to use when bulk-marking media as completed",
+    )
+    date_format = models.CharField(
+        max_length=20,
+        default=DateFormatChoices.ISO,
+        choices=DateFormatChoices.choices,
+        help_text="Preferred date display format",
+    )
+    time_format = models.CharField(
+        max_length=20,
+        default=TimeFormatChoices.HOUR_24,
+        choices=TimeFormatChoices.choices,
+        help_text="Preferred time display format",
     )
     # Calendar preferences
     calendar_layout = models.CharField(

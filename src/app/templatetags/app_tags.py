@@ -55,19 +55,47 @@ def slug(arg1):
 
 
 @register.filter
-def date_tracker_format(date):
-    """Format a datetime object to a readable string."""
-    if not date:
+def date_format(datetime, user):
+    """Format a datetime using user's preferred date format (date only, no time).
+
+    Args:
+        datetime: The datetime object to format
+        user: User object to get preferred date format
+    """
+    if not datetime:
         return None
+    local_dt = timezone.localtime(datetime)
+    return formats.date_format(local_dt, user.date_format)
 
-    local_dt = timezone.localtime(date)
 
-    date_format = "DATETIME_FORMAT" if settings.TRACK_TIME else "DATE_FORMAT"
+@register.filter
+def time_format(datetime, user):
+    """Format a datetime using user's preferred time format (time only, no date)."""
+    if not datetime:
+        return None
+    local_dt = timezone.localtime(datetime)
+    return formats.time_format(local_dt, user.time_format)
 
-    return formats.date_format(
-        local_dt,
-        date_format,
-    )
+
+@register.filter
+def datetime_format(datetime, user):
+    """Format a datetime using user's preferred formats.
+
+    Includes time only if TRACK_TIME setting is enabled.
+
+    Args:
+        datetime: The datetime object to format
+        user: User object to get preferred date/time format
+    """
+    if not datetime:
+        return None
+    local_dt = timezone.localtime(datetime)
+    formatted_date = formats.date_format(local_dt, user.date_format)
+
+    if settings.TRACK_TIME:
+        formatted_time = formats.time_format(local_dt, user.time_format)
+        return f"{formatted_date} {formatted_time}"
+    return formatted_date
 
 
 @register.filter
@@ -186,28 +214,25 @@ def status_color(status):
 
 
 @register.filter
-def natural_day(value):
+def natural_day(datetime, user):
     """Format date with natural language (Today, Tomorrow, etc.)."""
     # Get today's date in the current timezone
     today = timezone.localdate()
 
     # Extract just the date part for comparison
-    value_date = value.date()
+    datetime_date = datetime.date()
 
     # Calculate the difference in days
-    diff = value_date - today
+    diff = datetime_date - today
     days = diff.days
 
-    threshold = 5
     if days == 0:
         return "Today"
     if days == 1:
         return "Tomorrow"
-    if days > 1 and days <= threshold:
-        return f"In {days} days"
 
     # For dates further away
-    return value.strftime("%b %d")
+    return datetime_format(datetime, user)
 
 
 @register.filter
