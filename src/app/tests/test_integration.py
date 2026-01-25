@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime
+from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -54,25 +54,13 @@ class IntegrationTest(StaticLiveServerTestCase):
         self.page.get_by_role("button", name="Air date").click()
         self.page.get_by_role("button", name="Add watch").click()
 
-        datetime_format = "%Y-%m-%d %H:%M"
+        datetime_format = "%Y-%m-%d"
 
         # Episode 1 air date is 2008-01-20
         fixed_date = date(2008, 1, 20)
-        now_local = timezone.localtime(timezone.now())
-
-        release_date = datetime(
-            year=fixed_date.year,
-            month=fixed_date.month,
-            day=fixed_date.day,
-            hour=now_local.hour,
-            minute=now_local.minute,
-            second=now_local.second,
-            microsecond=now_local.microsecond,
-            tzinfo=now_local.tzinfo,
-        )
 
         expect(self.page.get_by_role("main")).to_contain_text(
-            f"Last watched: {release_date.strftime(datetime_format)}",
+            f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
         expect(self.page.get_by_text("Breaking Bad S1 1 Episode")).to_be_visible()
