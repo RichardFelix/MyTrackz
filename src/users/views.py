@@ -235,6 +235,7 @@ def preferences(request):
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,
     )
+    request.user.progress_bar = "progress_bar" in request.POST
     media_types_checked = request.POST.getlist("media_types_checkboxes")
 
     # Update user preferences for each media type

@@ -1505,6 +1505,9 @@
   .pl-\[36\.68px\] {
     padding-left: 36.68px;
   }
+  .pb-3 {
+    padding-bottom: calc(var(--spacing) * 3);
+  }
   .text-center {
     text-align: center;
   }

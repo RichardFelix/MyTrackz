@@ -264,6 +264,13 @@ class User(AbstractUser):
         choices=QuickWatchDateChoices.choices,
         help_text="Date to use when bulk-marking media as completed",
     )
+
+    # Progress bar
+    progress_bar = models.BooleanField(
+        default=False,
+        help_text="Show progress bar",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,

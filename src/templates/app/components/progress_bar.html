@@ -1,0 +1,23 @@
+{% load app_tags %}
+
+{% if user.progress_bar %}
+   <div>
+   {% if media.status == 'In progress' %}
+      {% if media.max_progress and media.max_progress > 0%}
+         {% widthratio media.progress media.max_progress 100 as progress_width %}
+         <div style="background-color: {% if progress_width == '100' %} purple {% else %} blue {% endif %}; height: 5px; width: {{ progress_width }}%;"></div>
+      {% else %}
+         <div style="border: none; border-top: 5px dotted blue; height: 5px; width: 100%;"></div>
+      {% endif %}
+   {% elif media.status == 'Completed' %}
+      <div style="background-color: green; height: 5px; width: 100%;"></div>
+   {% elif media.status == 'Paused' %}
+      <div style="background-color: yellow; height: 5px; width: 100%;"></div>
+   {% elif media.status == 'Dropped' %}
+      <div style="background-color: red; height: 5px; width: 100%;"></div>
+   {% elif media.status == 'Planning' %}
+      <div style="background-color: white; height: 5px; width: 100%;"></div>
+   {% endif %}
+   
+   </div>
+{% endif %}
