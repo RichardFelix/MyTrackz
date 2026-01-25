@@ -4,6 +4,7 @@ from django import template
 from django.conf import settings
 from django.urls import reverse
 from django.utils import formats, timezone
+from django.utils.dateparse import parse_date
 from django.utils.html import format_html
 from unidecode import unidecode
 
@@ -66,6 +67,20 @@ def date_format(datetime, user):
         return None
     local_dt = timezone.localtime(datetime)
     return formats.date_format(local_dt, user.date_format)
+
+
+@register.filter
+def iso_date_format(value, user):
+    """Format an ISO date string (YYYY-MM-DD) using user's preferred date format.
+
+    If value is not a valid ISO date string, returns the original value.
+    """
+    if isinstance(value, str):
+        date_obj = parse_date(value)
+        if date_obj:
+            return formats.date_format(date_obj, user.date_format)
+
+    return value
 
 
 @register.filter

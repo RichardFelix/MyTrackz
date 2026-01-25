@@ -441,9 +441,9 @@
             <div class="mb-4">
               <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
               {% if value|is_list %}
-                {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
+                {% for item in value %}<p class="text-gray-200">{{ item|iso_date_format:request.user }}</p>{% endfor %}
               {% else %}
-                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+                <p class="text-gray-200">{{ value|default_if_none:"Unknown"|iso_date_format:request.user }}</p>
               {% endif %}
             </div>
           {% endfor %}
