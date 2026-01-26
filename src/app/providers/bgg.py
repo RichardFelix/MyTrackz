@@ -29,6 +29,7 @@ from app import helpers
 
 logger = logging.getLogger(__name__)
 base_url = "https://boardgamegeek.com/xmlapi2"
+RESULTS_PER_PAGE = 20
 
 # Rate limiting: Disabled - BGG handles rate limiting on their end
 # If you encounter 429/500/503 errors, enable by setting MIN_REQUEST_INTERVAL > 0
@@ -68,16 +69,14 @@ def _bgg_request(endpoint, params=None):
     headers = {
         "User-Agent": "Yamtrack/1.0 (https://github.com/FuzzyGrim/Yamtrack)"
     }
-    
-    # BGG now requires Bearer token authorization (as of Nov 2024)
+
     bgg_token = getattr(settings, "BGG_API_TOKEN", None)
     if bgg_token:
         headers["Authorization"] = f"Bearer {bgg_token}"
 
     try:
         response = requests.get(url, params=params, headers=headers, timeout=10)
-        
-        # Check for missing/invalid authorization
+
         if response.status_code == 401:
             logger.error(
                 "BGG API requires authorization. Register at "
@@ -87,13 +86,11 @@ def _bgg_request(endpoint, params=None):
         
         response.raise_for_status()
 
-        # BGG may return 202 (queued request), need to retry
         if response.status_code == 202:
             logger.info("BGG queued request, retrying...")
             time.sleep(2)
             return _bgg_request(endpoint, params)
 
-        # Parse XML response
         root = ET.fromstring(response.text)
         return root
 
@@ -130,7 +127,6 @@ def search(query, page=1):
         }
         root = _bgg_request("search", params)
 
-        # Collect game IDs and names from search results
         game_ids = []
         game_names = {}
         for item in root.findall(".//item"):
@@ -146,18 +142,15 @@ def search(query, page=1):
     
     game_ids = game_data["ids"]
     game_names = game_data["names"]
-    
-    # Check if this specific page is cached
+
     page_cache_key = f"bgg_search_page_{query.lower()}_p{page}"
     cached_page = cache.get(page_cache_key)
     if cached_page:
         return cached_page
-    
-    # Paginate: 20 results per page
-    per_page = 20
+
     total_results = len(game_ids)
-    start_idx = (page - 1) * per_page
-    end_idx = start_idx + per_page
+    start_idx = (page - 1) * RESULTS_PER_PAGE
+    end_idx = start_idx + RESULTS_PER_PAGE
     page_ids = game_ids[start_idx:end_idx]
     
     # Fetch thumbnails only for current page
@@ -206,12 +199,11 @@ def search(query, page=1):
 
     data = helpers.format_search_response(
         page=page,
-        per_page=per_page,
+        per_page=RESULTS_PER_PAGE,
         total_results=total_results,
         results=results,
     )
 
-    # Cache this page for 1 day
     cache.set(page_cache_key, data, 60 * 60 * 24)
     
     return data
@@ -296,6 +288,5 @@ def metadata(media_id):
         "related": {},
     }
 
-    # Cache for 7 days
     cache.set(cache_key, result, 60 * 60 * 24 * 7)
     return result
