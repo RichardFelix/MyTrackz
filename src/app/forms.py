@@ -321,8 +321,8 @@ class BoardgameForm(MediaForm):
         model = BoardGame
         labels = {
             "progress": (
-                f"Progress "
-                f"({media_type_config.get_unit(MediaTypes.BOARDGAME.value, short=False)}s)"
+                "Progress "
+                f"({config.get_unit(MediaTypes.BOARDGAME.value, short=False)}s)"
             ),
         }
 

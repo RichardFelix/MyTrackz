@@ -157,7 +157,7 @@ MEDIA_TYPE_CONFIG = {
     },
     MediaTypes.BOARDGAME.value: {
         "sources": [Sources.BGG],
-        "default_source": Sources.BGG.label,
+        "default_source": Sources.BGG,
         "sample_query": "Catan",
         "unicode_icon": "🎲",
         "verb": ("play", "played"),
