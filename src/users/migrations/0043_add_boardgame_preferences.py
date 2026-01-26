@@ -6,9 +6,9 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0052_add_boardgame'),
+        ('app', '0053_add_boardgame'),
         ('auth', '0012_alter_user_first_name_max_length'),
-        ('users', '0037_remove_user_home_sort_valid_alter_user_home_sort'),
+        ('users', '0042_add_date_time_format_preferences'),
     ]
 
     operations = [

@@ -12,7 +12,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0051_migrate_simkl_periodoc_tasks'),
+        ('app', '0052_alter_item_title'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
