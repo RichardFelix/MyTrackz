@@ -137,7 +137,6 @@ def search(query, page=1):
                 game_names[game_id] = name_elem.get("value", "Unknown")
         
         game_data = {"ids": game_ids, "names": game_names}
-        # Cache game IDs for 1 day
         cache.set(ids_cache_key, game_data, 60 * 60 * 24)
     
     game_ids = game_data["ids"]
