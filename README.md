@@ -118,6 +118,7 @@ Then run the following commands.
 
 ```bash
 python -m pip install -U -r requirements-dev.txt
+pre-commit install
 cd src
 python manage.py migrate
 python manage.py runserver & celery -A config worker --beat --scheduler django --loglevel DEBUG & tailwindcss -i ./static/css/input.css -o ./static/css/tailwind.css --watch
