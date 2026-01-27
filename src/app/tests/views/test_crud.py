@@ -250,5 +250,3 @@ class DeleteMedia(TestCase):
             Episode.objects.filter(related_season__user=self.user).count(),
             0,
         )
-
-

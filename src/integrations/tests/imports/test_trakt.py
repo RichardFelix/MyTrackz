@@ -269,5 +269,3 @@ class ImportTrakt(TestCase):
         self.assertEqual(importer.username, "testuser")
         self.assertIsNone(importer.refresh_token)
         self.assertEqual(importer.mode, "new")
-
-

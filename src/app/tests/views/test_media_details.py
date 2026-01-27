@@ -114,5 +114,3 @@ class MediaDetailsViewTests(TestCase):
             Sources.TMDB.value,
             [1],
         )
-
-

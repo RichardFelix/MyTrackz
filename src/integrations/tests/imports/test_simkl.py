@@ -229,5 +229,3 @@ class ImportSimkl(TestCase):
 
         for episode in season1_episodes:
             self.assertIsNotNone(episode.end_date)
-
-

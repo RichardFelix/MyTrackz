@@ -158,5 +158,3 @@ class ImportYamtrackPartials(TestCase):
             books[2].end_date,
             datetime(2024, 3, 9, 0, 0, 0, tzinfo=UTC),
         )
-
-
