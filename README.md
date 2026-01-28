@@ -6,7 +6,7 @@
 ![Codecov](https://codecov.io/github/FuzzyGrim/Yamtrack/branch/dev/graph/badge.svg?token=PWUG660120)
 ![GitHub](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
-Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games and books.
+Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
 ## 🚀 Demo
 
@@ -14,7 +14,7 @@ You can try the app at [yamtrack.fuzzygrim.com](https://yamtrack.fuzzygrim.com) 
 
 ## ✨ Features
 
-- 🎬 Track movies, tv shows, anime, manga, games, books and comics.
+- 🎬 Track movies, tv shows, anime, manga, games, books, comics, and board games.
 - 📺 Track each season of a tv show individually and episodes watched.
 - ⭐ Save score, status, progress, repeats (rewatches, rereads...), start and end dates, or write a note.
 - 📈 Keep a tracking history with each action with a media, such as when you added it, when you started it, when you started watching it again, etc.
@@ -109,6 +109,7 @@ MAL_API=API_KEY
 IGDB_ID=IGDB_ID
 IGDB_SECRET=IGDB_SECRET
 STEAM_API_KEY=STEAM_API_SECRET
+BGG_API_TOKEN=BGG_API_TOKEN
 SECRET=SECRET
 DEBUG=True
 ```

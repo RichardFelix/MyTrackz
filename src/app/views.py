@@ -759,6 +759,7 @@ def history_modal(
                     history,
                     media_type,
                     media_entry_number,
+                    request.user,
                 ),
             )
     return render(

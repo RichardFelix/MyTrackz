@@ -3,16 +3,16 @@
 {% load app_tags %}
 
 {% block title %}
-  UI Preferences - Yamtrack
+  Preferences - Yamtrack
 {% endblock title %}
 
 {% block settings_content %}
   <div class="bg-[#2a2f35] rounded-lg p-6">
     <div class="flex items-center mb-4">
-      {% include "app/icons/eye.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-      <h2 class="text-xl font-semibold">UI Preferences</h2>
+      {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+      <h2 class="text-xl font-semibold">Preferences</h2>
     </div>
-    <p class="text-gray-400 mb-5 text-sm">Customize the look and behavior of the user interface.</p>
+    <p class="text-gray-400 mb-5 text-sm">Customize the look and behavior of the application.</p>
     <form method="post">
       {% csrf_token %}
 
@@ -37,6 +37,68 @@
             <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
             </div>
           </label>
+        </div>
+      </div>
+
+      {# Quick Watch Date #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">Bulk Completion Date</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">
+              When marking a TV show or season as completed, its episodes will be marked as completed with this date.
+            </p>
+          </div>
+          <select name="quick_watch_date"
+                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {% for choice in quick_watch_date_choices %}
+              <option value="{{ choice.0 }}"
+                      {% if user.quick_watch_date == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# Date Format #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/calendar.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">Date Format</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">Choose how dates are displayed throughout the application.</p>
+          </div>
+          <select name="date_format"
+                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {% for choice in date_format_choices %}
+              <option value="{{ choice.0 }}"
+                      {% if user.date_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# Time Format #}
+      <div class="mb-5">
+        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
+          <div class="flex-1">
+            <div class="flex items-center text-gray-200 mb-1">
+              {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
+              <span class="text-sm font-medium">Time Format</span>
+            </div>
+            <p class="text-xs text-gray-400 ml-7">Choose between 12-hour or 24-hour clock display.</p>
+          </div>
+          <select name="time_format"
+                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            {% for choice in time_format_choices %}
+              <option value="{{ choice.0 }}"
+                      {% if user.time_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+            {% endfor %}
+          </select>
         </div>
       </div>
 

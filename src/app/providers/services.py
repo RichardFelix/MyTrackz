@@ -10,6 +10,7 @@ from requests_ratelimiter import LimiterAdapter, LimiterSession
 
 from app.models import MediaTypes, Sources
 from app.providers import (
+    bgg,
     comicvine,
     hardcover,
     igdb,
@@ -72,7 +73,7 @@ session.mount(
 )
 session.mount(
     "https://api.hardcover.app/v1/graphql",
-    LimiterAdapter(per_minute=55),
+    LimiterAdapter(per_minute=50),
 )
 
 
@@ -153,7 +154,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         # handle rate limiting
         if status_code == requests.codes.too_many_requests:
-            seconds_to_wait = int(error_resp.headers["Retry-After"])
+            seconds_to_wait = int(error_resp.headers.get("Retry-After", 5))
             logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
             time.sleep(seconds_to_wait + 3)
             logger.info("Retrying request")
@@ -207,6 +208,7 @@ def get_media_metadata(
         if source == Sources.HARDCOVER.value
         else openlibrary.book(media_id),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
+        MediaTypes.BOARDGAME.value: lambda: bgg.metadata(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -231,5 +233,7 @@ def search(media_type, query, page, source=None):
             response = hardcover.search(query, page)
     elif media_type == MediaTypes.COMIC.value:
         response = comicvine.search(query, page)
+    elif media_type == MediaTypes.BOARDGAME.value:
+        response = bgg.search(query, page)
 
     return response

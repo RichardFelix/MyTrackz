@@ -256,14 +256,14 @@
               {% if current_instance.start_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Started:</span>
-                  <span class="text-gray-200">{{ current_instance.start_date|date_tracker_format }}</span>
+                  <span class="text-gray-200">{{ current_instance.start_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
               {% if current_instance.end_date %}
                 <div class="flex @max-[210px]:flex-col justify-between text-sm">
                   <span class="text-gray-400">Ended:</span>
-                  <span class="text-gray-200">{{ current_instance.end_date|date_tracker_format }}</span>
+                  <span class="text-gray-200">{{ current_instance.end_date|datetime_format:user }}</span>
                 </div>
               {% endif %}
 
@@ -339,11 +339,11 @@
                       {% endif %}
 
                       {% if user_media.start_date %}
-                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">Started: {{ user_media.start_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.end_date %}
-                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|date_tracker_format }}</div>
+                        <div class="text-xs text-gray-400">Finished: {{ user_media.end_date|datetime_format:user }}</div>
                       {% endif %}
 
                       {% if user_media.notes %}
@@ -441,9 +441,9 @@
             <div class="mb-4">
               <h3 class="text-sm font-semibold text-gray-400">{{ key|no_underscore|upper }}</h3>
               {% if value|is_list %}
-                {% for item in value %}<p class="text-gray-200">{{ item }}</p>{% endfor %}
+                {% for item in value %}<p class="text-gray-200">{{ item|iso_date_format:request.user }}</p>{% endfor %}
               {% else %}
-                <p class="text-gray-200">{{ value|default_if_none:"Unknown" }}</p>
+                <p class="text-gray-200">{{ value|default_if_none:"Unknown"|iso_date_format:request.user }}</p>
               {% endif %}
             </div>
           {% endfor %}
@@ -453,6 +453,16 @@
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
                target="_blank">{{ media.source|source_readable }}</a>
           </div>
+          {% if media.external_links %}
+            <div class="mt-4">
+              <h3 class="text-sm font-semibold text-gray-400">EXTERNAL LINKS</h3>
+              {% for name, url in media.external_links.items %}
+                <a href="{{ url }}"
+                   class="text-gray-200 hover:text-indigo-500 transition-colors duration-200 block"
+                   target="_blank">{{ name }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
         {% else %}
           <div class="text-gray-200">No details available</div>
         {% endif %}
@@ -566,7 +576,8 @@
                   </div>
                   {% if episode.history %}
                     <p class="text-xs text-gray-400 mt-2 px-4">
-                      Last watched: {{ episode.history.0.end_date|date_tracker_format|default_if_none:"No date provided" }}
+                      Last watched: {{ episode.history.0.end_date|datetime_format:user }}
+                      {% if not episode.history.0.end_date %}No date provided{% endif %}
                       {% if episode.history|length > 1 %}• Watched {{ episode.history|length }} times{% endif %}
                     </p>
                   {% endif %}

@@ -309,6 +309,9 @@
   .top-2 {
     top: calc(var(--spacing) * 2);
   }
+  .top-3 {
+    top: calc(var(--spacing) * 3);
+  }
   .top-10 {
     top: calc(var(--spacing) * 10);
   }
@@ -636,6 +639,9 @@
   .max-h-60 {
     max-height: calc(var(--spacing) * 60);
   }
+  .max-h-72 {
+    max-height: calc(var(--spacing) * 72);
+  }
   .max-h-80 {
     max-height: calc(var(--spacing) * 80);
   }
@@ -789,6 +795,9 @@
   .flex-1 {
     flex: 1;
   }
+  .flex-shrink-0 {
+    flex-shrink: 0;
+  }
   .shrink-0 {
     flex-shrink: 0;
   }
@@ -851,6 +860,9 @@
   }
   .resize {
     resize: both;
+  }
+  .resize-none {
+    resize: none;
   }
   .list-inside {
     list-style-position: inside;
@@ -2268,6 +2280,16 @@
   .focus\:ring-indigo-200 {
     &:focus {
       --tw-ring-color: var(--color-indigo-200);
+    }
+  }
+  .focus\:ring-indigo-300 {
+    &:focus {
+      --tw-ring-color: var(--color-indigo-300);
+    }
+  }
+  .focus\:ring-indigo-400 {
+    &:focus {
+      --tw-ring-color: var(--color-indigo-400);
     }
   }
   .focus\:ring-indigo-500 {
