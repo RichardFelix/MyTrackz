@@ -2,6 +2,7 @@ import logging
 import time
 
 import requests
+from defusedxml import ElementTree
 from django.conf import settings
 from pyrate_limiter import RedisBucket
 from redis import ConnectionPool
@@ -75,6 +76,10 @@ session.mount(
     "https://api.hardcover.app/v1/graphql",
     LimiterAdapter(per_minute=50),
 )
+session.mount(
+    "https://boardgamegeek.com/xmlapi2",
+    LimiterAdapter(per_second=2),
+)
 
 
 class ProviderAPIError(Exception):
@@ -127,8 +132,29 @@ def raise_not_found_error(provider, media_id, media_type="item"):
     raise ProviderAPIError(provider, mock_error, error_msg)
 
 
-def api_request(provider, method, url, params=None, data=None, headers=None):
-    """Make a request to the API and return the response as a dictionary."""
+def api_request(
+    provider,
+    method,
+    url,
+    params=None,
+    data=None,
+    headers=None,
+    response_format="json",
+):
+    """Make a request to the API and return the response.
+
+    Args:
+        provider: Provider identifier for error messages
+        method: HTTP method ("GET" or "POST")
+        url: Request URL
+        params: Query params for GET, JSON body for POST
+        data: Raw data for POST
+        headers: Request headers
+        response_format: "json" (default) or "xml" for XML parsing
+
+    Returns:
+        Parsed JSON dict or ElementTree for XML
+    """
     try:
         request_kwargs = {
             "url": url,
@@ -146,6 +172,9 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
 
         response = request_func(**request_kwargs)
         response.raise_for_status()
+
+        if response_format == "xml":
+            return ElementTree.fromstring(response.text)
         return response.json()
 
     except requests.exceptions.HTTPError as error:
@@ -165,6 +194,7 @@ def api_request(provider, method, url, params=None, data=None, headers=None):
                 params=params,
                 data=data,
                 headers=headers,
+                response_format=response_format,
             )
 
         raise error from None
@@ -208,7 +238,7 @@ def get_media_metadata(
         if source == Sources.HARDCOVER.value
         else openlibrary.book(media_id),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
-        MediaTypes.BOARDGAME.value: lambda: bgg.metadata(media_id),
+        MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
     }
     return metadata_retrievers[media_type]()
 

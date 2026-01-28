@@ -14,6 +14,7 @@ COLORS = {
     "yellow": {"text": "text-yellow-400", "hex": "#eab308"},
     "fuchsia": {"text": "text-fuchsia-400", "hex": "#d946ef"},
     "cyan": {"text": "text-cyan-400", "hex": "#06b6d4"},
+    "lime": {"text": "text-lime-400", "hex": "#84cc16"},
 }
 
 # --- Central Configuration Dictionary ---
@@ -161,8 +162,8 @@ MEDIA_TYPE_CONFIG = {
         "sample_query": "Catan",
         "unicode_icon": "🎲",
         "verb": ("play", "played"),
-        "text_color": "text-lime-400",
-        "stats_color": "#84cc16",
+        "text_color": COLORS["lime"]["text"],
+        "stats_color": COLORS["lime"]["hex"],
         "svg_icon": """
             <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
             <circle cx="8" cy="8" r="2"/>
@@ -170,7 +171,7 @@ MEDIA_TYPE_CONFIG = {
             <circle cx="16" cy="16" r="2"/>
             <path d="M8 16v-2"/>""",
         "unit": ("#", "Play"),
-        "date_key": "publish_date",
+        "date_key": "year",
     },
 }
 

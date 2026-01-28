@@ -24,6 +24,7 @@
     --color-amber-700: oklch(55.5% 0.163 48.998);
     --color-yellow-400: oklch(85.2% 0.199 91.936);
     --color-yellow-600: oklch(68.1% 0.162 75.834);
+    --color-lime-400: oklch(84.1% 0.238 128.85);
     --color-green-400: oklch(79.2% 0.209 151.711);
     --color-emerald-300: oklch(84.5% 0.143 164.978);
     --color-emerald-400: oklch(76.5% 0.177 163.223);
@@ -1632,6 +1633,9 @@
   .text-indigo-600 {
     color: var(--color-indigo-600);
   }
+  .text-lime-400 {
+    color: var(--color-lime-400);
+  }
   .text-orange-400 {
     color: var(--color-orange-400);
   }
@@ -2280,11 +2284,6 @@
   .focus\:ring-indigo-200 {
     &:focus {
       --tw-ring-color: var(--color-indigo-200);
-    }
-  }
-  .focus\:ring-indigo-300 {
-    &:focus {
-      --tw-ring-color: var(--color-indigo-300);
     }
   }
   .focus\:ring-indigo-400 {
