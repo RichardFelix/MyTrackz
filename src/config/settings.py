@@ -257,13 +257,16 @@ LOGGING = {
     "disable_existing_loggers": False,
     "loggers": {
         "requests_ratelimiter.requests_ratelimiter": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
         },
         "psycopg": {
             "level": "DEBUG" if DEBUG else "WARNING",
         },
         "urllib3": {
-            "level": "DEBUG" if DEBUG else "WARNING",
+            "level": "WARNING",
+        },
+        "celery.utils.functional": {
+            "level": "WARNING",
         },
     },
     "formatters": {
