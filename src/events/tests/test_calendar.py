@@ -699,6 +699,7 @@ class ReloadCalendarTaskTests(TestCase):
         """Test process_other with invalid date."""
         # Setup mock with invalid date
         mock_get_media_metadata.return_value = {
+            "max_progress": None,
             "details": {
                 "release_date": "invalid-date",
             },
@@ -716,6 +717,7 @@ class ReloadCalendarTaskTests(TestCase):
         """Test process_other with no date."""
         # Setup mock with no date
         mock_get_media_metadata.return_value = {
+            "max_progress": None,
             "details": {},
         }
 
