@@ -245,27 +245,24 @@ def get_media_metadata(
 
 def search(media_type, query, page, source=None):
     """Search for media based on the query and return the results."""
-    if media_type == MediaTypes.MANGA.value:
-        if source == Sources.MANGAUPDATES.value:
-            response = mangaupdates.search(query, page)
-        else:
-            response = mal.search(media_type, query, page)
-    elif media_type == MediaTypes.ANIME.value:
-        response = mal.search(media_type, query, page)
-    elif media_type in (MediaTypes.TV.value, MediaTypes.MOVIE.value):
-        response = tmdb.search(media_type, query, page)
-    elif media_type in (MediaTypes.SEASON.value, MediaTypes.EPISODE.value):
-        response = tmdb.search(MediaTypes.TV.value, query, page)
-    elif media_type == MediaTypes.GAME.value:
-        response = igdb.search(query, page)
-    elif media_type == MediaTypes.BOOK.value:
-        if source == Sources.OPENLIBRARY.value:
-            response = openlibrary.search(query, page)
-        else:
-            response = hardcover.search(query, page)
-    elif media_type == MediaTypes.COMIC.value:
-        response = comicvine.search(query, page)
-    elif media_type == MediaTypes.BOARDGAME.value:
-        response = bgg.search(query, page)
-
-    return response
+    search_handlers = {
+        MediaTypes.MANGA.value: lambda: (
+            mangaupdates.search(query, page)
+            if source == Sources.MANGAUPDATES.value
+            else mal.search(media_type, query, page)
+        ),
+        MediaTypes.ANIME.value: lambda: mal.search(media_type, query, page),
+        MediaTypes.TV.value: lambda: tmdb.search(media_type, query, page),
+        MediaTypes.MOVIE.value: lambda: tmdb.search(media_type, query, page),
+        MediaTypes.SEASON.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
+        MediaTypes.EPISODE.value: lambda: tmdb.search(MediaTypes.TV.value, query, page),
+        MediaTypes.GAME.value: lambda: igdb.search(query, page),
+        MediaTypes.BOOK.value: lambda: (
+            openlibrary.search(query, page)
+            if source == Sources.OPENLIBRARY.value
+            else hardcover.search(query, page)
+        ),
+        MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
+        MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+    }
+    return search_handlers[media_type]()
