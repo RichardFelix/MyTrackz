@@ -289,10 +289,14 @@ def process_anime_bulk(items, events_bulk):
 
         if episodes:
             for episode in episodes:
-                episode_datetime = datetime.fromtimestamp(
-                    episode["airingAt"],
-                    tz=ZoneInfo("UTC"),
-                )
+                # when schedule less than total episodes and end date is null
+                if episode["airingAt"] is None:
+                    episode_datetime = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+                else:
+                    episode_datetime = datetime.fromtimestamp(
+                        episode["airingAt"],
+                        tz=ZoneInfo("UTC"),
+                    )
                 events_bulk.append(
                     Event(
                         item=item,
@@ -353,35 +357,37 @@ def get_anime_schedule_bulk(media_ids):
             total_episodes = media["episodes"]
             mal_id = str(media["idMal"])
 
-            # First check if we know the total episode count
-            if total_episodes:
-                if airing_schedule:
-                    # Filter out episodes beyond the total count
-                    original_length = len(airing_schedule)
-                    airing_schedule = [
-                        episode
-                        for episode in airing_schedule
-                        if episode["episode"] <= total_episodes
-                    ]
+            if not total_episodes:
+                continue
 
-                    # Log if any filtering occurred
-                    if original_length > len(airing_schedule):
-                        logger.info(
-                            "Filtered episodes for MAL ID %s - keep only %s episodes",
-                            mal_id,
-                            total_episodes,
-                        )
+            if airing_schedule:
+                # Filter out episodes beyond the total count
+                original_length = len(airing_schedule)
+                airing_schedule = [
+                    episode
+                    for episode in airing_schedule
+                    if episode["episode"] <= total_episodes
+                ]
 
-                # Add final episode if schedule is missing or incomplete
-                if (
-                    not airing_schedule
-                    or airing_schedule[-1]["episode"] < total_episodes
-                ):
-                    end_date_timestamp = anilist_date_parser(media["endDate"])
-                    if end_date_timestamp:
-                        airing_schedule.append(
-                            {"episode": total_episodes, "airingAt": end_date_timestamp},
-                        )
+                # Log if any filtering occurred
+                if original_length > len(airing_schedule):
+                    logger.info(
+                        "Filtered episodes for MAL ID %s - keep only %s episodes",
+                        mal_id,
+                        total_episodes,
+                    )
+
+            # incomplete data from AniList
+            if not airing_schedule or airing_schedule[-1]["episode"] < total_episodes:
+                logger.info(
+                    "Adding final episode for MAL ID %s - Ep %s",
+                    mal_id,
+                    total_episodes,
+                )
+                end_date_timestamp = anilist_date_parser(media["endDate"])
+                airing_schedule.append(
+                    {"episode": total_episodes, "airingAt": end_date_timestamp},
+                )
 
             # Store the processed schedule
             all_data[mal_id] = airing_schedule
