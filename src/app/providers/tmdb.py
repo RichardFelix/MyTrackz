@@ -163,7 +163,8 @@ def movie(media_id):
             )
 
             if response.get("belongs_to_collection", {}) is not None and (
-            collection_id := response.get("belongs_to_collection", {}).get("id")):
+                collection_id := response.get("belongs_to_collection", {}).get("id")
+            ):
                 collection_response = services.api_request(
                     Sources.TMDB.value,
                     "GET",
@@ -179,8 +180,9 @@ def movie(media_id):
         collection_items = get_collection(collection_response)
         collection_ids = [item["media_id"] for item in collection_items]
         recommended_items = response.get("recommendations", {}).get("results", [])
-        filtered_recommendations = [item for item in recommended_items
-                                    if item["id"] not in collection_ids]
+        filtered_recommendations = [
+            item for item in recommended_items if item["id"] not in collection_ids
+        ]
 
         data = {
             "media_id": media_id,
@@ -601,6 +603,7 @@ def get_related(related_medias, media_type, parent_response=None):
 
 def get_collection(collection_response):
     """Format media collection list to match related media."""
+
     def date_key(media):
         date = media.get("release_date", "")
         if date is None or date == "":
@@ -610,11 +613,17 @@ def get_collection(collection_response):
         return date
 
     parts = sorted(collection_response.get("parts", []), key=date_key)
-    return [{"source": Sources.TMDB.value,
-             "media_type": MediaTypes.MOVIE.value,
-             "image": get_image_url(media["poster_path"]),
-             "media_id": media["id"],
-             "title": get_title(media)} for media in parts]
+    return [
+        {
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "image": get_image_url(media["poster_path"]),
+            "media_id": media["id"],
+            "title": get_title(media),
+        }
+        for media in parts
+    ]
+
 
 def process_episodes(season_metadata, episodes_in_db):
     """Process the episodes for the selected season."""
