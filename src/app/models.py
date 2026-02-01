@@ -835,7 +835,7 @@ class Media(models.Model):
         """Update fields depending on the progress of the media."""
         if self.progress < 0:
             self.progress = 0
-        else:
+        elif self.status == Status.IN_PROGRESS.value:
             max_progress = providers.services.get_media_metadata(
                 self.item.media_type,
                 self.item.media_id,
