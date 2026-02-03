@@ -160,14 +160,12 @@ class ReloadCalendarTaskTests(TestCase):
                 datetime=timezone.now(),
             ),
         )
-        mock_process_other.side_effect = (
-            lambda item, events_bulk: events_bulk.append(
-                Event(
-                    item=item,
-                    content_number=1,
-                    datetime=timezone.now(),
-                ),
-            )
+        mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
+            Event(
+                item=item,
+                content_number=1,
+                datetime=timezone.now(),
+            ),
         )
         # Setup mock for process_anime_bulk to create events for anime items
         mock_process_anime_bulk.side_effect = lambda items, events_bulk: [
@@ -214,14 +212,12 @@ class ReloadCalendarTaskTests(TestCase):
     def test_fetch_releases_specific_items(self, mock_process_other):
         """Test fetch_releases with specific items to process."""
         # Setup mock
-        mock_process_other.side_effect = (
-            lambda item, events_bulk: events_bulk.append(
-                Event(
-                    item=item,
-                    content_number=1,
-                    datetime=timezone.now(),
-                ),
-            )
+        mock_process_other.side_effect = lambda item, events_bulk: events_bulk.append(
+            Event(
+                item=item,
+                content_number=1,
+                datetime=timezone.now(),
+            ),
         )
 
         # Call the task with specific items
@@ -703,6 +699,7 @@ class ReloadCalendarTaskTests(TestCase):
         """Test process_other with invalid date."""
         # Setup mock with invalid date
         mock_get_media_metadata.return_value = {
+            "max_progress": None,
             "details": {
                 "release_date": "invalid-date",
             },
@@ -720,6 +717,7 @@ class ReloadCalendarTaskTests(TestCase):
         """Test process_other with no date."""
         # Setup mock with no date
         mock_get_media_metadata.return_value = {
+            "max_progress": None,
             "details": {},
         }
 
@@ -767,10 +765,13 @@ class ReloadCalendarTaskTests(TestCase):
         expected_date = datetime.datetime.fromtimestamp(870739200, tz=ZoneInfo("UTC"))
         self.assertEqual(events_bulk[0].datetime, expected_date)
 
+    @patch("events.calendar.services.get_media_metadata")
     @patch("events.calendar.services.api_request")
-    def test_process_anime_bulk_no_matching_anime_anilist(self, mock_api_request):
+    def test_process_anime_bulk_no_matching_anime_anilist(
+        self, mock_api_request, mock_get_media_metadata
+    ):
         """Test process_anime_bulk with no matching anime in Anilist."""
-        # Setup mock with empty media list
+        # Setup mock with empty media list (AniList returns nothing)
         mock_api_request.return_value = {
             "data": {
                 "Page": {
@@ -778,6 +779,11 @@ class ReloadCalendarTaskTests(TestCase):
                     "media": [],  # No matching anime
                 },
             },
+        }
+        # Mock the fallback to MAL via get_media_metadata
+        mock_get_media_metadata.return_value = {
+            "max_progress": 1,
+            "details": {"end_date": "1997-08-05"},
         }
 
         # Process anime items

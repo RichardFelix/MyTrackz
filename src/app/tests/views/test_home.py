@@ -166,5 +166,3 @@ class HomeViewTests(TestCase):
             response.context["media_list"]["total"],
             15,
         )  # 15 TV shows total
-
-

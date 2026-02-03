@@ -373,7 +373,9 @@ class ServicesTests(TestCase):
     def test_get_media_metadata_tmdb_episode_not_found(self, mock_episode):
         """Test the get_media_metadata function for TMDB episodes that don't exist."""
         mock_response = type(
-            "Response", (), {"status_code": 404, "text": "Episode not found"},
+            "Response",
+            (),
+            {"status_code": 404, "text": "Episode not found"},
         )()
         mock_error = type("Error", (), {"response": mock_response})()
         mock_episode.side_effect = services.ProviderAPIError(
@@ -393,7 +395,6 @@ class ServicesTests(TestCase):
         self.assertEqual(cm.exception.provider, Sources.TMDB.value)
 
         mock_episode.assert_called_once_with("1396", 1, "3")
-
 
     @patch("app.providers.hardcover.book")
     def test_get_media_metadata_hardcover_book(self, mock_book):

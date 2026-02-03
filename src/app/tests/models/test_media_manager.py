@@ -816,5 +816,3 @@ class MediaManagerTests(TestCase):
         ).first()
 
         self.assertIsNone(non_existent)
-
-

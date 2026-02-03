@@ -227,6 +227,7 @@ def status_color(status):
     """Return the color associated with the status."""
     return config.get_status_text_color(status)
 
+
 @register.filter
 def status_background_color(status):
     """Return the background color associated with the status."""
@@ -236,11 +237,10 @@ def status_background_color(status):
 @register.filter
 def natural_day(datetime, user):
     """Format date with natural language (Today, Tomorrow, etc.)."""
-    # Get today's date in the current timezone
     today = timezone.localdate()
 
-    # Extract just the date part for comparison
-    datetime_date = datetime.date()
+    local_dt = timezone.localtime(datetime)
+    datetime_date = local_dt.date()
 
     # Calculate the difference in days
     diff = datetime_date - today

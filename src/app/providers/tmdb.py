@@ -161,8 +161,28 @@ def movie(media_id):
                 url,
                 params=params,
             )
+
+            if response.get("belongs_to_collection", {}) is not None and (
+                collection_id := response.get("belongs_to_collection", {}).get("id")
+            ):
+                collection_response = services.api_request(
+                    Sources.TMDB.value,
+                    "GET",
+                    f"{base_url}/collection/{collection_id}",
+                    params={**base_params},
+                )
+            else:
+                collection_response = {}
         except requests.exceptions.HTTPError as error:
             handle_error(error)
+
+        # Filter out collection items from recommendations, to avoid duplicates
+        collection_items = get_collection(collection_response)
+        collection_ids = [item["media_id"] for item in collection_items]
+        recommended_items = response.get("recommendations", {}).get("results", [])
+        filtered_recommendations = [
+            item for item in recommended_items if item["id"] not in collection_ids
+        ]
 
         data = {
             "media_id": media_id,
@@ -186,8 +206,9 @@ def movie(media_id):
                 "languages": get_languages(response["spoken_languages"]),
             },
             "related": {
+                collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
-                    response.get("recommendations", {}).get("results", [])[:15],
+                    filtered_recommendations[:15],
                     MediaTypes.MOVIE.value,
                 ),
             },
@@ -578,6 +599,30 @@ def get_related(related_medias, media_type, parent_response=None):
             data["title"] = get_title(media)
         related.append(data)
     return related
+
+
+def get_collection(collection_response):
+    """Format media collection list to match related media."""
+
+    def date_key(media):
+        date = media.get("release_date", "")
+        if date is None or date == "":
+            # If release date is unknown, sort by title after known releases
+            title = get_title(media)
+            date = f"9999-99-99-{title}"
+        return date
+
+    parts = sorted(collection_response.get("parts", []), key=date_key)
+    return [
+        {
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "image": get_image_url(media["poster_path"]),
+            "media_id": media["id"],
+            "title": get_title(media),
+        }
+        for media in parts
+    ]
 
 
 def process_episodes(season_metadata, episodes_in_db):

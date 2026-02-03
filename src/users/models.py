@@ -267,6 +267,24 @@ class User(AbstractUser):
         choices=MediaStatusChoices.choices,
     )
 
+    # Media type preferences: Board Games
+    boardgame_enabled = models.BooleanField(default=True)
+    boardgame_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices.choices,
+    )
+    boardgame_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices.choices,
+    )
+    boardgame_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices.choices,
+    )
+
     # UI preferences
     clickable_media_cards = models.BooleanField(
         default=False,
