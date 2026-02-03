@@ -45,7 +45,6 @@ def home(request):
     if request.headers.get("HX-Request") and media_type_to_load:
         context = {
             "media_list": list_by_type.get(media_type_to_load, []),
-            "user": request.user,
         }
         return render(request, "app/components/home_grid.html", context)
 

@@ -50,7 +50,11 @@ COLORS = {
         "background": "bg-cyan-400",
         "hex": "#06b6d4",
     },
-    "lime": {"text": "text-lime-400", "background": "bg-lime-400", "hex": "#84cc16"},
+    "lime": {
+        "text": "text-lime-400",
+        "background": "bg-lime-400",
+        "hex": "#84cc16",
+    },
     "sky": {
         "text": "text-sky-400",
         "background": "bg-sky-400",
