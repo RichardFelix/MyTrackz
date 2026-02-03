@@ -314,7 +314,7 @@ class User(AbstractUser):
 
     # Progress bar
     progress_bar = models.BooleanField(
-        default=False,
+        default=True,
         help_text="Show progress bar",
     )
 

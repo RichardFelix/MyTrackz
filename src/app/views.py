@@ -80,7 +80,6 @@ def progress_edit(request, media_type, instance_id):
 
     context = {
         "media": media,
-        "user": request.user,
     }
     return render(
         request,
