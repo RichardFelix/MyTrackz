@@ -227,6 +227,11 @@ def status_color(status):
     """Return the color associated with the status."""
     return config.get_status_text_color(status)
 
+@register.filter
+def status_background_color(status):
+    """Return the background color associated with the status."""
+    return config.get_status_background_color(status)
+
 
 @register.filter
 def natural_day(datetime, user):
