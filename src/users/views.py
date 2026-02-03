@@ -237,6 +237,7 @@ def preferences(request):
         "quick_watch_date",
         QuickWatchDateChoices.CURRENT_DATE,
     )
+    request.user.progress_bar = "progress_bar" in request.POST
     request.user.date_format = request.POST.get(
         "date_format",
         DateFormatChoices.ISO,
