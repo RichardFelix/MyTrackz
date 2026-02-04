@@ -13,3 +13,15 @@ repos:
         language: system
         types: [python]
         require_serial: true
+      - id: djlint-lint
+        name: djlint-lint
+        entry: djlint --lint
+        language: system
+        types: [html]
+        require_serial: true
+      - id: djlint-reformat
+        name: djlint-reformat
+        entry: djlint --reformat
+        language: system
+        types: [html]
+        require_serial: true
