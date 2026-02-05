@@ -516,10 +516,13 @@ class ReloadCalendarTaskTests(TestCase):
         self.assertEqual(result["437"][0]["episode"], 1)
         self.assertEqual(result["437"][0]["airingAt"], 870739200)
 
+    @patch("events.calendar.services.get_media_metadata")
     @patch("events.calendar.services.api_request")
-    def test_get_anime_schedule_bulk_no_airing_schedule(self, mock_api_request):
+    def test_get_anime_schedule_bulk_no_airing_schedule(
+        self, mock_api_request, mock_get_media_metadata
+    ):
         """Test get_anime_schedule_bulk with no airing schedule."""
-        # Setup mock
+        # Setup mock for AniList API
         mock_api_request.return_value = {
             "data": {
                 "Page": {
@@ -534,6 +537,12 @@ class ReloadCalendarTaskTests(TestCase):
                     ],
                 },
             },
+        }
+
+        # Setup mock for MAL metadata fallback
+        mock_get_media_metadata.return_value = {
+            "max_progress": 2,
+            "details": {"end_date": "1997-08-12"},
         }
 
         # Call the function
