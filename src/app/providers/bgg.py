@@ -272,7 +272,7 @@ def get_categories(item):
         for link in item.findall(".//link[@type='boardgamecategory']")
         if link.get("value")
     ]
-    return categories if categories else None
+    return categories or None
 
 
 def get_designers(item):
