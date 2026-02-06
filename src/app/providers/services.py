@@ -219,9 +219,11 @@ def get_media_metadata(
 
     metadata_retrievers = {
         MediaTypes.ANIME.value: lambda: mal.anime(media_id),
-        MediaTypes.MANGA.value: lambda: mangaupdates.manga(media_id)
-        if source == Sources.MANGAUPDATES.value
-        else mal.manga(media_id),
+        MediaTypes.MANGA.value: lambda: (
+            mangaupdates.manga(media_id)
+            if source == Sources.MANGAUPDATES.value
+            else mal.manga(media_id)
+        ),
         MediaTypes.TV.value: lambda: tmdb.tv(media_id),
         "tv_with_seasons": lambda: tmdb.tv_with_seasons(media_id, season_numbers),
         MediaTypes.SEASON.value: lambda: tmdb.tv_with_seasons(media_id, season_numbers)[
@@ -234,9 +236,11 @@ def get_media_metadata(
         ),
         MediaTypes.MOVIE.value: lambda: tmdb.movie(media_id),
         MediaTypes.GAME.value: lambda: igdb.game(media_id),
-        MediaTypes.BOOK.value: lambda: hardcover.book(media_id)
-        if source == Sources.HARDCOVER.value
-        else openlibrary.book(media_id),
+        MediaTypes.BOOK.value: lambda: (
+            hardcover.book(media_id)
+            if source == Sources.HARDCOVER.value
+            else openlibrary.book(media_id)
+        ),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
         MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
     }

@@ -492,8 +492,10 @@ class MediaManager(models.Manager):
                 x.next_event is None,
                 x.next_event.datetime if x.next_event else None,
             ),
-            users.models.HomeSortChoices.RECENT: lambda x: -timezone.datetime.timestamp(
-                x.progressed_at if x.progressed_at is not None else x.created_at,
+            users.models.HomeSortChoices.RECENT: lambda x: (
+                -timezone.datetime.timestamp(
+                    x.progressed_at if x.progressed_at is not None else x.created_at,
+                )
             ),
             users.models.HomeSortChoices.COMPLETION: lambda x: (
                 x.max_progress is None,
