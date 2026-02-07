@@ -268,6 +268,9 @@ LOGGING = {
         "celery.utils.functional": {
             "level": "WARNING",
         },
+        "fakeredis": {
+            "level": "WARNING",
+        },
     },
     "formatters": {
         "verbose": {
