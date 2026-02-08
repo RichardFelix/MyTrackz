@@ -151,7 +151,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids",
+            "append_to_response": "recommendations,external_ids,credits",
         }
 
         try:
@@ -188,6 +188,19 @@ def movie(media_id):
             item for item in recommended_items if item["id"] not in collection_ids
         ]
 
+        cast = response.get("credits", {}).get("cast", [])
+        filtered_cast = [
+            {
+                "id": member.get("id"),
+                "name": member.get("name"),
+                "character": member.get("character"),
+                "image": get_image_url(member.get("profile_path"))
+                if member.get("profile_path")
+                else None,
+            }
+            for member in cast[:10]
+        ]
+
         data = {
             "media_id": media_id,
             "source": Sources.TMDB.value,
@@ -209,6 +222,7 @@ def movie(media_id):
                 "country": get_country(response["production_countries"]),
                 "languages": get_languages(response["spoken_languages"]),
             },
+            "cast": filtered_cast,
             "related": {
                 collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
