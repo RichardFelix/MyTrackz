@@ -356,3 +356,13 @@ class AppTagsTests(TestCase):
                 self.assertTrue(len(inactive_result) > 0)
             except KeyError:
                 self.fail(f"icon raised KeyError for {media_type}")
+
+    def test_show_media_score(self):
+        """Test if we should show media rating or not."""
+        self.assertTrue(app_tags.show_media_score(1, False))  # noqa: FBT003
+        self.assertTrue(app_tags.show_media_score(0, False))  # noqa: FBT003
+        self.assertFalse(app_tags.show_media_score(None, False))  # noqa: FBT003
+
+        self.assertTrue(app_tags.show_media_score(1, True))  # noqa: FBT003
+        self.assertFalse(app_tags.show_media_score(0, True))  # noqa: FBT003
+        self.assertFalse(app_tags.show_media_score(None, True))  # noqa: FBT003

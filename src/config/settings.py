@@ -467,6 +467,8 @@ SIMKL_SECRET = config(
     ),
 )
 
+HIDE_ZERO_RATING = config("HIDE_ZERO_RATING", default=False, cast=bool)
+
 TESTING = False
 
 HEALTHCHECK_CELERY_PING_TIMEOUT = config(
