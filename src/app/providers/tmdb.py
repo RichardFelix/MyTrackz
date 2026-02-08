@@ -212,7 +212,7 @@ def movie(media_id):
             "related": {
                 collection_response.get("name", "collection"): collection_items,
                 "recommendations": get_related(
-                    filtered_recommendations[:15],
+                    filtered_recommendations,
                     MediaTypes.MOVIE.value,
                 ),
             },
@@ -412,7 +412,7 @@ def process_tv(response):
                 response,
             ),
             "recommendations": get_related(
-                response.get("recommendations", {}).get("results", [])[:15],
+                response.get("recommendations", {}).get("results", []),
                 MediaTypes.TV.value,
             ),
         },
