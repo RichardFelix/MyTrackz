@@ -179,7 +179,9 @@ def media_search(request):
 
     # Enrich search results with user tracking data
     if data.get("results"):
-        data["results"] = helpers.enrich_items_with_user_data(request, data["results"])
+        data["results"] = helpers.enrich_items_with_user_data(
+            request, data["results"], "search"
+        )
 
     context = {
         "data": data,
@@ -209,9 +211,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request,
-                        related_items,
-                        section_name
+                        request, related_items, section_name
                     )
                 )
 
@@ -265,6 +265,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
                     helpers.enrich_items_with_user_data(
                         request,
                         related_items,
+                        section_name,
                     )
                 )
 

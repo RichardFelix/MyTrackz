@@ -66,7 +66,7 @@ def format_search_response(page, per_page, total_results, results):
     }
 
 
-def enrich_items_with_user_data(request, items, section_name=None):
+def enrich_items_with_user_data(request, items, section_name):
     """Enrich a list of items with user tracking data."""
     if not items:
         return []
