@@ -359,10 +359,19 @@ class AppTagsTests(TestCase):
 
     def test_show_media_score(self):
         """Test if we should show media rating or not."""
-        self.assertTrue(app_tags.show_media_score(1, False))  # noqa: FBT003
-        self.assertTrue(app_tags.show_media_score(0, False))  # noqa: FBT003
-        self.assertFalse(app_tags.show_media_score(None, False))  # noqa: FBT003
+        # Create mock users
+        mock_user_show = MagicMock()
+        mock_user_show.hide_zero_rating = False
 
-        self.assertTrue(app_tags.show_media_score(1, True))  # noqa: FBT003
-        self.assertFalse(app_tags.show_media_score(0, True))  # noqa: FBT003
-        self.assertFalse(app_tags.show_media_score(None, True))  # noqa: FBT003
+        mock_user_hide = MagicMock()
+        mock_user_hide.hide_zero_rating = True
+
+        # With hide_zero_rating=False, show all non-None scores
+        self.assertTrue(app_tags.show_media_score(1, mock_user_show))
+        self.assertTrue(app_tags.show_media_score(0, mock_user_show))
+        self.assertFalse(app_tags.show_media_score(None, mock_user_show))
+
+        # With hide_zero_rating=True, hide zero scores
+        self.assertTrue(app_tags.show_media_score(1, mock_user_hide))
+        self.assertFalse(app_tags.show_media_score(0, mock_user_hide))
+        self.assertFalse(app_tags.show_media_score(None, mock_user_hide))

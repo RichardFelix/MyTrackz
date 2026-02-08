@@ -324,6 +324,12 @@ class User(AbstractUser):
         help_text="Hide completed media in recommendations",
     )
 
+    # Hide zero ratings
+    hide_zero_rating = models.BooleanField(
+        default=False,
+        help_text="Hide zero ratings from media cards",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
