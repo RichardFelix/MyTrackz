@@ -343,6 +343,8 @@ IMG_NONE = "https://www.themoviedb.org/assets/2/v4/glyphicons/basic/glyphicons-b
 REQUEST_TIMEOUT = 120  # seconds
 PER_PAGE = 24
 
+HIDE_COMPLETED = config("HIDE_COMPLETED", default=False, cast=bool)
+
 TMDB_API = config(
     "TMDB_API",
     default=secret(
