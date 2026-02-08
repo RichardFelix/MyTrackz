@@ -229,7 +229,7 @@ def search(query, page):
                     Sources.IGDB.value,
                     "POST",
                     url,
-                    data=data,
+                    data=multiquery,
                     headers=headers,
                 )
 
