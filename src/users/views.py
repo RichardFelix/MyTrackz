@@ -238,6 +238,9 @@ def preferences(request):
         QuickWatchDateChoices.CURRENT_DATE,
     )
     request.user.progress_bar = "progress_bar" in request.POST
+    request.user.hide_completed_recommendations = (
+        "hide_completed_recommendations" in request.POST
+    )
     request.user.date_format = request.POST.get(
         "date_format",
         DateFormatChoices.ISO,

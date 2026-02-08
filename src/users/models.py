@@ -318,6 +318,12 @@ class User(AbstractUser):
         help_text="Show progress bar",
     )
 
+    # Hide completed recommendations
+    hide_completed_recommendations = models.BooleanField(
+        default=False,
+        help_text="Hide completed media in recommendations",
+    )
+
     # Calendar preferences
     calendar_layout = models.CharField(
         max_length=20,
