@@ -149,9 +149,10 @@ def movie(media_id):
 
     if data is None:
         url = f"{base_url}/movie/{media_id}"
+        appends = ["recommendations", "external_ids", "credits", "watch/providers"]
         params = {
             **base_params,
-            "append_to_response": "recommendations,external_ids,credits,watch/providers",
+            "append_to_response": ",".join(appends),
         }
 
         try:
@@ -672,9 +673,9 @@ def filter_providers(all_providers, region):
     # Convert dict back to list and add image URLs
     providers = list(providers.values())
     for provider in providers:
-        provider["image"] = get_image_url(provider["logo_path"])
+        provider["image"] = get_image_url(provider.get("logo_path"))
 
-    providers.sort(key=lambda e: e.get("display_priority", ""))
+    providers.sort(key=lambda e: e.get("display_priority", 999))
     return providers
 
 
