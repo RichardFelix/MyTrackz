@@ -5,7 +5,7 @@
     <a href="https://www.themoviedb.org/person/{{ cast.id }}"
        target="_blank">
       <img alt="{{ cast.name }}"
-           class="lazyload w-full aspect-2/3 bg-[#3e454d] {% if cast.image %}object-cover{% endif %}"
+           class="lazyload w-full aspect-2/3 bg-[#3e454d] {% if cast.image != IMG_NONE %}object-cover{% endif %}"
            data-src="{{ cast.image }}"
            src="{{ IMG_NONE }}">
     </a>

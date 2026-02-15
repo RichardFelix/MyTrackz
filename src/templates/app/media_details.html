@@ -475,8 +475,7 @@
           <h2 class="text-xl font-bold mb-4">Cast</h2>
           <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
             {% for cast in media.cast %}
-
-              {% include "app/components/cast_card.html" with cast=cast only %}
+              {% include "app/components/cast_card.html" with cast=cast %}
             {% endfor %}
           </div>
         </section>

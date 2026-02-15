@@ -194,9 +194,7 @@ def movie(media_id):
                 "id": member.get("id"),
                 "name": member.get("name"),
                 "character": member.get("character"),
-                "image": get_image_url(member.get("profile_path"))
-                if member.get("profile_path")
-                else None,
+                "image": get_image_url(member.get("profile_path")),
             }
             for member in cast[:10]
         ]
