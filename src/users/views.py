@@ -13,6 +13,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
+from app.providers import tmdb
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import DateFormatChoices, QuickWatchDateChoices, TimeFormatChoices
 
@@ -223,6 +224,7 @@ def preferences(request):
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
+                "watch_provider_choices": tmdb.watch_provider_regions(),
             },
         )
 
@@ -251,6 +253,7 @@ def preferences(request):
         TimeFormatChoices.HOUR_24,
     )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
+    request.user.watch_provider_region = request.POST.get("watch_provider_region", "")
 
     # Update user preferences for each media type
     for media_type in media_types:
