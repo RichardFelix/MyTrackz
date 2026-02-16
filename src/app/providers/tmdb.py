@@ -447,7 +447,7 @@ def process_tv(response):
     }
 
 
-def process_season(response, providers_response=None):
+def process_season(response, providers_response):
     """Process the metadata for the selected season from The Movie Database."""
     episodes = response["episodes"]
     num_episodes = len(episodes)

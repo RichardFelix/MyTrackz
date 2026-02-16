@@ -214,6 +214,7 @@ def preferences(request):
     """Render the preferences settings page."""
     media_types = MediaTypes.values
     media_types.remove(MediaTypes.EPISODE.value)
+    watch_provider_regions = tmdb.watch_provider_regions()
 
     if request.method == "GET":
         return render(
@@ -224,7 +225,7 @@ def preferences(request):
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
-                "watch_provider_choices": tmdb.watch_provider_regions(),
+                "watch_provider_choices": watch_provider_regions,
             },
         )
 
@@ -253,7 +254,12 @@ def preferences(request):
         TimeFormatChoices.HOUR_24,
     )
     media_types_checked = request.POST.getlist("media_types_checkboxes")
-    request.user.watch_provider_region = request.POST.get("watch_provider_region", "")
+
+    provider_region = request.POST.get("watch_provider_region", "")
+    if provider_region in [region[0] for region in watch_provider_regions]:
+        request.user.watch_provider_region = provider_region
+    else:
+        request.user.watch_provider_region = ""
 
     # Update user preferences for each media type
     for media_type in media_types:
