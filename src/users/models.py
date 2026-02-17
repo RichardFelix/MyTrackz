@@ -333,7 +333,7 @@ class User(AbstractUser):
     # Watch provider region
     watch_provider_region = models.CharField(
         max_length=5,
-        default="",
+        default="UNSET",
         help_text="Region to show watch providers for",
     )
 

@@ -228,6 +228,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         "user_medias": user_medias,
         "current_instance": current_instance,
         "watch_providers": watch_providers,
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 
@@ -286,6 +287,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         "watch_providers": tmdb.filter_providers(
             season_metadata.get("providers"), request.user.watch_provider_region
         ),
+        "watch_provider_region": request.user.watch_provider_region,
     }
     return render(request, "app/media_details.html", context)
 

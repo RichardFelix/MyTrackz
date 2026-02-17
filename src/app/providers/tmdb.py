@@ -781,7 +781,7 @@ def watch_provider_regions():
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = [("", "No Region")]
+        data = [("", "Disabled")]
         regions = response.get("results", [])
         for region in sorted(regions, key=lambda r: r.get("english_name", "")):
             key = region.get("iso_3166_1")

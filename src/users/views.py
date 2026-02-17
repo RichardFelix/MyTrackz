@@ -259,7 +259,7 @@ def preferences(request):
     if provider_region in [region[0] for region in watch_provider_regions]:
         request.user.watch_provider_region = provider_region
     else:
-        request.user.watch_provider_region = ""
+        request.user.watch_provider_region = "UNSET"
 
     # Update user preferences for each media type
     for media_type in media_types:

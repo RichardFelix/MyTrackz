@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='watch_provider_region',
-            field=models.CharField(default='', help_text='Region to show watch providers for', max_length=5),
+            field=models.CharField(default='UNSET', help_text='Region to show watch providers for', max_length=5),
         ),
     ]
