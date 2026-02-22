@@ -94,8 +94,8 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
             )
 
         def extract_hama_anidb_id(guid):
-            """
-            Extracts the AniDB ID from a Hama agent GUID string.
+            """Extract the AniDB ID from a Hama agent GUID string.
+
             e.g., "com.plexapp.agents.hama://anidb-12834/1/2?lang=en" -> "12834"
             """
             if guid and "hama://anidb-" in guid:
