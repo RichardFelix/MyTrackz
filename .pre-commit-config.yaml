@@ -7,6 +7,11 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: django-upgrade
+        name: django-upgrade
+        entry: django-upgrade
+        language: system
+        types: [python]
       - id: ruff
         name: ruff
         entry: ruff check --fix
