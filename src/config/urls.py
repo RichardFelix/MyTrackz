@@ -29,7 +29,6 @@ urlpatterns = [
                 checks=[
                     "health_check.Cache",
                     "health_check.Database",
-                    "health_check.Storage",
                     "health_check.contrib.celery.Ping",
                     (
                         "health_check.contrib.redis.Redis",
