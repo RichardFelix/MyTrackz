@@ -543,7 +543,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-IS_PROD = "runserver" not in sys.argv
+IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
 if IS_PROD:
     ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
