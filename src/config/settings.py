@@ -542,6 +542,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 # Allauth settings
+ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
     all_http = all(
