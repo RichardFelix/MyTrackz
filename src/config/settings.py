@@ -1,6 +1,7 @@
 """Django settings for Yamtrack project."""
 
 import json
+import sys
 import warnings
 import zoneinfo
 from pathlib import Path
@@ -541,8 +542,10 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
     },
 }
-# Allauth settings
-ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
+
+IS_PROD = "runserver" not in sys.argv
+if IS_PROD:
+    ALLAUTH_TRUSTED_CLIENT_IP_HEADER = "X-Real-IP"
 if CSRF_TRUSTED_ORIGINS:
     # Check if all origins start with http:// or https://
     all_http = all(
