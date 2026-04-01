@@ -438,7 +438,7 @@
       {% if watch_provider_region == "UNSET" or watch_providers is not None %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
           <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
-          <div class="flex flex-wrap items-center gap-2 place-content-evenly">
+          <div class="grid grid-cols-[repeat(auto-fill,3rem)] gap-2 items-center justify-between">
             {% if watch_provider_region == "UNSET" %}
               {% url 'preferences' as preferences_url %}
               <p class="text-sm">
@@ -448,7 +448,7 @@
               </p>
             {% elif watch_providers %}
               {% for provider in watch_providers %}
-                <img class="size-10 rounded-md"
+                <img class="rounded-md"
                      src="{{ provider.image }}"
                      title="{{ provider.provider_name }}"
                      alt="{{ provider.provider_name }}" />
