@@ -279,7 +279,7 @@ class ManualItemFormTest(TestCase):
         # Save and verify
         item = form.save()
         self.assertEqual(item.source, Sources.MANUAL.value)
-        self.assertEqual(item.media_id, "1")
+        self.assertTrue(item.media_id)
         self.assertIsNone(item.season_number)
         self.assertIsNone(item.episode_number)
 
@@ -377,7 +377,7 @@ class ManualItemFormTest(TestCase):
         self.assertTrue(form2.is_valid())
         item2 = form2.save()
 
-        # IDs should be different but follow the pattern
+        # IDs should be different
         self.assertNotEqual(item1.media_id, item2.media_id)
-        self.assertEqual(item1.media_id, "1")
-        self.assertEqual(item2.media_id, "2")
+        self.assertTrue(item1.media_id)
+        self.assertTrue(item2.media_id)

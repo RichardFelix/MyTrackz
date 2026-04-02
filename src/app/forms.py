@@ -184,7 +184,7 @@ class ManualItemForm(forms.ModelForm):
             instance.media_id = parent_season.item.media_id
             instance.season_number = parent_season.item.season_number
         else:
-            instance.media_id = Item.generate_manual_id(instance.media_type)
+            instance.media_id = Item.generate_manual_id()
 
         if commit:
             instance.save()
