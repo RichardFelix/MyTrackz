@@ -123,7 +123,9 @@ def collect_creation_changes(new_record, history_model, media_type, user):
             continue
 
         value = getattr(new_record, field.attname, None)
-        if not value:
+        if not value and not (
+            media_type == MediaTypes.EPISODE.value and field.name == "end_date"
+        ):
             continue
 
         change_data = {
@@ -231,7 +233,9 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
 
         if field_name in ["start_date", "end_date"]:
             field_display = "Started" if field_name == "start_date" else "Finished"
-            return f"{field_display} on {new_value}"
+            if new_value:
+                return f"{field_display} on {new_value}"
+            return f"{field_display} without date"
 
         if field_name == "notes":
             return "Added notes"
