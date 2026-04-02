@@ -903,8 +903,8 @@
   .grid-cols-7 {
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
-  .grid-cols-\[repeat\(auto-fill\,3rem\)\] {
-    grid-template-columns: repeat(auto-fill,3rem);
+  .grid-cols-\[repeat\(auto-fill\,48px\)\] {
+    grid-template-columns: repeat(auto-fill,48px);
   }
   .grid-cols-\[repeat\(auto-fill\,minmax\(150px\,1fr\)\)\] {
     grid-template-columns: repeat(auto-fill,minmax(150px,1fr));

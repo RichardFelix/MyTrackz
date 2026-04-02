@@ -438,25 +438,25 @@
       {% if watch_provider_region == "UNSET" or watch_providers is not None %}
         <div class="bg-[#2a2f35] p-4 rounded-lg my-4">
           <h3 class="text-sm font-semibold text-gray-400 mb-2">STREAMING</h3>
-          <div class="grid grid-cols-[repeat(auto-fill,3rem)] gap-2 items-center justify-between">
-            {% if watch_provider_region == "UNSET" %}
-              {% url 'preferences' as preferences_url %}
-              <p class="text-sm">
-                Watch provider region is not configured. Set a region or disable this feature in the
-                <a href="{{ preferences_url }}"
-                   class="hover:text-indigo-500 hover:underline">preferences</a>.
-              </p>
-            {% elif watch_providers %}
+          {% if watch_provider_region == "UNSET" %}
+            {% url 'preferences' as preferences_url %}
+            <p class="text-gray-200">
+              Watch provider region is not configured. Set a region or disable this feature in the
+              <a href="{{ preferences_url }}"
+                 class="hover:text-indigo-500 hover:underline">preferences</a>.
+            </p>
+          {% elif watch_providers %}
+            <div class="grid grid-cols-[repeat(auto-fill,48px)] gap-2 items-center justify-between">
               {% for provider in watch_providers %}
                 <img class="rounded-md"
                      src="{{ provider.image }}"
                      title="{{ provider.provider_name }}"
                      alt="{{ provider.provider_name }}" />
               {% endfor %}
-            {% else %}
-              <p>No watch providers</p>
-            {% endif %}
-          </div>
+            </div>
+          {% else %}
+            <p class="text-gray-200">No watch providers</p>
+          {% endif %}
         </div>
       {% endif %}
 
