@@ -143,8 +143,11 @@ def media_list(request, media_type):
 
     # Handle HTMX requests for partial updates
     if request.headers.get("HX-Request"):
-        # Changing from empty list to a status with items
+        # Filtering from empty list
         if request.headers.get("HX-Target") == "empty_list":
+            # If still empty, keep user in the same page
+            if not media_page.object_list:
+                return HttpResponse(status=204)
             response = HttpResponse()
             response["HX-Redirect"] = reverse("medialist", args=[media_type])
             return response
