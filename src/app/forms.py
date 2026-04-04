@@ -1,7 +1,7 @@
+import math
+
 from django import forms
 from django.conf import settings
-
-import math
 
 from app import config
 from app.models import (
@@ -42,17 +42,11 @@ class CustomDurationField(forms.CharField):
         - Nmin: "30min"
         - Nh: "5h"
         """
-        if value.isdigit():  # hours only
-            return int(value), 0
-
-        try: # hours and minutes as float
+        if value.isdigit() or "." in value:  # e.g. "5" or "3.5" for 3h 30min
             converted_to_float = float(value)
-            if not math.isfinite(converted_to_float):
-                raise ValueError("Value must be finite")
-            hour_parts, hours = math.modf(converted_to_float)
-            return int(hours), int(hour_parts * 60)
-        except (ValueError, OverflowError):
-            pass
+            if math.isfinite(converted_to_float) and converted_to_float >= 0:
+                frac, hours = math.modf(converted_to_float)
+                return int(hours), int(frac * 60)
 
         if ":" in value:  # hh:mm format
             hours, minutes = value.split(":")
@@ -71,6 +65,7 @@ class CustomDurationField(forms.CharField):
 
         if "h" in value:  # [n]h format
             return int(value.strip("h")), 0
+
         msg = "Invalid time format"
         raise ValueError(msg)
 
