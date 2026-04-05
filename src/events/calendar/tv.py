@@ -134,6 +134,10 @@ def reopen_completed_tv_with_new_seasons(tv_item, season_items):
         if season_item.season_number and season_item.season_number > 0
     }
     if not season_item_map:
+        logger.info(
+            "%s - No processed seasons eligible for completed-TV reopening",
+            tv_item,
+        )
         return
 
     sorted_season_numbers = sorted(season_item_map)
@@ -151,7 +155,15 @@ def reopen_completed_tv_with_new_seasons(tv_item, season_items):
         ),
     )
     if not completed_tvs:
+        logger.info("%s - No completed TV entries to reopen", tv_item)
         return
+
+    logger.info(
+        "%s - Checking %d completed TV entries against discovered seasons %s",
+        tv_item,
+        len(completed_tvs),
+        sorted_season_numbers,
+    )
 
     seasons_by_tv_id = {}
     tvs_to_update = []
@@ -169,8 +181,19 @@ def reopen_completed_tv_with_new_seasons(tv_item, season_items):
         ]
 
         if not missing_season_numbers:
+            logger.info(
+                "%s - User %s already tracks all discovered seasons",
+                tv_item,
+                tv.user,
+            )
             continue
 
+        logger.info(
+            "%s - Reopening completed TV for user %s; new seasons: %s",
+            tv_item,
+            tv.user,
+            missing_season_numbers,
+        )
         seasons_by_tv_id[tv.id] = [
             Season(
                 item=season_item_map[season_number],
@@ -184,6 +207,7 @@ def reopen_completed_tv_with_new_seasons(tv_item, season_items):
         tvs_to_update.append(tv)
 
     if not seasons_by_tv_id:
+        logger.info("%s - No completed TV entries required reopening", tv_item)
         return
 
     with transaction.atomic():
@@ -198,6 +222,12 @@ def reopen_completed_tv_with_new_seasons(tv_item, season_items):
                 TV,
                 ["status"],
                 default_user=tv.user,
+            )
+            logger.info(
+                "%s - Reopened TV for user %s and created %d planning seasons",
+                tv_item,
+                tv.user,
+                len(seasons_by_tv_id[tv.id]),
             )
 
 

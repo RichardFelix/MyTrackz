@@ -45,6 +45,7 @@ def filter_items_to_fetch(items):
         source=Sources.TMDB.value,
     )
     tv_items_to_include = get_tv_items_to_include(tv_items)
+
     movie_items = items.filter(
         media_type=MediaTypes.MOVIE.value,
         source=Sources.TMDB.value,
@@ -84,7 +85,8 @@ def filter_items_to_fetch(items):
 
 def get_tv_items_to_include(tv_items):
     """Return tracked TMDB TV item ids that should be refreshed."""
-    if not tv_items.exists():
+    tracked_count = tv_items.count()
+    if not tracked_count:
         return []
 
     changed_tv_ids = get_changed_tmdb_tv_ids()
@@ -94,15 +96,38 @@ def get_tv_items_to_include(tv_items):
         item__media_type=MediaTypes.SEASON.value,
     )
 
-    return list(
+    included_tv_rows = list(
         tv_items.annotate(
             has_season_events=Exists(season_events),
         )
         .filter(
             Q(media_id__in=changed_tv_ids) | Q(has_season_events=False),
         )
-        .values_list("id", flat=True),
+        .values("id", "media_id", "title", "has_season_events"),
     )
+
+    logger.info(
+        "TV selection: %d tracked TMDB shows, %d changed ids, %d selected",
+        tracked_count,
+        len(changed_tv_ids),
+        len(included_tv_rows),
+    )
+
+    for item in included_tv_rows:
+        if item["media_id"] in changed_tv_ids:
+            logger.info(
+                "TV selection: including %s (%s) because TMDB reported changes",
+                item["title"],
+                item["media_id"],
+            )
+        else:
+            logger.info(
+                "TV selection: including %s (%s) because it has no season events yet",
+                item["title"],
+                item["media_id"],
+            )
+
+    return [item["id"] for item in included_tv_rows]
 
 
 def get_movie_items_to_include(movie_items):
