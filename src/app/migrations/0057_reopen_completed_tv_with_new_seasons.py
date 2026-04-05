@@ -8,6 +8,8 @@ from app.models import MediaTypes, Status
 
 def reopen_completed_tv_with_new_seasons(apps, _):
     """Backfill completed TV entries when discovered seasons already exist."""
+    from django.apps import apps # https://stackoverflow.com/questions/62418465/why-does-djangos-apps-get-model-return-a-fake-mymodel-object
+
     Item = apps.get_model("app", "Item")
     Season = apps.get_model("app", "Season")
     TV = apps.get_model("app", "TV")
