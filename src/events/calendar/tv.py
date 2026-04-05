@@ -4,8 +4,11 @@ from zoneinfo import ZoneInfo
 
 import requests
 from django.core.cache import cache
+from django.db import transaction
+from django.db.models import Prefetch
+from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from app.models import Item, MediaTypes
+from app.models import TV, Item, MediaTypes, Season, Status
 from app.providers import services, tmdb
 from events.models import Event
 
@@ -25,7 +28,12 @@ def process_tv(tv_item, events_bulk):
             logger.info("%s - No seasons need processing", tv_item)
             return
 
-        process_tv_seasons(tv_item, seasons_to_process, events_bulk)
+        processed_season_items = process_tv_seasons(
+            tv_item,
+            seasons_to_process,
+            events_bulk,
+        )
+        reopen_completed_tv_with_new_seasons(tv_item, processed_season_items)
 
     except services.ProviderAPIError:
         logger.warning(
@@ -87,6 +95,7 @@ def process_tv_seasons(tv_item, seasons_to_process, events_bulk):
         tv_item.media_id,
         seasons_to_process,
     )
+    processed_season_items = []
 
     for season_number in seasons_to_process:
         season_key = f"season/{season_number}"
@@ -111,7 +120,85 @@ def process_tv_seasons(tv_item, seasons_to_process, events_bulk):
             },
         )
 
+        processed_season_items.append(season_item)
         process_season_episodes(season_item, season_metadata, events_bulk)
+
+    return processed_season_items
+
+
+def reopen_completed_tv_with_new_seasons(tv_item, season_items):
+    """Reopen completed TV entries and create planning seasons when needed."""
+    season_item_map = {
+        season_item.season_number: season_item
+        for season_item in season_items
+        if season_item.season_number and season_item.season_number > 0
+    }
+    if not season_item_map:
+        return
+
+    sorted_season_numbers = sorted(season_item_map)
+    completed_tvs = list(
+        TV.objects.filter(
+            item=tv_item,
+            status=Status.COMPLETED.value,
+        )
+        .select_related("user")
+        .prefetch_related(
+            Prefetch(
+                "seasons",
+                queryset=Season.objects.select_related("item"),
+            ),
+        ),
+    )
+    if not completed_tvs:
+        return
+
+    seasons_by_tv_id = {}
+    tvs_to_update = []
+
+    for tv in completed_tvs:
+        existing_season_numbers = {
+            season.item.season_number
+            for season in tv.seasons.all()
+            if season.item.season_number and season.item.season_number > 0
+        }
+        missing_season_numbers = [
+            season_number
+            for season_number in sorted_season_numbers
+            if season_number not in existing_season_numbers
+        ]
+
+        if not missing_season_numbers:
+            continue
+
+        seasons_by_tv_id[tv.id] = [
+            Season(
+                item=season_item_map[season_number],
+                related_tv=tv,
+                user=tv.user,
+                status=Status.PLANNING.value,
+            )
+            for season_number in missing_season_numbers
+        ]
+        tv.status = Status.IN_PROGRESS.value
+        tvs_to_update.append(tv)
+
+    if not seasons_by_tv_id:
+        return
+
+    with transaction.atomic():
+        for tv in tvs_to_update:
+            bulk_create_with_history(
+                seasons_by_tv_id[tv.id],
+                Season,
+                default_user=tv.user,
+            )
+            bulk_update_with_history(
+                [tv],
+                TV,
+                ["status"],
+                default_user=tv.user,
+            )
 
 
 def process_season_episodes(item, metadata, events_bulk):

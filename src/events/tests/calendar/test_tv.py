@@ -6,6 +6,7 @@ import requests
 from django.core.cache import cache
 from django.test import TestCase
 
+from app.models import TV, Item, Season, Status
 from events.calendar.helpers import date_parser
 from events.calendar.tv import (
     get_episode_datetime,
@@ -15,6 +16,7 @@ from events.calendar.tv import (
     process_season_episodes,
     process_tv,
 )
+from events.models import Event
 from events.tests.calendar.utils import CalendarFixturesMixin
 
 
@@ -87,6 +89,65 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         expected_date = datetime.datetime.fromisoformat("2008-01-20T22:00:00+00:00")
         self.assertEqual(events_bulk[0].datetime, expected_date)
+
+    @patch("events.calendar.tv.get_tvmaze_episode_map")
+    @patch("events.calendar.tv.tmdb.tv_with_seasons")
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_process_tv_reopens_completed_show_with_new_season_as_planning(
+        self,
+        mock_tv,
+        mock_tv_with_seasons,
+        mock_get_tvmaze_episode_map,
+    ):
+        """Completed TV should reopen and create the discovered season as planning."""
+        TV.objects.filter(item=self.tv_item, user=self.user).update(
+            status=Status.COMPLETED.value,
+        )
+        Season.objects.filter(item=self.season_item, user=self.user).update(
+            status=Status.COMPLETED.value,
+        )
+        Event.objects.create(
+            item=self.season_item,
+            content_number=1,
+            datetime=date_parser("2008-01-20"),
+        )
+
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "episodes": [1]},
+                    {"season_number": 2, "episodes": [1]},
+                ],
+            },
+            "next_episode_season": 2,
+        }
+        mock_tv_with_seasons.return_value = {
+            "season/2": {
+                "image": "http://example.com/season2.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": "2026-01-20"},
+                ],
+                "tvdb_id": "81189",
+            },
+        }
+        mock_get_tvmaze_episode_map.return_value = {}
+
+        events_bulk = []
+        process_tv(self.tv_item, events_bulk)
+
+        season_two_item = Item.objects.get(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=self.season_item.media_type,
+            season_number=2,
+        )
+        season_two = Season.objects.get(item=season_two_item, user=self.user)
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season_two.status, Status.PLANNING.value)
+        self.assertEqual(len(events_bulk), 1)
 
     @patch("events.calendar.tv.services.api_request")
     def test_get_tvmaze_episode_map(self, mock_api_request):
