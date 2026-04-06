@@ -298,6 +298,40 @@ class SeasonStatusTests(TestCase):
         )
         self.assertEqual(episode_numbers, {1, 2, 3})
 
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_starts_next_season(self, mock_get_metadata):
+        """Test completing a season starts the next season automatically."""
+        next_season_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Test Show",
+            image="http://example.com/image2.jpg",
+            season_number=2,
+        )
+        next_season = Season.objects.create(
+            item=next_season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+
+        mock_get_metadata.return_value = {
+            "episodes": [
+                {"episode_number": 1, "image": "img1.jpg"},
+            ],
+            "image": "season_img.jpg",
+        }
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        next_season.refresh_from_db()
+        self.assertEqual(next_season.status, Status.IN_PROGRESS.value)
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
     def test_dropped_status_updates_tv_status(self):
         """Test setting status to DROPPED updates TV status."""
         self.season.status = Status.DROPPED.value

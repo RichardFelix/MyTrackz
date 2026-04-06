@@ -1084,15 +1084,17 @@ class TV(Media):
                 fields=["status"],
             )
 
-    def _start_next_available_season(self):
+    def _start_next_available_season(self, min_season_number=0):
         """Find the next available season to watch and set it to in-progress."""
         all_seasons = self.seasons.filter(
-            item__season_number__gt=0,
+            item__season_number__gt=min_season_number,
         ).order_by("item__season_number")
 
         next_unwatched_season = all_seasons.exclude(
             status__in=[Status.COMPLETED.value],
         ).first()
+
+        season_started = False
 
         if not next_unwatched_season:
             # If all existing seasons are watched, get the next available season
@@ -1101,14 +1103,18 @@ class TV(Media):
                 self.item.media_id,
                 self.item.source,
             )
+            related_seasons = tv_metadata.get("related", {}).get("seasons", [])
 
             existing_season_numbers = set(
                 all_seasons.values_list("item__season_number", flat=True),
             )
 
-            for season_data in tv_metadata["related"]["seasons"]:
+            for season_data in related_seasons:
                 season_number = season_data["season_number"]
-                if season_number > 0 and season_number not in existing_season_numbers:
+                if (
+                    season_number > min_season_number
+                    and season_number not in existing_season_numbers
+                ):
                     item, _ = Item.objects.get_or_create(
                         media_id=self.item.media_id,
                         source=self.item.source,
@@ -1127,6 +1133,7 @@ class TV(Media):
                         status=Status.IN_PROGRESS.value,
                     )
                     bulk_create_with_history([next_unwatched_season], Season)
+                    season_started = True
                     break
 
         elif next_unwatched_season.status != Status.IN_PROGRESS.value:
@@ -1136,6 +1143,19 @@ class TV(Media):
                 Season,
                 fields=["status"],
             )
+            season_started = True
+        else:
+            season_started = True
+
+        if season_started and self.status != Status.IN_PROGRESS.value:
+            self.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [self],
+                TV,
+                fields=["status"],
+            )
+
+        return season_started
 
 
 class Season(Media):
@@ -1189,6 +1209,10 @@ class Season(Media):
                         episodes_to_create,
                         Episode,
                     )
+
+                self.related_tv._start_next_available_season(
+                    self.item.season_number,
+                )
 
             elif (
                 self.status == Status.DROPPED.value
@@ -1549,6 +1573,10 @@ class Episode(models.Model):
                     [self.related_season.related_tv],
                     TV,
                     fields=["status"],
+                )
+            else:
+                self.related_season.related_tv._start_next_available_season(
+                    season_number,
                 )
         elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
