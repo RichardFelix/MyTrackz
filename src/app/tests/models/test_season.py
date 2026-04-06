@@ -332,6 +332,29 @@ class SeasonStatusTests(TestCase):
         self.tv.refresh_from_db()
         self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
 
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_last_season_completes_tv_show(self, mock_get_metadata):
+        """Test completing the last season completes the TV show."""
+        mock_get_metadata.side_effect = [
+            {
+                "episodes": [
+                    {"episode_number": 1, "image": "img1.jpg"},
+                ],
+                "image": "season_img.jpg",
+            },
+            {
+                "related": {
+                    "seasons": [{"season_number": 1, "image": "season_img.jpg"}],
+                },
+            },
+        ]
+
+        self.season.status = Status.COMPLETED.value
+        self.season.save()
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+
     def test_dropped_status_updates_tv_status(self):
         """Test setting status to DROPPED updates TV status."""
         self.season.status = Status.DROPPED.value

@@ -1084,8 +1084,13 @@ class TV(Media):
                 fields=["status"],
             )
 
-    def _start_next_available_season(self, min_season_number=0):
+    def _start_next_available_season(
+        self,
+        min_season_number=0,
+    ):
         """Find the next available season to watch and set it to in-progress."""
+        min_season_number = int(min_season_number or 0)
+
         all_seasons = self.seasons.filter(
             item__season_number__gt=min_season_number,
         ).order_by("item__season_number")
@@ -1157,6 +1162,34 @@ class TV(Media):
 
         return season_started
 
+    def _handle_completed_season(
+        self,
+        completed_season_number,
+    ):
+        """Start the next season, or complete the TV show if no seasons remain."""
+        if self._start_next_available_season(
+            completed_season_number,
+        ):
+            return
+
+        incomplete_seasons_exist = (
+            self.seasons.filter(
+                item__season_number__gt=0,
+            )
+            .exclude(
+                status=Status.COMPLETED.value,
+            )
+            .exists()
+        )
+
+        if not incomplete_seasons_exist and self.status != Status.COMPLETED.value:
+            self.status = Status.COMPLETED.value
+            bulk_update_with_history(
+                [self],
+                TV,
+                fields=["status"],
+            )
+
 
 class Season(Media):
     """Model for seasons of TV shows."""
@@ -1210,7 +1243,7 @@ class Season(Media):
                         Episode,
                     )
 
-                self.related_tv._start_next_available_season(
+                self.related_tv._handle_completed_season(
                     self.item.season_number,
                 )
 
@@ -1563,21 +1596,7 @@ class Episode(models.Model):
             )
 
         if season_just_completed:
-            last_season = tv_with_seasons_metadata["related"]["seasons"][-1][
-                "season_number"
-            ]
-            # mark the TV show as completed if it's the last season
-            if season_number == last_season:
-                self.related_season.related_tv.status = Status.COMPLETED.value
-                bulk_update_with_history(
-                    [self.related_season.related_tv],
-                    TV,
-                    fields=["status"],
-                )
-            else:
-                self.related_season.related_tv._start_next_available_season(
-                    season_number,
-                )
+            self.related_season.related_tv._handle_completed_season(season_number)
         elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
