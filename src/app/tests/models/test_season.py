@@ -442,17 +442,16 @@ class SeasonStatusTests(TestCase):
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.WARNING,
-                message=(
-                    "This season was left in progress because unreleased "
-                    "episodes remain."
-                ),
+                message=f"{self.season} was left in progress because unreleased "
+                "episodes remain.",
             ).exists(),
         )
         self.assertTrue(
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.INFO,
-                message="1 released episode was marked as watched automatically.",
+                message=f"{self.season} had 1 released episode marked as watched "
+                "automatically.",
             ).exists(),
         )
 
@@ -517,10 +516,8 @@ class SeasonStatusTests(TestCase):
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.INFO,
-                message=(
-                    "This TV show remains in progress because another season "
-                    "is still pending or has not aired yet."
-                ),
+                message=f"{self.tv} remains in progress because another season "
+                "is still pending or has not aired yet.",
             ).exists(),
         )
 

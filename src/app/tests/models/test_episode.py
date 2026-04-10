@@ -231,7 +231,7 @@ class EpisodeStatusTests(TestCase):
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.SUCCESS,
-                message="This TV show was marked as completed automatically.",
+                message=f"{self.tv} was marked as completed automatically.",
             ).exists(),
         )
 
@@ -294,7 +294,7 @@ class EpisodeStatusTests(TestCase):
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.INFO,
-                message="Season 2 was marked as in progress automatically.",
+                message=f"{self.tv} Season 2 was marked as in progress automatically.",
             ).exists(),
         )
 
@@ -394,7 +394,7 @@ class EpisodeStatusTests(TestCase):
             UserMessage.objects.filter(
                 user=self.user,
                 level=UserMessageLevel.SUCCESS,
-                message="This TV show was marked as completed automatically.",
+                message=f"{self.tv} was marked as completed automatically.",
             ).count(),
             1,
         )

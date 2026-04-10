@@ -870,6 +870,10 @@ class Media(models.Model):
 
     def create_user_message(self, message, level):
         """Create a persistent user notification."""
+        message_context = str(self)
+        if message_context and not message.startswith(message_context):
+            message = f"{message_context} {message}"
+
         logger.info("Creating user message for %s: %s", self.user, message)
 
         UserMessage.objects.create(
@@ -1143,12 +1147,9 @@ class TV(Media):
         if episodes_to_create:
             created_episodes_count = len(episodes_to_create)
             episode_label = "episode" if created_episodes_count == 1 else "episodes"
-            verb = "was" if created_episodes_count == 1 else "were"
             self.create_user_message(
-                (
-                    f"{created_episodes_count} released {episode_label} {verb} "
-                    "marked as watched automatically."
-                ),
+                f"had {created_episodes_count} released {episode_label} marked "
+                "as watched automatically.",
                 level=UserMessageLevel.INFO,
             )
 
@@ -1160,8 +1161,7 @@ class TV(Media):
                 fields=["status"],
             )
             self.create_user_message(
-                "This TV show was left in progress because unreleased episodes "
-                "or seasons remain.",
+                "was left in progress because unreleased episodes or seasons remain.",
                 level=UserMessageLevel.WARNING,
             )
 
@@ -1268,10 +1268,8 @@ class TV(Media):
 
         if started_season_number is not None:
             self.create_user_message(
-                (
-                    f"Season {started_season_number} was marked as in progress "
-                    "automatically."
-                ),
+                f"Season {started_season_number} was marked as in progress "
+                "automatically.",
                 level=UserMessageLevel.INFO,
             )
 
@@ -1305,7 +1303,7 @@ class TV(Media):
                 fields=["status"],
             )
             self.create_user_message(
-                "This TV show remains in progress because another season is still "
+                "remains in progress because another season is still "
                 "pending or has not aired yet.",
                 level=UserMessageLevel.INFO,
             )
@@ -1318,7 +1316,7 @@ class TV(Media):
                 fields=["status"],
             )
             self.create_user_message(
-                "This TV show was marked as completed automatically.",
+                "was marked as completed automatically.",
                 level=UserMessageLevel.SUCCESS,
             )
 
@@ -1387,12 +1385,9 @@ class Season(Media):
                     episode_label = (
                         "episode" if created_episodes_count == 1 else "episodes"
                     )
-                    verb = "was" if created_episodes_count == 1 else "were"
                     self.create_user_message(
-                        (
-                            f"{created_episodes_count} released {episode_label} "
-                            f"{verb} marked as watched automatically."
-                        ),
+                        f"had {created_episodes_count} released {episode_label} "
+                        "marked as watched automatically.",
                         level=UserMessageLevel.INFO,
                     )
 
@@ -1408,8 +1403,7 @@ class Season(Media):
                         fields=["status"],
                     )
                     self.create_user_message(
-                        "This season was left in progress because unreleased "
-                        "episodes remain.",
+                        "was left in progress because unreleased episodes remain.",
                         level=UserMessageLevel.WARNING,
                     )
 
@@ -1806,7 +1800,7 @@ class Episode(models.Model):
                 )
                 season_just_completed = True
                 self.related_season.create_user_message(
-                    f"{self.related_season} was marked as completed automatically.",
+                    "was marked as completed automatically.",
                     level=UserMessageLevel.SUCCESS,
                 )
 
