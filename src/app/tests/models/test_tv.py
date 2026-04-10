@@ -13,6 +13,8 @@ from app.models import (
     Season,
     Sources,
     Status,
+    UserMessage,
+    UserMessageLevel,
 )
 
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
@@ -309,6 +311,23 @@ class TVStatusTests(TestCase):
         self.assertEqual(season2.episodes.count(), 1)
         self.assertEqual(season2.progress, 1)
         self.assertFalse(season3.episodes.exists())
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.WARNING,
+                message=(
+                    "This TV show was left in progress because unreleased "
+                    "episodes or seasons remain."
+                ),
+            ).exists(),
+        )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message="2 released episodes were marked as watched automatically.",
+            ).exists(),
+        )
 
     def test_dropped_status_marks_in_progress_seasons_dropped(self):
         """Test setting status to DROPPED marks in-progress seasons as dropped."""

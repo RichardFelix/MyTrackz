@@ -163,6 +163,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "app.context_processors.export_vars",
                 "app.context_processors.media_enums",
+                "app.context_processors.persistent_messages",
                 "django.template.context_processors.request",
             ],
         },
@@ -528,6 +529,11 @@ DAILY_DIGEST_HOUR = config(
     default=8,
     cast=int,
 )
+USER_MESSAGE_RETENTION_DAYS = config(
+    "USER_MESSAGE_RETENTION_DAYS",
+    default=30,
+    cast=int,
+)
 CELERY_BEAT_SCHEDULE = {
     "reload_calendar": {
         "task": "Reload calendar",
@@ -540,6 +546,10 @@ CELERY_BEAT_SCHEDULE = {
     "send_daily_digest": {
         "task": "Send daily digest",
         "schedule": crontab(hour=DAILY_DIGEST_HOUR, minute=0),
+    },
+    "cleanup_user_messages": {
+        "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
     },
 }
 

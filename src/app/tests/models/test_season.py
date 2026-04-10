@@ -14,6 +14,8 @@ from app.models import (
     Season,
     Sources,
     Status,
+    UserMessage,
+    UserMessageLevel,
 )
 from users.models import QuickWatchDateChoices
 
@@ -436,6 +438,23 @@ class SeasonStatusTests(TestCase):
         self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
         self.assertEqual(self.season.episodes.count(), 1)
         self.assertEqual(self.season.progress, 1)
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.WARNING,
+                message=(
+                    "This season was left in progress because unreleased "
+                    "episodes remain."
+                ),
+            ).exists(),
+        )
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message="1 released episode was marked as watched automatically.",
+            ).exists(),
+        )
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_completed_status_with_future_next_season_keeps_tv_in_progress(
@@ -494,6 +513,16 @@ class SeasonStatusTests(TestCase):
         self.tv.refresh_from_db()
         self.assertEqual(next_season.status, Status.PLANNING.value)
         self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+        self.assertTrue(
+            UserMessage.objects.filter(
+                user=self.user,
+                level=UserMessageLevel.INFO,
+                message=(
+                    "This TV show remains in progress because another season "
+                    "is still pending or has not aired yet."
+                ),
+            ).exists(),
+        )
 
     def test_dropped_status_updates_tv_status(self):
         """Test setting status to DROPPED updates TV status."""

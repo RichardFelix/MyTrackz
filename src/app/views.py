@@ -19,7 +19,16 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from app import config, helpers, history_processor
 from app import statistics as stats
 from app.forms import EpisodeForm, ManualItemForm, get_form_class
-from app.models import TV, BasicMedia, Item, MediaTypes, Season, Sources, Status
+from app.models import (
+    TV,
+    BasicMedia,
+    Item,
+    MediaTypes,
+    Season,
+    Sources,
+    Status,
+    UserMessage,
+)
 from app.providers import manual, services, tmdb
 from app.templatetags import app_tags
 from users.models import HomeSortChoices, MediaSortChoices, MediaStatusChoices
@@ -570,6 +579,25 @@ def media_delete(request):
         logger.warning("The %s was already deleted before.", media_type)
 
     return helpers.redirect_back(request)
+
+
+@require_POST
+def mark_user_messages_shown(request):
+    """Mark all unseen persistent messages for the user as shown."""
+    message_ids = [
+        int(message_id)
+        for message_id in request.POST.getlist("message_ids")
+        if message_id.isdigit()
+    ]
+    if not message_ids:
+        return HttpResponse(status=204)
+
+    UserMessage.objects.filter(
+        id__in=message_ids,
+        user=request.user,
+        shown_at__isnull=True,
+    ).update(shown_at=timezone.now())
+    return HttpResponse(status=204)
 
 
 @require_POST

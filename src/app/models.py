@@ -765,6 +765,49 @@ class Status(models.TextChoices):
     DROPPED = "Dropped", "Dropped"
 
 
+class UserMessageLevel(models.TextChoices):
+    """Choices for persistent user messages."""
+
+    SUCCESS = "success", "Success"
+    WARNING = "warning", "Warning"
+    ERROR = "error", "Error"
+    INFO = "info", "Info"
+
+
+class UserMessage(models.Model):
+    """Persistent user notification shown in the toast UI."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    level = models.CharField(
+        max_length=20,
+        choices=UserMessageLevel,
+        default=UserMessageLevel.INFO,
+    )
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    shown_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(
+                fields=["user", "shown_at"],
+                name="app_umsg_user_shown_idx",
+            ),
+        ]
+
+    def __str__(self):
+        """Return the message text."""
+        return self.message
+
+    @property
+    def tags(self):
+        """Return a Django-messages-compatible level tag."""
+        return self.level
+
+
 class Media(models.Model):
     """Abstract model for all media types."""
 
@@ -824,6 +867,16 @@ class Media(models.Model):
             self.process_status()
 
         super().save(*args, **kwargs)
+
+    def create_user_message(self, message, level):
+        """Create a persistent user notification."""
+        logger.info("Creating user message for %s: %s", self.user, message)
+
+        UserMessage.objects.create(
+            user=self.user,
+            level=level,
+            message=message,
+        )
 
     def process_progress(self):
         """Update fields depending on the progress of the media."""
@@ -1087,12 +1140,29 @@ class TV(Media):
             )
         bulk_create_with_history(episodes_to_create, Episode)
 
+        if episodes_to_create:
+            created_episodes_count = len(episodes_to_create)
+            episode_label = "episode" if created_episodes_count == 1 else "episodes"
+            verb = "was" if created_episodes_count == 1 else "were"
+            self.create_user_message(
+                (
+                    f"{created_episodes_count} released {episode_label} {verb} "
+                    "marked as watched automatically."
+                ),
+                level=UserMessageLevel.INFO,
+            )
+
         if not tv_completed:
             self.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
                 [self],
                 TV,
                 fields=["status"],
+            )
+            self.create_user_message(
+                "This TV show was left in progress because unreleased episodes "
+                "or seasons remain.",
+                level=UserMessageLevel.WARNING,
             )
 
     def _mark_in_progress_seasons_as_dropped(self):
@@ -1132,6 +1202,7 @@ class TV(Media):
         related_seasons = tv_metadata.get("related", {}).get("seasons", [])
 
         season_started = False
+        started_season_number = None
 
         for season_data in related_seasons:
             season_number = season_data["season_number"]
@@ -1171,6 +1242,7 @@ class TV(Media):
                 )
                 bulk_create_with_history([next_unwatched_season], Season)
                 season_started = True
+                started_season_number = season_number
                 break
 
             if next_unwatched_season.status != Status.IN_PROGRESS.value:
@@ -1181,6 +1253,7 @@ class TV(Media):
                     fields=["status"],
                 )
                 season_started = True
+                started_season_number = season_number
             else:
                 season_started = True
             break
@@ -1191,6 +1264,15 @@ class TV(Media):
                 [self],
                 TV,
                 fields=["status"],
+            )
+
+        if started_season_number is not None:
+            self.create_user_message(
+                (
+                    f"Season {started_season_number} was marked as in progress "
+                    "automatically."
+                ),
+                level=UserMessageLevel.INFO,
             )
 
         return season_started
@@ -1222,6 +1304,11 @@ class TV(Media):
                 TV,
                 fields=["status"],
             )
+            self.create_user_message(
+                "This TV show remains in progress because another season is still "
+                "pending or has not aired yet.",
+                level=UserMessageLevel.INFO,
+            )
 
         elif not incomplete_seasons_exist and self.status != Status.COMPLETED.value:
             self.status = Status.COMPLETED.value
@@ -1229,6 +1316,10 @@ class TV(Media):
                 [self],
                 TV,
                 fields=["status"],
+            )
+            self.create_user_message(
+                "This TV show was marked as completed automatically.",
+                level=UserMessageLevel.SUCCESS,
             )
 
 
@@ -1292,6 +1383,18 @@ class Season(Media):
                         episodes_to_create,
                         Episode,
                     )
+                    created_episodes_count = len(episodes_to_create)
+                    episode_label = (
+                        "episode" if created_episodes_count == 1 else "episodes"
+                    )
+                    verb = "was" if created_episodes_count == 1 else "were"
+                    self.create_user_message(
+                        (
+                            f"{created_episodes_count} released {episode_label} "
+                            f"{verb} marked as watched automatically."
+                        ),
+                        level=UserMessageLevel.INFO,
+                    )
 
                 if target_status == Status.COMPLETED.value:
                     self.related_tv._handle_completed_season(
@@ -1303,6 +1406,11 @@ class Season(Media):
                         [self],
                         Season,
                         fields=["status"],
+                    )
+                    self.create_user_message(
+                        "This season was left in progress because unreleased "
+                        "episodes remain.",
+                        level=UserMessageLevel.WARNING,
                     )
 
                     if self.related_tv.status != Status.IN_PROGRESS.value:
@@ -1686,15 +1794,21 @@ class Episode(models.Model):
         # clear prefetch cache to get the updated episodes
         self.related_season.refresh_from_db()
 
+        is_finale = self.item.episode_number == max_progress
         season_just_completed = False
-        if self.item.episode_number == max_progress:
-            self.related_season.status = Status.COMPLETED.value
-            bulk_update_with_history(
-                [self.related_season],
-                Season,
-                fields=["status"],
-            )
-            season_just_completed = True
+        if is_finale:
+            if self.related_season.status != Status.COMPLETED.value:
+                self.related_season.status = Status.COMPLETED.value
+                bulk_update_with_history(
+                    [self.related_season],
+                    Season,
+                    fields=["status"],
+                )
+                season_just_completed = True
+                self.related_season.create_user_message(
+                    f"{self.related_season} was marked as completed automatically.",
+                    level=UserMessageLevel.SUCCESS,
+                )
 
         elif self.related_season.status != Status.IN_PROGRESS.value:
             self.related_season.status = Status.IN_PROGRESS.value
@@ -1706,7 +1820,10 @@ class Episode(models.Model):
 
         if season_just_completed:
             self.related_season.related_tv._handle_completed_season(season_number)
-        elif self.related_season.related_tv.status != Status.IN_PROGRESS.value:
+        elif (
+            not is_finale
+            and self.related_season.related_tv.status != Status.IN_PROGRESS.value
+        ):
             self.related_season.related_tv.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
                 [self.related_season.related_tv],
