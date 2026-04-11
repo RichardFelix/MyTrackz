@@ -349,6 +349,14 @@ TMDB_API = config(
 TMDB_NSFW = config("TMDB_NSFW", default=False, cast=bool)
 TMDB_LANG = config("TMDB_LANG", default="en")
 
+TVDB_API = config(
+    "TVDB_API",
+    default=secret(
+        "TVDB_API_FILE",
+        "91b5c503-23f1-4181-be23-64ad8b8e8bc1",
+    ),
+)
+
 MAL_API = config(
     "MAL_API",
     default=secret(
