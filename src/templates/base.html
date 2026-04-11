@@ -281,28 +281,14 @@
       </div>
     {% endblock body %}
 
-    {% if messages or persistent_messages %}
-      <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
-        <div class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
-          {% for message in persistent_messages %}
-            {% include "app/components/toast.html" with message=message only %}
-          {% endfor %}
-          {% for message in messages %}
-            {% include "app/components/toast.html" with message=message only %}
-          {% endfor %}
-        </div>
+    <div class="fixed top-24 right-0 left-0 {% block messages_sidebar_offset %}lg:left-64{% endblock messages_sidebar_offset %} z-50 flex justify-center pointer-events-none">
+      <div id="messages-list"
+           class="w-full max-w-xl px-4 space-y-2 pointer-events-auto">
+        {% include "app/components/messages/messages_stack.html" %}
       </div>
+    </div>
 
-      {% if persistent_messages %}
-        <form class="hidden"
-              hx-post="{% url 'mark_user_messages_shown' %}"
-              hx-trigger="load"
-              hx-swap="none">
-          {% csrf_token %}
-          {% for message in persistent_messages %}<input type="hidden" name="message_ids" value="{{ message.id }}">{% endfor %}
-        </form>
-      {% endif %}
-    {% endif %}
+    <div id="persistent-messages-actions">{% include "app/components/messages/persistent_messages_actions.html" %}</div>
 
     {% block js %}
     {% endblock js %}
