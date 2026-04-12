@@ -409,17 +409,24 @@ class MediaManager(models.Manager):
             models.functions.Lower("item__title"),
         )
 
-    def get_in_progress(self, user, sort_by, items_limit, specific_media_type=None):
-        """Get a media list of in progress media by type."""
+    def get_home_status(
+        self,
+        user,
+        status,
+        sort_by,
+        items_limit,
+        specific_media_type=None,
+    ):
+        """Get a home media list for a specific status grouped by media type."""
         list_by_type = {}
         media_types = self._get_media_types_to_process(user, specific_media_type)
 
         for media_type in media_types:
-            # Get base media list for in-progress media
+            # Get base media list for the requested status
             media_list = self.get_media_list(
                 user=user,
                 media_type=media_type,
-                status_filter=Status.IN_PROGRESS.value,
+                status_filter=status,
                 sort_filter=None,
             )
 
@@ -431,7 +438,7 @@ class MediaManager(models.Manager):
             self._annotate_next_event(media_list)
 
             # Sort the media list
-            sorted_list = self._sort_in_progress_media(media_list, sort_by)
+            sorted_list = self._sort_home_media(media_list, sort_by)
 
             # Apply pagination
             total_count = len(sorted_list)
@@ -476,8 +483,8 @@ class MediaManager(models.Manager):
 
             media.next_event = future_events[0] if future_events else None
 
-    def _sort_in_progress_media(self, media_list, sort_by):
-        """Sort in-progress media based on the sort criteria."""
+    def _sort_home_media(self, media_list, sort_by):
+        """Sort home media based on the selected sort criteria."""
         # Define primary sort functions based on sort_by
         primary_sort_functions = {
             users.models.HomeSortChoices.UPCOMING: lambda x: (
