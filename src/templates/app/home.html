@@ -36,8 +36,10 @@
       </div>
     </div>
 
-    {% for section in home_sections %}
-      {% include "app/components/home_section.html" with section=section %}
-    {% endfor %}
+    <div class="space-y-15">
+      {% for section in home_sections %}
+        {% include "app/components/home_section.html" with section=section %}
+      {% endfor %}
+    </div>
   </div>
 {% endblock content %}
