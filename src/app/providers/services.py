@@ -5,7 +5,7 @@ import requests
 from defusedxml import ElementTree
 from django.conf import settings
 from pyrate_limiter import RedisBucket
-from redis import ConnectionPool
+from redis import ConnectionPool, Redis
 from requests.adapters import HTTPAdapter
 from requests_ratelimiter import LimiterAdapter, LimiterSession
 
@@ -34,13 +34,13 @@ def get_redis_connection():
     return ConnectionPool.from_url(settings.REDIS_URL)
 
 
-redis_pool = get_redis_connection()
-bucket_name = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
+redis_db = Redis(connection_pool=get_redis_connection())
+bucket_key = f"{settings.REDIS_PREFIX}_api" if settings.REDIS_PREFIX else "api"
 
 session = LimiterSession(
     per_second=5,
     bucket_class=RedisBucket,
-    bucket_kwargs={"redis_pool": redis_pool, "bucket_name": bucket_name},
+    bucket_kwargs={"redis": redis_db, "bucket_key": bucket_key},
 )
 
 session.mount("http://", HTTPAdapter(max_retries=3))
