@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -11,7 +11,7 @@ from integrations.imports import steam
 @patch("integrations.imports.steam.external_game")
 @patch("integrations.imports.steam.services.get_media_metadata")
 class ImportSteamUpdate(TestCase):
-    """Test updating existing media from Steam."""
+    """Test Steam overwrite behavior for existing games."""
 
     def setUp(self):
         """Create user and common data for the tests."""
@@ -27,7 +27,7 @@ class ImportSteamUpdate(TestCase):
         )
 
     def _create_game(self, status=Status.PLANNING.value, progress=0):
-        """Helper to create a game with specific status and progress."""
+        """Create a game with a specific status and progress."""
         return Game.objects.create(
             item=self.item,
             user=self.user,
@@ -42,7 +42,7 @@ class ImportSteamUpdate(TestCase):
         mock_api_request,
         playtime=1300,
     ):
-        """Helper to setup common mocks."""
+        """Set up the common Steam and IGDB mocks."""
         mock_get_metadata.return_value = {
             "title": "Counter-Strike 2",
             "image": "http://example.com/cs2.jpg",
@@ -64,29 +64,36 @@ class ImportSteamUpdate(TestCase):
             },
         }
 
-    def test_update_steam_game(
+    def test_overwrite_steam_game_updates_existing(
         self,
         mock_get_metadata,
         mock_external_game,
         mock_api_request,
     ):
-        """Test updating an existing game from Steam."""
+        """Test overwrite mode updates an existing game instead of recreating it."""
         self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
         game = self._create_game()
 
-        steam.importer("76561198000000000", self.user, "update")
+        imported_counts, _ = steam.importer(
+            "76561198000000000",
+            self.user,
+            "overwrite",
+        )
 
         game.refresh_from_db()
+        self.assertEqual(imported_counts[MediaTypes.GAME.value], 1)
+        self.assertEqual(Game.objects.filter(user=self.user).count(), 1)
         self.assertEqual(game.progress, 1300)
         self.assertEqual(game.status, Status.IN_PROGRESS.value)
+        self.assertEqual(game.history.count(), 2)
 
-    def test_update_steam_game_completed_status(
+    def test_overwrite_steam_game_completed_status(
         self,
         mock_get_metadata,
         mock_external_game,
         mock_api_request,
     ):
-        """Test that completed games are not updated to other statuses."""
+        """Test overwrite mode does not downgrade completed games."""
         self._setup_mocks(
             mock_get_metadata,
             mock_external_game,
@@ -95,25 +102,55 @@ class ImportSteamUpdate(TestCase):
         )
         game = self._create_game(status=Status.COMPLETED.value, progress=1000)
 
-        steam.importer("76561198000000000", self.user, "update")
+        imported_counts, _ = steam.importer(
+            "76561198000000000",
+            self.user,
+            "overwrite",
+        )
 
         game.refresh_from_db()
+        self.assertEqual(imported_counts[MediaTypes.GAME.value], 1)
         self.assertEqual(game.progress, 1100)
         self.assertEqual(game.status, Status.COMPLETED.value)
 
-    def test_new_mode_skips_update(
+    def test_overwrite_updates_newest_game_instance(
         self,
         mock_get_metadata,
         mock_external_game,
         mock_api_request,
     ):
-        """Test that 'new' mode skips updating existing games."""
+        """Test overwrite mode updates the newest game instance."""
+        self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
+        older_game = self._create_game(progress=100)
+        newer_game = self._create_game(progress=200)
+
+        imported_counts, _ = steam.importer(
+            "76561198000000000",
+            self.user,
+            "overwrite",
+        )
+
+        older_game.refresh_from_db()
+        newer_game.refresh_from_db()
+        self.assertEqual(imported_counts[MediaTypes.GAME.value], 1)
+        self.assertEqual(older_game.progress, 100)
+        self.assertEqual(older_game.status, Status.PLANNING.value)
+        self.assertEqual(newer_game.progress, 1300)
+        self.assertEqual(newer_game.status, Status.IN_PROGRESS.value)
+
+    def test_new_mode_skips_existing_game(
+        self,
+        mock_get_metadata,
+        mock_external_game,
+        mock_api_request,
+    ):
+        """Test that new mode still skips existing games."""
         self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
         game = self._create_game()
 
-        steam.importer("76561198000000000", self.user, "new")
+        imported_counts, _ = steam.importer("76561198000000000", self.user, "new")
 
         game.refresh_from_db()
+        self.assertEqual(imported_counts, {})
         self.assertEqual(game.progress, 0)
         self.assertEqual(game.status, Status.PLANNING.value)
-
