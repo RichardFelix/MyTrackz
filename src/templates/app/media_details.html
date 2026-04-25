@@ -557,12 +557,18 @@
                   {% else %}
                     false
                   {% endif %}
+                  , hasImage:
+                  {% if episode.image != IMG_NONE %}
+                    true
+                  {% else %}
+                    false
+                  {% endif %}
                   }">
                   <img src="{{ IMG_NONE }}"
                        alt="E{{ episode.episode_number }}"
                        data-src="{{ episode.image }}"
-                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %}"
-                       :class="{ 'blur': obfuscated, 'cursor-pointer': obfuscated, 'cursor-default': !obfuscated }"
+                       class="lazyload md:w-64 md:h-40 shrink-0 {% if episode.image != IMG_NONE %}object-cover{% endif %} {% if user.obfuscate_unseen_episodes and not episode.history and episode.image != IMG_NONE %}blur cursor-pointer{% else %}cursor-default{% endif %}"
+                       :class="{ 'blur': obfuscated && hasImage, 'cursor-pointer': obfuscated && hasImage, 'cursor-default': !obfuscated || !hasImage }"
                        @click="obfuscated = false">
                   <div class="py-3 flex-1 flex flex-col">
                     <div class="flex-1">
@@ -636,7 +642,7 @@
                         </div>
                       </div>
                       <div class="{% if episode.history %}md:h-[calc(2*1.5rem)]{% else %}md:h-[calc(3*1.5rem)]{% endif %} md:overflow-y-auto px-4">
-                        <p class="text-sm text-gray-300 leading-relaxed text-pretty"
+                        <p class="text-sm text-gray-300 leading-relaxed text-pretty {% if user.obfuscate_unseen_episodes and not episode.history %}blur cursor-pointer{% else %}cursor-text{% endif %}"
                            :class="{ 'blur': obfuscated, 'cursor-pointer': obfuscated, 'cursor-text': !obfuscated }"
                            @click="obfuscated = false">{{ episode.overview }}</p>
                       </div>
