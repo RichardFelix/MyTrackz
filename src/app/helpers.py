@@ -4,8 +4,9 @@ from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -15,6 +16,25 @@ from app.models import BasicMedia, MediaTypes, Status
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
+
+
+def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
+    """Return media owned by the current user or raise 404."""
+    try:
+        if prefetch:
+            return BasicMedia.objects.get_media_prefetch(
+                request.user,
+                media_type,
+                instance_id,
+            )
+        return BasicMedia.objects.get_media(
+            request.user,
+            media_type,
+            instance_id,
+        )
+    except ObjectDoesNotExist as exc:
+        msg = "Media not found"
+        raise Http404(msg) from exc
 
 
 def get_configured_app_url():

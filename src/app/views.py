@@ -100,10 +100,8 @@ def progress_edit(request, media_type, instance_id):
     """Increase or decrease the progress of a media item from home page."""
     operation = request.POST["operation"]
 
-    media = BasicMedia.objects.get_media_prefetch(
-        request.user,
-        media_type,
-        instance_id,
+    media = helpers.get_owned_media_or_404(
+        request, media_type, instance_id, prefetch=True
     )
 
     if operation == "increase":
@@ -375,11 +373,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
 @require_POST
 def update_media_score(request, media_type, instance_id):
     """Update the user's score for a media item."""
-    media = BasicMedia.objects.get_media(
-        request.user,
-        media_type,
-        instance_id,
-    )
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
 
     score = float(request.POST.get("score"))
     media.score = score
@@ -584,11 +578,7 @@ def media_save(request):
     instance_id = request.POST.get("instance_id")
 
     if instance_id:
-        instance = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
+        instance = helpers.get_owned_media_or_404(request, media_type, instance_id)
     else:
         metadata = services.get_media_metadata(
             media_type,
@@ -632,19 +622,9 @@ def media_delete(request):
     """Delete media data from the database."""
     instance_id = request.POST["instance_id"]
     media_type = request.POST["media_type"]
-    model = apps.get_model(app_label="app", model_name=media_type)
-
-    try:
-        media = BasicMedia.objects.get_media(
-            request.user,
-            media_type,
-            instance_id,
-        )
-        media.delete()
-        logger.info("%s deleted successfully.", media)
-
-    except model.DoesNotExist:
-        logger.warning("The %s was already deleted before.", media_type)
+    media = helpers.get_owned_media_or_404(request, media_type, instance_id)
+    media.delete()
+    logger.info("%s deleted successfully.", media)
 
     return helpers.redirect_back(request)
 
