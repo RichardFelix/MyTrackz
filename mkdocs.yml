@@ -10,7 +10,7 @@ copyright: Copyright &copy; 2022 - 2026 FuzzyGrim
 edit_uri: edit/dev/docs/
 nav:
   - Home: index.md
-  - Installation: installation.md
+  - Setup: setup.md
   - Environment Variables: env-variables.md
   - Media Imports: media-imports.md
   - Social Auth: social-auth.md
