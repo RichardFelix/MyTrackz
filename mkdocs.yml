@@ -7,7 +7,7 @@ site_description: >-
 repo_name: FuzzyGrim/Yamtrack
 repo_url: https://github.com/FuzzyGrim/Yamtrack
 copyright: Copyright &copy; 2022 - 2026 FuzzyGrim
-edit_uri: edit/main/docs/
+edit_uri: edit/dev/docs/
 nav:
   - Home: index.md
   - Installation: installation.md
@@ -59,22 +59,20 @@ plugins:
   - search:
       lang:
         - en
+  - include-markdown
   - git-revision-date-localized:
       enable_creation_date: true
   - git-committers:
       repository: FuzzyGrim/Yamtrack
-      branch: main
-  - git-authors
-  # Will be used in the future for the API documentation
-  # - neoteroi.mkdocsoad:
-  #     use_pymdownx: true
+      branch: dev
+  - git-authors:
+      show_email_address: false
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/FuzzyGrim/Yamtrack
 extra_css:
   - stylesheets/extra.css
-  # - stylesheets/neoteroi-mkdocs.min.css
 markdown_extensions:
   - admonition
   - pymdownx.details
