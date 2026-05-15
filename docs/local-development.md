@@ -84,6 +84,22 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## Testing
+
+Run the Django test suite from the `src` directory:
+
+```bash
+cd src
+../venv/bin/python manage.py test --parallel
+```
+
+To run tests for a specific app or test module, pass the test label after `test`:
+
+```bash
+cd src
+../venv/bin/python manage.py test app.tests --parallel
+```
+
 ## Documentation
 
 Install the docs dependencies with the development requirements, then serve the current checkout:
