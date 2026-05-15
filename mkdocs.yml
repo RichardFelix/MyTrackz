@@ -68,6 +68,10 @@ plugins:
   - git-authors:
       show_email_address: false
 extra:
+  version:
+    provider: mike
+    default: release
+    alias: true
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/FuzzyGrim/Yamtrack
