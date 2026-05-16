@@ -147,6 +147,12 @@ MIDDLEWARE = [
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
+YAMTRACK_AUTO_LOGIN_USERNAME = config("YAMTRACK_AUTO_LOGIN_USERNAME", default=None)
+if YAMTRACK_AUTO_LOGIN_USERNAME:
+    _index = MIDDLEWARE.index("django.contrib.auth.middleware.AuthenticationMiddleware")
+    # This allows auto-login if the user is not already authenticated.
+    MIDDLEWARE.insert(_index + 1, "app.middleware.AutoLoginMiddleware")
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
