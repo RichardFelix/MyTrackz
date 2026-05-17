@@ -1,5 +1,5 @@
 # --- Builder stage: build the virtualenv with uv ---
-FROM ghcr.io/astral-sh/uv:python3.12-alpine AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-alpine3.23 AS builder
 
 # Disable development dependencies
 ENV UV_NO_DEV=1
@@ -16,7 +16,7 @@ COPY ./uv.lock ./uv.lock
 RUN uv sync --locked
 
 # --- Final stage: minimal runtime image ---
-FROM python:3.12-alpine3.21
+FROM python:3.12-alpine3.23
 
 # https://stackoverflow.com/questions/58701233/docker-logs-erroneously-appears-empty-until-container-stops
 ENV PYTHONUNBUFFERED=1
