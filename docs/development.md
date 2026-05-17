@@ -1,4 +1,4 @@
-# Local Development
+# Development
 
 This page covers working on Yamtrack from source.
 
@@ -8,14 +8,16 @@ This page covers working on Yamtrack from source.
 - Docker
 - Redis
 
-## 1. Clone the repository
+## General setup
+
+### Clone the repository
 
 ```bash
 git clone https://github.com/FuzzyGrim/Yamtrack.git
 cd Yamtrack
 ```
 
-## 2. Start Redis
+### Start Redis
 
 If you do not already have Redis running locally, start it with Docker:
 
@@ -23,7 +25,7 @@ If you do not already have Redis running locally, start it with Docker:
 docker run -d --name redis -p 6379:6379 --restart unless-stopped redis:8-alpine
 ```
 
-## 3. Create a virtual environment
+### Create a virtual environment
 
 ```bash
 python -m venv venv
@@ -31,7 +33,13 @@ venv/bin/python -m pip install -U -r requirements-dev.txt
 venv/bin/pre-commit install
 ```
 
-## 4. Configure environment values
+Installing the development requirements includes pre-commit. After `venv/bin/pre-commit install`, the hooks run automatically before each commit. You can also run the full hook set manually:
+
+```bash
+venv/bin/pre-commit run --all-files
+```
+
+### Configure environment values
 
 Create a `.env` file in the repository root:
 
@@ -48,14 +56,14 @@ DEBUG=True
 
 See [Environment Variables](env-variables.md) for the full list of supported settings.
 
-## 5. Prepare the database
+### Prepare the database
 
 ```bash
 cd src
 ../venv/bin/python manage.py migrate
 ```
 
-## 6. Run the app
+### Run the app
 
 Run the Django development server:
 
@@ -84,6 +92,14 @@ Open the development server at:
 http://localhost:8000
 ```
 
+## Documentation
+
+Install the docs dependencies with the development requirements, then serve the current checkout:
+
+```bash
+venv/bin/mkdocs serve --livereload
+```
+
 ## Testing
 
 Run the Django test suite from the `src` directory:
@@ -98,12 +114,4 @@ To run tests for a specific app or test module, pass the test label after `test`
 ```bash
 cd src
 ../venv/bin/python manage.py test app.tests --parallel
-```
-
-## Documentation
-
-Install the docs dependencies with the development requirements, then serve the current checkout:
-
-```bash
-venv/bin/mkdocs serve --livereload
 ```
