@@ -1493,19 +1493,11 @@ class Season(Media):
             return 0
 
         if self.status == Status.IN_PROGRESS.value:
-            # Calculate repeat counts for each episode number
-            episode_counts = {}
-            for ep in episodes:
-                ep_num = ep.item.episode_number
-                episode_counts[ep_num] = episode_counts.get(ep_num, 0) + 1
-
-            # Sort by repeat count then episode_number
+            # Sort by most recently watched, then by episode number
             sorted_episodes = sorted(
                 episodes,
-                key=lambda e: (
-                    -episode_counts[e.item.episode_number],
-                    -e.item.episode_number,
-                ),
+                key=lambda e: (e.end_date is not None, e.end_date.timestamp() if e.end_date else 0, e.item.episode_number),
+                reverse=True,
             )
         else:
             # Default sorting by episode_number
