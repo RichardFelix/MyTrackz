@@ -105,6 +105,12 @@ uv run zensical serve
 
 ## Testing
 
+Install Playwright browsers before running integration tests:
+
+```bash
+uv run playwright install
+```
+
 Run the Django test suite from the `src` directory:
 
 ```bash
