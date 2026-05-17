@@ -1,2 +1,2 @@
-{% include-markdown "../README.md" end="<!-- docs-site-link:start -->" %}
-{% include-markdown "../README.md" start="<!-- docs-site-link:end -->" %}
+--8<-- "README.md:docs-index-intro"
+--8<-- "README.md:docs-index-body"

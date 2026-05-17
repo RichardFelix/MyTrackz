@@ -94,10 +94,10 @@ http://localhost:8000
 
 ## Documentation
 
-Install the docs dependencies with the development requirements, then serve the current checkout:
+Install the docs dependencies from `docs/requirements.txt`, then serve the current checkout:
 
 ```bash
-venv/bin/mkdocs serve --livereload
+venv/bin/zensical serve
 ```
 
 ## Testing

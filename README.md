@@ -1,3 +1,5 @@
+<!-- --8<-- [start:docs-index-intro] -->
+
 # Yamtrack
 
 ![App Tests](https://github.com/FuzzyGrim/Yamtrack/actions/workflows/app-tests.yml/badge.svg)
@@ -8,13 +10,13 @@
 
 Yamtrack is a self hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
-<!-- docs-site-link:start -->
+<!-- --8<-- [end:docs-index-intro] -->
 
 ## 📚 Documentation
 
 The full documentation is available at [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/).
 
-<!-- docs-site-link:end -->
+<!-- --8<-- [start:docs-index-body] -->
 
 ## 🚀 Demo
 
