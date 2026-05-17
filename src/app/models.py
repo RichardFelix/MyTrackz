@@ -1496,7 +1496,11 @@ class Season(Media):
             # Sort by most recently watched, then by episode number
             sorted_episodes = sorted(
                 episodes,
-                key=lambda e: (e.end_date is not None, e.end_date.timestamp() if e.end_date else 0, e.item.episode_number),
+                key=lambda e: (
+                    e.end_date is not None,
+                    e.end_date.timestamp() if e.end_date else 0,
+                    e.item.episode_number,
+                ),
                 reverse=True,
             )
         else:
