@@ -1752,7 +1752,7 @@ class Episode(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, null=True)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
     related_season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -1832,12 +1832,9 @@ class Episode(models.Model):
         """Delete the episode instance and update parent statuses if needed."""
         season = self.related_season
         tv = season.related_tv
-        deleted_episode_number = self.item.episode_number if self.item else None
+        deleted_episode_number = self.item.episode_number
 
         super().delete(*args, **kwargs)
-
-        if deleted_episode_number is None:
-            return
 
         self._update_parent_statuses_after_delete(season, tv, deleted_episode_number)
 
