@@ -243,6 +243,7 @@ def get_publish_date(response):
 
         date_formats = [
             "%B %d, %Y",  # January 19, 2001
+            "%b %d, %Y",  # Oct 01, 2017
             "%d %B %Y",  # 18 March 2025
         ]
         for date_format in date_formats:
