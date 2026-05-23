@@ -416,6 +416,14 @@ class User(AbstractUser):
         blank=True,
         help_text="Comma-separated list of Plex usernames for webhook matching",
     )
+    jellyfin_mark_played_enabled = models.BooleanField(
+        default=False,
+        help_text="Process Jellyfin MarkPlayed webhook events",
+    )
+    jellyfin_mark_unplayed_enabled = models.BooleanField(
+        default=False,
+        help_text="Process Jellyfin MarkUnplayed webhook events",
+    )
 
     class Meta:
         """Meta options for the model."""

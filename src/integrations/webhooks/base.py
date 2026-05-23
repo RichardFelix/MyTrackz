@@ -31,6 +31,10 @@ class BaseWebhookProcessor:
         """Check if media is marked as played."""
         raise NotImplementedError
 
+    def _is_unplayed(self, _payload):
+        """Check if media is marked as unplayed."""
+        return False
+
     def _extract_external_ids(self, payload):
         """Extract external IDs from payload."""
         raise NotImplementedError
@@ -215,6 +219,17 @@ class BaseWebhookProcessor:
 
     def _handle_movie(self, media_id, payload, user):
         """Handle movie playback event."""
+        if self._is_unplayed(payload):
+            current_instance = self._get_current_instance(
+                app.models.Movie,
+                media_id,
+                Sources.TMDB.value,
+                MediaTypes.MOVIE.value,
+                user,
+            )
+            self._delete_media_instance(current_instance, "movie")
+            return
+
         movie_metadata = app.providers.tmdb.movie(media_id)
         movie_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -226,8 +241,13 @@ class BaseWebhookProcessor:
             },
         )
 
-        movie_instances = app.models.Movie.objects.filter(item=movie_item, user=user)
-        current_instance = movie_instances.first()
+        current_instance = self._get_current_instance(
+            app.models.Movie,
+            media_id,
+            Sources.TMDB.value,
+            MediaTypes.MOVIE.value,
+            user,
+        )
         movie_played = self._is_played(payload)
 
         progress = 1 if movie_played else 0
@@ -271,6 +291,29 @@ class BaseWebhookProcessor:
                 Status.COMPLETED.value if movie_played else Status.IN_PROGRESS.value,
             )
 
+    def _get_current_instance(self, model, media_id, source, media_type, user):
+        """Return the newest tracked media instance without creating metadata."""
+        return (
+            model.objects.filter(
+                item__media_id=media_id,
+                item__source=source,
+                item__media_type=media_type,
+                user=user,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+    def _delete_media_instance(self, current_instance, media_label):
+        """Delete an existing media instance for an unplayed event."""
+        if not current_instance:
+            logger.debug("%s marked as unplayed but no instance exists", media_label)
+            return
+
+        item = current_instance.item
+        current_instance.delete()
+        logger.info("Marked existing %s instance as unplayed: %s", media_label, item)
+
     def _handle_tv_episode(
         self,
         media_id,
@@ -280,6 +323,10 @@ class BaseWebhookProcessor:
         user,
     ):
         """Handle TV episode playback event."""
+        if self._is_unplayed(payload):
+            self._delete_tv_episode(media_id, season_number, episode_number, user)
+            return
+
         tv_metadata = app.providers.tmdb.tv_with_seasons(media_id, [season_number])
         season_metadata = tv_metadata[f"season/{season_number}"]
 
@@ -394,8 +441,54 @@ class BaseWebhookProcessor:
                 episode_number,
             )
 
+    def _delete_tv_episode(self, media_id, season_number, episode_number, user):
+        """Delete the latest tracked episode instance for an unplayed event."""
+        episode = (
+            app.models.Episode.objects.filter(
+                related_season__user=user,
+                item__media_id=media_id,
+                item__source=Sources.TMDB.value,
+                item__media_type=MediaTypes.EPISODE.value,
+                item__season_number=season_number,
+                item__episode_number=episode_number,
+            )
+            .order_by("-end_date", "-created_at")
+            .first()
+        )
+
+        if not episode:
+            logger.debug(
+                "Episode marked as unplayed but no instance exists: %s S%02dE%02d",
+                media_id,
+                season_number,
+                episode_number,
+            )
+            return
+
+        episode.delete()
+        logger.info(
+            "Marked episode as unplayed: %s S%02dE%02d",
+            media_id,
+            season_number,
+            episode_number,
+        )
+
     def _handle_anime(self, media_id, episode_number, payload, user):
         """Handle anime playback event."""
+        if not self._is_played(payload):
+            episode_number = max(0, episode_number - 1)
+
+        if self._is_unplayed(payload):
+            current_instance = self._get_current_instance(
+                app.models.Anime,
+                media_id,
+                Sources.MAL.value,
+                MediaTypes.ANIME.value,
+                user,
+            )
+            self._mark_anime_unplayed(current_instance, episode_number)
+            return
+
         anime_metadata = app.providers.mal.anime(media_id)
         anime_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -407,11 +500,13 @@ class BaseWebhookProcessor:
             },
         )
 
-        anime_instances = app.models.Anime.objects.filter(item=anime_item, user=user)
-        current_instance = anime_instances.first()
-
-        if not self._is_played(payload):
-            episode_number = max(0, episode_number - 1)
+        current_instance = self._get_current_instance(
+            app.models.Anime,
+            media_id,
+            Sources.MAL.value,
+            MediaTypes.ANIME.value,
+            user,
+        )
 
         now = timezone.now().replace(second=0, microsecond=0)
         is_completed = episode_number == anime_metadata["max_progress"]
@@ -453,4 +548,26 @@ class BaseWebhookProcessor:
                 "Created new anime instance with status: %s and progress %d",
                 status,
                 episode_number,
+            )
+
+    def _mark_anime_unplayed(self, current_instance, episode_number):
+        """Update an existing anime instance for an unplayed event."""
+        if not current_instance:
+            logger.debug("Anime marked as unplayed but no instance exists")
+            return
+
+        current_instance.progress = episode_number
+        current_instance.status = Status.IN_PROGRESS.value
+        current_instance.end_date = None
+
+        if current_instance.tracker.changed():
+            current_instance.save()
+            logger.info(
+                "Marked existing anime instance as unplayed with progress %d",
+                episode_number,
+            )
+        else:
+            logger.debug(
+                "No changes detected for unplayed anime instance: %s",
+                current_instance.item,
             )

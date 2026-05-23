@@ -1828,6 +1828,48 @@ class Episode(models.Model):
                 fields=["status"],
             )
 
+    def delete(self, *args, **kwargs):
+        """Delete the episode instance and update parent statuses if needed."""
+        season = self.related_season
+        tv = season.related_tv
+        deleted_episode_number = self.item.episode_number if self.item else None
+
+        super().delete(*args, **kwargs)
+
+        if deleted_episode_number is None:
+            return
+
+        self._update_parent_statuses_after_delete(season, tv, deleted_episode_number)
+
+    def _update_parent_statuses_after_delete(self, season, tv, deleted_episode_number):
+        """Move completed parents back to in progress after unwatching progress."""
+        season.refresh_from_db()
+        tv.refresh_from_db()
+
+        if (
+            season.status == Status.COMPLETED.value
+            and season.progress < deleted_episode_number
+        ):
+            season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [season],
+                Season,
+                fields=["status"],
+                default_user=season.user,
+            )
+
+        if (
+            season.status != Status.COMPLETED.value
+            and tv.status == Status.COMPLETED.value
+        ):
+            tv.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [tv],
+                TV,
+                fields=["status"],
+                default_user=season.user,
+            )
+
 
 class Manga(Media):
     """Model for manga."""
