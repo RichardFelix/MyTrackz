@@ -26,7 +26,7 @@ See [media-imports](media-imports.md).
 
 | Name               | Notes                                                                                                                                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `REDIS_URL`        | Default to `redis://localhost:6379`. Set this to your Redis server URL, in the format of `redis://{service}:{port}`. If using a custom network you may need to use `redis://{container_nam}:{port}`. |
+| `REDIS_URL`        | Default to `redis://localhost:6379`. Set this to your Redis server URL, in the format of `redis://{service}:{port}`. In the Docker Compose examples this is `redis://redis:6379`. If Yamtrack shares a Docker network with another container or service named `redis`, use the Yamtrack Redis container name instead: `redis://yamtrack-redis:6379`. |
 | `CELERY_REDIS_URL` | Default to the value of `REDIS_URL`. Set this to your Redis server URL for Celery if you need a different value than `REDIS_URL`.                                                                    |
 | `REDIS_PREFIX`     | Optional prefix for Redis keys and channels to enable isolation when sharing a Redis instance across multiple applications. Useful for ACL-based permission control.                                 |
 | `SECRET`           | [Secret key](https://docs.djangoproject.com/en/stable/ref/settings/#secret-key) used for cryptographic signing. Should be a random string.                                                           |
