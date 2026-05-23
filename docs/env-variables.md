@@ -15,7 +15,7 @@ This page outlines the environment variables used in the YamTrack project.
 | `IGDB_ID`       | IGDB API key for games. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                                   |
 | `IGDB_SECRET`   | IGDB API secret for games. A default value is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                              |
 | `IGDB_NSFW`     | Default to `False`. Set to `True` to include adult content in game searches.                                                                                                                                                                          |
-| `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                              |
+| `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
 
 ## Media Import
