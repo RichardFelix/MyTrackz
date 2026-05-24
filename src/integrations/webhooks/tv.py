@@ -103,6 +103,11 @@ class TVWebhookMixin:
             "tvdb_id",
         )
         if not media_id:
+            media_id = tvdb_provider.series_tmdb_id(tvdb_episode["series_id"])
+            season_number = tvdb_episode["season_number"]
+            episode_number = tvdb_episode["episode_number"]
+
+        if not media_id:
             logger.warning(
                 "No matching TMDB ID found for TVDB episode ID: %s", tvdb_episode_id
             )
