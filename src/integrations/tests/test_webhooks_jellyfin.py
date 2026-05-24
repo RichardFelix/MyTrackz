@@ -82,6 +82,124 @@ class JellyfinWebhookTests(TestCase):
         )
         self.assertIsNotNone(episode.end_date)
 
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_imdb_fallback_when_tvdb_missing(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_handle_tv_episode,
+    ):
+        """Test TV episodes can resolve through IMDB when TVDB is missing."""
+        mock_tmdb_find.return_value = {
+            "tv_episode_results": [
+                {
+                    "show_id": 12345,
+                    "season_number": 2,
+                    "episode_number": 8,
+                },
+            ],
+        }
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Tmdb": "",
+                    "Imdb": "tt38990690",
+                    "Tvdb": "",
+                },
+                "SeriesName": "Test Show",
+                "ParentIndexNumber": 2,
+                "IndexNumber": 8,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_not_called()
+        mock_tmdb_find.assert_called_once_with("tt38990690", "imdb_id")
+        mock_handle_tv_episode.assert_called_once_with(
+            12345,
+            2,
+            8,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.find")
+    @patch("integrations.webhooks.tv.tvdb_provider.episode")
+    def test_tv_episode_uses_imdb_fallback_when_tvdb_tmdb_lookup_misses(
+        self,
+        mock_tvdb_episode,
+        mock_tmdb_find,
+        mock_handle_tv_episode,
+    ):
+        """Test IMDB is used after TVDB when TMDB cannot match the TVDB ID."""
+        self.user.anime_enabled = False
+        self.user.save(update_fields=["anime_enabled"])
+        mock_tvdb_episode.return_value = {
+            "episode_id": 999,
+            "series_id": 123,
+            "season_number": 2,
+            "episode_number": 8,
+        }
+        mock_tmdb_find.side_effect = [
+            {"tv_episode_results": []},
+            {
+                "tv_episode_results": [
+                    {
+                        "show_id": 12345,
+                        "season_number": 2,
+                        "episode_number": 8,
+                    },
+                ],
+            },
+        ]
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "Episode",
+                "ProviderIds": {
+                    "Imdb": "tt38990690",
+                    "Tvdb": "999",
+                },
+                "SeriesName": "Test Show",
+                "ParentIndexNumber": 2,
+                "IndexNumber": 8,
+                "UserData": {"Played": True},
+            },
+        }
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_tvdb_episode.assert_called_once_with(999)
+        self.assertEqual(mock_tmdb_find.call_count, 2)
+        mock_tmdb_find.assert_any_call("999", "tvdb_id")
+        mock_tmdb_find.assert_any_call("tt38990690", "imdb_id")
+        mock_handle_tv_episode.assert_called_once_with(
+            12345,
+            2,
+            8,
+            payload,
+            self.user,
+        )
+
     def test_mark_played_ignored_when_disabled(self):
         """Test Jellyfin MarkPlayed events are ignored by default."""
         payload = {

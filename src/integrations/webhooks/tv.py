@@ -56,18 +56,31 @@ class TVWebhookMixin:
                 return
 
         tvdb_episode_id = ids.get("tvdb_id")
-        if not tvdb_episode_id:
-            logger.warning("No TVDB episode ID found for TV episode")
+        if tvdb_episode_id:
+            tvdb_episode = tvdb_provider.episode(int(tvdb_episode_id))
+            if not tvdb_episode:
+                logger.warning(
+                    "No TVDB episode metadata found for TVDB episode ID: %s",
+                    tvdb_episode_id,
+                )
+            elif self._process_tvdb_episode(
+                tvdb_episode, tvdb_episode_id, payload, user
+            ):
+                return
+        else:
+            logger.debug("No TVDB episode ID found for TV episode")
+
+        imdb_id = ids.get("imdb_id")
+        if imdb_id and self._process_imdb_episode(imdb_id, payload, user):
             return
 
-        tvdb_episode = tvdb_provider.episode(int(tvdb_episode_id))
-        if not tvdb_episode:
-            logger.warning(
-                "No TVDB episode metadata found for TVDB episode ID: %s",
-                tvdb_episode_id,
-            )
-            return
+        if imdb_id:
+            logger.warning("No matching TMDB ID found for IMDB ID: %s", imdb_id)
+        else:
+            logger.warning("No TVDB or IMDB ID found for TV episode")
 
+    def _process_tvdb_episode(self, tvdb_episode, tvdb_episode_id, payload, user):
+        """Process a TV episode using TVDB metadata."""
         if user.anime_enabled:
             mapping_data = anime_mappings.fetch_mapping_data()
             mal_id, episode_offset = anime_mappings.get_mal_id_from_tvdb(
@@ -83,16 +96,17 @@ class TVWebhookMixin:
                     episode_offset,
                 )
                 self._handle_anime(mal_id, episode_offset, payload, user)
-                return
+                return True
 
         media_id, season_number, episode_number = self._find_tv_media_id(
-            tvdb_episode_id
+            tvdb_episode_id,
+            "tvdb_id",
         )
         if not media_id:
             logger.warning(
                 "No matching TMDB ID found for TVDB episode ID: %s", tvdb_episode_id
             )
-            return
+            return False
 
         logger.info(
             "Detected TV episode via TMDB ID: %s, Season: %d, Episode: %d",
@@ -101,11 +115,31 @@ class TVWebhookMixin:
             episode_number,
         )
         self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
+        return True
 
-    def _find_tv_media_id(self, tvdb_episode_id):
-        """Find TMDB TV episode metadata from a TVDB episode ID."""
-        if tvdb_episode_id:
-            response = app.providers.tmdb.find(tvdb_episode_id, "tvdb_id")
+    def _process_imdb_episode(self, imdb_id, payload, user):
+        """Process a TV episode using IMDB as a TVDB fallback."""
+        media_id, season_number, episode_number = self._find_tv_media_id(
+            imdb_id,
+            "imdb_id",
+        )
+        if not media_id:
+            return False
+
+        logger.info(
+            "Detected TV episode via IMDB ID: %s, TMDB ID: %s, Season: %d, Episode: %d",
+            imdb_id,
+            media_id,
+            season_number,
+            episode_number,
+        )
+        self._handle_tv_episode(media_id, season_number, episode_number, payload, user)
+        return True
+
+    def _find_tv_media_id(self, external_id, external_source):
+        """Find TMDB TV episode metadata from an external ID."""
+        if external_id:
+            response = app.providers.tmdb.find(external_id, external_source)
             if response.get("tv_episode_results"):
                 result = response["tv_episode_results"][0]
                 return (
