@@ -41,6 +41,23 @@ def no_underscore(arg1):
 
 
 @register.filter
+def cached_image_url(item, media=None):
+    """Return the best available image URL.
+
+    Prefers a tracked Media's Item (gets the local image cache) when one
+    exists; falls back to the raw provider dict's image for untracked
+    search/recommendation results, which have no Item row to cache from.
+    """
+    if media is not None:
+        return media.item.cached_image_url
+    if isinstance(item, dict):
+        return item.get("image") or settings.IMG_NONE
+    if item is None:
+        return settings.IMG_NONE
+    return item.cached_image_url
+
+
+@register.filter
 def slug(arg1):
     """Return the slug of the string.
 
