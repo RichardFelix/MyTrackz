@@ -13,6 +13,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from app.models import BasicMedia, Item, MediaTypes, Status
+from app.tasks import cache_item_image
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
@@ -194,12 +195,15 @@ def enrich_items_with_user_data(request, items, section_name):
             media_item.item, item.get("image")
         ):
             media_item.item.image = item["image"]
+            media_item.item.image_cached = False
             items_to_refresh.append(media_item.item)
 
         enriched_items.append({"item": item, "media": media_item})
 
     if items_to_refresh:
-        Item.objects.bulk_update(items_to_refresh, ["image"])
+        Item.objects.bulk_update(items_to_refresh, ["image", "image_cached"])
+        for refreshed_item in items_to_refresh:
+            cache_item_image.delay(refreshed_item.id, refreshed_item.image)
 
     return enriched_items
 

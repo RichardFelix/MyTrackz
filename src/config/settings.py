@@ -315,6 +315,19 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 if BASE_URL:
     STATIC_URL = f"{BASE_URL}/static/"
 
+# Local cache of external provider images (see app.Item.image)
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "mediafiles"
+
+if BASE_URL:
+    MEDIA_URL = f"{BASE_URL}/media/"
+
+IMAGE_CACHE_DIR = "items"
+IMAGE_DOWNLOAD_TIMEOUT = 15  # seconds
+IMAGE_DOWNLOAD_MAX_BYTES = 5 * 1024 * 1024
+IMAGE_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
 
@@ -571,6 +584,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "cleanup_user_messages": {
         "task": "Cleanup user messages",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
+    "cleanup_orphaned_item_images": {
+        "task": "Cleanup orphaned item images",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
 }

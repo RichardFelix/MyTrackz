@@ -89,7 +89,8 @@ class CustomList(models.Model):
     @property
     def image(self):
         """Return the image of the first item in the list."""
-        return self.items.first().image if self.items.first() else settings.IMG_NONE
+        first_item = self.items.first()
+        return first_item.cached_image_url if first_item else settings.IMG_NONE
 
 
 class CustomListItemManager(models.Manager):

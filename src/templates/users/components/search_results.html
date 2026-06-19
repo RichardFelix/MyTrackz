@@ -12,7 +12,7 @@
         <div class="flex items-center grow">
           <img alt="{{ item }}"
                class="w-8 h-10 object-cover rounded mr-2"
-               src="{{ item.image }}">
+               src="{{ item.cached_image_url }}">
           <div>
             <p class="text-sm text-gray-200">{{ item }}</p>
             <p class="text-xs text-gray-400">{{ item.media_type|media_type_readable }}</p>

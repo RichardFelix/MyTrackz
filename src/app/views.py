@@ -32,6 +32,7 @@ from app.models import (
     UserMessage,
 )
 from app.providers import manual, services, tmdb
+from app.tasks import cache_item_image
 from app.templatetags import app_tags
 from users.models import (
     DateFormatChoices,
@@ -467,6 +468,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             }
 
             episodes_to_update = []
+            episodes_with_new_image = []
             episode_count = 0
 
             for episode_data in metadata["episodes"]:
@@ -474,7 +476,10 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                 if episode_number in existing_episodes:
                     episode_item = existing_episodes[episode_number]
                     episode_item.title = metadata["title"]
-                    episode_item.image = episode_data["image"]
+                    if episode_item.image != episode_data["image"]:
+                        episode_item.image = episode_data["image"]
+                        episode_item.image_cached = False
+                        episodes_with_new_image.append(episode_item)
                     episodes_to_update.append(episode_item)
                     episode_count += 1
 
@@ -487,7 +492,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             if episodes_to_update:
                 updated_count = Item.objects.bulk_update(
                     episodes_to_update,
-                    ["title", "image"],
+                    ["title", "image", "image_cached"],
                     batch_size=100,
                 )
                 logger.info(
@@ -495,6 +500,9 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                     updated_count,
                     title,
                 )
+                for updated_item in episodes_with_new_image:
+                    if updated_item.image and updated_item.image != settings.IMG_NONE:
+                        cache_item_image.delay(updated_item.id, updated_item.image)
 
         item.fetch_releases(delay=False)
 

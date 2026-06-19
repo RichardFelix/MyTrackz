@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import uuid
 
@@ -80,8 +81,11 @@ class Item(CalendarTriggerMixin, models.Model):
     )
     title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
+    image_cached = models.BooleanField(default=False)
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
+
+    tracker = FieldTracker(fields=["image"])
 
     class Meta:
         """Meta options for the model."""
@@ -167,6 +171,28 @@ class Item(CalendarTriggerMixin, models.Model):
             if self.episode_number is not None:
                 name += f"E{self.episode_number}"
         return name
+
+    @tracker
+    def save(self, *args, **kwargs):
+        """Save the item and queue a local image-cache refresh when the URL changes."""
+        image_changed = self.tracker.has_changed("image")
+        if image_changed:
+            self.image_cached = False
+
+        super().save(*args, **kwargs)
+
+        if image_changed and self.image and self.image != settings.IMG_NONE:
+            from app.tasks import cache_item_image  # noqa: PLC0415 avoid import cycle
+
+            cache_item_image.delay(self.id, self.image)
+
+    @property
+    def cached_image_url(self):
+        """Return the local cached image URL if available, else the original/fallback."""
+        if self.image_cached:
+            digest = hashlib.sha256(self.image.encode()).hexdigest()
+            return f"{settings.MEDIA_URL}{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.jpg"
+        return self.image or settings.IMG_NONE
 
     @classmethod
     def generate_manual_id(cls):
