@@ -1,6 +1,6 @@
 {
-    "name": "Yamtrack - Media Tracker",
-    "short_name": "Yamtrack",
+    "name": "MyTrackz - Media Tracker",
+    "short_name": "MyTrackz",
     "description": "Track your movies, TV shows, anime, manga, games and books",
     "start_url": "/",
     "id": "/",
@@ -8,8 +8,8 @@
     "display_override": [
         "standalone"
     ],
-    "theme_color": "#181a1b",
-    "background_color": "#212529",
+    "theme_color": "#000000",
+    "background_color": "#000000",
     "orientation": "portrait-primary",
     "scope": "/",
     "icons": [
