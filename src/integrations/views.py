@@ -355,7 +355,7 @@ def import_yamtrack(request):
     file = request.FILES.get("yamtrack_csv")
 
     if not file:
-        messages.error(request, "Yamtrack CSV file is required.")
+        messages.error(request, "MyTrackz CSV file is required.")
         return redirect("import_data")
 
     mode = request.POST["mode"]
@@ -366,7 +366,7 @@ def import_yamtrack(request):
     )
     messages.info(
         request,
-        "The task to import media from Yamtrack CSV file has been queued.",
+        "The task to import media from MyTrackz CSV file has been queued.",
     )
     return redirect("import_data")
 
@@ -470,7 +470,7 @@ def export_csv(request):
     response = StreamingHttpResponse(
         streaming_content=exports.generate_rows(request.user),
         content_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="yamtrack_{now}.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="mytrackz_{now}.csv"'},
     )
     logger.info("User %s started CSV export", request.user.username)
     return response
