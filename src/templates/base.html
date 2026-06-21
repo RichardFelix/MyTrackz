@@ -69,7 +69,9 @@
                :class="isMobileMenuOpen ? 'translate-x-0' : ''">
           <div class="h-16 border-b border-[#2c3136] flex items-center justify-center px-6">
             <a href="{% url 'home' %}" class="hover:opacity-80 transition-opacity">
-              <img src="{% static 'img/mytrackz-logo.svg' %}" alt="MyTrackz" class="h-10">
+              <img src="{% static 'img/mytrackz-logo.svg' %}"
+                   alt="MyTrackz"
+                   style="height: 56px; width: auto;">
             </a>
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
