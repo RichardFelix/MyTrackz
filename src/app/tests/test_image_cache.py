@@ -156,7 +156,7 @@ class CleanupOrphanedItemImagesTaskTests(TestCase):
             patch("app.tasks._is_safe_image_host", return_value=True),
             patch("app.tasks.requests.get") as mock_get,
         ):
-            mock_get.return_value = _mock_response()
+            mock_get.side_effect = [_mock_response(), _mock_response()]
             cache_item_image(live_item.id, live_item.image)
             cache_item_image(orphan_item.id, orphan_item.image)
 

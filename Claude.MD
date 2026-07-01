@@ -133,19 +133,33 @@ Resolve conflicts if any. Most likely spots are the files the feature touches: `
 
 **Migration numbering collision** is the sharpest edge: if upstream adds a migration after `0061_episode_item_not_null`, it'll also be named `0062_*.py`. Git won't flag this as a text conflict (different filename), but Django ends up with two migrations both depending on `0061` — two leaf nodes. Fix: rename `app/migrations/0062_item_image_cached.py` to the next free number after upstream's new migration, and update its `dependencies` to point at upstream's new latest migration instead of `0061` directly.
 
-### Redeploying
+### Testing natively on the LXC (fast pre-deploy gate)
 
-No local Docker/`uv` install needed anywhere — building, testing, and running all happen on the LXC container, which already has Docker and the image's baked-in `uv`/Python toolchain.
+Building/running the app still only happens via Docker Compose on the LXC. But `uv` is also installed directly on the LXC host (outside Docker) purely so tests can run in seconds instead of waiting on a full image rebuild. One-time setup on the LXC:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # installs to ~/.local/bin, manages its own Python 3.12
+source ~/.local/bin/env
+cd /home/yamtrack
+uv sync --group dev
+cd src && uv run playwright install
+sudo $(uv run which playwright) install-deps      # OS libs for headless Chromium; needs a real sudo password
+```
+
+After that, `./scripts/test.sh` (repo root) runs the same checks as CI — `ruff check` (report-only, not a hard gate — this fork carries some pre-existing lint debt under `select = ["ALL"]`), `makemigrations --check`, and the full test suite with coverage — all natively, no Docker rebuild required.
+
+### Redeploying
 
 ```bash
 rsync -avz --exclude='.git' --exclude='db' --exclude='media' --exclude='staticfiles' \
   /home/justme/Downloads/git/yamtrack/Yamtrack/ root@192.1.1.104:/home/yamtrack/
 ```
 
-(Adjust the IP if it changes.) Then on the LXC container:
+(Adjust the IP if it changes.) Then on the LXC container, run the native test gate before rebuilding:
 
 ```bash
 cd /home/yamtrack
+./scripts/test.sh
 docker compose up -d --build
 ```
 

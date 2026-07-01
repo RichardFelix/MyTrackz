@@ -320,7 +320,7 @@ class DownloadCalendarViewTests(TestCase):
 
         content = response.content.decode()
         self.assertIn("BEGIN:VCALENDAR", content)
-        self.assertIn("PRODID:-//Yamtrack//EN", content)
+        self.assertIn("PRODID:-//MyTrackz//EN", content)
         self.assertIn("VERSION:2.0", content)
         self.assertIn("END:VCALENDAR", content)
         self.assertNotIn("BEGIN:VEVENT", content)
