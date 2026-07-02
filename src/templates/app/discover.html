@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load app_tags %}
+
+{% block title %}
+  Discover - MyTrackz
+{% endblock title %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Discover</h1>
+    <p class="text-gray-400">Recommendations based on the media you've completed</p>
+  </div>
+
+  <div hx-get="{% url 'discover_recommendations' %}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div class="flex justify-center py-16">
+      <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-400"></div>
+    </div>
+  </div>
+{% endblock content %}

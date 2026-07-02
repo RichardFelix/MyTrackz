@@ -1,6 +1,8 @@
+import logging
 from datetime import date, datetime
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse
 
+import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
@@ -12,11 +14,49 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from app.models import BasicMedia, Item, MediaTypes, Status
+from app.models import BasicMedia, Item, MediaTypes, Sources, Status
 from app.tasks import cache_item_image
+
+logger = logging.getLogger(__name__)
 
 YEAR_ONLY_PARTS = 1
 YEAR_MONTH_PARTS = 2
+
+# Media types whose provider metadata includes direct follow-ups (collections,
+# related anime/manga, book series, game expansions) beyond the generic
+# "recommendations" section.
+UNFINISHED_COLLECTION_MEDIA_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.BOOK.value,
+    MediaTypes.BOARDGAME.value,
+)
+UNFINISHED_COLLECTION_SEEDS_PER_TYPE = 3
+UNFINISHED_COLLECTION_MAX_ITEMS = 8
+# Related sections that aren't genuine follow-ups: generic suggestions, or (for
+# OpenLibrary) other editions of the same book rather than a different book.
+IGNORED_RELATED_SECTIONS = {"recommendations", "other_editions"}
+
+# All media types can appear in Discover. Movies/TV/Anime/Manga/Games/Comics have a
+# real "recommendations" section; Books (Hardcover) and Boardgames (BGG) don't, so
+# they fall back to their direct-relation data (series siblings, expansions) instead
+# -- see _get_discover_recommendation_items.
+DISCOVER_MEDIA_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.COMIC.value,
+    MediaTypes.BOOK.value,
+    MediaTypes.BOARDGAME.value,
+)
+# Seed from both finished and currently-being-watched/read/played media.
+DISCOVER_SEED_STATUSES = (Status.COMPLETED.value, Status.IN_PROGRESS.value)
+DISCOVER_SEEDS_PER_TYPE = 5
+DISCOVER_MAX_ITEMS_PER_TYPE = 50
 
 
 def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
@@ -167,8 +207,57 @@ def refresh_item_image_if_missing(item, new_image):
     item.save(update_fields=["image"])
 
 
+def _get_or_create_related_item(item, media_type):
+    """Get or create the Item row for an untracked related/recommended entry.
+
+    Related, recommended, and search-result items aren't necessarily tracked by
+    anyone, but we still want their images cached locally like a tracked item's
+    would be -- so give every one of them a backing Item row.
+    """
+    filter_kwargs = {
+        "media_id": item["media_id"],
+        "source": item["source"],
+        "media_type": media_type,
+    }
+    if media_type == MediaTypes.SEASON.value:
+        filter_kwargs["season_number"] = item.get("season_number")
+
+    related_item, _created = Item.objects.get_or_create(
+        **filter_kwargs,
+        defaults={
+            "title": item.get("title") or "",
+            "image": item.get("image") or "",
+        },
+    )
+    return related_item
+
+
+def ensure_item_cached(item_dict, media_type):
+    """Ensure a metadata dict's own image is cached locally, tracked or not.
+
+    Item rows (and their cache) are shared across all users, so a page being
+    viewed by someone who hasn't tracked it shouldn't skip the local cache just
+    because *this* viewer has no tracking row for it. Mutates ``item_dict``'s
+    "image" key to the local cache path when available.
+    """
+    cache_item = _get_or_create_related_item(item_dict, media_type)
+
+    if _needs_image_refresh(cache_item, item_dict.get("image")):
+        cache_item.image = item_dict["image"]
+        cache_item.image_cached = False
+        cache_item.save(update_fields=["image", "image_cached"])
+        cache_item_image.delay(cache_item.id, cache_item.image)
+
+    item_dict["image"] = cache_item.cached_image_url
+    return cache_item
+
+
 def enrich_items_with_user_data(request, items, section_name):
-    """Enrich a list of items with user tracking data."""
+    """Enrich a list of items with user tracking data.
+
+    Also ensures every item's image is cached locally (via a backing Item row),
+    whether or not the item itself is tracked by anyone.
+    """
     if not items:
         return []
 
@@ -180,6 +269,12 @@ def enrich_items_with_user_data(request, items, section_name):
     enriched_items = []
     items_to_refresh = []
     for item in items:
+        # Some providers' crowdsourced data (e.g. Hardcover series entries) can
+        # have a blank title, which produces an empty URL slug and breaks the
+        # link entirely -- skip anything unusable rather than showing it broken.
+        if not item.get("title"):
+            continue
+
         if media_type == MediaTypes.SEASON.value:
             key = (str(item["media_id"]), item["source"], item.get("season_number"))
         else:
@@ -191,12 +286,19 @@ def enrich_items_with_user_data(request, items, section_name):
         ):
             continue
 
-        if media_item is not None and _needs_image_refresh(
-            media_item.item, item.get("image")
-        ):
-            media_item.item.image = item["image"]
-            media_item.item.image_cached = False
-            items_to_refresh.append(media_item.item)
+        cache_item = (
+            media_item.item
+            if media_item is not None
+            else _get_or_create_related_item(item, media_type)
+        )
+
+        if _needs_image_refresh(cache_item, item.get("image")):
+            cache_item.image = item["image"]
+            cache_item.image_cached = False
+            items_to_refresh.append(cache_item)
+
+        if media_item is None:
+            item["image"] = cache_item.cached_image_url
 
         enriched_items.append({"item": item, "media": media_item})
 
@@ -252,3 +354,188 @@ def _should_skip_completed_recommendation(user, section_name, media_item):
         and media_item is not None
         and media_item.status == Status.COMPLETED.value
     )
+
+
+def _iter_untracked_related_entries(request, metadata, seen):
+    """Yield unseen, untracked entries from an item's genuine follow-up sections."""
+    for section_name, related_items in metadata.get("related", {}).items():
+        if section_name in IGNORED_RELATED_SECTIONS or not related_items:
+            continue
+
+        enriched = enrich_items_with_user_data(request, related_items, section_name)
+        for entry in enriched:
+            if entry["media"] is not None:
+                continue
+            key = (entry["item"]["media_id"], entry["item"]["source"])
+            if key in seen:
+                continue
+            seen.add(key)
+            yield entry
+
+
+def _get_related_metadata(services, media_type, item):
+    """Fetch related metadata for an item, or None if the provider call fails."""
+    try:
+        return services.get_media_metadata(media_type, item.media_id, item.source)
+    except (services.ProviderAPIError, requests.RequestException):
+        logger.warning("Skipping related-metadata lookup for %s", item, exc_info=True)
+        return None
+
+
+def get_unfinished_collection_items(request):
+    """Return untracked direct follow-ups to the user's recently completed media.
+
+    Reuses each provider's cached "related" metadata (the same data already shown
+    on an item's detail page) rather than a new recommendation source, so this only
+    surfaces direct follow-ups (collections, related anime/manga, game expansions)
+    and explicitly skips the generic "recommendations" section.
+    """
+    from app.providers import services  # noqa: PLC0415 avoid import cycle
+
+    user = request.user
+    active_types = [
+        media_type
+        for media_type in UNFINISHED_COLLECTION_MEDIA_TYPES
+        if media_type in user.get_active_media_types()
+    ]
+
+    suggestions = []
+    seen = set()
+    for media_type in active_types:
+        seeds = BasicMedia.objects.get_media_list(
+            user=user,
+            media_type=media_type,
+            status_filter=Status.COMPLETED.value,
+            sort_filter="end_date",
+        )[:UNFINISHED_COLLECTION_SEEDS_PER_TYPE]
+
+        for seed in seeds:
+            if seed.item.source == Sources.MANUAL.value:
+                continue
+
+            metadata = _get_related_metadata(services, media_type, seed.item)
+            if metadata is None:
+                continue
+
+            for entry in _iter_untracked_related_entries(request, metadata, seen):
+                suggestions.append(entry)
+                if len(suggestions) >= UNFINISHED_COLLECTION_MAX_ITEMS:
+                    return suggestions
+
+    return suggestions
+
+
+def _iter_discover_seeds(user, media_type):
+    """Yield seed media for discovery: the user's completed and in-progress items."""
+    for status in DISCOVER_SEED_STATUSES:
+        seeds = BasicMedia.objects.get_media_list(
+            user=user,
+            media_type=media_type,
+            status_filter=status,
+            sort_filter="score",
+        )[:DISCOVER_SEEDS_PER_TYPE]
+        yield from seeds
+
+
+def _get_discover_recommendation_items(related):
+    """Return the items to treat as "recommendations" from a related dict.
+
+    Most providers (TMDB, MAL, IGDB, MangaUpdates, ComicVine) have a real generic
+    "recommendations" section. Hardcover and BGG don't -- for those, fall back to
+    combining their direct-relation sections (series siblings, expansions) instead,
+    so books and boardgames aren't excluded from Discover entirely.
+    """
+    if "recommendations" in related:
+        return related["recommendations"]
+
+    return [
+        item
+        for section_name, section_items in related.items()
+        if section_name not in IGNORED_RELATED_SECTIONS
+        for item in section_items
+    ]
+
+
+def _rank_discover_entries_for_type(request, services, user, media_type):
+    """Return one media type's untracked recommendations, ranked by frequency."""
+    counts = {}
+    order = []
+    for seed in _iter_discover_seeds(user, media_type):
+        if seed.item.source == Sources.MANUAL.value:
+            continue
+
+        metadata = _get_related_metadata(services, media_type, seed.item)
+        if metadata is None:
+            continue
+
+        recommendation_items = _get_discover_recommendation_items(
+            metadata.get("related", {})
+        )
+        if not recommendation_items:
+            continue
+
+        enriched = enrich_items_with_user_data(
+            request, recommendation_items, "recommendations"
+        )
+        for entry in enriched:
+            if entry["media"] is not None:
+                continue
+            key = (entry["item"]["media_id"], entry["item"]["source"])
+            if key not in counts:
+                counts[key] = {"entry": entry, "count": 0}
+                order.append(key)
+            counts[key]["count"] += 1
+
+    ranked_keys = sorted(order, key=lambda key: counts[key]["count"], reverse=True)
+    return [counts[key]["entry"] for key in ranked_keys[:DISCOVER_MAX_ITEMS_PER_TYPE]]
+
+
+def _interleave_discover_suggestions(per_type_suggestions):
+    """Round-robin across media types so no type gets crowded out by another.
+
+    Each type's own suggestions stay ranked by frequency (and already capped to
+    DISCOVER_MAX_ITEMS_PER_TYPE), but a type with many overlapping recommendations
+    (e.g. TV) can no longer push a lightly-tracked type (e.g. movies) out of the
+    results entirely -- every type's items all eventually appear.
+    """
+    results = []
+    indices = dict.fromkeys(per_type_suggestions, 0)
+    remaining = True
+    while remaining:
+        remaining = False
+        for media_type, suggestions in per_type_suggestions.items():
+            index = indices[media_type]
+            if index < len(suggestions):
+                results.append(suggestions[index])
+                indices[media_type] = index + 1
+                remaining = True
+    return results
+
+
+def get_discover_recommendations(request):
+    """Return a ranked, deduped, cross-type-balanced feed of untracked recommendations.
+
+    Unlike get_unfinished_collection_items() (direct follow-ups), this aggregates
+    each provider's generic "recommendations" section across the user's completed
+    and in-progress, highest-scored media. Within a media type, suggestions are
+    ranked by how many seed items recommend the same title; across types, results
+    are interleaved round-robin (see _interleave_discover_suggestions) so every
+    active type with any suggestions is represented in the final list.
+    """
+    from app.providers import services  # noqa: PLC0415 avoid import cycle
+
+    user = request.user
+    active_types = [
+        media_type
+        for media_type in DISCOVER_MEDIA_TYPES
+        if media_type in user.get_active_media_types()
+    ]
+
+    per_type_suggestions = {
+        media_type: _rank_discover_entries_for_type(
+            request, services, user, media_type
+        )
+        for media_type in active_types
+    }
+
+    return _interleave_discover_suggestions(per_type_suggestions)

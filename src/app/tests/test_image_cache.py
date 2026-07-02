@@ -1,12 +1,22 @@
+import hashlib
+import os
 import tempfile
+import time
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
 from PIL import Image
 
-from app.models import Item, MediaTypes, Sources
-from app.tasks import cache_item_image, cleanup_orphaned_item_images
+from app.models import ImageCacheFormat, Item, MediaTypes, Sources
+from app.tasks import (
+    cache_item_image,
+    cleanup_orphaned_item_images,
+    evict_oversized_image_cache,
+    transcode_cached_image_to_webp,
+)
 
 
 def _jpeg_bytes():
@@ -178,9 +188,172 @@ class CleanupOrphanedItemImagesTaskTests(TestCase):
         self.assertTrue(_relative_media_path_exists(live_url))
 
 
-def _relative_media_path_exists(media_url):
-    from django.conf import settings
-    from django.core.files.storage import default_storage
+class EvictOversizedImageCacheTaskTests(TestCase):
+    """Test the evict_oversized_image_cache Celery task."""
 
-    relpath = media_url.removeprefix(settings.MEDIA_URL)
-    return default_storage.exists(relpath)
+    def setUp(self):
+        """Use a fresh MEDIA_ROOT per test.
+
+        Byte-precise assertions here need a cache directory with only the
+        files this test itself creates.
+        """
+        self.enterContext(override_settings(MEDIA_ROOT=tempfile.mkdtemp()))
+
+    def _cache_item(self, media_id, image_url, age_seconds):
+        """Cache an image for a new Item and backdate the cached file's mtime."""
+        with patch("app.tasks.cache_item_image.delay"):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Movie {media_id}",
+                image=image_url,
+            )
+        with (
+            patch("app.tasks._is_safe_image_host", return_value=True),
+            patch("app.tasks.requests.get", return_value=_mock_response()),
+        ):
+            cache_item_image(item.id, item.image)
+        item.refresh_from_db()
+
+        relpath = _relative_media_path(item.cached_image_url)
+        backdated = time.time() - age_seconds
+        os.utime(default_storage.path(relpath), (backdated, backdated))
+
+        return item, relpath
+
+    def test_evicts_oldest_files_first_until_under_cap(self):
+        """Oldest cached files are evicted first, until the cache fits under the cap."""
+        oldest, oldest_path = self._cache_item(
+            "1", "https://image.tmdb.org/t/p/w500/evict-a.jpg", age_seconds=300
+        )
+        middle, middle_path = self._cache_item(
+            "2", "https://image.tmdb.org/t/p/w500/evict-b.jpg", age_seconds=200
+        )
+        newest, newest_path = self._cache_item(
+            "3", "https://image.tmdb.org/t/p/w500/evict-c.jpg", age_seconds=100
+        )
+        one_file_size = default_storage.size(newest_path)
+
+        with override_settings(IMAGE_CACHE_MAX_BYTES=one_file_size + 1):
+            deleted_count = evict_oversized_image_cache()
+
+        self.assertEqual(deleted_count, 2)
+        oldest.refresh_from_db()
+        middle.refresh_from_db()
+        newest.refresh_from_db()
+        self.assertFalse(oldest.image_cached)
+        self.assertFalse(middle.image_cached)
+        self.assertTrue(newest.image_cached)
+        self.assertFalse(default_storage.exists(oldest_path))
+        self.assertFalse(default_storage.exists(middle_path))
+        self.assertTrue(default_storage.exists(newest_path))
+
+    def test_noop_when_already_under_cap(self):
+        """No files are deleted when the cache is already within budget."""
+        item, relpath = self._cache_item(
+            "4", "https://image.tmdb.org/t/p/w500/evict-noop.jpg", age_seconds=0
+        )
+
+        with override_settings(IMAGE_CACHE_MAX_BYTES=10 * 1024 * 1024):
+            deleted_count = evict_oversized_image_cache()
+
+        self.assertEqual(deleted_count, 0)
+        item.refresh_from_db()
+        self.assertTrue(item.image_cached)
+        self.assertTrue(default_storage.exists(relpath))
+
+    def test_disabled_when_cap_is_non_positive(self):
+        """A zero or negative cap disables eviction entirely."""
+        item, relpath = self._cache_item(
+            "5", "https://image.tmdb.org/t/p/w500/evict-disabled.jpg", age_seconds=0
+        )
+
+        with override_settings(IMAGE_CACHE_MAX_BYTES=0):
+            deleted_count = evict_oversized_image_cache()
+
+        self.assertEqual(deleted_count, 0)
+        item.refresh_from_db()
+        self.assertTrue(item.image_cached)
+        self.assertTrue(default_storage.exists(relpath))
+
+
+class TranscodeCachedImageToWebpTaskTests(TestCase):
+    """Test the transcode_cached_image_to_webp Celery task."""
+
+    def setUp(self):
+        """Use a fresh MEDIA_ROOT per test to avoid cross-test file collisions."""
+        self.enterContext(override_settings(MEDIA_ROOT=tempfile.mkdtemp()))
+
+    def _legacy_jpeg_item(self, media_id, image_url):
+        """Simulate a pre-WebP Item with an already-cached JPEG file on disk."""
+        with patch("app.tasks.cache_item_image.delay"):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Movie {media_id}",
+                image=image_url,
+            )
+        digest = hashlib.sha256(image_url.encode()).hexdigest()
+        jpg_path = f"items/{digest[:2]}/{digest}.jpg"
+        default_storage.save(jpg_path, ContentFile(_jpeg_bytes()))
+        Item.objects.filter(id=item.id).update(
+            image_cached=True,
+            image_cache_format=ImageCacheFormat.JPEG.value,
+        )
+        item.refresh_from_db()
+        return item, jpg_path, digest
+
+    def test_transcodes_jpeg_to_webp_and_removes_old_file(self):
+        """A legacy JPEG-cached item is re-encoded to WebP and the old file removed."""
+        item, jpg_path, digest = self._legacy_jpeg_item(
+            "1", "https://image.tmdb.org/t/p/w500/legacy.jpg"
+        )
+
+        result = transcode_cached_image_to_webp(item.id)
+
+        self.assertTrue(result)
+        item.refresh_from_db()
+        self.assertEqual(item.image_cache_format, ImageCacheFormat.WEBP.value)
+        self.assertFalse(default_storage.exists(jpg_path))
+        webp_path = f"items/{digest[:2]}/{digest}.webp"
+        self.assertTrue(default_storage.exists(webp_path))
+        self.assertTrue(item.cached_image_url.endswith(f"{digest}.webp"))
+
+    def test_noop_when_already_webp(self):
+        """An item already tagged as WebP is left untouched."""
+        item, jpg_path, _digest = self._legacy_jpeg_item(
+            "2", "https://image.tmdb.org/t/p/w500/already.jpg"
+        )
+        Item.objects.filter(id=item.id).update(
+            image_cache_format=ImageCacheFormat.WEBP.value,
+        )
+
+        result = transcode_cached_image_to_webp(item.id)
+
+        self.assertFalse(result)
+        self.assertTrue(default_storage.exists(jpg_path))
+
+    def test_noop_when_source_file_missing(self):
+        """Nothing breaks if the on-disk file is missing despite the DB flag."""
+        item, jpg_path, _digest = self._legacy_jpeg_item(
+            "3", "https://image.tmdb.org/t/p/w500/missing.jpg"
+        )
+        default_storage.delete(jpg_path)
+
+        result = transcode_cached_image_to_webp(item.id)
+
+        self.assertFalse(result)
+        item.refresh_from_db()
+        self.assertEqual(item.image_cache_format, ImageCacheFormat.JPEG.value)
+
+
+def _relative_media_path(media_url):
+    from django.conf import settings
+
+    return media_url.removeprefix(settings.MEDIA_URL)
+
+
+def _relative_media_path_exists(media_url):
+    return default_storage.exists(_relative_media_path(media_url))

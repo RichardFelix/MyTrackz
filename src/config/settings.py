@@ -327,6 +327,9 @@ IMAGE_CACHE_DIR = "items"
 IMAGE_DOWNLOAD_TIMEOUT = 15  # seconds
 IMAGE_DOWNLOAD_MAX_BYTES = 5 * 1024 * 1024
 IMAGE_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+# Total on-disk budget for the image cache; oldest-cached files are evicted first
+# once this is exceeded. 0 or less disables eviction.
+IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024  # 1 GiB
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
@@ -588,6 +591,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "cleanup_orphaned_item_images": {
         "task": "Cleanup orphaned item images",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
+    "evict_oversized_image_cache": {
+        "task": "Evict oversized image cache",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
 }

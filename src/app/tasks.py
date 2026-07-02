@@ -55,8 +55,8 @@ def _is_safe_image_host(url):
 
 @shared_task(name="Cache item image", bind=True, max_retries=2, default_retry_delay=30)
 def cache_item_image(self, item_id, image_url):
-    """Download an Item's external image and store it locally as a normalized JPEG."""
-    from app.models import Item  # noqa: PLC0415 avoid import cycle
+    """Download an Item's external image and store it locally as a normalized WebP."""
+    from app.models import ImageCacheFormat, Item  # noqa: PLC0415 avoid import cycle
 
     if not _is_safe_image_host(image_url):
         logger.warning("Refusing to cache image for item %s: unsafe URL", item_id)
@@ -115,18 +115,104 @@ def cache_item_image(self, item_id, image_url):
             return False
 
         digest = hashlib.sha256(image_url.encode()).hexdigest()
-        relpath = Path(settings.IMAGE_CACHE_DIR) / digest[:2] / f"{digest}.jpg"
+        relpath = Path(settings.IMAGE_CACHE_DIR) / digest[:2] / f"{digest}.webp"
 
         out_buffer = BytesIO()
-        image.save(out_buffer, format="JPEG", quality=85)
+        image.save(out_buffer, format="WEBP", quality=85)
         default_storage.save(str(relpath), ContentFile(out_buffer.getvalue()))
 
     except (requests.exceptions.RequestException, OSError) as exc:
         logger.warning("Failed to cache image for item %s: %s", item_id, exc)
         raise self.retry(exc=exc) from exc
     else:
-        Item.objects.filter(id=item_id, image=image_url).update(image_cached=True)
+        Item.objects.filter(id=item_id, image=image_url).update(
+            image_cached=True,
+            image_cache_format=ImageCacheFormat.WEBP.value,
+        )
         return True
+
+
+@shared_task(name="Transcode cached image to WebP")
+def transcode_cached_image_to_webp(item_id):
+    """Locally re-encode an Item's already-cached JPEG as WebP; no network involved."""
+    from app.models import ImageCacheFormat, Item  # noqa: PLC0415 avoid import cycle
+
+    try:
+        item = Item.objects.get(
+            id=item_id,
+            image_cached=True,
+            image_cache_format=ImageCacheFormat.JPEG.value,
+        )
+    except Item.DoesNotExist:
+        return False
+
+    digest = hashlib.sha256(item.image.encode()).hexdigest()
+    old_relpath = f"{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.jpg"
+    new_relpath = f"{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.webp"
+
+    if not default_storage.exists(old_relpath):
+        return False
+
+    try:
+        with default_storage.open(old_relpath, "rb") as source_file:
+            image = Image.open(source_file)
+            image.load()
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+            out_buffer = BytesIO()
+            image.save(out_buffer, format="WEBP", quality=85)
+    except (OSError, UnidentifiedImageError):
+        logger.warning(
+            "Skipping WebP transcode for item %s: unreadable cached file", item_id
+        )
+        return False
+
+    default_storage.save(new_relpath, ContentFile(out_buffer.getvalue()))
+    default_storage.delete(old_relpath)
+    Item.objects.filter(id=item_id).update(image_cache_format=ImageCacheFormat.WEBP.value)
+
+    return True
+
+
+def _iter_cached_image_files():
+    """Yield (relpath, digest) for every file currently in the image cache."""
+    try:
+        shard_dirs, _ = default_storage.listdir(settings.IMAGE_CACHE_DIR)
+    except FileNotFoundError:
+        return
+
+    for shard in shard_dirs:
+        shard_path = f"{settings.IMAGE_CACHE_DIR}/{shard}"
+        _, filenames = default_storage.listdir(shard_path)
+        for filename in filenames:
+            yield f"{shard_path}/{filename}", Path(filename).stem
+
+
+def get_image_cache_stats():
+    """Return (total_size_bytes, file_count) for the current image cache."""
+    total_size = 0
+    file_count = 0
+    for relpath, _digest in _iter_cached_image_files():
+        total_size += default_storage.size(relpath)
+        file_count += 1
+    return total_size, file_count
+
+
+@shared_task(name="Purge cached images")
+def purge_cached_images():
+    """Delete every cached image file and reset image_cached on all Items."""
+    from app.models import Item  # noqa: PLC0415 avoid import cycle
+
+    deleted_count = 0
+    for relpath, _digest in _iter_cached_image_files():
+        default_storage.delete(relpath)
+        deleted_count += 1
+
+    Item.objects.filter(image_cached=True).update(image_cached=False)
+
+    logger.info("Purged %s cached item images.", deleted_count)
+
+    return deleted_count
 
 
 @shared_task(name="Cleanup orphaned item images")
@@ -134,26 +220,71 @@ def cleanup_orphaned_item_images():
     """Delete cached image files that no longer match any Item's current URL."""
     from app.models import Item  # noqa: PLC0415 avoid import cycle
 
-    live_paths = set()
-    for image in Item.objects.exclude(image="").values_list("image", flat=True):
-        digest = hashlib.sha256(image.encode()).hexdigest()
-        live_paths.add(f"{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.jpg")
-
-    try:
-        shard_dirs, _ = default_storage.listdir(settings.IMAGE_CACHE_DIR)
-    except FileNotFoundError:
-        return 0
+    live_digests = {
+        hashlib.sha256(image.encode()).hexdigest()
+        for image in Item.objects.exclude(image="").values_list("image", flat=True)
+    }
 
     deleted_count = 0
-    for shard in shard_dirs:
-        shard_path = f"{settings.IMAGE_CACHE_DIR}/{shard}"
-        _, filenames = default_storage.listdir(shard_path)
-        for filename in filenames:
-            relpath = f"{shard_path}/{filename}"
-            if relpath not in live_paths:
-                default_storage.delete(relpath)
-                deleted_count += 1
+    for relpath, digest in _iter_cached_image_files():
+        if digest not in live_digests:
+            default_storage.delete(relpath)
+            deleted_count += 1
 
     logger.info("Deleted %s orphaned cached item images.", deleted_count)
+
+    return deleted_count
+
+
+@shared_task(name="Evict oversized image cache")
+def evict_oversized_image_cache():
+    """Delete the oldest cached images until the cache is back under its size cap."""
+    from app.models import Item  # noqa: PLC0415 avoid import cycle
+
+    max_bytes = settings.IMAGE_CACHE_MAX_BYTES
+    if max_bytes <= 0:
+        return 0
+
+    files = []
+    total_size = 0
+    for relpath, digest in _iter_cached_image_files():
+        size = default_storage.size(relpath)
+        modified_time = default_storage.get_modified_time(relpath)
+        files.append((modified_time, relpath, digest, size))
+        total_size += size
+
+    if total_size <= max_bytes:
+        return 0
+
+    digest_to_item_ids = {}
+    for item_id, image_url in Item.objects.filter(image_cached=True).values_list(
+        "id", "image"
+    ):
+        item_digest = hashlib.sha256(image_url.encode()).hexdigest()
+        digest_to_item_ids.setdefault(item_digest, []).append(item_id)
+
+    files.sort(key=lambda entry: entry[0])  # oldest cached first
+
+    deleted_count = 0
+    bytes_freed = 0
+    for _modified_time, relpath, digest, size in files:
+        if total_size <= max_bytes:
+            break
+
+        default_storage.delete(relpath)
+        total_size -= size
+        bytes_freed += size
+        deleted_count += 1
+
+        stale_item_ids = digest_to_item_ids.get(digest)
+        if stale_item_ids:
+            Item.objects.filter(id__in=stale_item_ids).update(image_cached=False)
+
+    logger.info(
+        "Evicted %s cached item images (%s bytes freed) to stay under the %s byte cap.",
+        deleted_count,
+        bytes_freed,
+        max_bytes,
+    )
 
     return deleted_count

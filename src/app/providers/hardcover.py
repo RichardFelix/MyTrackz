@@ -143,6 +143,18 @@ def book(media_id):
                 name
               }
             }
+            book_series {
+              series {
+                name
+                book_series(order_by: {position: asc}) {
+                  book {
+                    id
+                    title
+                    cached_image(path: "url")
+                  }
+                }
+              }
+            }
           }
         }
         """
@@ -194,6 +206,7 @@ def book(media_id):
                 "publisher": edition_details.get("publisher"),
                 "isbn": edition_details.get("isbn"),
             },
+            "related": get_series_related(book_data),
         }
 
         cache.set(cache_key, data)
@@ -236,6 +249,30 @@ def get_edition_details(edition_data):
         "isbn": isbns or None,
         "release_date": edition_data.get("release_date"),
     }
+
+
+def get_series_related(book_data):
+    """Return the other books in this book's series, if it belongs to one."""
+    book_series = book_data.get("book_series") or []
+    if not book_series:
+        return {}
+
+    series = book_series[0]["series"]
+    series_books = series.get("book_series") or []
+
+    related_books = [
+        {
+            "media_id": entry["book"]["id"],
+            "source": Sources.HARDCOVER.value,
+            "media_type": MediaTypes.BOOK.value,
+            "title": entry["book"]["title"],
+            "image": entry["book"].get("cached_image") or settings.IMG_NONE,
+        }
+        for entry in series_books
+        if entry["book"]["id"] != book_data["id"]
+    ]
+
+    return {series["name"]: related_books} if related_books else {}
 
 
 def get_image_url(response):

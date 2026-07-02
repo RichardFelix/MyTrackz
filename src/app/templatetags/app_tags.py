@@ -47,8 +47,10 @@ def cached_image_url(item, media=None):
     Prefers a tracked Media's Item (gets the local image cache) when one
     exists; falls back to the raw provider dict's image for untracked
     search/recommendation results, which have no Item row to cache from.
+    `media` is falsy (None, or "" from indexing an empty template list/queryset)
+    whenever there's nothing tracked to cache from.
     """
-    if media is not None:
+    if media:
         return media.item.cached_image_url
     if isinstance(item, dict):
         return item.get("image") or settings.IMG_NONE

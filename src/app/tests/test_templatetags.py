@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -101,6 +102,34 @@ class AppTagsTests(TestCase):
             app_tags.no_underscore("no_underscores_here"),
             "no underscores here",
         )
+
+    def test_cached_image_url_with_dict_item(self):
+        """A raw dict (untracked search/recommendation result) uses its own image."""
+        result = app_tags.cached_image_url({"image": "http://example.com/x.jpg"})
+        self.assertEqual(result, "http://example.com/x.jpg")
+        self.assertEqual(app_tags.cached_image_url({}), settings.IMG_NONE)
+
+    def test_cached_image_url_with_none_item(self):
+        """A missing item falls back to the placeholder image."""
+        self.assertEqual(app_tags.cached_image_url(None), settings.IMG_NONE)
+
+    def test_cached_image_url_prefers_tracked_media_item(self):
+        """A tracked Media instance's Item (with the local cache) takes priority."""
+        item = Item(image="http://example.com/original.jpg", image_cached=True)
+        media = MagicMock(item=item)
+        result = app_tags.cached_image_url(
+            {"image": "http://example.com/other.jpg"}, media
+        )
+        self.assertEqual(result, item.cached_image_url)
+
+    def test_cached_image_url_ignores_falsy_media(self):
+        """An empty-string `media` isn't treated as a tracked Media instance.
+
+        This happens when a template indexes an empty list/queryset, e.g.
+        `episode.history.0` when an episode has never been watched.
+        """
+        result = app_tags.cached_image_url({"image": "http://example.com/x.jpg"}, "")
+        self.assertEqual(result, "http://example.com/x.jpg")
 
     def test_slug(self):
         """Test the slug filter."""

@@ -226,6 +226,125 @@ class EnrichItemsWithUserDataTest(TestCase):
             "This movie doesn't exist in our database",
         )
 
+    def test_skips_items_with_a_blank_title(self):
+        """An item with no title can't produce a valid URL slug, so it's dropped.
+
+        Regression test: some providers' crowdsourced data (e.g. Hardcover
+        series entries) can have a blank title, which caused a 500
+        (NoReverseMatch) when the app tried to link to it.
+        """
+        raw_items = [
+            {
+                "media_id": "1",
+                "source": Sources.HARDCOVER.value,
+                "media_type": MediaTypes.BOOK.value,
+                "title": "",
+                "image": "http://example.com/blank.jpg",
+            },
+            {
+                "media_id": "2",
+                "source": Sources.HARDCOVER.value,
+                "media_type": MediaTypes.BOOK.value,
+                "title": "A Real Book",
+                "image": "http://example.com/real.jpg",
+            },
+        ]
+
+        enriched_items = enrich_items_with_user_data(
+            self.request, raw_items, "recommendations"
+        )
+
+        self.assertEqual(len(enriched_items), 1)
+        self.assertEqual(enriched_items[0]["item"]["title"], "A Real Book")
+
+    @patch("app.helpers.cache_item_image.delay")
+    def test_untracked_item_gets_a_backing_item_row_and_cached_image(
+        self, mock_delay
+    ):
+        """An untracked (e.g. recommended) item still gets its image cached locally."""
+        raw_items = [
+            {
+                "media_id": "99999",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "title": "Unknown Movie",
+                "image": "http://example.com/unknown.jpg",
+            },
+        ]
+
+        enrich_items_with_user_data(self.request, raw_items, "recommendations")
+
+        created_item = Item.objects.get(
+            media_id="99999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+        )
+        self.assertEqual(created_item.image, "http://example.com/unknown.jpg")
+        mock_delay.assert_called_once_with(
+            created_item.id, "http://example.com/unknown.jpg"
+        )
+
+    def test_untracked_item_image_reflects_local_cache_once_cached(self):
+        """Once an untracked item's Item row is cached, the dict should use it."""
+        untracked_item = Item.objects.create(
+            media_id="55555",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Already Cached Movie",
+            image="http://example.com/cached.jpg",
+        )
+        Item.objects.filter(id=untracked_item.id).update(image_cached=True)
+        untracked_item.refresh_from_db()
+
+        raw_items = [
+            {
+                "media_id": "55555",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "title": "Already Cached Movie",
+                "image": "http://example.com/cached.jpg",
+            },
+        ]
+
+        enriched_items = enrich_items_with_user_data(
+            self.request, raw_items, "recommendations"
+        )
+
+        self.assertEqual(
+            enriched_items[0]["item"]["image"], untracked_item.cached_image_url
+        )
+
+    @patch("app.helpers.cache_item_image.delay")
+    def test_untracked_season_item_reuses_existing_row_by_season_number(
+        self, mock_delay
+    ):
+        """An untracked season entry uses the existing Item row for its season."""
+        raw_items = [
+            {
+                "media_id": "67890",
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.SEASON.value,
+                "title": "Test TV Show",
+                "season_title": "Season 1",
+                "season_number": 1,
+                "image": "http://example.com/show.jpg",
+            },
+        ]
+
+        enrich_items_with_user_data(self.request, raw_items, "recommendations")
+
+        # No new Item row should have been created; the existing one (already
+        # matching this exact image) needed no caching work.
+        self.assertEqual(
+            Item.objects.filter(
+                media_id="67890",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+            ).count(),
+            1,
+        )
+        mock_delay.assert_not_called()
+
     def test_hide_completed_recommendations_enabled(self):
         """Test that completed items are hidden when preference is enabled."""
         self.user.hide_completed_recommendations = True

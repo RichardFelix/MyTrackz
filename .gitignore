@@ -1,6 +1,7 @@
 __pycache__
 *.pyc
 .env
+docker-compose.override.yml
 .coverage*
 .venv
 src/staticfiles
@@ -16,3 +17,6 @@ TODO.txt
 .codex
 .cache
 node_modules
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/

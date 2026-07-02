@@ -8,6 +8,17 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path(
+        "home/unfinished-collections",
+        views.unfinished_collections,
+        name="unfinished_collections",
+    ),
+    path("discover", views.discover, name="discover"),
+    path(
+        "discover/recommendations",
+        views.discover_recommendations,
+        name="discover_recommendations",
+    ),
     path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(

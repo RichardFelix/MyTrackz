@@ -180,6 +180,7 @@ def boardgame(media_id):
                 "designers": get_designers(item),
                 "publishers": get_publishers(item),
             },
+            "related": get_expansions_related(item),
         }
 
         cache.set(cache_key, data)
@@ -283,6 +284,26 @@ def get_designers(item):
         if link.get("value")
     ]
     return ", ".join(designers) if designers else None
+
+
+def get_expansions_related(item):
+    """Return this board game's own expansions, if any.
+
+    BGG's ``/thing`` endpoint doesn't include cover images on expansion
+    links, so these entries fall back to the placeholder image.
+    """
+    expansions = [
+        {
+            "media_id": link.get("id"),
+            "source": Sources.BGG.value,
+            "media_type": MediaTypes.BOARDGAME.value,
+            "title": link.get("value", "Unknown"),
+            "image": settings.IMG_NONE,
+        }
+        for link in item.findall(".//link[@type='boardgameexpansion']")
+        if link.get("inbound") != "true"
+    ]
+    return {"expansions": expansions} if expansions else {}
 
 
 def get_publishers(item):

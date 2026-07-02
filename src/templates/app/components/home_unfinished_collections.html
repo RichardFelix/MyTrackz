@@ -1,0 +1,20 @@
+{% load app_tags %}
+
+{% if suggestions %}
+  <section class="space-y-5">
+    <div class="flex items-center gap-3">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#39404b] text-indigo-400">
+        {% include "app/icons/right-arrow.svg" with classes="h-5 w-5" %}
+      </div>
+      <div>
+        <h2 class="text-2xl font-semibold text-white">Continue the Story</h2>
+        <p class="text-sm text-gray-400">Follow-ups to things you've completed that aren't in your library yet</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+      {% for suggestion in suggestions %}
+        {% include "app/components/media_card.html" with item=suggestion.item title=suggestion.item.season_title|default:suggestion.item.title media=suggestion.media %}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

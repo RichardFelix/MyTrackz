@@ -40,6 +40,34 @@
           </form>
         </div>
       </div>
+
+      <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/image.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-base font-medium">Image Cache</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          MyTrackz keeps a local copy of poster/cover images so they don't rely on the
+          original provider's servers. Currently using
+          <span class="text-white font-semibold">{{ image_cache_size_bytes|filesizeformat }}</span>
+          across
+          <span class="text-white font-semibold">{{ image_cache_file_count }}</span>
+          cached image{{ image_cache_file_count|pluralize }}.
+          <br>
+          Purging the cache deletes every locally cached image; each item will re-download
+          its image the next time it's viewed or updated.
+        </p>
+        <div class="flex space-x-3">
+          <form method="post" action="{% url 'purge_image_cache' %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+              {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+              Purge Image Cache
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 

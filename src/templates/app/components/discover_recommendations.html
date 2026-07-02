@@ -1,0 +1,40 @@
+{% load app_tags %}
+
+{% if suggestions %}
+  <div x-data="{ activeFilter: 'all' }" class="space-y-6">
+    {% if media_type_counts|length > 1 %}
+      <div class="flex flex-wrap gap-2">
+        <button @click="activeFilter = 'all'"
+                :class="activeFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-[#2a2f35] text-gray-400 hover:text-white'"
+                class="px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer">
+          All ({{ suggestions|length }})
+        </button>
+        {% for media_type, count in media_type_counts %}
+          <button @click="activeFilter = '{{ media_type }}'"
+                  :class="activeFilter === '{{ media_type }}' ? 'bg-indigo-600 text-white' : 'bg-[#2a2f35] text-gray-400 hover:text-white'"
+                  class="px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer">
+            {{ media_type|media_type_readable_plural }} ({{ count }})
+          </button>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+      {% for suggestion in suggestions %}
+        <div x-show="activeFilter === 'all' || activeFilter === '{{ suggestion.item.media_type }}'">
+          {% include "app/components/media_card.html" with item=suggestion.item title=suggestion.item.season_title|default:suggestion.item.title media=suggestion.media %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-700 bg-[#2a2f35] px-6 py-16 text-center">
+    <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#39404b]">
+      {% include "app/icons/globe.svg" with classes="h-8 w-8 text-indigo-300" %}
+    </div>
+    <h3 class="text-xl font-semibold text-white">Nothing to recommend yet</h3>
+    <p class="mt-2 max-w-md text-sm text-gray-400">
+      Complete a few titles and we'll surface recommendations based on them here.
+    </p>
+  </div>
+{% endif %}

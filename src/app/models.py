@@ -65,6 +65,13 @@ class MediaTypes(models.TextChoices):
     BOARDGAME = "boardgame", "Boardgame"
 
 
+class ImageCacheFormat(models.TextChoices):
+    """Choices for the on-disk format of a cached item image."""
+
+    JPEG = "jpg", "JPEG"
+    WEBP = "webp", "WebP"
+
+
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 
@@ -82,6 +89,12 @@ class Item(CalendarTriggerMixin, models.Model):
     title = models.TextField()
     image = models.URLField()  # if add default, custom media entry will show the value
     image_cached = models.BooleanField(default=False)
+    # Cached images predating this field are JPEGs; new ones are saved as WebP.
+    image_cache_format = models.CharField(
+        max_length=4,
+        choices=ImageCacheFormat,
+        default=ImageCacheFormat.JPEG.value,
+    )
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -191,7 +204,10 @@ class Item(CalendarTriggerMixin, models.Model):
         """Return the local cached image URL if available, else the original/fallback."""
         if self.image_cached:
             digest = hashlib.sha256(self.image.encode()).hexdigest()
-            return f"{settings.MEDIA_URL}{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.jpg"
+            return (
+                f"{settings.MEDIA_URL}{settings.IMAGE_CACHE_DIR}/{digest[:2]}/"
+                f"{digest}.{self.image_cache_format}"
+            )
         return self.image or settings.IMG_NONE
 
     @classmethod

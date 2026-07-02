@@ -14,6 +14,7 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from app.providers import tmdb
+from app.tasks import get_image_cache_stats, purge_cached_images
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
 from users.models import (
     DateFormatChoices,
@@ -308,7 +309,12 @@ def export_data(request):
 @require_GET
 def advanced(request):
     """Render the advanced settings page."""
-    return render(request, "users/advanced.html")
+    image_cache_size_bytes, image_cache_file_count = get_image_cache_stats()
+    context = {
+        "image_cache_size_bytes": image_cache_size_bytes,
+        "image_cache_file_count": image_cache_file_count,
+    }
+    return render(request, "users/advanced.html", context)
 
 
 @require_GET
@@ -402,5 +408,19 @@ def clear_search_cache(request):
         "Successfully cleared %s search entries",
         deleted,
     )
+
+    return redirect("advanced")
+
+
+@require_POST
+def purge_image_cache(request):
+    """Purge every locally cached provider image."""
+    deleted = purge_cached_images()
+
+    messages.success(
+        request,
+        f"Successfully purged {deleted} cached image{pluralize(deleted)}",
+    )
+    logger.info("Successfully purged %s cached images", deleted)
 
     return redirect("advanced")

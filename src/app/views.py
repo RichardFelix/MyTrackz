@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from pathlib import Path
 
 from django.apps import apps
@@ -94,6 +95,33 @@ def home(request):
         "items_limit": items_limit,
     }
     return render(request, "app/home.html", context)
+
+
+@require_GET
+def unfinished_collections(request):
+    """Return untracked sequels/follow-ups to the user's recently completed media."""
+    context = {"suggestions": helpers.get_unfinished_collection_items(request)}
+    return render(request, "app/components/home_unfinished_collections.html", context)
+
+
+@require_GET
+def discover(request):
+    """Render the discover page shell; the feed itself loads lazily via HTMX."""
+    return render(request, "app/discover.html")
+
+
+@require_GET
+def discover_recommendations(request):
+    """Return the user's aggregated cross-library recommendation feed."""
+    suggestions = helpers.get_discover_recommendations(request)
+    counts = Counter(suggestion["item"]["media_type"] for suggestion in suggestions)
+    media_type_counts = [
+        (media_type, counts[media_type])
+        for media_type in helpers.DISCOVER_MEDIA_TYPES
+        if media_type in counts
+    ]
+    context = {"suggestions": suggestions, "media_type_counts": media_type_counts}
+    return render(request, "app/components/discover_recommendations.html", context)
 
 
 @require_POST
@@ -288,6 +316,8 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         helpers.refresh_item_image_if_missing(
             current_instance.item, media_metadata.get("image")
         )
+    else:
+        helpers.ensure_item_cached(media_metadata, media_type)
 
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
@@ -343,6 +373,8 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
         helpers.refresh_item_image_if_missing(
             current_instance.item, season_metadata.get("image")
         )
+    else:
+        helpers.ensure_item_cached(season_metadata, MediaTypes.SEASON.value)
 
     if source == Sources.MANUAL.value:
         season_metadata["episodes"] = manual.process_episodes(

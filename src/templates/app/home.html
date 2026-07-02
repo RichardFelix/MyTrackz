@@ -38,6 +38,11 @@
 
     <div class="space-y-15">
       {% for section in home_sections %}
+        {% if section.key == Status.PLANNING.value %}
+          <div hx-get="{% url 'unfinished_collections' %}"
+               hx-trigger="load"
+               hx-swap="innerHTML"></div>
+        {% endif %}
         {% include "app/components/home_section.html" with section=section %}
       {% endfor %}
     </div>

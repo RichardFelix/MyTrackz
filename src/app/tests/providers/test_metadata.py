@@ -4,11 +4,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import requests
+from defusedxml import ElementTree
 from django.conf import settings
 from django.test import TestCase
 
 from app.models import Episode, Item, MediaTypes, Sources
 from app.providers import (
+    bgg,
     comicvine,
     hardcover,
     igdb,
@@ -402,6 +404,56 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["format"], "Unknown")
         self.assertIsNone(response["genres"])
 
+    def test_hardcover_book_with_series(self):
+        """Test that a book belonging to a series surfaces its siblings as related."""
+        response = hardcover.book("328491")  # Harry Potter and the Philosopher's Stone
+        self.assertEqual(response["title"], "Harry Potter and the Philosopher's Stone")
+
+        related = response["related"]
+        self.assertEqual(len(related), 1)
+        series_name, related_books = next(iter(related.items()))
+        self.assertEqual(series_name, "Harry Potter")
+        # The seed book itself should not be included among its own siblings
+        self.assertNotIn(328491, [book["media_id"] for book in related_books])
+        for book in related_books:
+            self.assertEqual(book["source"], Sources.HARDCOVER.value)
+            self.assertEqual(book["media_type"], MediaTypes.BOOK.value)
+
+    def test_bgg_boardgame(self):
+        """Test the metadata method for board games from BoardGameGeek."""
+        response = bgg.boardgame("30549")  # Pandemic
+        self.assertEqual(response["title"], "Pandemic")
+
+        related = response["related"]
+        self.assertEqual(list(related.keys()), ["expansions"])
+        expansion_titles = [game["title"] for game in related["expansions"]]
+        self.assertIn("Pandemic: On the Brink", expansion_titles)
+        for game in related["expansions"]:
+            self.assertEqual(game["source"], Sources.BGG.value)
+            self.assertEqual(game["media_type"], MediaTypes.BOARDGAME.value)
+
+    def test_bgg_get_expansions_related(self):
+        """Test the get_expansions_related function from BGG provider."""
+        xml = """
+        <item type="boardgame" id="1">
+          <link type="boardgameexpansion" id="2" value="Expansion One"/>
+          <link type="boardgameexpansion" id="3" value="Base Game" inbound="true"/>
+          <link type="boardgamecategory" id="4" value="Strategy"/>
+        </item>
+        """
+        item = ElementTree.fromstring(xml)
+
+        result = bgg.get_expansions_related(item)
+        self.assertEqual(list(result.keys()), ["expansions"])
+        self.assertEqual(len(result["expansions"]), 1)
+        self.assertEqual(result["expansions"][0]["media_id"], "2")
+        self.assertEqual(result["expansions"][0]["title"], "Expansion One")
+
+        # No expansions at all
+        xml_no_expansions = '<item type="boardgame" id="1"></item>'
+        item_no_expansions = ElementTree.fromstring(xml_no_expansions)
+        self.assertEqual(bgg.get_expansions_related(item_no_expansions), {})
+
     def test_manual_tv(self):
         """Test the metadata method for manually created TV shows."""
         Item.objects.create(
@@ -679,6 +731,68 @@ class Metadata(TestCase):
         }
         result = hardcover.get_edition_details(no_publisher)
         self.assertEqual(result["publisher"], None)
+
+    def test_hardcover_get_series_related(self):
+        """Test the get_series_related function from Hardcover provider."""
+        book_data = {
+            "id": 1,
+            "book_series": [
+                {
+                    "series": {
+                        "name": "Test Trilogy",
+                        "book_series": [
+                            {
+                                "book": {
+                                    "id": 1,
+                                    "title": "Book One",
+                                    "cached_image": None,
+                                },
+                            },
+                            {
+                                "book": {
+                                    "id": 2,
+                                    "title": "Book Two",
+                                    "cached_image": "http://example.com/two.jpg",
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
+
+        result = hardcover.get_series_related(book_data)
+        self.assertEqual(list(result.keys()), ["Test Trilogy"])
+        related_books = result["Test Trilogy"]
+        self.assertEqual(len(related_books), 1)
+        self.assertEqual(related_books[0]["media_id"], 2)
+        self.assertEqual(related_books[0]["title"], "Book Two")
+        self.assertEqual(related_books[0]["image"], "http://example.com/two.jpg")
+
+        # No series at all
+        self.assertEqual(hardcover.get_series_related({"id": 1, "book_series": []}), {})
+
+        # Only book in its series (itself)
+        solo_book_data = {
+            "id": 1,
+            "book_series": [
+                {
+                    "series": {
+                        "name": "Solo Series",
+                        "book_series": [
+                            {
+                                "book": {
+                                    "id": 1,
+                                    "title": "Only Book",
+                                    "cached_image": None,
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
+        self.assertEqual(hardcover.get_series_related(solo_book_data), {})
 
     def test_handle_error_hardcover_unauthorized(self):
         """Test the handle_error function with Hardcover unauthorized error."""

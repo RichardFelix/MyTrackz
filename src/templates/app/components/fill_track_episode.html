@@ -18,9 +18,11 @@
       {# Episode preview data #}
       <div class="bg-[#343a40] rounded-lg p-4 mb-6">
         <div class="flex items-start gap-4">
-          <img alt="{{ episode.title }}"
-               class="w-20 h-20 rounded object-cover shrink-0"
-               src="{{ episode.image }}">
+          {% with episode_media=episode.history|first %}
+            <img alt="{{ episode.title }}"
+                 class="w-20 h-20 rounded object-cover shrink-0"
+                 src="{{ episode|cached_image_url:episode_media }}">
+          {% endwith %}
           <div>
             <h3 class="text-lg font-semibold mb-1 line-clamp-1">{{ episode_title }}</h3>
             <p class="text-sm text-gray-400">Episode {{ episode.episode_number }}</p>
