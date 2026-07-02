@@ -50,6 +50,8 @@
           MyTrackz keeps a local copy of poster/cover images so they don't rely on the
           original provider's servers. Currently using
           <span class="text-white font-semibold">{{ image_cache_size_bytes|filesizeformat }}</span>
+          of
+          <span class="text-white font-semibold">{{ image_cache_max_bytes|filesizeformat }}</span>
           across
           <span class="text-white font-semibold">{{ image_cache_file_count }}</span>
           cached image{{ image_cache_file_count|pluralize }}.

@@ -313,6 +313,7 @@ def advanced(request):
     context = {
         "image_cache_size_bytes": image_cache_size_bytes,
         "image_cache_file_count": image_cache_file_count,
+        "image_cache_max_bytes": settings.IMAGE_CACHE_MAX_BYTES,
     }
     return render(request, "users/advanced.html", context)
 

@@ -329,7 +329,7 @@ IMAGE_DOWNLOAD_MAX_BYTES = 5 * 1024 * 1024
 IMAGE_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 # Total on-disk budget for the image cache; oldest-cached files are evicted first
 # once this is exceeded. 0 or less disables eviction.
-IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024  # 1 GiB
+IMAGE_CACHE_MAX_BYTES = 5 * 1024 * 1024 * 1024  # 5 GiB
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
