@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.middleware import AuthenticationMiddleware
+from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
+from django.urls import reverse
 
-from app.middleware import AutoLoginMiddleware
+from app.middleware import AutoLoginMiddleware, ProviderAPIErrorMiddleware
+from app.models import Sources
+from app.providers.services import ProviderAPIError
 
 UserModel = get_user_model()
 
@@ -73,3 +77,50 @@ class AutoLoginMiddlewareTest(TestCase):
         self.run_middleware(request)
 
         self.assertFalse(request.user.is_authenticated)
+
+
+class ProviderAPIErrorMiddlewareTest(TestCase):
+    """Test cases for ProviderAPIErrorMiddleware."""
+
+    def setUp(self):
+        """Set up the request factory and middleware instance."""
+        self.factory = RequestFactory()
+        self.middleware = ProviderAPIErrorMiddleware(lambda _request: None)
+        self.exception = ProviderAPIError(Sources.TMDB.value, Exception("boom"))
+
+    def get_request(self, **extra):
+        """Return a request with session, auth, and message middleware applied."""
+        request = self.factory.get("/discover/recommendations", **extra)
+        SessionMiddleware(lambda _request: None).process_request(request)
+        AuthenticationMiddleware(lambda _request: None).process_request(request)
+        MessageMiddleware(lambda _request: None).process_request(request)
+        return request
+
+    def test_non_htmx_request_renders_full_error_page(self):
+        """A regular request should get the full styled 500 page."""
+        request = self.get_request()
+
+        response = self.middleware.process_exception(request, self.exception)
+
+        self.assertEqual(response.status_code, 500)
+        self.assertNotIn("HX-Redirect", response)
+
+    def test_htmx_request_redirects_to_current_page(self):
+        """An htmx request should trigger a full-page reload, not a fragment swap."""
+        request = self.get_request(
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_CURRENT_URL="http://testserver/discover",
+        )
+
+        response = self.middleware.process_exception(request, self.exception)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["HX-Redirect"], "http://testserver/discover")
+
+    def test_htmx_request_without_current_url_falls_back_to_home(self):
+        """Fall back to the home page if htmx didn't send the current URL."""
+        request = self.get_request(HTTP_HX_REQUEST="true")
+
+        response = self.middleware.process_exception(request, self.exception)
+
+        self.assertEqual(response["HX-Redirect"], reverse("home"))

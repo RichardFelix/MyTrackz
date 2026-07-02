@@ -19,7 +19,7 @@
       <div x-data="{ trackOpen: false }">
         <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
                 hx-get="{% media_view_url 'track_modal' media %}"
-                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
+                hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ current_instance.id }}"}'
                 hx-target="#{% component_id 'track' media current_instance.id %}"
                 hx-trigger="click"
                 @click="trackOpen = true">
@@ -231,7 +231,7 @@
             <div x-data="{ trackOpen: false }">
               <button class="p-2  text-white rounded-md bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer"
                       hx-get="{% media_view_url 'track_modal' media %}"
-                      hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "is_create": true}'
+                      hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "is_create": true}'
                       hx-target="#{% component_id 'track' media %}"
                       hx-trigger="click once"
                       @click="trackOpen = true"
@@ -308,7 +308,7 @@
                       <div x-data="{ trackOpen: false }">
                         <button class="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
                                 hx-get="{% media_view_url 'track_modal' media %}"
-                                hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ user_media.id }}"}'
+                                hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ user_media.id }}"}'
                                 hx-target="#{% component_id 'track' media user_media.id %}"
                                 hx-trigger="click once"
                                 @click="trackOpen = true">
@@ -380,7 +380,7 @@
           <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
@@ -400,7 +400,7 @@
           <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
@@ -421,7 +421,7 @@
                 class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
                 hx-post="{% media_view_url 'sync_metadata' media %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                hx-vals='{"next": "{{ request.get_full_path|urlencode }}"}'
+                hx-vals='{"next": "{{ request|return_url|urlencode }}"}'
                 hx-target="body"
                 hx-swap="none"
                 x-data="{ loading: false }"
@@ -629,7 +629,7 @@
                                 <button class="p-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition duration-300 cursor-pointer"
                                         title="Add to custom lists"
                                         hx-get="{% media_view_url 'lists_modal' episode %}"
-                                        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                                        hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                                         hx-target="#{% component_id 'lists' episode %}"
                                         hx-trigger="click once"
                                         @click="listsOpen = true">
@@ -651,7 +651,7 @@
                                 <button class="p-2 bg-amber-600 hover:bg-amber-700 text-white rounded-full transition duration-300 cursor-pointer"
                                         title="View your activity history"
                                         hx-get="{% media_view_url 'history_modal' episode %}"
-                                        hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                                        hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                                         hx-target="#{% component_id 'history' episode %}"
                                         hx-trigger="click once"
                                         @click="historyOpen = true">

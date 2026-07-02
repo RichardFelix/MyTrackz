@@ -1,6 +1,9 @@
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model, login
+from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse
 
 from app.providers import services
 
@@ -45,6 +48,17 @@ class ProviderAPIErrorMiddleware:
     def process_exception(self, request, exception):
         """Handle exceptions raised during request processing."""
         if isinstance(exception, services.ProviderAPIError):
+            if request.headers.get("HX-Request") == "true":
+                # A full-page error template swapped into an htmx fragment
+                # target renders as broken/unstyled content, so force a full
+                # browser reload of the current page instead.
+                messages.error(request, str(exception))
+                response = HttpResponse(status=200)
+                response["HX-Redirect"] = request.headers.get(
+                    "HX-Current-URL", reverse("home")
+                )
+                return response
+
             return render(
                 request,
                 "500.html",

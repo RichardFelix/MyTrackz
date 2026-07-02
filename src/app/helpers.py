@@ -108,6 +108,23 @@ def build_absolute_app_url(request, path):
     return request.build_absolute_uri(path)
 
 
+def current_page_path(request):
+    """Return the path+query of the page the browser is actually displaying.
+
+    Components rendered as an htmx fragment target (e.g. Discover, the home
+    "load more" grid, the "Continue the Story" widget) see their own fragment
+    endpoint in request.get_full_path(), not the page the user is looking at.
+    htmx sends the real page URL via the HX-Current-URL header, so prefer
+    that when present.
+    """
+    hx_current_url = request.headers.get("HX-Current-URL")
+    if not hx_current_url:
+        return request.get_full_path()
+
+    parsed = urlparse(hx_current_url)
+    return f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+
+
 def minutes_to_hhmm(total_minutes):
     """Convert total minutes to HH:MM format."""
     hours = int(total_minutes / 60)

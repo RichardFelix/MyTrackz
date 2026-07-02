@@ -35,6 +35,12 @@ def absolute_app_url(context, path):
 
 
 @register.filter
+def return_url(request):
+    """Return the current page URL for use as an htmx return_url/next value."""
+    return helpers.current_page_path(request)
+
+
+@register.filter
 def no_underscore(arg1):
     """Return the title case of the string."""
     return arg1.replace("_", " ")

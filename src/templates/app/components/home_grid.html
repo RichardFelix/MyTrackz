@@ -34,7 +34,7 @@
           <button class="cursor-pointer rounded-full bg-indigo-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                   title="Add to tracker"
                   hx-get="{% media_view_url 'track_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}", "instance_id": "{{ media.id }}"}'
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ media.id }}"}'
                   hx-target="#{% component_id 'track' media.item media.id %}"
                   hx-trigger="click once"
                   @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
@@ -42,7 +42,7 @@
           <button class="cursor-pointer rounded-full bg-emerald-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media.item %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
@@ -50,7 +50,7 @@
           <button class="cursor-pointer rounded-full bg-amber-600 p-2.5 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request.get_full_path|urlencode }}"}'
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'history' media.item %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
