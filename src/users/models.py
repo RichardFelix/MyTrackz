@@ -114,6 +114,13 @@ class WeekStartDayChoices(models.TextChoices):
     SUNDAY = "sunday", "Sunday"
 
 
+class ThemeChoices(models.TextChoices):
+    """Choices for UI theme."""
+
+    DARK = "dark", "Dark"
+    GREY = "grey", "Grey"
+
+
 class User(AbstractUser):
     """Custom user model."""
 
@@ -298,6 +305,13 @@ class User(AbstractUser):
     )
 
     # UI preferences
+    theme = models.CharField(
+        max_length=10,
+        default=ThemeChoices.DARK,
+        choices=ThemeChoices,
+        help_text="UI color theme",
+    )
+
     clickable_media_cards = models.BooleanField(
         default=False,
         help_text="Hide hover overlay on touch devices",
@@ -545,6 +559,10 @@ class User(AbstractUser):
             models.CheckConstraint(
                 name="week_start_day_valid",
                 condition=models.Q(week_start_day__in=WeekStartDayChoices.values),
+            ),
+            models.CheckConstraint(
+                name="theme_valid",
+                condition=models.Q(theme__in=ThemeChoices.values),
             ),
         ]
 

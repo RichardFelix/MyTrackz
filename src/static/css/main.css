@@ -3549,3 +3549,9 @@
     }
   }
 }
+
+/* Grey theme: swap the black page backgrounds for dark grey, leave everything else alone */
+html.theme-grey,
+html.theme-grey .bg-\[\#000\] {
+  background-color: #212529;
+}

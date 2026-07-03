@@ -2,7 +2,8 @@
 {% load app_tags %}
 
 <!DOCTYPE html>
-<html lang="en" class="scheme-dark bg-[#000]">
+<html lang="en"
+      class="scheme-dark bg-[#000]{% if user.theme == 'grey' %} theme-grey{% endif %}">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
@@ -269,13 +270,16 @@
                                  name="q"
                                  value="{{ request.GET.q }}"
                                  :placeholder="getPlaceholder()"
-                                 class="w-full py-2 pl-10 pr-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                          <button type="submit"
-                                  class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none cursor-pointer">
-                            {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
-
-                          </button>
+                                 class="w-full py-2 px-4 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
                         </div>
+
+                        {# Search button #}
+                        <button type="submit"
+                                aria-label="Search"
+                                class="flex items-center px-3 py-2 text-gray-400 bg-[#272c31] border-l border-r border-[#2c3136] hover:text-white hover:bg-[#2a2e33] focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset transition-colors duration-200 cursor-pointer">
+                          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
+
+                        </button>
 
                         <input type="hidden" name="media_type" :value="selectedType.value">
 
