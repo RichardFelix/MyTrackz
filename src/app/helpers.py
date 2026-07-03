@@ -311,7 +311,12 @@ def ensure_item_cached(item_dict, media_type):
     "image" key to the local cache path when available.
     """
     cache_item = _get_or_create_related_item(item_dict, media_type)
+    _localize_item_image(cache_item, item_dict)
+    return cache_item
 
+
+def _localize_item_image(cache_item, item_dict):
+    """Point ``item_dict``'s image at the local cache, refreshing if missing."""
     if _needs_image_refresh(cache_item, item_dict.get("image")):
         cache_item.image = item_dict["image"]
         cache_item.image_cached = False
@@ -319,7 +324,99 @@ def ensure_item_cached(item_dict, media_type):
         cache_item_image.delay(cache_item.id, cache_item.image)
 
     item_dict["image"] = cache_item.cached_image_url
-    return cache_item
+
+
+def _related_item_key(item, media_type):
+    """Return the identity key used to match item dicts to Item rows."""
+    key = (str(item["media_id"]), item["source"])
+    if media_type == MediaTypes.SEASON.value:
+        return (*key, item.get("season_number"))
+    return key
+
+
+def _partition_enrichable_items(user, items, media_type, section_name, media_lookup):
+    """Split usable item dicts into (kept, untracked) for bulk enrichment.
+
+    Drops entries with a blank title (some providers' crowdsourced data, e.g.
+    Hardcover series entries, would otherwise produce an empty URL slug and a
+    broken link) and completed recommendations the user chose to hide. The
+    untracked subset gets its backing Item rows fetched/created in bulk rather
+    than one get_or_create query per recommendation.
+    """
+    kept = []
+    untracked = []
+    for item in items:
+        if not item.get("title"):
+            continue
+
+        key = _related_item_key(item, media_type)
+        media_item = media_lookup.get(key)
+        if _should_skip_completed_recommendation(user, section_name, media_item):
+            continue
+
+        kept.append((item, key, media_item))
+        if media_item is None:
+            untracked.append(item)
+
+    return kept, untracked
+
+
+def _bulk_get_or_create_related_items(items, media_type):
+    """Return a {key: Item} map for item dicts, creating missing rows in bulk.
+
+    Bulk counterpart of _get_or_create_related_item for the feed/search
+    enrichment paths, which would otherwise run one get_or_create query per
+    recommendation. Newly created rows get their image download queued
+    explicitly, since bulk_create bypasses Item.save()'s tracker logic.
+    """
+    is_season = media_type == MediaTypes.SEASON.value
+
+    wanted = {}
+    for item in items:
+        wanted.setdefault(_related_item_key(item, media_type), item)
+    if not wanted:
+        return {}
+
+    def fetch_existing():
+        rows = Item.objects.filter(
+            media_type=media_type,
+            media_id__in={key[0] for key in wanted},
+        )
+        found = {}
+        for row in rows:
+            key = (row.media_id, row.source)
+            if is_season:
+                key = (*key, row.season_number)
+            if key in wanted:
+                found[key] = row
+        return found
+
+    found = fetch_existing()
+    missing = [
+        Item(
+            media_id=item["media_id"],
+            source=item["source"],
+            media_type=media_type,
+            season_number=item.get("season_number") if is_season else None,
+            title=item.get("title") or "",
+            image=item.get("image") or "",
+        )
+        for key, item in wanted.items()
+        if key not in found
+    ]
+    if missing:
+        Item.objects.bulk_create(missing, ignore_conflicts=True)
+        already_found = set(found)
+        found = fetch_existing()
+        for key, row in found.items():
+            if (
+                key not in already_found
+                and row.image
+                and row.image != settings.IMG_NONE
+            ):
+                cache_item_image.delay(row.id, row.image)
+
+    return found
 
 
 def enrich_items_with_user_data(user, items, section_name):
@@ -335,29 +432,17 @@ def enrich_items_with_user_data(user, items, section_name):
     media_type = items[0]["media_type"]
     media_lookup = _build_user_media_lookup(user, items, media_type)
 
-    # Enrich items with matched media
+    kept, untracked = _partition_enrichable_items(
+        user, items, media_type, section_name, media_lookup
+    )
+    related_lookup = _bulk_get_or_create_related_items(untracked, media_type)
+
+    # Second pass: enrich with matched media
     enriched_items = []
     items_to_refresh = []
-    for item in items:
-        # Some providers' crowdsourced data (e.g. Hardcover series entries) can
-        # have a blank title, which produces an empty URL slug and breaks the
-        # link entirely -- skip anything unusable rather than showing it broken.
-        if not item.get("title"):
-            continue
-
-        if media_type == MediaTypes.SEASON.value:
-            key = (str(item["media_id"]), item["source"], item.get("season_number"))
-        else:
-            key = (str(item["media_id"]), item["source"])
-
-        media_item = media_lookup.get(key)
-        if _should_skip_completed_recommendation(user, section_name, media_item):
-            continue
-
+    for item, key, media_item in kept:
         cache_item = (
-            media_item.item
-            if media_item is not None
-            else _get_or_create_related_item(item, media_type)
+            media_item.item if media_item is not None else related_lookup[key]
         )
 
         if _needs_image_refresh(cache_item, item.get("image")):
@@ -653,12 +738,12 @@ def get_trending():
             )
             continue
 
-        kept = []
-        for item in items:
-            if not item.get("title"):
-                continue
-            ensure_item_cached(item, media_type)
-            kept.append(item)
+        kept = [item for item in items if item.get("title")]
+        cache_items = _bulk_get_or_create_related_items(kept, media_type)
+        for item in kept:
+            _localize_item_image(
+                cache_items[_related_item_key(item, media_type)], item
+            )
         if kept:
             per_type[media_type] = kept
 

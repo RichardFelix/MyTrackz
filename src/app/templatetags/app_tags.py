@@ -1,3 +1,4 @@
+import functools
 from datetime import timedelta
 from pathlib import Path
 
@@ -16,8 +17,13 @@ register = template.Library()
 
 
 @register.simple_tag
+@functools.cache
 def get_static_file_mtime(file_path):
-    """Return the last modification time of a static file for cache busting."""
+    """Return the last modification time of a static file for cache busting.
+
+    Memoized: it's rendered on every page, and static files only change on an
+    image rebuild, which restarts the process anyway.
+    """
     full_path = Path(settings.STATIC_ROOT) / file_path
     try:
         mtime = int(full_path.stat().st_mtime)

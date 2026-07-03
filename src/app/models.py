@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import logging
 import uuid
@@ -70,6 +71,17 @@ class ImageCacheFormat(models.TextChoices):
 
     JPEG = "jpg", "JPEG"
     WEBP = "webp", "WebP"
+
+
+@functools.lru_cache(maxsize=4096)
+def _cached_image_relpath(image_url, image_cache_format):
+    """Return a cached image's media-relative path.
+
+    Pure function of its arguments, memoized because it's evaluated for every
+    media card on every page render.
+    """
+    digest = hashlib.sha256(image_url.encode()).hexdigest()
+    return f"{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.{image_cache_format}"
 
 
 class Item(CalendarTriggerMixin, models.Model):
@@ -203,11 +215,8 @@ class Item(CalendarTriggerMixin, models.Model):
     def cached_image_url(self):
         """Return the local cached image URL if available, else the original/fallback."""
         if self.image_cached:
-            digest = hashlib.sha256(self.image.encode()).hexdigest()
-            return (
-                f"{settings.MEDIA_URL}{settings.IMAGE_CACHE_DIR}/{digest[:2]}/"
-                f"{digest}.{self.image_cache_format}"
-            )
+            relpath = _cached_image_relpath(self.image, self.image_cache_format)
+            return f"{settings.MEDIA_URL}{relpath}"
         return self.image or settings.IMG_NONE
 
     @classmethod

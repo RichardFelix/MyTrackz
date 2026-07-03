@@ -218,6 +218,18 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db" / "db.sqlite3",
+            "OPTIONS": {
+                # Wait for locks instead of raising "database is locked" when
+                # gunicorn workers and celery write concurrently. The database
+                # file already runs in WAL journal mode.
+                "timeout": 20,
+                # Take the write lock up front so write transactions can't
+                # deadlock upgrading a deferred (read) lock mid-transaction.
+                "transaction_mode": "IMMEDIATE",
+                # Recommended pairing with WAL; per-connection, so it has to
+                # be applied on every connect.
+                "init_command": "PRAGMA synchronous=NORMAL;",
+            },
         },
     }
 
