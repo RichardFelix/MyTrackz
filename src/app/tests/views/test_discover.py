@@ -2,11 +2,13 @@ from unittest.mock import patch
 
 import requests
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from app.models import TV, Book, Item, MediaTypes, Movie, Sources, Status
+from app.tasks import refresh_discover_feeds
 
 
 class DiscoverViewTests(TestCase):
@@ -14,6 +16,10 @@ class DiscoverViewTests(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
+        # The feed cache is keyed per user id and fakeredis state persists
+        # across tests in the same process, so start every test cold.
+        cache.clear()
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -22,6 +28,16 @@ class DiscoverViewTests(TestCase):
         self.mock_get_media_metadata = self.metadata_patcher.start()
         self.addCleanup(self.metadata_patcher.stop)
         self.mock_get_media_metadata.return_value = {"max_progress": 1}
+
+    def _get_feed(self):
+        """Return the rendered feed.
+
+        The first GET is a cache miss that queues the build (which runs
+        eagerly in tests) and returns the loading fragment; the second GET
+        serves the computed feed from the cache.
+        """
+        self.client.get(reverse("discover_recommendations"))
+        return self.client.get(reverse("discover_recommendations"))
 
     def _complete_movie(self, media_id, title, score=None):
         item = Item.objects.create(
@@ -122,7 +138,7 @@ class DiscoverViewTests(TestCase):
             },
         }
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(
@@ -159,7 +175,7 @@ class DiscoverViewTests(TestCase):
             },
         }
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["suggestions"], [])
@@ -197,7 +213,7 @@ class DiscoverViewTests(TestCase):
 
         self.mock_get_media_metadata.side_effect = side_effect
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertEqual(titles, ["Shared Pick", "Rare Pick"])
@@ -245,7 +261,7 @@ class DiscoverViewTests(TestCase):
 
         self.mock_get_media_metadata.side_effect = side_effect
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertEqual(len(titles), 2)
@@ -256,7 +272,7 @@ class DiscoverViewTests(TestCase):
         self._complete_movie("1", "Finished Movie")
         self.mock_get_media_metadata.return_value = {"related": {}}
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         self.assertEqual(response.context["suggestions"], [])
         self.assertContains(response, "Nothing to recommend yet")
@@ -278,7 +294,7 @@ class DiscoverViewTests(TestCase):
             },
         }
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertIn("Recommended TV Show", titles)
@@ -305,7 +321,7 @@ class DiscoverViewTests(TestCase):
             },
         }
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertIn("Series Book Two", titles)
@@ -329,7 +345,7 @@ class DiscoverViewTests(TestCase):
             },
         }
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertIn("Recommended From In Progress", titles)
@@ -370,7 +386,7 @@ class DiscoverViewTests(TestCase):
 
         self.mock_get_media_metadata.side_effect = side_effect
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         self.assertEqual(
             response.context["media_type_counts"],
@@ -383,7 +399,146 @@ class DiscoverViewTests(TestCase):
         self._complete_movie("1", "Finished Movie")
         self.mock_get_media_metadata.side_effect = requests.exceptions.ConnectionError
 
-        response = self.client.get(reverse("discover_recommendations"))
+        response = self._get_feed()
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["suggestions"], [])
+
+    def _recommendation(self, media_id, title):
+        return {
+            "media_id": media_id,
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.MOVIE.value,
+            "title": title,
+            "image": f"http://example.com/{media_id}.jpg",
+        }
+
+    def test_cold_load_shows_building_state(self):
+        """A cache miss should return the self-polling loading fragment."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Rec")]},
+        }
+
+        response = self.client.get(reverse("discover_recommendations"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/components/discover_loading.html")
+        self.assertContains(response, "Building your recommendations")
+        self.assertContains(response, reverse("discover_recommendations"))
+
+    def test_warm_load_makes_no_provider_calls(self):
+        """A cached feed must render without touching any provider."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Rec")]},
+        }
+        self._get_feed()
+
+        self.mock_get_media_metadata.reset_mock()
+        self.mock_get_media_metadata.side_effect = AssertionError(
+            "provider called on the warm path"
+        )
+        response = self.client.get(reverse("discover_recommendations"))
+
+        self.assertTemplateUsed(
+            response, "app/components/discover_recommendations.html"
+        )
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertEqual(titles, ["Rec"])
+        self.mock_get_media_metadata.assert_not_called()
+
+    def test_tracking_a_suggestion_hides_it_from_the_cached_feed(self):
+        """Tracking a suggested item removes it from the feed without a rebuild."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Rec")]},
+        }
+        self._get_feed()
+
+        suggested_item = Item.objects.get(
+            media_id="20", media_type=MediaTypes.MOVIE.value
+        )
+        Movie.objects.create(
+            item=suggested_item, user=self.user, status=Status.PLANNING.value
+        )
+
+        response = self.client.get(reverse("discover_recommendations"))
+
+        self.assertEqual(response.context["suggestions"], [])
+
+    def test_cached_feed_reresolves_image_urls(self):
+        """Image URLs come from the Item row at render time, not compute time."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Rec")]},
+        }
+        self._get_feed()
+
+        suggested_item = Item.objects.get(
+            media_id="20", media_type=MediaTypes.MOVIE.value
+        )
+        suggested_item.image_cached = True
+        suggested_item.save(update_fields=["image_cached"])
+
+        response = self.client.get(reverse("discover_recommendations"))
+
+        image = response.context["suggestions"][0]["item"]["image"]
+        self.assertEqual(image, suggested_item.cached_image_url)
+
+    def test_refresh_endpoint_invalidates_and_rebuilds(self):
+        """The refresh endpoint drops the cached feed and serves fresh data."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Old Rec")]},
+        }
+        self._get_feed()
+
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("30", "New Rec")]},
+        }
+        response = self.client.post(reverse("discover_refresh"))
+
+        self.assertTemplateUsed(response, "app/components/discover_loading.html")
+
+        response = self.client.get(reverse("discover_recommendations"))
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertEqual(titles, ["New Rec"])
+
+    def test_refresh_discover_feeds_task_precomputes_for_users(self):
+        """The beat task fills the cache so the first page view is already warm."""
+        self._complete_movie("1", "Finished Movie")
+        self.mock_get_media_metadata.return_value = {
+            "related": {"recommendations": [self._recommendation("20", "Rec")]},
+        }
+
+        refresh_discover_feeds()
+
+        response = self.client.get(reverse("discover_recommendations"))
+
+        self.assertTemplateUsed(
+            response, "app/components/discover_recommendations.html"
+        )
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertEqual(titles, ["Rec"])
+
+    def test_polling_does_not_queue_duplicate_builds(self):
+        """While a build is pending, further polls must not queue more builds."""
+        self._complete_movie("1", "Finished Movie")
+
+        with patch("app.views.compute_discover_feed.delay") as mock_delay:
+            first = self.client.get(reverse("discover_recommendations"))
+            second = self.client.get(reverse("discover_recommendations"))
+
+        self.assertTemplateUsed(first, "app/components/discover_loading.html")
+        self.assertTemplateUsed(second, "app/components/discover_loading.html")
+        mock_delay.assert_called_once_with(self.user.id)
+
+    def test_zero_media_user_gets_empty_state_not_endless_spinner(self):
+        """An empty computed feed renders the empty state, not another spinner."""
+        response = self._get_feed()
+
+        self.assertTemplateUsed(
+            response, "app/components/discover_recommendations.html"
+        )
+        self.assertContains(response, "Nothing to recommend yet")

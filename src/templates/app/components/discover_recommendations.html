@@ -2,8 +2,8 @@
 
 {% if suggestions %}
   <div x-data="{ activeFilter: 'all' }" class="space-y-6">
-    {% if media_type_counts|length > 1 %}
-      <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap items-center gap-2">
+      {% if media_type_counts|length > 1 %}
         <button @click="activeFilter = 'all'"
                 :class="activeFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-[#2a2f35] text-gray-400 hover:text-white'"
                 class="px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer">
@@ -16,8 +16,16 @@
             {{ media_type|media_type_readable_plural }} ({{ count }})
           </button>
         {% endfor %}
-      </div>
-    {% endif %}
+      {% endif %}
+      <button hx-post="{% url 'discover_refresh' %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-target="#discover-feed"
+              hx-swap="innerHTML"
+              class="ml-auto flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#2a2f35] text-gray-400 hover:text-white transition-colors cursor-pointer">
+        {% include "app/icons/repeat.svg" with classes="w-4 h-4" %}
+        Refresh
+      </button>
+    </div>
 
     <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
       {% for suggestion in suggestions %}
@@ -36,5 +44,13 @@
     <p class="mt-2 max-w-md text-sm text-gray-400">
       Complete a few titles and we'll surface recommendations based on them here.
     </p>
+    <button hx-post="{% url 'discover_refresh' %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-target="#discover-feed"
+            hx-swap="innerHTML"
+            class="mt-6 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#39404b] text-gray-300 hover:text-white transition-colors cursor-pointer">
+      {% include "app/icons/repeat.svg" with classes="w-4 h-4" %}
+      Refresh
+    </button>
   </div>
 {% endif %}

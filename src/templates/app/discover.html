@@ -11,7 +11,8 @@
     <p class="text-gray-400">Recommendations based on the media you've completed</p>
   </div>
 
-  <div hx-get="{% url 'discover_recommendations' %}"
+  <div id="discover-feed"
+       hx-get="{% url 'discover_recommendations' %}"
        hx-trigger="load"
        hx-swap="innerHTML">
     <div class="flex justify-center py-16">

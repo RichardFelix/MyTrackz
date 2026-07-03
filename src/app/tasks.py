@@ -288,3 +288,50 @@ def evict_oversized_image_cache():
     )
 
     return deleted_count
+
+
+@shared_task(name="Compute discover feed")
+def compute_discover_feed(user_id):
+    """Compute one user's discover feed and cache it for instant page loads."""
+    from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
+
+    user_model = get_user_model()
+    try:
+        user = user_model.objects.get(pk=user_id)
+    except user_model.DoesNotExist:
+        logger.info("Skipping discover feed for deleted user %s", user_id)
+        return 0
+
+    try:
+        suggestions = helpers.get_discover_recommendations(user)
+        cache.set(
+            helpers.discover_feed_cache_key(user_id),
+            [suggestion["item"] for suggestion in suggestions],
+            helpers.DISCOVER_FEED_TTL,
+        )
+    finally:
+        cache.delete(helpers.discover_feed_pending_key(user_id))
+
+    logger.info(
+        "Cached discover feed for user %s (%s suggestions)",
+        user_id,
+        len(suggestions),
+    )
+    return len(suggestions)
+
+
+@shared_task(name="Refresh discover feeds")
+def refresh_discover_feeds():
+    """Queue a discover feed rebuild for every active user."""
+    from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
+
+    user_ids = list(
+        get_user_model().objects.filter(is_active=True).values_list("id", flat=True)
+    )
+    for user_id in user_ids:
+        compute_discover_feed.delay(user_id)
+
+    return len(user_ids)

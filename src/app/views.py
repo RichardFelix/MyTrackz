@@ -33,7 +33,7 @@ from app.models import (
     UserMessage,
 )
 from app.providers import manual, services, tmdb
-from app.tasks import cache_item_image
+from app.tasks import cache_item_image, compute_discover_feed
 from app.templatetags import app_tags
 from users.models import (
     DateFormatChoices,
@@ -100,7 +100,7 @@ def home(request):
 @require_GET
 def unfinished_collections(request):
     """Return untracked sequels/follow-ups to the user's recently completed media."""
-    context = {"suggestions": helpers.get_unfinished_collection_items(request)}
+    context = {"suggestions": helpers.get_unfinished_collection_items(request.user)}
     return render(request, "app/components/home_unfinished_collections.html", context)
 
 
@@ -112,8 +112,22 @@ def discover(request):
 
 @require_GET
 def discover_recommendations(request):
-    """Return the user's aggregated cross-library recommendation feed."""
-    suggestions = helpers.get_discover_recommendations(request)
+    """Return the user's aggregated cross-library recommendation feed.
+
+    The feed is precomputed by the "Compute discover feed" Celery task and
+    served from the cache; on a miss this queues a build (guarded against
+    duplicates) and returns a self-polling loading fragment instead.
+    """
+    suggestions = helpers.get_cached_discover_feed(request.user)
+    if suggestions is None:
+        if cache.add(
+            helpers.discover_feed_pending_key(request.user.id),
+            "pending",
+            helpers.DISCOVER_FEED_PENDING_TTL,
+        ):
+            compute_discover_feed.delay(request.user.id)
+        return render(request, "app/components/discover_loading.html")
+
     counts = Counter(suggestion["item"]["media_type"] for suggestion in suggestions)
     media_type_counts = [
         (media_type, counts[media_type])
@@ -122,6 +136,20 @@ def discover_recommendations(request):
     ]
     context = {"suggestions": suggestions, "media_type_counts": media_type_counts}
     return render(request, "app/components/discover_recommendations.html", context)
+
+
+@require_POST
+def discover_refresh(request):
+    """Invalidate the cached discover feed and queue a rebuild."""
+    cache.delete(helpers.discover_feed_cache_key(request.user.id))
+    cache.delete(helpers.discover_feed_pending_key(request.user.id))
+    if cache.add(
+        helpers.discover_feed_pending_key(request.user.id),
+        "pending",
+        helpers.DISCOVER_FEED_PENDING_TTL,
+    ):
+        compute_discover_feed.delay(request.user.id)
+    return render(request, "app/components/discover_loading.html")
 
 
 @require_POST
@@ -287,7 +315,7 @@ def media_search(request):
     # Enrich search results with user tracking data
     if data.get("results"):
         data["results"] = helpers.enrich_items_with_user_data(
-            request, data["results"], "search"
+            request.user, data["results"], "search"
         )
 
     context = {
@@ -325,7 +353,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
             if related_items:
                 media_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request, related_items, section_name
+                        request.user, related_items, section_name
                     )
                 )
 
@@ -393,7 +421,7 @@ def season_details(request, source, media_id, title, season_number):  # noqa: AR
             if related_items:
                 season_metadata["related"][section_name] = (
                     helpers.enrich_items_with_user_data(
-                        request,
+                        request.user,
                         related_items,
                         section_name,
                     )

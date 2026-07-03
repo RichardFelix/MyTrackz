@@ -19,6 +19,11 @@ urlpatterns = [
         views.discover_recommendations,
         name="discover_recommendations",
     ),
+    path(
+        "discover/refresh",
+        views.discover_refresh,
+        name="discover_refresh",
+    ),
     path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(

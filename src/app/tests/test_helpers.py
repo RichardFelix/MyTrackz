@@ -123,8 +123,6 @@ class EnrichItemsWithUserDataTest(TestCase):
         """Set up test data."""
         self.credentials = {"username": "test", "password": "testpass"}
         self.user = get_user_model().objects.create_user(**self.credentials)
-        self.request = MagicMock()
-        self.request.user = self.user
 
         # Create test items in the database
         self.movie_item = Item.objects.create(
@@ -187,7 +185,7 @@ class EnrichItemsWithUserDataTest(TestCase):
             },
         ]
 
-        enriched_items = enrich_items_with_user_data(self.request, raw_items, "test")
+        enriched_items = enrich_items_with_user_data(self.user, raw_items, "test")
         self.assertEqual(len(enriched_items), 3)
 
         # Scenario 1: Existing movie with user tracking data
@@ -251,7 +249,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         ]
 
         enriched_items = enrich_items_with_user_data(
-            self.request, raw_items, "recommendations"
+            self.user, raw_items, "recommendations"
         )
 
         self.assertEqual(len(enriched_items), 1)
@@ -272,7 +270,7 @@ class EnrichItemsWithUserDataTest(TestCase):
             },
         ]
 
-        enrich_items_with_user_data(self.request, raw_items, "recommendations")
+        enrich_items_with_user_data(self.user, raw_items, "recommendations")
 
         created_item = Item.objects.get(
             media_id="99999",
@@ -307,7 +305,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         ]
 
         enriched_items = enrich_items_with_user_data(
-            self.request, raw_items, "recommendations"
+            self.user, raw_items, "recommendations"
         )
 
         self.assertEqual(
@@ -331,7 +329,7 @@ class EnrichItemsWithUserDataTest(TestCase):
             },
         ]
 
-        enrich_items_with_user_data(self.request, raw_items, "recommendations")
+        enrich_items_with_user_data(self.user, raw_items, "recommendations")
 
         # No new Item row should have been created; the existing one (already
         # matching this exact image) needed no caching work.
@@ -369,7 +367,7 @@ class EnrichItemsWithUserDataTest(TestCase):
 
         # When section is "recommendations", completed items should be hidden
         enriched_items = enrich_items_with_user_data(
-            self.request, raw_items, "recommendations"
+            self.user, raw_items, "recommendations"
         )
         self.assertEqual(len(enriched_items), 1)
         self.assertEqual(enriched_items[0]["item"]["media_id"], "99999")
@@ -398,6 +396,6 @@ class EnrichItemsWithUserDataTest(TestCase):
 
         # With preference disabled, all items should be returned
         enriched_items = enrich_items_with_user_data(
-            self.request, raw_items, "recommendations"
+            self.user, raw_items, "recommendations"
         )
         self.assertEqual(len(enriched_items), 2)

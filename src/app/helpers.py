@@ -6,6 +6,7 @@ import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import Http404, HttpResponseRedirect
@@ -57,6 +58,25 @@ DISCOVER_MEDIA_TYPES = (
 DISCOVER_SEED_STATUSES = (Status.COMPLETED.value, Status.IN_PROGRESS.value)
 DISCOVER_SEEDS_PER_TYPE = 5
 DISCOVER_MAX_ITEMS_PER_TYPE = 50
+# The computed feed is cached per user and refreshed daily by the "Refresh
+# discover feeds" beat task; 48h TTL so the feed survives one missed run.
+DISCOVER_FEED_TTL = 60 * 60 * 48
+# While a feed build is queued/running, a short-lived pending marker stops the
+# polling page from queueing duplicate builds; its expiry doubles as the retry
+# window if a build crashes without cleaning up.
+DISCOVER_FEED_PENDING_TTL = 600
+
+_DISCOVER_FEED_MISSING = object()
+
+
+def discover_feed_cache_key(user_id):
+    """Return the cache key holding a user's precomputed discover feed."""
+    return f"discover_feed_v1_{user_id}"
+
+
+def discover_feed_pending_key(user_id):
+    """Return the cache key marking a user's discover feed build as in flight."""
+    return f"discover_feed_pending_v1_{user_id}"
 
 
 def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
@@ -269,7 +289,7 @@ def ensure_item_cached(item_dict, media_type):
     return cache_item
 
 
-def enrich_items_with_user_data(request, items, section_name):
+def enrich_items_with_user_data(user, items, section_name):
     """Enrich a list of items with user tracking data.
 
     Also ensures every item's image is cached locally (via a backing Item row),
@@ -280,7 +300,7 @@ def enrich_items_with_user_data(request, items, section_name):
 
     # All items are the same media type
     media_type = items[0]["media_type"]
-    media_lookup = _build_user_media_lookup(request.user, items, media_type)
+    media_lookup = _build_user_media_lookup(user, items, media_type)
 
     # Enrich items with matched media
     enriched_items = []
@@ -298,9 +318,7 @@ def enrich_items_with_user_data(request, items, section_name):
             key = (str(item["media_id"]), item["source"])
 
         media_item = media_lookup.get(key)
-        if _should_skip_completed_recommendation(
-            request.user, section_name, media_item
-        ):
+        if _should_skip_completed_recommendation(user, section_name, media_item):
             continue
 
         cache_item = (
@@ -373,13 +391,13 @@ def _should_skip_completed_recommendation(user, section_name, media_item):
     )
 
 
-def _iter_untracked_related_entries(request, metadata, seen):
+def _iter_untracked_related_entries(user, metadata, seen):
     """Yield unseen, untracked entries from an item's genuine follow-up sections."""
     for section_name, related_items in metadata.get("related", {}).items():
         if section_name in IGNORED_RELATED_SECTIONS or not related_items:
             continue
 
-        enriched = enrich_items_with_user_data(request, related_items, section_name)
+        enriched = enrich_items_with_user_data(user, related_items, section_name)
         for entry in enriched:
             if entry["media"] is not None:
                 continue
@@ -399,7 +417,7 @@ def _get_related_metadata(services, media_type, item):
         return None
 
 
-def get_unfinished_collection_items(request):
+def get_unfinished_collection_items(user):
     """Return untracked direct follow-ups to the user's recently completed media.
 
     Reuses each provider's cached "related" metadata (the same data already shown
@@ -409,7 +427,6 @@ def get_unfinished_collection_items(request):
     """
     from app.providers import services  # noqa: PLC0415 avoid import cycle
 
-    user = request.user
     active_types = [
         media_type
         for media_type in UNFINISHED_COLLECTION_MEDIA_TYPES
@@ -434,7 +451,7 @@ def get_unfinished_collection_items(request):
             if metadata is None:
                 continue
 
-            for entry in _iter_untracked_related_entries(request, metadata, seen):
+            for entry in _iter_untracked_related_entries(user, metadata, seen):
                 suggestions.append(entry)
                 if len(suggestions) >= UNFINISHED_COLLECTION_MAX_ITEMS:
                     return suggestions
@@ -473,7 +490,7 @@ def _get_discover_recommendation_items(related):
     ]
 
 
-def _rank_discover_entries_for_type(request, services, user, media_type):
+def _rank_discover_entries_for_type(services, user, media_type):
     """Return one media type's untracked recommendations, ranked by frequency."""
     counts = {}
     order = []
@@ -492,7 +509,7 @@ def _rank_discover_entries_for_type(request, services, user, media_type):
             continue
 
         enriched = enrich_items_with_user_data(
-            request, recommendation_items, "recommendations"
+            user, recommendation_items, "recommendations"
         )
         for entry in enriched:
             if entry["media"] is not None:
@@ -529,7 +546,7 @@ def _interleave_discover_suggestions(per_type_suggestions):
     return results
 
 
-def get_discover_recommendations(request):
+def get_discover_recommendations(user):
     """Return a ranked, deduped, cross-type-balanced feed of untracked recommendations.
 
     Unlike get_unfinished_collection_items() (direct follow-ups), this aggregates
@@ -541,7 +558,6 @@ def get_discover_recommendations(request):
     """
     from app.providers import services  # noqa: PLC0415 avoid import cycle
 
-    user = request.user
     active_types = [
         media_type
         for media_type in DISCOVER_MEDIA_TYPES
@@ -549,10 +565,68 @@ def get_discover_recommendations(request):
     ]
 
     per_type_suggestions = {
-        media_type: _rank_discover_entries_for_type(
-            request, services, user, media_type
-        )
+        media_type: _rank_discover_entries_for_type(services, user, media_type)
         for media_type in active_types
     }
 
     return _interleave_discover_suggestions(per_type_suggestions)
+
+
+def get_cached_discover_feed(user):
+    """Return the user's precomputed discover feed, or None when absent.
+
+    A computed-but-empty feed is a valid cache hit (it renders the empty
+    state); only a genuinely missing key returns None. Cached entries are
+    re-checked against the database -- no provider calls on this path.
+    """
+    item_dicts = cache.get(discover_feed_cache_key(user.id), _DISCOVER_FEED_MISSING)
+    if item_dicts is _DISCOVER_FEED_MISSING:
+        return None
+
+    kept = _refresh_cached_discover_items(user, item_dicts)
+    return [{"item": item_dict, "media": None} for item_dict in kept]
+
+
+def _refresh_cached_discover_items(user, item_dicts):
+    """Drop since-tracked entries and re-resolve image URLs, DB-only.
+
+    Between recomputes the user may track a suggestion (it must disappear from
+    the feed) and the image-cache evictor may drop a poster (its local URL must
+    fall back to the provider's), so both are re-derived on every render while
+    preserving the feed's interleaved order.
+    """
+    by_type = {}
+    for item_dict in item_dicts:
+        by_type.setdefault(item_dict["media_type"], []).append(item_dict)
+
+    tracked = set()
+    images = {}
+    for media_type, type_items in by_type.items():
+        media_ids = [str(item_dict["media_id"]) for item_dict in type_items]
+        model = apps.get_model("app", media_type)
+        tracked.update(
+            (media_type, media_id, source)
+            for media_id, source in model.objects.filter(
+                user=user,
+                item__media_id__in=media_ids,
+            ).values_list("item__media_id", "item__source")
+        )
+        for row in Item.objects.filter(
+            media_type=media_type,
+            media_id__in=media_ids,
+        ):
+            images[(media_type, row.media_id, row.source)] = row.cached_image_url
+
+    kept = []
+    for item_dict in item_dicts:
+        key = (
+            item_dict["media_type"],
+            str(item_dict["media_id"]),
+            item_dict["source"],
+        )
+        if key in tracked:
+            continue
+        if key in images:
+            item_dict["image"] = images[key]
+        kept.append(item_dict)
+    return kept

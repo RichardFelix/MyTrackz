@@ -597,6 +597,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Evict oversized image cache",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
+    "refresh_discover_feeds": {
+        "task": "Refresh discover feeds",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
 
 IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
