@@ -79,6 +79,39 @@ def discover_feed_pending_key(user_id):
     return f"discover_feed_pending_v1_{user_id}"
 
 
+def unfinished_collections_cache_key(user_id):
+    """Return the cache key holding a user's precomputed home widget feed."""
+    return f"unfinished_collections_v1_{user_id}"
+
+
+def unfinished_collections_pending_key(user_id):
+    """Return the cache key marking a user's home widget build as in flight."""
+    return f"unfinished_collections_pending_v1_{user_id}"
+
+
+# Media types with a usable trending/popularity source. Comics are excluded
+# (ComicVine has no trending endpoint and a strict hourly rate limit) and so
+# are books (neither Hardcover nor OpenLibrary exposes a reliable one).
+TRENDING_MEDIA_TYPES = (
+    MediaTypes.MOVIE.value,
+    MediaTypes.TV.value,
+    MediaTypes.ANIME.value,
+    MediaTypes.MANGA.value,
+    MediaTypes.GAME.value,
+    MediaTypes.BOARDGAME.value,
+)
+
+
+def trending_feed_cache_key():
+    """Return the cache key holding the global precomputed trending feed."""
+    return "trending_feed_v1"
+
+
+def trending_feed_pending_key():
+    """Return the cache key marking the trending feed build as in flight."""
+    return "trending_feed_pending_v1"
+
+
 def get_owned_media_or_404(request, media_type, instance_id, *, prefetch=False):
     """Return media owned by the current user or raise 404."""
     try:
@@ -579,15 +612,80 @@ def get_cached_discover_feed(user):
     state); only a genuinely missing key returns None. Cached entries are
     re-checked against the database -- no provider calls on this path.
     """
-    item_dicts = cache.get(discover_feed_cache_key(user.id), _DISCOVER_FEED_MISSING)
+    return _get_cached_feed(user, discover_feed_cache_key(user.id))
+
+
+def get_cached_unfinished_collections(user):
+    """Return the user's precomputed "Continue the Story" feed, or None when absent.
+
+    Same contract as get_cached_discover_feed: empty list is a valid hit (the
+    widget renders nothing), None means not computed yet.
+    """
+    return _get_cached_feed(user, unfinished_collections_cache_key(user.id))
+
+
+def _get_cached_feed(user, cache_key):
+    """Fetch a cached feed and re-check it against the database, DB-only."""
+    item_dicts = cache.get(cache_key, _DISCOVER_FEED_MISSING)
     if item_dicts is _DISCOVER_FEED_MISSING:
         return None
 
-    kept = _refresh_cached_discover_items(user, item_dicts)
+    kept = _refresh_cached_feed_items(user, item_dicts)
     return [{"item": item_dict, "media": None} for item_dict in kept]
 
 
-def _refresh_cached_discover_items(user, item_dicts):
+def get_trending():
+    """Compute the global trending feed: popular items across media types.
+
+    The result is user-independent (the same for everyone); per-user concerns
+    (hiding tracked items, disabled media types) are applied at serve time by
+    get_cached_trending_feed. One provider being down only drops its own type.
+    """
+    from app.providers import services  # noqa: PLC0415 avoid import cycle
+
+    per_type = {}
+    for media_type in TRENDING_MEDIA_TYPES:
+        try:
+            items = services.trending(media_type)
+        except (services.ProviderAPIError, requests.RequestException):
+            logger.warning(
+                "Skipping trending lookup for %s", media_type, exc_info=True
+            )
+            continue
+
+        kept = []
+        for item in items:
+            if not item.get("title"):
+                continue
+            ensure_item_cached(item, media_type)
+            kept.append(item)
+        if kept:
+            per_type[media_type] = kept
+
+    return _interleave_discover_suggestions(per_type)
+
+
+def get_cached_trending_feed(user):
+    """Return the trending feed filtered for this user, or None when absent.
+
+    Drops media types the user has disabled and anything they already track;
+    DB-only, no provider calls.
+    """
+    item_dicts = cache.get(trending_feed_cache_key(), _DISCOVER_FEED_MISSING)
+    if item_dicts is _DISCOVER_FEED_MISSING:
+        return None
+
+    active_types = set(user.get_active_media_types())
+    item_dicts = [
+        item_dict
+        for item_dict in item_dicts
+        if item_dict["media_type"] in active_types
+    ]
+    kept = _refresh_cached_feed_items(user, item_dicts)
+    return [{"item": item_dict, "media": None} for item_dict in kept]
+
+
+def _refresh_cached_feed_items(user, item_dicts):
     """Drop since-tracked entries and re-resolve image URLs, DB-only.
 
     Between recomputes the user may track a suggestion (it must disappear from

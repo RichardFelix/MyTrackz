@@ -164,6 +164,21 @@
                     </a>
                   </li>
 
+                  {% url 'trending' as trending_url %}
+                  <li>
+                    <a href="{{ trending_url }}"
+                       class="flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == trending_url %}text-white bg-[#2c3136]{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
+                      {% if request.path|str_equals:trending_url %}
+                        {% include "app/icons/flame.svg" with classes="w-5 h-5 text-indigo-400 " %}
+
+                      {% else %}
+                        {% include "app/icons/flame.svg" with classes="w-5 h-5" %}
+
+                      {% endif %}
+                      <span>Trending</span>
+                    </a>
+                  </li>
+
                   {% url 'lists' as lists_url %}
                   <li>
                     <a href="{{ lists_url }}"

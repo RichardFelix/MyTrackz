@@ -1,6 +1,8 @@
 {# Self-replacing poll: re-fetches the feed until the build finishes, at which #}
-{# point the swapped-in feed HTML carries no trigger and polling stops. #}
-<div hx-get="{% url 'discover_recommendations' %}"
+{# point the swapped-in feed HTML carries no trigger and polling stops. Shared #}
+{# by Discover (default) and Trending (poll_url_name="trending_feed"). #}
+{% firstof poll_url_name "discover_recommendations" as poll_url %}
+<div hx-get="{% url poll_url %}"
      hx-trigger="load delay:2s"
      hx-swap="outerHTML">
   <div class="flex flex-col items-center justify-center py-16 space-y-4">

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load app_tags %}
+
+{% block title %}
+  Trending - MyTrackz
+{% endblock title %}
+
+{% block content %}
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold mb-2">Trending</h1>
+    <p class="text-gray-400">What's popular right now, minus what you already track</p>
+  </div>
+
+  <div id="trending-feed"
+       hx-get="{% url 'trending_feed' %}"
+       hx-trigger="load"
+       hx-swap="innerHTML">
+    <div class="flex justify-center py-16">
+      <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-400"></div>
+    </div>
+  </div>
+{% endblock content %}

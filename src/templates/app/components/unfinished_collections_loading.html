@@ -1,0 +1,5 @@
+{# Invisible self-replacing poll: the widget shows nothing while its feed is #}
+{# being built; polling stops once the real (or empty) widget swaps in. #}
+<div hx-get="{% url 'unfinished_collections' %}"
+     hx-trigger="load delay:3s"
+     hx-swap="outerHTML"></div>

@@ -90,6 +90,55 @@ def search(media_type, query, page):
     return data
 
 
+def trending(media_type):
+    """Return trending media from MyAnimeList's ranking endpoint.
+
+    Anime uses the "airing" ranking (top currently-airing shows); manga has no
+    airing concept so it falls back to the popularity ranking.
+    """
+    cache_key = f"trending_{Sources.MAL.value}_{media_type}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/{media_type}/ranking"
+        ranking_type = (
+            "airing" if media_type == MediaTypes.ANIME.value else "bypopularity"
+        )
+        params = {
+            "ranking_type": ranking_type,
+            "fields": "title,main_picture",
+            "limit": 20,
+        }
+        if settings.MAL_NSFW:
+            params["nsfw"] = "true"
+
+        try:
+            response = services.api_request(
+                Sources.MAL.value,
+                "GET",
+                url,
+                params=params,
+                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+            )
+        except requests.exceptions.HTTPError as error:
+            response = handle_error(error)
+
+        data = [
+            {
+                "media_id": media["node"]["id"],
+                "source": Sources.MAL.value,
+                "media_type": media_type,
+                "title": media["node"]["title"],
+                "image": get_image_url(media["node"]),
+            }
+            for media in response["data"]
+        ]
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def anime(media_id):
     """Return the metadata for the selected anime or manga from MyAnimeList."""
     cache_key = f"{Sources.MAL.value}_{MediaTypes.ANIME.value}_{media_id}"

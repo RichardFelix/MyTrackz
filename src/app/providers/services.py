@@ -271,3 +271,21 @@ def search(media_type, query, page, source=None):
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
     }
     return search_handlers[media_type]()
+
+
+def trending(media_type):
+    """Return trending/popular media of the given type from its default source.
+
+    Comics and books are unsupported: ComicVine has no trending endpoint (and a
+    strict hourly rate limit), and neither Hardcover nor OpenLibrary exposes a
+    reliable one.
+    """
+    trending_handlers = {
+        MediaTypes.MOVIE.value: lambda: tmdb.trending(media_type),
+        MediaTypes.TV.value: lambda: tmdb.trending(media_type),
+        MediaTypes.ANIME.value: lambda: mal.trending(media_type),
+        MediaTypes.MANGA.value: lambda: mal.trending(media_type),
+        MediaTypes.GAME.value: igdb.trending,
+        MediaTypes.BOARDGAME.value: bgg.hot,
+    }
+    return trending_handlers[media_type]()

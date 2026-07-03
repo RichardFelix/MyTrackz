@@ -601,6 +601,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Refresh discover feeds",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
+    "refresh_unfinished_collections": {
+        "task": "Refresh unfinished collections",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
+    "compute_trending_feed": {
+        "task": "Compute trending feed",
+        "schedule": 60 * 60 * 24,  # every 24 hours
+    },
 }
 
 IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))

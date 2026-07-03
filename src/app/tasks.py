@@ -290,48 +290,109 @@ def evict_oversized_image_cache():
     return deleted_count
 
 
-@shared_task(name="Compute discover feed")
-def compute_discover_feed(user_id):
-    """Compute one user's discover feed and cache it for instant page loads."""
+def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl):
+    """Compute one user's feed and cache it, always clearing the pending marker."""
     from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
     from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
-
-    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
 
     user_model = get_user_model()
     try:
         user = user_model.objects.get(pk=user_id)
     except user_model.DoesNotExist:
-        logger.info("Skipping discover feed for deleted user %s", user_id)
+        logger.info("Skipping %s for deleted user %s", label, user_id)
+        cache.delete(pending_key)
         return 0
 
     try:
-        suggestions = helpers.get_discover_recommendations(user)
+        suggestions = compute(user)
         cache.set(
-            helpers.discover_feed_cache_key(user_id),
+            cache_key,
             [suggestion["item"] for suggestion in suggestions],
-            helpers.DISCOVER_FEED_TTL,
+            ttl,
         )
     finally:
-        cache.delete(helpers.discover_feed_pending_key(user_id))
+        cache.delete(pending_key)
 
     logger.info(
-        "Cached discover feed for user %s (%s suggestions)",
+        "Cached %s for user %s (%s suggestions)",
+        label,
         user_id,
         len(suggestions),
     )
     return len(suggestions)
 
 
-@shared_task(name="Refresh discover feeds")
-def refresh_discover_feeds():
-    """Queue a discover feed rebuild for every active user."""
+def _fan_out_per_user(compute_task):
+    """Queue a per-user feed rebuild for every active user."""
     from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
 
     user_ids = list(
         get_user_model().objects.filter(is_active=True).values_list("id", flat=True)
     )
     for user_id in user_ids:
-        compute_discover_feed.delay(user_id)
+        compute_task.delay(user_id)
 
     return len(user_ids)
+
+
+@shared_task(name="Compute discover feed")
+def compute_discover_feed(user_id):
+    """Compute one user's discover feed and cache it for instant page loads."""
+    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
+
+    return _compute_user_feed(
+        user_id,
+        "discover feed",
+        helpers.get_discover_recommendations,
+        helpers.discover_feed_cache_key(user_id),
+        helpers.discover_feed_pending_key(user_id),
+        helpers.DISCOVER_FEED_TTL,
+    )
+
+
+@shared_task(name="Refresh discover feeds")
+def refresh_discover_feeds():
+    """Queue a discover feed rebuild for every active user."""
+    return _fan_out_per_user(compute_discover_feed)
+
+
+@shared_task(name="Compute unfinished collections")
+def compute_unfinished_collections(user_id):
+    """Compute one user's "Continue the Story" feed and cache it."""
+    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
+
+    return _compute_user_feed(
+        user_id,
+        "unfinished collections",
+        helpers.get_unfinished_collection_items,
+        helpers.unfinished_collections_cache_key(user_id),
+        helpers.unfinished_collections_pending_key(user_id),
+        helpers.DISCOVER_FEED_TTL,
+    )
+
+
+@shared_task(name="Refresh unfinished collections")
+def refresh_unfinished_collections():
+    """Queue a "Continue the Story" rebuild for every active user."""
+    return _fan_out_per_user(compute_unfinished_collections)
+
+
+@shared_task(name="Compute trending feed")
+def compute_trending_feed():
+    """Compute the global trending feed and cache it for instant page loads."""
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
+
+    try:
+        items = helpers.get_trending()
+        cache.set(
+            helpers.trending_feed_cache_key(),
+            items,
+            helpers.DISCOVER_FEED_TTL,
+        )
+    finally:
+        cache.delete(helpers.trending_feed_pending_key())
+
+    logger.info("Cached trending feed (%s items)", len(items))
+    return len(items)

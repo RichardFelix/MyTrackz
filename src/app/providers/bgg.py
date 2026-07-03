@@ -106,6 +106,49 @@ def search(query, page):
     return data
 
 
+def hot():
+    """Return BGG's "hot" board games list (their trending ranking)."""
+    cache_key = f"trending_{Sources.BGG.value}_{MediaTypes.BOARDGAME.value}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        try:
+            root = services.api_request(
+                Sources.BGG.value,
+                "GET",
+                f"{base_url}/hot",
+                params={"type": "boardgame"},
+                headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+                response_format="xml",
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = []
+        for item in root.findall(".//item")[:RESULTS_PER_PAGE]:
+            game_id = item.get("id")
+            name_elem = item.find("name")
+            if name_elem is None or not game_id:
+                continue
+            thumbnail_elem = item.find("thumbnail")
+            thumbnail = (
+                thumbnail_elem.get("value") if thumbnail_elem is not None else None
+            )
+            data.append(
+                {
+                    "media_id": game_id,
+                    "source": Sources.BGG.value,
+                    "media_type": MediaTypes.BOARDGAME.value,
+                    "title": name_elem.get("value", "Unknown"),
+                    "image": thumbnail or settings.IMG_NONE,
+                }
+            )
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def _fetch_thumbnails(game_ids):
     """Fetch thumbnail images for a list of game IDs."""
     if not game_ids:

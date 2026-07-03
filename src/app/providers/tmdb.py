@@ -122,6 +122,40 @@ def search(media_type, query, page):
     return data
 
 
+def trending(media_type):
+    """Return this week's trending movies or TV shows from TMDB."""
+    cache_key = f"trending_{Sources.TMDB.value}_{media_type}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        url = f"{base_url}/trending/{media_type}/week"
+
+        try:
+            response = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                url,
+                params=base_params,
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+
+        data = [
+            {
+                "media_id": media["id"],
+                "source": Sources.TMDB.value,
+                "media_type": media_type,
+                "title": get_title(media),
+                "image": get_image_url(media["poster_path"]),
+            }
+            for media in response["results"]
+        ]
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def find(external_id, external_source):
     """Search for media on TMDB."""
     cache_key = f"find_{Sources.TMDB.value}_{external_id}_{external_source}"

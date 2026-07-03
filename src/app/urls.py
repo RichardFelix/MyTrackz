@@ -24,6 +24,9 @@ urlpatterns = [
         views.discover_refresh,
         name="discover_refresh",
     ),
+    path("trending", views.trending, name="trending"),
+    path("trending/feed", views.trending_feed, name="trending_feed"),
+    path("trending/refresh", views.trending_refresh, name="trending_refresh"),
     path("<str:username>/<media_type:media_type>", views.media_list, name="medialist"),
     path("search", views.media_search, name="search"),
     path(

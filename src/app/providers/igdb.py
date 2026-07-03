@@ -265,6 +265,75 @@ def search(query, page):
     return data
 
 
+def trending():
+    """Return popular recent games from IGDB.
+
+    IGDB has no dedicated trending endpoint, so approximate it with games
+    released in the last year sorted by how many ratings they've gathered.
+    """
+    cache_key = f"trending_{Sources.IGDB.value}_{MediaTypes.GAME.value}"
+    data = cache.get(cache_key)
+
+    if data is None:
+        access_token = get_access_token()
+        url = f"{base_url}/games"
+        headers = {
+            "Client-ID": settings.IGDB_ID,
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        one_year_ago = int(timezone.now().timestamp()) - 60 * 60 * 24 * 365
+        conditions = (
+            f"where first_release_date > {one_year_ago} & total_rating_count > 5"
+            " & game_type = (0,1,2,3,4,5,6,7,8,9,10)"
+        )
+        if not settings.IGDB_NSFW:
+            conditions += " & themes != (42)"
+
+        query = (
+            "fields name,cover.image_id;"
+            "sort total_rating_count desc;"
+            "limit 20;"
+            f"{conditions};"
+        )
+
+        try:
+            response = services.api_request(
+                Sources.IGDB.value,
+                "POST",
+                url,
+                data=query,
+                headers=headers,
+            )
+        except requests.exceptions.HTTPError as error:
+            error_resp = handle_error(error)
+            if error_resp and error_resp.get("retry"):
+                # Retry the request with the new access token
+                headers["Authorization"] = f"Bearer {get_access_token()}"
+                response = services.api_request(
+                    Sources.IGDB.value,
+                    "POST",
+                    url,
+                    data=query,
+                    headers=headers,
+                )
+
+        data = [
+            {
+                "media_id": media["id"],
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "title": media["name"],
+                "image": get_image_url(media),
+            }
+            for media in response
+        ]
+
+        cache.set(cache_key, data)
+
+    return data
+
+
 def game(media_id):
     """Return the metadata for the selected game from IGDB."""
     cache_key = f"{Sources.IGDB.value}_{MediaTypes.GAME.value}_{media_id}"

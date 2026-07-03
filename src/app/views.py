@@ -33,7 +33,12 @@ from app.models import (
     UserMessage,
 )
 from app.providers import manual, services, tmdb
-from app.tasks import cache_item_image, compute_discover_feed
+from app.tasks import (
+    cache_item_image,
+    compute_discover_feed,
+    compute_trending_feed,
+    compute_unfinished_collections,
+)
 from app.templatetags import app_tags
 from users.models import (
     DateFormatChoices,
@@ -99,8 +104,25 @@ def home(request):
 
 @require_GET
 def unfinished_collections(request):
-    """Return untracked sequels/follow-ups to the user's recently completed media."""
-    context = {"suggestions": helpers.get_unfinished_collection_items(request.user)}
+    """Return untracked sequels/follow-ups to the user's recently completed media.
+
+    Served from the precomputed per-user cache; a miss queues a build and
+    returns an invisible self-polling fragment (the widget shows nothing
+    while loading).
+    """
+    suggestions = helpers.get_cached_unfinished_collections(request.user)
+    if suggestions is None:
+        if cache.add(
+            helpers.unfinished_collections_pending_key(request.user.id),
+            "pending",
+            helpers.DISCOVER_FEED_PENDING_TTL,
+        ):
+            compute_unfinished_collections.delay(request.user.id)
+        return render(
+            request, "app/components/unfinished_collections_loading.html"
+        )
+
+    context = {"suggestions": suggestions}
     return render(request, "app/components/home_unfinished_collections.html", context)
 
 
@@ -150,6 +172,68 @@ def discover_refresh(request):
     ):
         compute_discover_feed.delay(request.user.id)
     return render(request, "app/components/discover_loading.html")
+
+
+@require_GET
+def trending(request):
+    """Render the trending page shell; the feed itself loads lazily via HTMX."""
+    return render(request, "app/trending.html")
+
+
+def _render_trending_loading(request):
+    """Render the trending loading fragment (self-polls until the feed lands)."""
+    return render(
+        request,
+        "app/components/discover_loading.html",
+        {"poll_url_name": "trending_feed"},
+    )
+
+
+@require_GET
+def trending_feed(request):
+    """Return the trending feed, filtered to what this user doesn't track yet.
+
+    The feed itself is global (one "Compute trending feed" build shared by all
+    users); only the tracked-item/disabled-type filtering is per user.
+    """
+    suggestions = helpers.get_cached_trending_feed(request.user)
+    if suggestions is None:
+        if cache.add(
+            helpers.trending_feed_pending_key(),
+            "pending",
+            helpers.DISCOVER_FEED_PENDING_TTL,
+        ):
+            compute_trending_feed.delay()
+        return _render_trending_loading(request)
+
+    counts = Counter(suggestion["item"]["media_type"] for suggestion in suggestions)
+    media_type_counts = [
+        (media_type, counts[media_type])
+        for media_type in helpers.TRENDING_MEDIA_TYPES
+        if media_type in counts
+    ]
+    context = {
+        "suggestions": suggestions,
+        "media_type_counts": media_type_counts,
+        "feed_id": "trending-feed",
+        "refresh_url_name": "trending_refresh",
+        "empty_message": "Nothing trending right now. Try refreshing in a bit.",
+    }
+    return render(request, "app/components/discover_recommendations.html", context)
+
+
+@require_POST
+def trending_refresh(request):
+    """Invalidate the cached trending feed and queue a rebuild."""
+    cache.delete(helpers.trending_feed_cache_key())
+    cache.delete(helpers.trending_feed_pending_key())
+    if cache.add(
+        helpers.trending_feed_pending_key(),
+        "pending",
+        helpers.DISCOVER_FEED_PENDING_TTL,
+    ):
+        compute_trending_feed.delay()
+    return _render_trending_loading(request)
 
 
 @require_POST
