@@ -168,7 +168,7 @@ class TrendingViewTests(TestCase):
             self.client.get(reverse("trending_feed"))
             self.client.get(reverse("trending_feed"))
 
-        mock_delay.assert_called_once_with()
+        mock_delay.assert_called_once()
 
     def test_one_provider_failing_keeps_the_others(self):
         """A provider error for one type should only drop that type."""

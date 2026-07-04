@@ -290,8 +290,23 @@ def evict_oversized_image_cache():
     return deleted_count
 
 
-def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl):
-    """Compute one user's feed and cache it, always clearing the pending marker."""
+def _clear_owned_pending_marker(pending_key, build_id):
+    """Delete a feed's pending marker only when this build set it.
+
+    A build queued without a build_id (the daily beat fan-outs) owns no
+    marker, so it must never delete one -- otherwise it can wipe the marker
+    of a user-triggered refresh that's still in flight and let polling queue
+    duplicate builds. Unowned markers simply expire (polling checks the feed
+    key first, so a lingering marker only suppresses duplicate queueing).
+    """
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    if build_id is not None and cache.get(pending_key) == build_id:
+        cache.delete(pending_key)
+
+
+def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl, build_id):
+    """Compute one user's feed and cache it, clearing our own pending marker."""
     from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
     from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
 
@@ -300,7 +315,7 @@ def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl):
         user = user_model.objects.get(pk=user_id)
     except user_model.DoesNotExist:
         logger.info("Skipping %s for deleted user %s", label, user_id)
-        cache.delete(pending_key)
+        _clear_owned_pending_marker(pending_key, build_id)
         return 0
 
     try:
@@ -311,7 +326,7 @@ def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl):
             ttl,
         )
     finally:
-        cache.delete(pending_key)
+        _clear_owned_pending_marker(pending_key, build_id)
 
     logger.info(
         "Cached %s for user %s (%s suggestions)",
@@ -336,7 +351,7 @@ def _fan_out_per_user(compute_task):
 
 
 @shared_task(name="Compute discover feed")
-def compute_discover_feed(user_id):
+def compute_discover_feed(user_id, build_id=None):
     """Compute one user's discover feed and cache it for instant page loads."""
     from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
 
@@ -347,6 +362,7 @@ def compute_discover_feed(user_id):
         helpers.discover_feed_cache_key(user_id),
         helpers.discover_feed_pending_key(user_id),
         helpers.DISCOVER_FEED_TTL,
+        build_id,
     )
 
 
@@ -357,7 +373,7 @@ def refresh_discover_feeds():
 
 
 @shared_task(name="Compute unfinished collections")
-def compute_unfinished_collections(user_id):
+def compute_unfinished_collections(user_id, build_id=None):
     """Compute one user's "Continue the Story" feed and cache it."""
     from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
 
@@ -368,6 +384,7 @@ def compute_unfinished_collections(user_id):
         helpers.unfinished_collections_cache_key(user_id),
         helpers.unfinished_collections_pending_key(user_id),
         helpers.DISCOVER_FEED_TTL,
+        build_id,
     )
 
 
@@ -378,7 +395,7 @@ def refresh_unfinished_collections():
 
 
 @shared_task(name="Compute trending feed")
-def compute_trending_feed():
+def compute_trending_feed(build_id=None):
     """Compute the global trending feed and cache it for instant page loads."""
     from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
 
@@ -392,7 +409,7 @@ def compute_trending_feed():
             helpers.DISCOVER_FEED_TTL,
         )
     finally:
-        cache.delete(helpers.trending_feed_pending_key())
+        _clear_owned_pending_marker(helpers.trending_feed_pending_key(), build_id)
 
     logger.info("Cached trending feed (%s items)", len(items))
     return len(items)

@@ -306,9 +306,17 @@ class MediaManager(models.Manager):
 
     def _apply_prefetch_related(self, queryset, media_type):
         """Apply appropriate prefetch_related based on media type."""
+        base_queryset = queryset.prefetch_related(
+            Prefetch(
+                "item__event_set",
+                queryset=events.models.Event.objects.all(),
+                to_attr="prefetched_events",
+            ),
+        )
+
         # Apply media-specific prefetches
         if media_type == MediaTypes.TV.value:
-            return queryset.prefetch_related(
+            return base_queryset.prefetch_related(
                 Prefetch(
                     "seasons",
                     queryset=Season.objects.select_related("item"),
@@ -318,14 +326,6 @@ class MediaManager(models.Manager):
                     queryset=Episode.objects.select_related("item"),
                 ),
             )
-
-        base_queryset = queryset.prefetch_related(
-            Prefetch(
-                "item__event_set",
-                queryset=events.models.Event.objects.all(),
-                to_attr="prefetched_events",
-            ),
-        )
 
         if media_type == MediaTypes.SEASON.value:
             return base_queryset.prefetch_related(

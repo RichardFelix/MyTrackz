@@ -1,4 +1,5 @@
 import logging
+import uuid
 from collections import Counter
 from pathlib import Path
 
@@ -102,6 +103,29 @@ def home(request):
     return render(request, "app/home.html", context)
 
 
+def _queue_feed_build(pending_key, task, *task_args):
+    """Queue a feed build unless one is already pending.
+
+    The pending marker's value is a unique build id owned by this queueing;
+    the task only clears the marker if it still holds its own id, so builds
+    queued elsewhere (e.g. the daily beat fan-out) can't wipe a marker for a
+    build that's still in flight.
+    """
+    build_id = str(uuid.uuid4())
+    if cache.add(pending_key, build_id, helpers.DISCOVER_FEED_PENDING_TTL):
+        task.delay(*task_args, build_id)
+
+
+def _force_feed_rebuild(feed_key, pending_key, task, *task_args):
+    """Invalidate a feed and queue a rebuild, taking over any pending marker."""
+    build_id = str(uuid.uuid4())
+    cache.delete(feed_key)
+    # set (not add): a refresh deliberately supersedes any in-flight build,
+    # which loses ownership of the marker and won't clear it when it lands.
+    cache.set(pending_key, build_id, helpers.DISCOVER_FEED_PENDING_TTL)
+    task.delay(*task_args, build_id)
+
+
 @require_GET
 def unfinished_collections(request):
     """Return untracked sequels/follow-ups to the user's recently completed media.
@@ -112,12 +136,11 @@ def unfinished_collections(request):
     """
     suggestions = helpers.get_cached_unfinished_collections(request.user)
     if suggestions is None:
-        if cache.add(
+        _queue_feed_build(
             helpers.unfinished_collections_pending_key(request.user.id),
-            "pending",
-            helpers.DISCOVER_FEED_PENDING_TTL,
-        ):
-            compute_unfinished_collections.delay(request.user.id)
+            compute_unfinished_collections,
+            request.user.id,
+        )
         return render(
             request, "app/components/unfinished_collections_loading.html"
         )
@@ -142,12 +165,11 @@ def discover_recommendations(request):
     """
     suggestions = helpers.get_cached_discover_feed(request.user)
     if suggestions is None:
-        if cache.add(
+        _queue_feed_build(
             helpers.discover_feed_pending_key(request.user.id),
-            "pending",
-            helpers.DISCOVER_FEED_PENDING_TTL,
-        ):
-            compute_discover_feed.delay(request.user.id)
+            compute_discover_feed,
+            request.user.id,
+        )
         return render(request, "app/components/discover_loading.html")
 
     counts = Counter(suggestion["item"]["media_type"] for suggestion in suggestions)
@@ -163,14 +185,12 @@ def discover_recommendations(request):
 @require_POST
 def discover_refresh(request):
     """Invalidate the cached discover feed and queue a rebuild."""
-    cache.delete(helpers.discover_feed_cache_key(request.user.id))
-    cache.delete(helpers.discover_feed_pending_key(request.user.id))
-    if cache.add(
+    _force_feed_rebuild(
+        helpers.discover_feed_cache_key(request.user.id),
         helpers.discover_feed_pending_key(request.user.id),
-        "pending",
-        helpers.DISCOVER_FEED_PENDING_TTL,
-    ):
-        compute_discover_feed.delay(request.user.id)
+        compute_discover_feed,
+        request.user.id,
+    )
     return render(request, "app/components/discover_loading.html")
 
 
@@ -198,12 +218,10 @@ def trending_feed(request):
     """
     suggestions = helpers.get_cached_trending_feed(request.user)
     if suggestions is None:
-        if cache.add(
+        _queue_feed_build(
             helpers.trending_feed_pending_key(),
-            "pending",
-            helpers.DISCOVER_FEED_PENDING_TTL,
-        ):
-            compute_trending_feed.delay()
+            compute_trending_feed,
+        )
         return _render_trending_loading(request)
 
     counts = Counter(suggestion["item"]["media_type"] for suggestion in suggestions)
@@ -225,14 +243,11 @@ def trending_feed(request):
 @require_POST
 def trending_refresh(request):
     """Invalidate the cached trending feed and queue a rebuild."""
-    cache.delete(helpers.trending_feed_cache_key())
-    cache.delete(helpers.trending_feed_pending_key())
-    if cache.add(
+    _force_feed_rebuild(
+        helpers.trending_feed_cache_key(),
         helpers.trending_feed_pending_key(),
-        "pending",
-        helpers.DISCOVER_FEED_PENDING_TTL,
-    ):
-        compute_trending_feed.delay()
+        compute_trending_feed,
+    )
     return _render_trending_loading(request)
 
 

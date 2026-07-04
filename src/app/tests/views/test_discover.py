@@ -532,7 +532,8 @@ class DiscoverViewTests(TestCase):
 
         self.assertTemplateUsed(first, "app/components/discover_loading.html")
         self.assertTemplateUsed(second, "app/components/discover_loading.html")
-        mock_delay.assert_called_once_with(self.user.id)
+        mock_delay.assert_called_once()
+        self.assertEqual(mock_delay.call_args.args[0], self.user.id)
 
     def test_zero_media_user_gets_empty_state_not_endless_spinner(self):
         """An empty computed feed renders the empty state, not another spinner."""
@@ -542,3 +543,44 @@ class DiscoverViewTests(TestCase):
             response, "app/components/discover_recommendations.html"
         )
         self.assertContains(response, "Nothing to recommend yet")
+
+    def test_beat_build_does_not_clear_a_refresh_pending_marker(self):
+        """A build queued without ownership must not wipe a refresh's marker.
+
+        Regression test for the refresh race: the daily beat fan-out queues
+        builds with no build_id; if such a build cleared the pending marker
+        set by a user-triggered refresh, polling could queue duplicate builds
+        while the refresh's own build is still in flight.
+        """
+        from app.tasks import compute_discover_feed  # noqa: PLC0415
+
+        pending_key = "discover_feed_pending_v1_" + str(self.user.id)
+        cache.set(pending_key, "refresh-build-id", 600)
+
+        # Beat-style build: no build_id -> owns no marker.
+        compute_discover_feed(self.user.id)
+
+        self.assertEqual(cache.get(pending_key), "refresh-build-id")
+
+    def test_owning_build_clears_its_own_pending_marker(self):
+        """A build queued with its marker's build_id clears the marker."""
+        from app.tasks import compute_discover_feed  # noqa: PLC0415
+
+        pending_key = "discover_feed_pending_v1_" + str(self.user.id)
+        cache.set(pending_key, "my-build-id", 600)
+
+        compute_discover_feed(self.user.id, "my-build-id")
+
+        self.assertIsNone(cache.get(pending_key))
+
+    def test_refresh_takes_over_a_stale_pending_marker(self):
+        """Refresh must queue a rebuild even when a pending marker lingers."""
+        pending_key = "discover_feed_pending_v1_" + str(self.user.id)
+        cache.set(pending_key, "old-abandoned-build", 600)
+
+        with patch("app.views.compute_discover_feed.delay") as mock_delay:
+            self.client.post(reverse("discover_refresh"))
+
+        mock_delay.assert_called_once()
+        # The marker now belongs to the refresh's build.
+        self.assertEqual(cache.get(pending_key), mock_delay.call_args.args[1])

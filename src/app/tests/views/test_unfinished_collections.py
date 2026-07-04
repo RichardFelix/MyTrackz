@@ -258,4 +258,5 @@ class UnfinishedCollectionsViewTests(TestCase):
             self.client.get(reverse("unfinished_collections"))
             self.client.get(reverse("unfinished_collections"))
 
-        mock_delay.assert_called_once_with(self.user.id)
+        mock_delay.assert_called_once()
+        self.assertEqual(mock_delay.call_args.args[0], self.user.id)

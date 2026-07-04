@@ -28,6 +28,7 @@
               class="ml-auto flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#2a2f35] text-gray-400 hover:text-white transition-colors cursor-pointer">
         {% include "app/icons/repeat.svg" with classes="w-4 h-4" %}
         Refresh
+        <span class="htmx-indicator h-4 w-4 animate-spin rounded-full border-b-2 border-indigo-400"></span>
       </button>
     </div>
 
@@ -55,6 +56,7 @@
             class="mt-6 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-[#39404b] text-gray-300 hover:text-white transition-colors cursor-pointer">
       {% include "app/icons/repeat.svg" with classes="w-4 h-4" %}
       Refresh
+      <span class="htmx-indicator h-4 w-4 animate-spin rounded-full border-b-2 border-indigo-400"></span>
     </button>
   </div>
 {% endif %}
