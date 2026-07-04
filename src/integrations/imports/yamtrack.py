@@ -6,7 +6,11 @@ from django.apps import apps
 from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
-import app
+# Explicitly import the submodules referenced as app.forms/app.models below --
+# a bare `import app` only works when something else (e.g. the web process's
+# URL loading) has already imported them, which isn't true in a Celery worker.
+import app.forms
+import app.models
 from app import config
 from app.models import MediaTypes, Sources
 from app.providers import services
