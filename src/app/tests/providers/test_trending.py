@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+from django.core.cache import cache
 from django.test import TestCase
 
 from app.models import MediaTypes
@@ -14,6 +17,66 @@ class Trending(TestCase):
         for entry in results:
             self.assertTrue(all(key in entry for key in REQUIRED_KEYS))
             self.assertEqual(entry["media_type"], media_type)
+
+    def test_tmdb_trending_excludes_anime(self):
+        """Anime entries in TMDB trending are dropped; Western animation stays.
+
+        Anime has its own MAL-backed trending section, so TMDB's TV/movie
+        sections keep only live-action and Western animation.
+        """
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+        results_payload = {
+            "results": [
+                {
+                    "id": 1,
+                    "name": "Live Action Show",
+                    "poster_path": None,
+                    "genre_ids": [18],
+                    "original_language": "en",
+                },
+                {
+                    "id": 2,
+                    "name": "Western Cartoon",
+                    "poster_path": None,
+                    "genre_ids": [tmdb.ANIMATION_GENRE_ID],
+                    "original_language": "en",
+                },
+                {
+                    "id": 3,
+                    "name": "Anime Series",
+                    "poster_path": None,
+                    "genre_ids": [tmdb.ANIMATION_GENRE_ID, 10759],
+                    "original_language": "ja",
+                },
+                {
+                    "id": 4,
+                    "name": "Donghua Series",
+                    "poster_path": None,
+                    "genre_ids": [tmdb.ANIMATION_GENRE_ID],
+                    "original_language": "zh",
+                },
+                {
+                    "id": 5,
+                    "name": "Live Action Japanese Drama",
+                    "poster_path": None,
+                    "genre_ids": [18],
+                    "original_language": "ja",
+                },
+            ],
+        }
+        with patch(
+            "app.providers.services.api_request",
+            return_value=results_payload,
+        ):
+            results = tmdb.trending(MediaTypes.TV.value)
+
+        titles = [entry["title"] for entry in results]
+        self.assertEqual(
+            titles,
+            ["Live Action Show", "Western Cartoon", "Live Action Japanese Drama"],
+        )
 
     def test_tmdb_trending_movies(self):
         """TMDB weekly trending movies return well-formed entries."""

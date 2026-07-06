@@ -122,6 +122,23 @@ def search(media_type, query, page):
     return data
 
 
+ANIMATION_GENRE_ID = 16
+ANIME_ORIGINAL_LANGUAGES = {"ja", "zh", "ko"}
+
+
+def _is_anime_entry(media):
+    """Return True for anime-style animation (Japanese/Chinese/Korean).
+
+    TMDB's trending feeds mix anime series/films in with live-action; anime
+    is already covered by MAL's dedicated rankings, so the TMDB trending
+    sections keep only live-action and Western animation.
+    """
+    return (
+        ANIMATION_GENRE_ID in media.get("genre_ids", [])
+        and media.get("original_language") in ANIME_ORIGINAL_LANGUAGES
+    )
+
+
 def trending(media_type):
     """Return this week's trending movies or TV shows from TMDB."""
     cache_key = f"trending_{Sources.TMDB.value}_{media_type}"
@@ -149,6 +166,7 @@ def trending(media_type):
                 "image": get_image_url(media["poster_path"]),
             }
             for media in response["results"]
+            if not _is_anime_entry(media)
         ]
 
         cache.set(cache_key, data)
