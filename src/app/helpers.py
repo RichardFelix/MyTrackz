@@ -777,12 +777,19 @@ def _refresh_cached_feed_items(user, item_dicts):
     the feed) and the image-cache evictor may drop a poster (its local URL must
     fall back to the provider's), so both are re-derived on every render while
     preserving the feed's interleaved order.
+
+    Tracked matching is by exact (media_type, media_id, source) plus a
+    same-type title fallback: the same real-world item can be tracked under a
+    different source than the feed suggests it from (a manually-added game vs
+    its IGDB trending entry, a MangaUpdates manga vs MAL trending), and exact
+    keys can never match across sources.
     """
     by_type = {}
     for item_dict in item_dicts:
         by_type.setdefault(item_dict["media_type"], []).append(item_dict)
 
     tracked = set()
+    tracked_titles = set()
     images = {}
     for media_type, type_items in by_type.items():
         media_ids = [str(item_dict["media_id"]) for item_dict in type_items]
@@ -793,6 +800,14 @@ def _refresh_cached_feed_items(user, item_dicts):
                 user=user,
                 item__media_id__in=media_ids,
             ).values_list("item__media_id", "item__source")
+        )
+        tracked_titles.update(
+            (media_type, title.casefold())
+            for title in model.objects.filter(user=user).values_list(
+                "item__title",
+                flat=True,
+            )
+            if title
         )
         for row in Item.objects.filter(
             media_type=media_type,
@@ -808,6 +823,9 @@ def _refresh_cached_feed_items(user, item_dicts):
             item_dict["source"],
         )
         if key in tracked:
+            continue
+        title = item_dict.get("title") or ""
+        if (item_dict["media_type"], title.casefold()) in tracked_titles:
             continue
         if key in images:
             item_dict["image"] = images[key]

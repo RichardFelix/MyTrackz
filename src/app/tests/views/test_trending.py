@@ -121,6 +121,32 @@ class TrendingViewTests(TestCase):
         self.assertNotIn("Trending Movie", titles)
         self.assertIn("Trending TV Show", titles)
 
+    def test_hides_items_tracked_under_another_source(self):
+        """A same-type, same-title item tracked from a different source counts.
+
+        Exact (media_id, source) keys can never match e.g. a manually-added
+        movie against its TMDB trending entry, so matching falls back to the
+        title within the same media type.
+        """
+        self._get_feed()
+
+        manual_item = Item.objects.create(
+            media_id="1",
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="trending movie",
+            image="http://example.com/manual.jpg",
+        )
+        Movie.objects.create(
+            item=manual_item, user=self.user, status=Status.COMPLETED.value
+        )
+
+        response = self.client.get(reverse("trending_feed"))
+
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertNotIn("Trending Movie", titles)
+        self.assertIn("Trending TV Show", titles)
+
     def test_hides_disabled_media_types(self):
         """Media types the user disabled must not appear in trending."""
         self.user.movie_enabled = False
