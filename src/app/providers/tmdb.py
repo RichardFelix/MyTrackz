@@ -122,53 +122,64 @@ def search(media_type, query, page):
     return data
 
 
-ANIMATION_GENRE_ID = 16
-ANIME_ORIGINAL_LANGUAGES = {"ja", "zh", "ko"}
+TRENDING_ORIGINAL_LANGUAGES = {"en"}
+TRENDING_TARGET_COUNT = 20
+TRENDING_MAX_PAGES = 3
 
 
-def _is_anime_entry(media):
-    """Return True for anime-style animation (Japanese/Chinese/Korean).
+def _include_in_trending(media):
+    """Return True for entries kept in the TMDB trending sections.
 
-    TMDB's trending feeds mix anime series/films in with live-action; anime
-    is already covered by MAL's dedicated rankings, so the TMDB trending
-    sections keep only live-action and Western animation.
+    Only originally-English media is kept: foreign-language entries add noise
+    for an English-speaking user, and anime (which TMDB mixes into trending)
+    is already covered by MAL's dedicated rankings.
     """
-    return (
-        ANIMATION_GENRE_ID in media.get("genre_ids", [])
-        and media.get("original_language") in ANIME_ORIGINAL_LANGUAGES
-    )
+    return media.get("original_language") in TRENDING_ORIGINAL_LANGUAGES
 
 
 def trending(media_type):
-    """Return this week's trending movies or TV shows from TMDB."""
+    """Return this week's trending movies or TV shows from TMDB.
+
+    Filtering out foreign-language entries can thin a page considerably, so
+    extra pages are fetched to backfill up to TRENDING_TARGET_COUNT entries.
+    """
     cache_key = f"trending_{Sources.TMDB.value}_{media_type}"
     data = cache.get(cache_key)
 
     if data is None:
         url = f"{base_url}/trending/{media_type}/week"
+        data = []
 
-        try:
-            response = services.api_request(
-                Sources.TMDB.value,
-                "GET",
-                url,
-                params=base_params,
+        for page in range(1, TRENDING_MAX_PAGES + 1):
+            try:
+                response = services.api_request(
+                    Sources.TMDB.value,
+                    "GET",
+                    url,
+                    params={**base_params, "page": page},
+                )
+            except requests.exceptions.HTTPError as error:
+                handle_error(error)
+
+            data.extend(
+                {
+                    "media_id": media["id"],
+                    "source": Sources.TMDB.value,
+                    "media_type": media_type,
+                    "title": get_title(media),
+                    "image": get_image_url(media["poster_path"]),
+                }
+                for media in response["results"]
+                if _include_in_trending(media)
             )
-        except requests.exceptions.HTTPError as error:
-            handle_error(error)
 
-        data = [
-            {
-                "media_id": media["id"],
-                "source": Sources.TMDB.value,
-                "media_type": media_type,
-                "title": get_title(media),
-                "image": get_image_url(media["poster_path"]),
-            }
-            for media in response["results"]
-            if not _is_anime_entry(media)
-        ]
+            if len(data) >= TRENDING_TARGET_COUNT or page >= response.get(
+                "total_pages",
+                1,
+            ):
+                break
 
+        data = data[:TRENDING_TARGET_COUNT]
         cache.set(cache_key, data)
 
     return data

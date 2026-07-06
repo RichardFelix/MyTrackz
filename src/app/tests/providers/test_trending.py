@@ -18,16 +18,18 @@ class Trending(TestCase):
             self.assertTrue(all(key in entry for key in REQUIRED_KEYS))
             self.assertEqual(entry["media_type"], media_type)
 
-    def test_tmdb_trending_excludes_anime(self):
-        """Anime entries in TMDB trending are dropped; Western animation stays.
+    def test_tmdb_trending_keeps_only_english(self):
+        """Non-English entries in TMDB trending are dropped.
 
-        Anime has its own MAL-backed trending section, so TMDB's TV/movie
-        sections keep only live-action and Western animation.
+        Foreign-language entries (including anime, which has its own
+        MAL-backed trending section) add noise, so TMDB's TV/movie sections
+        keep only originally-English media.
         """
         cache.clear()
         self.addCleanup(cache.clear)
 
         results_payload = {
+            "total_pages": 1,
             "results": [
                 {
                     "id": 1,
@@ -40,22 +42,22 @@ class Trending(TestCase):
                     "id": 2,
                     "name": "Western Cartoon",
                     "poster_path": None,
-                    "genre_ids": [tmdb.ANIMATION_GENRE_ID],
+                    "genre_ids": [16],
                     "original_language": "en",
                 },
                 {
                     "id": 3,
                     "name": "Anime Series",
                     "poster_path": None,
-                    "genre_ids": [tmdb.ANIMATION_GENRE_ID, 10759],
+                    "genre_ids": [16, 10759],
                     "original_language": "ja",
                 },
                 {
                     "id": 4,
-                    "name": "Donghua Series",
+                    "name": "K-Drama",
                     "poster_path": None,
-                    "genre_ids": [tmdb.ANIMATION_GENRE_ID],
-                    "original_language": "zh",
+                    "genre_ids": [18],
+                    "original_language": "ko",
                 },
                 {
                     "id": 5,
@@ -73,10 +75,40 @@ class Trending(TestCase):
             results = tmdb.trending(MediaTypes.TV.value)
 
         titles = [entry["title"] for entry in results]
-        self.assertEqual(
-            titles,
-            ["Live Action Show", "Western Cartoon", "Live Action Japanese Drama"],
-        )
+        self.assertEqual(titles, ["Live Action Show", "Western Cartoon"])
+
+    def test_tmdb_trending_backfills_from_later_pages(self):
+        """Filtered-out entries are backfilled from later pages, capped at 20."""
+        cache.clear()
+        self.addCleanup(cache.clear)
+
+        english_pages = 2
+
+        def fake_api_request(*_args, params=None, **_kwargs):
+            page = params["page"]
+            language = "en" if page <= english_pages else "ko"
+            return {
+                "total_pages": 3,
+                "results": [
+                    {
+                        "id": page * 100 + index,
+                        "name": f"Show {page}-{index}",
+                        "poster_path": None,
+                        "genre_ids": [18],
+                        "original_language": language,
+                    }
+                    for index in range(15)
+                ],
+            }
+
+        with patch(
+            "app.providers.services.api_request",
+            side_effect=fake_api_request,
+        ) as mock_request:
+            results = tmdb.trending(MediaTypes.TV.value)
+
+        self.assertEqual(len(results), tmdb.TRENDING_TARGET_COUNT)
+        self.assertEqual(mock_request.call_count, english_pages)
 
     def test_tmdb_trending_movies(self):
         """TMDB weekly trending movies return well-formed entries."""
