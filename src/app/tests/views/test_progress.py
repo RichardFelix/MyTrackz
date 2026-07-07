@@ -17,6 +17,7 @@ from app.models import (
     UserMessage,
     UserMessageLevel,
 )
+from events.models import Event
 
 
 class ProgressEditSeason(TestCase):
@@ -166,6 +167,34 @@ class ProgressEditAnime(TestCase):
         )
 
         self.assertEqual(Anime.objects.get(item__media_id="1").progress, 1)
+
+    def test_progress_edit_keeps_max_progress(self):
+        """The re-rendered pill keeps showing "x / max" after a progress edit.
+
+        max_progress is an ad-hoc annotation, so the progress_edit view must
+        return an instance that has it, else the "/ max" text and the plus
+        button's disabled state silently disappear on the HTMX swap.
+        """
+        Event.objects.create(
+            item=self.item,
+            content_number=26,
+            datetime=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
+        )
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {
+                "operation": "increase",
+            },
+        )
+
+        self.assertContains(response, "/ 26")
 
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""
