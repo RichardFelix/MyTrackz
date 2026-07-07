@@ -374,16 +374,19 @@
 
       {# Actions #}
       <h2 class="text-xl font-bold mb-4">Actions</h2>
-      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg flex items-center justify-center gap-x-5 md:gap-x-2 lg:gap-x-5 mb-6">
+      <div class="bg-[#2a2f35] p-4 md:p-2 lg:p-4 rounded-lg grid grid-cols-2 gap-2 mb-6">
         {# Custom Lists #}
         <div x-data="{ listsOpen: false }">
-          <button class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
+          <button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition duration-300 cursor-pointer"
                   title="Add to custom lists"
                   hx-get="{% media_view_url 'lists_modal' media %}"
                   hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
-                  @click="listsOpen = true">{% include "app/icons/list-add.svg" with classes="w-4 h-4" %}</button>
+                  @click="listsOpen = true">
+            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
+            Lists
+          </button>
 
           <div x-show="listsOpen"
                @keydown.escape.window="listsOpen = false"
@@ -397,13 +400,16 @@
 
         {# Activity History #}
         <div x-data="{ historyOpen: false }">
-          <button class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
+          <button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-amber-600 text-white rounded-md hover:bg-amber-700 transition duration-300 cursor-pointer"
                   title="View your activity history"
                   hx-get="{% media_view_url 'history_modal' media %}"
                   hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
-                  @click="historyOpen = true">{% include "app/icons/history.svg" with classes="w-4 h-4" %}</button>
+                  @click="historyOpen = true">
+            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
+            History
+          </button>
 
           <div x-show="historyOpen"
                @keydown.escape.window="historyOpen = false"
@@ -417,13 +423,16 @@
 
         {# Change image #}
         <div x-data="{ imageOpen: false }">
-          <button class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition duration-300 cursor-pointer"
+          <button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-sky-600 text-white rounded-md hover:bg-sky-700 transition duration-300 cursor-pointer"
                   title="Change the poster image"
                   hx-get="{% media_view_url 'image_modal' media %}"
                   hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
                   hx-target="#{% component_id 'image' media %}"
                   hx-trigger="click once"
-                  @click="imageOpen = true">{% include "app/icons/image.svg" with classes="w-4 h-4" %}</button>
+                  @click="imageOpen = true">
+            {% include "app/icons/image.svg" with classes="w-4 h-4" %}
+            Image
+          </button>
 
           <div x-show="imageOpen"
                @keydown.escape.window="imageOpen = false"
@@ -438,7 +447,7 @@
         {# Sync metadata #}
         <button type="button"
                 title="Sync metadata with provider"
-                class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 transition duration-300 cursor-pointer disabled:opacity-75"
                 hx-post="{% media_view_url 'sync_metadata' media %}"
                 hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                 hx-vals='{"next": "{{ request|return_url|urlencode }}"}'
@@ -450,6 +459,7 @@
           <div :class="{ 'animate-spin': loading }">
             {% include "app/icons/circle-spinning-clockwise.svg" with classes="w-4 h-4" %}
           </div>
+          Sync
         </button>
       </div>
 
