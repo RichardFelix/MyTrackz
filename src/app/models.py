@@ -84,6 +84,21 @@ def _cached_image_relpath(image_url, image_cache_format):
     return f"{settings.IMAGE_CACHE_DIR}/{digest[:2]}/{digest}.{image_cache_format}"
 
 
+class Genre(models.Model):
+    """A genre name shared by items, sourced from provider metadata."""
+
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["name"]
+
+    def __str__(self):
+        """Return the genre name."""
+        return self.name
+
+
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 
@@ -112,6 +127,7 @@ class Item(CalendarTriggerMixin, models.Model):
     # The image URL the item had before the user's first custom image,
     # restored by "Revert to original"; empty when no custom image is set.
     image_original = models.URLField(blank=True, default="")
+    genres = models.ManyToManyField(Genre, blank=True, related_name="items")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -232,6 +248,22 @@ class Item(CalendarTriggerMixin, models.Model):
         """
         return str(uuid.uuid4())
 
+    def set_genres_from_metadata(self, metadata):
+        """Sync this item's genres from a provider metadata dict.
+
+        Metadata without genres is a no-op, so a flaky provider response
+        can't wipe genres that were stored before.
+        """
+        names = metadata.get("genres") or []
+        if not names:
+            return
+        current = set(self.genres.values_list("name", flat=True))
+        if current == set(names):
+            return
+        self.genres.set(
+            [Genre.objects.get_or_create(name=name)[0] for name in names],
+        )
+
     def fetch_releases(self, delay):
         """Fetch releases for the item."""
         if self._disable_calendar_triggers:
@@ -279,7 +311,15 @@ class MediaManager(models.Manager):
         """Return list of historical model names."""
         return [f"historical{media_type}" for media_type in MediaTypes.values]
 
-    def get_media_list(self, user, media_type, status_filter, sort_filter, search=None):
+    def get_media_list(
+        self,
+        user,
+        media_type,
+        status_filter,
+        sort_filter,
+        search=None,
+        genre_filter=None,
+    ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
         queryset = model.objects.filter(user=user.id)
@@ -289,6 +329,9 @@ class MediaManager(models.Manager):
 
         if search:
             queryset = queryset.filter(item__title__icontains=search)
+
+        if genre_filter:
+            queryset = queryset.filter(item__genres__name=genre_filter)
 
         queryset = queryset.annotate(
             repeats=Window(

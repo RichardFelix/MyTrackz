@@ -169,7 +169,9 @@ def transcode_cached_image_to_webp(item_id):
 
     default_storage.save(new_relpath, ContentFile(out_buffer.getvalue()))
     default_storage.delete(old_relpath)
-    Item.objects.filter(id=item_id).update(image_cache_format=ImageCacheFormat.WEBP.value)
+    Item.objects.filter(id=item_id).update(
+        image_cache_format=ImageCacheFormat.WEBP.value
+    )
 
     return True
 
@@ -413,3 +415,56 @@ def compute_trending_feed(build_id=None):
 
     logger.info("Cached trending feed (%s items)", len(items))
     return len(items)
+
+
+@shared_task(name="Backfill item genres")
+def backfill_item_genres():
+    """Populate genres for tracked items that don't have any yet.
+
+    Genres normally get captured when a details page is visited; this fills
+    the gaps (imports, items never opened). One metadata call per item,
+    throttled by the shared rate-limited provider session. Seasons and
+    episodes are skipped - genres live on the parent show's item.
+    """
+    from django.db.models import Q  # noqa: PLC0415 avoid import cycle
+
+    from app.models import (  # noqa: PLC0415 avoid import cycle
+        Item,
+        MediaTypes,
+        Sources,
+    )
+    from app.providers import services  # noqa: PLC0415 avoid import cycle
+
+    media_types = [
+        choice.value
+        for choice in MediaTypes
+        if choice not in [MediaTypes.SEASON, MediaTypes.EPISODE]
+    ]
+    query = Q()
+    for media_type in media_types:
+        query |= Q(**{f"{media_type}__isnull": False})
+    query &= ~Q(source=Sources.MANUAL.value)
+
+    items = list(Item.objects.filter(query, genres__isnull=True).distinct())
+
+    filled = 0
+    failed = 0
+    for item in items:
+        try:
+            metadata = services.get_media_metadata(
+                item.media_type,
+                item.media_id,
+                item.source,
+                [item.season_number],
+            )
+        except Exception:  # noqa: BLE001 one provider failure shouldn't kill the run
+            failed += 1
+            logger.warning("Genre backfill failed for %s", item, exc_info=True)
+            continue
+        item.set_genres_from_metadata(metadata)
+        if item.genres.exists():
+            filled += 1
+
+    msg = f"Genre backfill: {filled} filled, {failed} failed, {len(items)} candidates"
+    logger.info(msg)
+    return msg

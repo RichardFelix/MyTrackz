@@ -6,6 +6,7 @@ from django.contrib.admin.sites import AlreadyRegistered
 
 from app.models import (
     Episode,
+    Genre,
     Item,
     UserMessage,
 )
@@ -36,6 +37,14 @@ class EpisodeAdmin(admin.ModelAdmin):
     list_display = ["__str__", "end_date"]
 
 
+@admin.register(Genre)
+class GenreAdmin(admin.ModelAdmin):
+    """Custom admin for Genre model."""
+
+    search_fields = ["name"]
+    list_display = ["name"]
+
+
 @admin.register(UserMessage)
 class UserMessageAdmin(admin.ModelAdmin):
     """Custom admin for persistent user messages."""
@@ -58,7 +67,7 @@ class MediaAdmin(admin.ModelAdmin):
 
 # Auto-register remaining models
 app_models = apps.get_app_config("app").get_models()
-SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage"]
+SpecialModels = ["Item", "Episode", "BasicMedia", "UserMessage", "Genre"]
 for model in app_models:
     if (
         not model.__name__.startswith("Historical")

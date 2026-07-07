@@ -26,6 +26,7 @@ from app.forms import EpisodeForm, ItemImageForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    Genre,
     Item,
     MediaTypes,
     Season,
@@ -330,6 +331,7 @@ def media_list(request, username, media_type):
         )
 
     search_query = request.GET.get("search", "")
+    genre_filter = request.GET.get("genre", "")
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
@@ -343,6 +345,7 @@ def media_list(request, username, media_type):
         status_filter=status_filter,
         sort_filter=sort_filter,
         search=search_query,
+        genre_filter=genre_filter,
     )
 
     # Paginate results
@@ -355,6 +358,14 @@ def media_list(request, username, media_type):
         media_type,
     )
 
+    genre_choices = list(
+        Genre.objects.filter(
+            **{f"items__{media_type}__user": target_user},
+        )
+        .distinct()
+        .values_list("name", flat=True),
+    )
+
     context = {
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
@@ -363,8 +374,10 @@ def media_list(request, username, media_type):
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
         "current_status": status_filter,
+        "current_genre": genre_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
+        "genre_choices": genre_choices,
         "target_user": target_user,
     }
 
@@ -441,8 +454,11 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         helpers.refresh_item_image_if_missing(
             current_instance.item, media_metadata.get("image")
         )
+        item = current_instance.item
     else:
-        helpers.ensure_item_cached(media_metadata, media_type)
+        item = helpers.ensure_item_cached(media_metadata, media_type)
+
+    item.set_genres_from_metadata(media_metadata)
 
     # Enrich related items with user tracking data
     if media_metadata.get("related"):

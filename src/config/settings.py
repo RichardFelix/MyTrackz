@@ -621,6 +621,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "Compute trending feed",
         "schedule": 60 * 60 * 24,  # every 24 hours
     },
+    "backfill_item_genres": {
+        "task": "Backfill item genres",
+        "schedule": 60 * 60 * 24 * 7,  # every 7 days
+    },
 }
 
 IS_PROD = not any(cmd in sys.argv for cmd in ("runserver", "test"))
