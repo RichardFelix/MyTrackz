@@ -109,6 +109,9 @@ class Item(CalendarTriggerMixin, models.Model):
     )
     # True when a user set a custom image; metadata sync must not overwrite it.
     image_locked = models.BooleanField(default=False)
+    # The image URL the item had before the user's first custom image,
+    # restored by "Revert to original"; empty when no custom image is set.
+    image_original = models.URLField(blank=True, default="")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 

@@ -51,14 +51,50 @@ class ItemImage(TestCase):
 
         self.item.refresh_from_db()
         self.assertEqual(self.item.image, CUSTOM_IMAGE)
+        self.assertEqual(self.item.image_original, PROVIDER_IMAGE)
         self.assertTrue(self.item.image_locked)
         self.assertFalse(self.item.image_cached)
         mock_cache.assert_called_once_with(self.item.id, CUSTOM_IMAGE)
 
     @patch("app.tasks.cache_item_image.delay")
+    def test_image_save_revert(self, _mock_cache):
+        """Reverting restores the exact stored original, not a re-fetch."""
+        self.client.post(
+            reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+            {"image": CUSTOM_IMAGE},
+        )
+
+        self.client.post(
+            reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+            {"operation": "revert"},
+        )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.image, PROVIDER_IMAGE)
+        self.assertEqual(self.item.image_original, "")
+        self.assertFalse(self.item.image_locked)
+
+    @patch("app.tasks.cache_item_image.delay")
+    def test_repeated_saves_keep_first_original(self, _mock_cache):
+        """Consecutive custom saves preserve the first original for revert."""
+        for url in (CUSTOM_IMAGE, "http://example.com/second-custom.jpg"):
+            self.client.post(
+                reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+                {"image": url},
+            )
+
+        self.client.post(
+            reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+            {"operation": "revert"},
+        )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.image, PROVIDER_IMAGE)
+
+    @patch("app.tasks.cache_item_image.delay")
     @patch("app.views.services.get_media_metadata")
-    def test_image_save_revert(self, mock_metadata, _mock_cache):
-        """Reverting restores the provider image and clears the lock."""
+    def test_revert_falls_back_to_provider(self, mock_metadata, _mock_cache):
+        """Items locked before image_original existed re-fetch the provider's."""
         self.item.image = CUSTOM_IMAGE
         self.item.image_locked = True
         self.item.save()
@@ -75,6 +111,35 @@ class ItemImage(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.image, PROVIDER_IMAGE)
         self.assertFalse(self.item.image_locked)
+
+    @patch("app.tasks.cache_item_image.delay")
+    def test_manual_item_revert(self, _mock_cache):
+        """Manual items revert to their stored original without a provider."""
+        manual_item = Item.objects.create(
+            media_id=Item.generate_manual_id(),
+            source=Sources.MANUAL.value,
+            media_type=MediaTypes.BOOK.value,
+            title="My Book",
+            image=PROVIDER_IMAGE,
+        )
+        kwargs = {
+            "source": manual_item.source,
+            "media_type": manual_item.media_type,
+            "media_id": manual_item.media_id,
+        }
+
+        self.client.post(
+            reverse("image_save", kwargs=kwargs) + "?next=/",
+            {"image": CUSTOM_IMAGE},
+        )
+        self.client.post(
+            reverse("image_save", kwargs=kwargs) + "?next=/",
+            {"operation": "revert"},
+        )
+
+        manual_item.refresh_from_db()
+        self.assertEqual(manual_item.image, PROVIDER_IMAGE)
+        self.assertFalse(manual_item.image_locked)
 
     @patch("app.tasks.cache_item_image.delay")
     @patch("events.tasks.reload_calendar")

@@ -719,25 +719,58 @@ def image_modal(request, source, media_type, media_id, season_number=None):
         season_number=season_number,
     )
     form = ItemImageForm(initial={"image": item.image})
+    can_revert = item.image_locked and (
+        item.image_original or source != Sources.MANUAL.value
+    )
     return render(
         request,
         "app/components/fill_image.html",
         {
             "item": item,
             "form": form,
-            "can_revert": item.image_locked and source != Sources.MANUAL.value,
+            "can_revert": can_revert,
             "return_url": request.GET["return_url"],
         },
     )
 
 
+def _revert_item_image(request, item, source, media_type, media_id, season_number):
+    """Restore the image the item had before the user's first custom image.
+
+    Items locked before image_original existed have no stored original, so
+    they fall back to the provider's current image.
+    """
+    if item.image_original:
+        item.image = item.image_original
+    elif source == Sources.MANUAL.value:
+        messages.error(request, "This item has no original image to revert to.")
+        return helpers.redirect_back(request)
+    else:
+        metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+        )
+        item.image = metadata["image"]
+
+    item.image_original = ""
+    item.image_locked = False
+    item.save()
+    msg = f"{item} image was reverted to the original."
+    logger.info(msg)
+    messages.success(request, msg)
+    return helpers.redirect_back(request)
+
+
 @require_POST
 def image_save(request, source, media_type, media_id, season_number=None):
-    """Save a custom image URL for an item, or revert to the provider's image.
+    """Save a custom image URL for an item, or revert to the original image.
 
     Item rows are global, so a custom image changes the poster for every user
-    on the instance. Saving locks the image against metadata-sync overwrites;
-    reverting restores the provider image and unlocks it.
+    on the instance. Saving remembers the previous image and locks the item
+    against metadata-sync overwrites; reverting restores the remembered image
+    and unlocks it.
     """
     item = get_object_or_404(
         Item,
@@ -748,26 +781,20 @@ def image_save(request, source, media_type, media_id, season_number=None):
     )
 
     if request.POST.get("operation") == "revert":
-        if source == Sources.MANUAL.value:
-            messages.error(request, "Manual items have no provider image.")
-            return helpers.redirect_back(request)
-
-        metadata = services.get_media_metadata(
+        return _revert_item_image(
+            request,
+            item,
+            source,
             media_type,
             media_id,
-            source,
-            [season_number],
+            season_number,
         )
-        item.image = metadata["image"]
-        item.image_locked = False
-        item.save()
-        msg = f"{item} image was reverted to the provider's."
-        logger.info(msg)
-        messages.success(request, msg)
-        return helpers.redirect_back(request)
 
     form = ItemImageForm(request.POST)
     if form.is_valid():
+        if not item.image_locked:
+            # remember the pre-custom image once; later custom saves keep it
+            item.image_original = item.image
         item.image = form.cleaned_data["image"]
         item.image_locked = True
         item.save()
