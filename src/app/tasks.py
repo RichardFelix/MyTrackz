@@ -457,11 +457,11 @@ def backfill_item_genres():
                 item.source,
                 [item.season_number],
             )
-        except Exception:  # noqa: BLE001 one provider failure shouldn't kill the run
+            item.set_genres_from_metadata(metadata)
+        except Exception:  # noqa: BLE001 one item's failure shouldn't kill the run
             failed += 1
             logger.warning("Genre backfill failed for %s", item, exc_info=True)
             continue
-        item.set_genres_from_metadata(metadata)
         if item.genres.exists():
             filled += 1
 

@@ -358,14 +358,6 @@ def media_list(request, username, media_type):
         media_type,
     )
 
-    genre_choices = list(
-        Genre.objects.filter(
-            **{f"items__{media_type}__user": target_user},
-        )
-        .distinct()
-        .values_list("name", flat=True),
-    )
-
     context = {
         "media_type": media_type,
         "media_type_plural": app_tags.media_type_readable_plural(media_type).lower(),
@@ -377,7 +369,6 @@ def media_list(request, username, media_type):
         "current_genre": genre_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
-        "genre_choices": genre_choices,
         "target_user": target_user,
     }
 
@@ -399,6 +390,15 @@ def media_list(request, username, media_type):
             template_name = "app/components/media_table_items.html"
     else:
         template_name = "app/media_list.html"
+        # only the full page renders the genre dropdown; partial swaps
+        # (infinite scroll, search keystrokes) shouldn't pay the query
+        context["genre_choices"] = list(
+            Genre.objects.filter(
+                **{f"items__{media_type}__user": target_user},
+            )
+            .distinct()
+            .values_list("name", flat=True),
+        )
 
     return render(request, template_name, context)
 
