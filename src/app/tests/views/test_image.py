@@ -32,6 +32,14 @@ class ItemImage(TestCase):
             "media_id": self.item.media_id,
         }
 
+        # ItemImageForm validates hosts via DNS; keep tests offline
+        safe_host_patcher = patch(
+            "app.tasks._is_safe_image_host",
+            return_value=True,
+        )
+        safe_host_patcher.start()
+        self.addCleanup(safe_host_patcher.stop)
+
     def test_image_modal_renders(self):
         """The modal returns the form with the current image."""
         response = self.client.get(
@@ -55,6 +63,24 @@ class ItemImage(TestCase):
         self.assertTrue(self.item.image_locked)
         self.assertFalse(self.item.image_cached)
         mock_cache.assert_called_once_with(self.item.id, CUSTOM_IMAGE)
+
+    @patch("app.tasks.cache_item_image.delay")
+    def test_image_save_rejects_unsafe_url(self, mock_cache):
+        """An internal-host URL is rejected before it's stored on the Item.
+
+        Items are global, so a stored-but-uncacheable URL would be hotlinked
+        raw in every user's browser.
+        """
+        with patch("app.tasks._is_safe_image_host", return_value=False):
+            self.client.post(
+                reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+                {"image": "http://192.168.1.1/poster.jpg"},
+            )
+
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.image, PROVIDER_IMAGE)
+        self.assertFalse(self.item.image_locked)
+        mock_cache.assert_not_called()
 
     @patch("app.tasks.cache_item_image.delay")
     def test_image_save_revert(self, _mock_cache):

@@ -99,6 +99,20 @@ class ItemImageForm(forms.Form):
         widget=forms.URLInput(attrs={"placeholder": "https://example.com/poster.jpg"}),
     )
 
+    def clean_image(self):
+        """Reject URLs the image cache would refuse to fetch.
+
+        Items are global, so a stored URL that fails the cache task's host
+        policy would otherwise be hotlinked raw in every user's browser.
+        """
+        from app.tasks import _is_safe_image_host  # noqa: PLC0415 avoid import cycle
+
+        image = self.cleaned_data["image"]
+        if not _is_safe_image_host(image):
+            msg = "This image URL is not allowed."
+            raise forms.ValidationError(msg)
+        return image
+
 
 class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""

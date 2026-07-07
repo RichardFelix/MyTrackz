@@ -137,6 +137,29 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
 
+class ItemSaveUpdateFieldsTests(TestCase):
+    """Test that Item.save() persists image_cached alongside partial saves."""
+
+    @patch("app.tasks.cache_item_image.delay")
+    def test_update_fields_image_also_persists_image_cached(self, _mock_delay):
+        """save(update_fields=["image"]) must not leave a stale True flag in the DB."""
+        item = Item.objects.create(
+            media_id="1",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Test Movie",
+            image="https://image.tmdb.org/t/p/w500/old.jpg",
+        )
+        Item.objects.filter(id=item.id).update(image_cached=True)
+        item.refresh_from_db()
+
+        item.image = "https://image.tmdb.org/t/p/w500/new.jpg"
+        item.save(update_fields=["image"])
+
+        item.refresh_from_db()
+        self.assertFalse(item.image_cached)
+
+
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class CleanupOrphanedItemImagesTaskTests(TestCase):
     """Test the cleanup_orphaned_item_images Celery task."""

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -6,11 +8,40 @@ from app.forms import (
     AnimeForm,
     EpisodeForm,
     GameForm,
+    ItemImageForm,
     ManualItemForm,
     SeasonForm,
     TvForm,
 )
 from app.models import TV, Item, MediaTypes, Season, Sources, Status
+
+
+class ItemImageFormTest(TestCase):
+    """Test the custom image URL form's host validation."""
+
+    def test_rejects_private_host(self):
+        """A URL pointing at a private LAN address is invalid."""
+        form = ItemImageForm({"image": "http://192.168.1.1/poster.jpg"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
+
+    def test_rejects_loopback_host(self):
+        """A URL pointing at loopback is invalid."""
+        form = ItemImageForm({"image": "http://127.0.0.1/poster.jpg"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
+
+    def test_rejects_non_http_scheme(self):
+        """Schemes the cache task won't fetch (e.g. ftp) are invalid."""
+        form = ItemImageForm({"image": "ftp://example.com/poster.jpg"})
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
+
+    @patch("app.tasks.socket.gethostbyname", return_value="93.184.216.34")
+    def test_accepts_public_host(self, _mock_dns):
+        """A URL resolving to a public address passes validation."""
+        form = ItemImageForm({"image": "https://example.com/poster.jpg"})
+        self.assertTrue(form.is_valid())
 
 
 class BasicMediaForm(TestCase):

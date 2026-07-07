@@ -319,9 +319,8 @@ def _localize_item_image(cache_item, item_dict):
     """Point ``item_dict``'s image at the local cache, refreshing if missing."""
     if _needs_image_refresh(cache_item, item_dict.get("image")):
         cache_item.image = item_dict["image"]
-        cache_item.image_cached = False
-        cache_item.save(update_fields=["image", "image_cached"])
-        cache_item_image.delay(cache_item.id, cache_item.image)
+        # Item.save() resets image_cached and queues the cache task itself
+        cache_item.save(update_fields=["image"])
 
     item_dict["image"] = cache_item.cached_image_url
 
@@ -441,9 +440,7 @@ def enrich_items_with_user_data(user, items, section_name):
     enriched_items = []
     items_to_refresh = []
     for item, key, media_item in kept:
-        cache_item = (
-            media_item.item if media_item is not None else related_lookup[key]
-        )
+        cache_item = media_item.item if media_item is not None else related_lookup[key]
 
         if _needs_image_refresh(cache_item, item.get("image")):
             cache_item.image = item["image"]
@@ -733,17 +730,13 @@ def get_trending():
         try:
             items = services.trending(media_type)
         except (services.ProviderAPIError, requests.RequestException):
-            logger.warning(
-                "Skipping trending lookup for %s", media_type, exc_info=True
-            )
+            logger.warning("Skipping trending lookup for %s", media_type, exc_info=True)
             continue
 
         kept = [item for item in items if item.get("title")]
         cache_items = _bulk_get_or_create_related_items(kept, media_type)
         for item in kept:
-            _localize_item_image(
-                cache_items[_related_item_key(item, media_type)], item
-            )
+            _localize_item_image(cache_items[_related_item_key(item, media_type)], item)
         if kept:
             per_type[media_type] = kept
 
@@ -762,9 +755,7 @@ def get_cached_trending_feed(user):
 
     active_types = set(user.get_active_media_types())
     item_dicts = [
-        item_dict
-        for item_dict in item_dicts
-        if item_dict["media_type"] in active_types
+        item_dict for item_dict in item_dicts if item_dict["media_type"] in active_types
     ]
     kept = _refresh_cached_feed_items(user, item_dicts)
     return [{"item": item_dict, "media": None} for item_dict in kept]

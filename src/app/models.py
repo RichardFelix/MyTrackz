@@ -224,6 +224,9 @@ class Item(CalendarTriggerMixin, models.Model):
         image_changed = self.tracker.has_changed("image")
         if image_changed:
             self.image_cached = False
+            # a caller's update_fields=["image"] must not silently skip the flag
+            if (update_fields := kwargs.get("update_fields")) is not None:
+                kwargs["update_fields"] = {"image_cached", *update_fields}
 
         super().save(*args, **kwargs)
 
