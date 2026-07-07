@@ -107,6 +107,8 @@ class Item(CalendarTriggerMixin, models.Model):
         choices=ImageCacheFormat,
         default=ImageCacheFormat.JPEG.value,
     )
+    # True when a user set a custom image; metadata sync must not overwrite it.
+    image_locked = models.BooleanField(default=False)
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 

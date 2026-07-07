@@ -91,6 +91,15 @@ class CustomDurationField(forms.CharField):
             raise forms.ValidationError(msg) from e
 
 
+class ItemImageForm(forms.Form):
+    """Form for replacing an item's image with a custom URL."""
+
+    image = forms.URLField(
+        label="Image URL",
+        widget=forms.URLInput(attrs={"placeholder": "https://example.com/poster.jpg"}),
+    )
+
+
 class ManualItemForm(forms.ModelForm):
     """Form for adding items to the database."""
 

@@ -415,6 +415,26 @@
           </div>
         </div>
 
+        {# Change image #}
+        <div x-data="{ imageOpen: false }">
+          <button class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 transition duration-300 cursor-pointer"
+                  title="Change the poster image"
+                  hx-get="{% media_view_url 'image_modal' media %}"
+                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
+                  hx-target="#{% component_id 'image' media %}"
+                  hx-trigger="click once"
+                  @click="imageOpen = true">{% include "app/icons/image.svg" with classes="w-4 h-4" %}</button>
+
+          <div x-show="imageOpen"
+               @keydown.escape.window="imageOpen = false"
+               class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
+                 @click.outside="imageOpen = false">
+              <div id="{% component_id 'image' media %}"></div>
+            </div>
+          </div>
+        </div>
+
         {# Sync metadata #}
         <button type="button"
                 title="Sync metadata with provider"

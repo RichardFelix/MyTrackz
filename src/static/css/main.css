@@ -656,6 +656,9 @@
   .max-h-60 {
     max-height: calc(var(--spacing) * 60);
   }
+  .max-h-64 {
+    max-height: calc(var(--spacing) * 64);
+  }
   .max-h-72 {
     max-height: calc(var(--spacing) * 72);
   }
@@ -664,6 +667,9 @@
   }
   .max-h-\[70svh\] {
     max-height: 70svh;
+  }
+  .max-h-\[85svh\] {
+    max-height: 85svh;
   }
   .max-h-\[90vh\] {
     max-height: 90vh;

@@ -22,7 +22,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from app import config, helpers, history_processor
 from app import statistics as stats
-from app.forms import EpisodeForm, ManualItemForm, get_form_class
+from app.forms import EpisodeForm, ItemImageForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
@@ -141,9 +141,7 @@ def unfinished_collections(request):
             compute_unfinished_collections,
             request.user.id,
         )
-        return render(
-            request, "app/components/unfinished_collections_loading.html"
-        )
+        return render(request, "app/components/unfinished_collections_loading.html")
 
     context = {"suggestions": suggestions}
     return render(request, "app/components/home_unfinished_collections.html", context)
@@ -562,6 +560,35 @@ def update_media_score(request, media_type, instance_id):
     )
 
 
+def _episode_image_changed(episode_item, episode_data):
+    """Return True when a synced episode image should be replaced.
+
+    User-set custom images (image_locked) are never replaced.
+    """
+    return not episode_item.image_locked and episode_item.image != episode_data["image"]
+
+
+def _sync_item_defaults(media_id, source, media_type, season_number, metadata):
+    """Build the item defaults for a metadata sync.
+
+    Preserves a user-set custom image (image_locked) instead of overwriting
+    it with the provider's.
+    """
+    defaults = {
+        "title": metadata["title"],
+        "image": metadata["image"],
+    }
+    if Item.objects.filter(
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        season_number=season_number,
+        image_locked=True,
+    ).exists():
+        del defaults["image"]
+    return defaults
+
+
 @require_POST
 def sync_metadata(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
@@ -600,10 +627,13 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             source=source,
             media_type=media_type,
             season_number=season_number,
-            defaults={
-                "title": metadata["title"],
-                "image": metadata["image"],
-            },
+            defaults=_sync_item_defaults(
+                media_id,
+                source,
+                media_type,
+                season_number,
+                metadata,
+            ),
         )
         title = metadata["title"]
         if season_number:
@@ -635,7 +665,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                 if episode_number in existing_episodes:
                     episode_item = existing_episodes[episode_number]
                     episode_item.title = metadata["title"]
-                    if episode_item.image != episode_data["image"]:
+                    if _episode_image_changed(episode_item, episode_data):
                         episode_item.image = episode_data["image"]
                         episode_item.image_cached = False
                         episodes_with_new_image.append(episode_item)
@@ -675,6 +705,77 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                 "HX-Redirect": request.POST["next"],
             },
         )
+    return helpers.redirect_back(request)
+
+
+@require_GET
+def image_modal(request, source, media_type, media_id, season_number=None):
+    """Return the custom-image form for a media item."""
+    item = get_object_or_404(
+        Item,
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        season_number=season_number,
+    )
+    form = ItemImageForm(initial={"image": item.image})
+    return render(
+        request,
+        "app/components/fill_image.html",
+        {
+            "item": item,
+            "form": form,
+            "can_revert": item.image_locked and source != Sources.MANUAL.value,
+            "return_url": request.GET["return_url"],
+        },
+    )
+
+
+@require_POST
+def image_save(request, source, media_type, media_id, season_number=None):
+    """Save a custom image URL for an item, or revert to the provider's image.
+
+    Item rows are global, so a custom image changes the poster for every user
+    on the instance. Saving locks the image against metadata-sync overwrites;
+    reverting restores the provider image and unlocks it.
+    """
+    item = get_object_or_404(
+        Item,
+        media_id=media_id,
+        source=source,
+        media_type=media_type,
+        season_number=season_number,
+    )
+
+    if request.POST.get("operation") == "revert":
+        if source == Sources.MANUAL.value:
+            messages.error(request, "Manual items have no provider image.")
+            return helpers.redirect_back(request)
+
+        metadata = services.get_media_metadata(
+            media_type,
+            media_id,
+            source,
+            [season_number],
+        )
+        item.image = metadata["image"]
+        item.image_locked = False
+        item.save()
+        msg = f"{item} image was reverted to the provider's."
+        logger.info(msg)
+        messages.success(request, msg)
+        return helpers.redirect_back(request)
+
+    form = ItemImageForm(request.POST)
+    if form.is_valid():
+        item.image = form.cleaned_data["image"]
+        item.image_locked = True
+        item.save()
+        msg = f"{item} image was updated."
+        logger.info(msg)
+        messages.success(request, msg)
+    else:
+        messages.error(request, "Enter a valid image URL.")
     return helpers.redirect_back(request)
 
 
