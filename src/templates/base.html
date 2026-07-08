@@ -58,7 +58,8 @@
     {% block body %}
       {# Main container for the layout #}
       <div class="flex min-h-screen bg-[#000] text-gray-100"
-           x-data="{ isMobileMenuOpen: false }">
+           x-data="{ isMobileMenuOpen: false, paletteOpen: false, openPalette() { this.isMobileMenuOpen = false; this.paletteOpen = true; this.$nextTick(() => { const el = document.getElementById('palette-input'); if (el) { el.focus(); el.select(); } }); } }"
+           @open-search-palette.window="openPalette()">
 
         {# Mobile menu overlay #}
         <div x-show="isMobileMenuOpen"
@@ -76,6 +77,16 @@
             </a>
           </div>
           <nav class="p-4 flex-1 overflow-y-auto">
+            {% if user.is_authenticated %}
+              <button type="button"
+                      @click="openPalette()"
+                      class="mb-4 flex w-full cursor-pointer items-center space-x-3 rounded-md px-4 py-2 text-sm text-gray-400 transition-colors duration-200 hover:bg-[#23272b] hover:text-white">
+                {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 shrink-0" %}
+                <span>Search</span>
+                <kbd class="ml-auto rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-500">⌘K</kbd>
+              </button>
+            {% endif %}
+
             {% block sidebar_own_media %}
               <p class="px-4 mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Library</p>
               <ul class="space-y-0.5 mb-6">
@@ -273,82 +284,116 @@
         {# Main content #}
         <div class="flex-1 min-w-0 flex flex-col min-h-screen">
           {# Top bar #}
-          <div class="sticky top-0 z-10 bg-[#000] border-b border-[#2c3136] shadow-md">
-            <div class="container mx-auto px-4">
-              <div class="flex items-center justify-between lg:justify-center h-16">
-                {# Mobile: sidebar toggle button #}
-                <button @click="isMobileMenuOpen = !isMobileMenuOpen"
-                        class="lg:hidden pe-3 text-gray-400 hover:text-white transition-colors duration-200">
-                  {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
+          <div class="sticky top-0 z-10 border-b border-[#2c3136] bg-[#000] shadow-md">
+            <div class="mx-auto flex h-16 items-center gap-3 px-4 sm:px-6">
+              {# Mobile: sidebar toggle button #}
+              <button @click="isMobileMenuOpen = !isMobileMenuOpen"
+                      class="lg:hidden text-gray-400 hover:text-white transition-colors duration-200">
+                {% include "app/icons/hamburger.svg" with classes="w-6 h-6" %}
 
+              </button>
+
+              {# Breadcrumb #}
+              <nav class="hidden min-w-0 items-center gap-2 text-sm sm:flex"
+                   aria-label="Breadcrumb">
+                {% with un=request.resolver_match.url_name %}
+                  {% if un == 'medialist' %}
+                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="truncate font-semibold text-white">{{ media_type|media_type_readable_plural }}</span>
+                  {% elif un == 'home' %}
+                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Home</span>
+                  {% elif un == 'media_details' or un == 'season_details' %}
+                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="truncate font-semibold text-white">{{ media.title|default:"Details" }}</span>
+                  {% elif un == 'search' %}
+                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Search</span>
+                  {% elif un == 'discover' %}
+                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Discover</span>
+                  {% elif un == 'trending' %}
+                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Trending</span>
+                  {% elif un == 'calendar' %}
+                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Calendar</span>
+                  {% elif un == 'create_entry' %}
+                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Create Custom</span>
+                  {% elif un == 'lists' %}
+                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Lists</span>
+                  {% elif un == 'statistics' %}
+                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Statistics</span>
+                  {% elif un == 'account' or un == 'preferences' or un == 'notifications' or un == 'integrations' or un == 'import_data' or un == 'export_data' or un == 'advanced' or un == 'about' %}
+                    <span class="text-gray-500">Settings</span><span class="text-gray-600">/</span><span class="font-semibold text-white capitalize">{{ un|no_underscore }}</span>
+                  {% else %}
+                    <span class="font-semibold text-white">MyTrackz</span>
+                  {% endif %}
+                {% endwith %}
+              </nav>
+
+              <div class="hidden flex-1 sm:block"></div>
+
+              {# Define search type from current media type (if it exists) or last search type #}
+              {% if media_type == MediaTypes.SEASON.value %}
+                {% firstof MediaTypes.TV.value as search_type %}
+              {% else %}
+                {% firstof media_type user.last_search_type as search_type %}
+              {% endif %}
+
+              {# Search — command palette trigger #}
+              {% block search_bar %}
+                <button type="button"
+                        @click="openPalette()"
+                        class="group flex flex-1 items-center gap-2 rounded-lg border border-[#2c3136] bg-[#17181d] px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-[#1d1e24] hover:text-gray-300 sm:flex-none sm:w-72 md:w-96">
+                  {% include "app/icons/magnifying-glass.svg" with classes="w-4 h-4 shrink-0" %}
+                  <span class="flex-1 truncate text-left">Search or jump to…</span>
+                  <kbd class="hidden shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-400 sm:block">⌘K</kbd>
                 </button>
 
-                {# Define search type from current media type (if it exists) or last search type #}
-                {% if media_type == MediaTypes.SEASON.value %}
-                  {% firstof MediaTypes.TV.value as search_type %}
-                {% else %}
-                  {% firstof media_type user.last_search_type as search_type %}
-                {% endif %}
-
-                {# Search bar #}
-                {% block search_bar %}
-                  <div class="relative w-full max-w-2xl">
-                    <form method="get"
-                          action="{% url 'search' %}"
-                          x-data=" { isOpen: false, selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }}, getPlaceholder() { return `Search ${this.selectedType.display.toLowerCase()}...` } }">
-                      <div class="flex">
-                        <div class="relative grow">
-                          {# Search input #}
-                          <input type="search"
-                                 id="global-search"
-                                 name="q"
-                                 value="{{ request.GET.q }}"
-                                 :placeholder="getPlaceholder()"
-                                 class="w-full py-2 pl-4 pr-10 text-sm text-gray-300 bg-[#272c31] rounded-l-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset placeholder-gray-500">
-                          {# Keyboard shortcut hint (press "/" to focus) #}
-                          <kbd class="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-400 sm:block">/</kbd>
-                        </div>
-
-                        {# Search button #}
-                        <button type="submit"
-                                aria-label="Search"
-                                class="flex items-center px-3 py-2 text-gray-400 bg-[#272c31] border-l border-r border-[#2c3136] hover:text-white hover:bg-[#2a2e33] focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset transition-colors duration-200 cursor-pointer">
-                          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5" %}
-
-                        </button>
-
-                        <input type="hidden" name="media_type" :value="selectedType.value">
-
-                        {# Media type dropdown #}
-                        <button type="button"
-                                @click="isOpen = !isOpen"
-                                @click.away="isOpen = false"
-                                class="flex items-center justify-between max-w-[110px] sm:max-w-none sm:w-32 px-2 sm:px-4 py-2 text-sm text-gray-300 bg-[#272c31] rounded-r-md focus:outline-none focus:ring-2 focus:ring-[#4a9eff] focus:ring-inset hover:bg-[#2a2e33] transition-colors duration-200 cursor-pointer">
-                          <span class="truncate sm:whitespace-normal" x-text="selectedType.display"></span>
-                          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
-
-                        </button>
-                        <ul x-cloak
-                            x-show="isOpen"
-                            @keydown.escape.window="isOpen = false"
-                            x-transition:enter="transition ease-out duration-100"
-                            x-transition:enter-start="transform opacity-0 scale-95"
-                            x-transition:enter-end="transform opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-75"
-                            x-transition:leave-start="transform opacity-100 scale-100"
-                            x-transition:leave-end="transform opacity-0 scale-95"
-                            class="absolute z-20 py-1 mt-12 overflow-auto text-sm text-gray-300 bg-[#2a2e33] rounded-md shadow-lg right-0 w-32">
-                          <template x-for="type in mediaTypes" :key="type.value">
-                            <li @click="selectedType = type; isOpen = false"
-                                class="px-4 py-2 cursor-pointer hover:bg-[#343a40] transition duration-150 ease-in-out"
-                                x-text="type.display"></li>
-                          </template>
-                        </ul>
+                {# Command palette #}
+                <div x-show="paletteOpen"
+                     x-cloak
+                     @keydown.escape.window="paletteOpen = false"
+                     @click="paletteOpen = false"
+                     x-transition.opacity
+                     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 pt-24">
+                  <div @click.stop
+                       class="w-full max-w-xl overflow-hidden rounded-xl border border-[#2c3136] bg-[#1b1c22] shadow-2xl"
+                       x-data="{ selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }} }">
+                    <form method="get" action="{% url 'search' %}">
+                      <div class="flex items-center gap-3 border-b border-[#2c3136] px-4">
+                        {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 shrink-0 text-gray-500" %}
+                        <input id="palette-input"
+                               type="search"
+                               name="q"
+                               autocomplete="off"
+                               placeholder="Search or jump to…"
+                               class="w-full bg-transparent py-4 text-sm text-gray-200 placeholder-gray-500 focus:outline-none">
+                        <kbd class="shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-500">esc</kbd>
+                      </div>
+                      <input type="hidden" name="media_type" :value="selectedType.value">
+                      <div class="flex flex-wrap items-center gap-2 p-3">
+                        <span class="mr-1 text-xs font-medium uppercase tracking-wide text-gray-500">Search in</span>
+                        <template x-for="type in mediaTypes" :key="type.value">
+                          <button type="button"
+                                  @click="selectedType = type"
+                                  class="rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer"
+                                  :class="selectedType.value === type.value ? 'border-indigo-400/40 bg-indigo-500/15 text-indigo-200' : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'"
+                                  x-text="type.display"></button>
+                        </template>
                       </div>
                     </form>
                   </div>
-                {% endblock search_bar %}
-              </div>
+                </div>
+              {% endblock search_bar %}
+
+              {# Quick actions #}
+              {% if user.is_authenticated %}
+                <a href="{% url 'create_entry' %}"
+                   title="Create custom entry"
+                   class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white transition-colors hover:bg-indigo-500">
+                  {% include "app/icons/plus.svg" with classes="w-5 h-5" %}
+                </a>
+                <a href="{% url 'calendar' %}"
+                   title="Calendar"
+                   class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#2c3136] bg-[#17181d] text-gray-300 transition-colors hover:bg-[#1d1e24] hover:text-white sm:flex">
+                  {% include "app/icons/clock.svg" with classes="w-5 h-5" %}
+                </a>
+              {% endif %}
             </div>
           </div>
 

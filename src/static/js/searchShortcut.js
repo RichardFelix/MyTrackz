@@ -1,6 +1,13 @@
-// Global keyboard shortcut for search
+// Global keyboard shortcuts for the search command palette
 document.addEventListener('keydown', (e) => {
-  // Ignore if typing in an input, textarea, or contenteditable
+  // Cmd/Ctrl+K opens the palette from anywhere, even while typing
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent('open-search-palette'));
+    return;
+  }
+
+  // Ignore "/" while typing in an input, textarea, or contenteditable
   const activeEl = document.activeElement;
   const isTyping = activeEl.tagName === 'INPUT' ||
                    activeEl.tagName === 'TEXTAREA' ||
@@ -10,10 +17,6 @@ document.addEventListener('keydown', (e) => {
 
   if (e.key === '/') {
     e.preventDefault();
-    const searchInput = document.getElementById('global-search');
-    if (searchInput) {
-      searchInput.focus();
-      searchInput.select();
-    }
+    window.dispatchEvent(new CustomEvent('open-search-palette'));
   }
 });
