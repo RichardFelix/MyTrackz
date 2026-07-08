@@ -74,7 +74,7 @@
 
 /* Dropdown */
 .select2-container--tailwindcss-4.select2-container--open .select2-dropdown {
-  @apply w-full mt-1 overflow-auto rounded-md text-base bg-[#39404b] border-gray-600 border focus-within:border-indigo-500 focus-within:ring focus-within:ring-indigo-200/50;
+  @apply w-full mt-1 overflow-auto rounded-md text-base bg-[#23242d] border-gray-600 border focus-within:border-indigo-500 focus-within:ring focus-within:ring-indigo-200/50;
 }
 
 .select2-container--tailwindcss-4 .select2-results__message {
@@ -83,12 +83,12 @@
 
 /* Hover state */
 .select2-container--tailwindcss-4 .select2-results__option--highlighted {
-  @apply text-white bg-[#454d5a];
+  @apply text-white bg-[#2e2f3a];
 }
 
 /* Multiple selection */
 .select2-container--tailwindcss-4 .select2-selection--multiple {
-  @apply rounded-md text-base sm:text-sm/6 bg-[#39404b] p-1.5 cursor-default text-white border border-white/10;
+  @apply rounded-md text-base sm:text-sm/6 bg-[#23242d] p-1.5 cursor-default text-white border border-white/10;
 }
 
 /* Multiple selection list */
@@ -102,7 +102,7 @@
 .select2-container--tailwindcss-4
   .select2-selection--multiple
   .select2-selection__choice {
-  @apply flex flex-row-reverse items-center gap-1 bg-[#454d5a] text-gray-200 pl-2 pr-1 py-1 rounded-md text-sm border border-indigo-500/20;
+  @apply flex flex-row-reverse items-center gap-1 bg-[#2e2f3a] text-gray-200 pl-2 pr-1 py-1 rounded-md text-sm border border-indigo-500/20;
 }
 
 /* Remove button */
@@ -212,8 +212,67 @@
   margin-top: 3px;
 }
 
-/* Grey theme: swap the black page backgrounds for dark grey, leave everything else alone */
-html.theme-grey,
-html.theme-grey .bg-\[\#000\] {
-  background-color: #212529;
+/* ==========================================================================
+   Surface token system (modern-ui)
+   The app historically hardcoded surface colours as Tailwind arbitrary values
+   (bg-[#2a2f35], bg-[#23242d], ...). Rather than rewrite ~48 templates, we name
+   a stepped, neutral surface scale as CSS variables and retint the existing
+   arbitrary-value utilities to read from them. The grey theme just shifts the
+   variables. `!important` + explicit hover/focus variants are required so these
+   win over Tailwind's own (higher-specificity) state utilities.
+   ========================================================================== */
+:root {
+  --page: #101013;
+  --card: #191a1f;
+  --card-hover: #20212a;
+  --raised: #23242d;
+  --raised-hover: #2e2f3a;
+  --input: #1b1c22;
+  --input-hover: #23242c;
+  --border: #262732;
+  --focus: #7c84f2;
 }
+
+html.theme-grey {
+  --page: #17181c;
+  --card: #202127;
+  --card-hover: #282932;
+  --raised: #2b2c36;
+  --raised-hover: #363845;
+  --input: #22232a;
+  --input-hover: #2a2b34;
+  --border: #31323d;
+}
+
+/* Page ground */
+.bg-\[\#000\] { background-color: var(--page) !important; }
+
+/* Cards */
+.bg-\[\#2a2f35\],
+.bg-\[\#262a2f\],
+.bg-\[\#2f353e\] { background-color: var(--card) !important; }
+.hover\:bg-\[\#2a2f35\]:hover { background-color: var(--card-hover) !important; }
+.hover\:bg-\[\#23272b\]:hover { background-color: var(--card-hover) !important; }
+
+/* Raised controls / active tints */
+.bg-\[\#39404b\],
+.bg-\[\#343a40\],
+.bg-\[\#2c3136\] { background-color: var(--raised) !important; }
+.hover\:bg-\[\#39404b\]:hover,
+.hover\:bg-\[\#343a40\]:hover,
+.hover\:bg-\[\#313842\]:hover,
+.hover\:bg-\[\#454d5a\]:hover,
+.hover\:bg-\[\#454d59\]:hover,
+.bg-\[\#3e454d\] { background-color: var(--raised-hover) !important; }
+
+/* Inputs */
+.bg-\[\#272c31\],
+.bg-\[\#2a2e33\] { background-color: var(--input) !important; }
+.hover\:bg-\[\#2a2e33\]:hover { background-color: var(--input-hover) !important; }
+
+/* Borders */
+.border-\[\#2c3136\],
+.border-\[\#2a2f35\] { border-color: var(--border) !important; }
+
+/* Focus ring */
+.focus\:ring-\[\#4a9eff\]:focus { --tw-ring-color: var(--focus) !important; }
