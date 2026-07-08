@@ -2,24 +2,24 @@
 
 <section class="space-y-5">
   <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-4">
-    <div>
-      <p class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] {% if section.key == Status.IN_PROGRESS.value %}text-indigo-400{% else %}text-sky-400{% endif %}">
+    <div class="flex items-center gap-3">
+      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#39404b] {% if section.key == Status.IN_PROGRESS.value %}{{ Status.IN_PROGRESS.value|status_color }}{% else %}{{ Status.PLANNING.value|status_color }}{% endif %}">
         {% if section.key == Status.IN_PROGRESS.value %}
-          {% include "app/icons/pulse.svg" with classes="h-3.5 w-3.5" %}
+          {% include "app/icons/states/in-progress.svg" with classes="h-5 w-5" %}
         {% else %}
-          {% include "app/icons/leaf.svg" with classes="h-3.5 w-3.5" %}
+          {% include "app/icons/states/planning.svg" with classes="h-5 w-5" %}
         {% endif %}
-        {{ section.count }} item{{ section.count|pluralize }}
-      </p>
-      <h2 class="mt-1 text-2xl font-semibold text-white">{{ section.key|media_status_readable|title }}</h2>
+      </div>
+      <h2 class="text-2xl font-semibold text-white">{{ section.key|media_status_readable|title }}</h2>
     </div>
-    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#39404b] {% if section.key == Status.IN_PROGRESS.value %}{{ Status.IN_PROGRESS.value|status_color }}{% else %}{{ Status.PLANNING.value|status_color }}{% endif %}">
+    <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] {% if section.key == Status.IN_PROGRESS.value %}border-indigo-400/30 bg-indigo-500/10 text-indigo-300{% else %}border-sky-400/30 bg-sky-500/10 text-sky-300{% endif %}">
       {% if section.key == Status.IN_PROGRESS.value %}
-        {% include "app/icons/states/in-progress.svg" with classes="h-5 w-5" %}
+        {% include "app/icons/pulse.svg" with classes="h-3.5 w-3.5" %}
       {% else %}
-        {% include "app/icons/states/planning.svg" with classes="h-5 w-5" %}
+        {% include "app/icons/leaf.svg" with classes="h-3.5 w-3.5" %}
       {% endif %}
-    </div>
+      {{ section.count }} item{{ section.count|pluralize }}
+    </span>
   </div>
 
   {% if section.media_types %}

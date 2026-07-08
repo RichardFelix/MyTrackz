@@ -40,7 +40,7 @@
       <!-- Search -->
       <div class="relative grow">
         <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
-               class="w-full py-2 pl-10 pr-4 bg-[#39404b] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+               class="w-full rounded-lg border border-[#2c3136] bg-[#17181d] py-2.5 pl-10 pr-4 text-sm text-gray-200 placeholder-gray-500 appearance-none focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                type="text"
                x-model="search"
                hx-get="{% url 'medialist' target_user.username media_type %}"
@@ -48,25 +48,25 @@
                {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
                hx-include="#filter-form"
                hx-indicator="#search-indicator">
-        {% include "app/icons/magnifying-glass.svg" with classes="w-6 h-6 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" %}
+        {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-gray-500" %}
         <div id="search-indicator"
              class="htmx-indicator absolute right-3 top-1/2 transform -translate-y-1/2">
           <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
         </div>
       </div>
 
-      <div class="flex gap-2 flex-wrap">
+      <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <!-- Filter by Status -->
-        <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+        <div class="relative w-full sm:w-auto" x-data="{ open: false }">
+          <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
                   @click="open = !open"
                   type="button">
             {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
-            <span x-text="statusLabels[status] || status"></span>
+            <span class="flex-1 text-left" x-text="statusLabels[status] || status"></span>
             {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
           </button>
 
-          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden border border-gray-700"
+          <div class="absolute z-10 mt-2 w-48 overflow-hidden rounded-lg border border-[#2c3136] bg-[#1b1c22] py-1 shadow-xl"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -82,7 +82,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="status === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="status === '{{ value }}' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
                       @click="status = '{{ value }}'; open = false"
                       type="button">{{ label }}</button>
             {% endfor %}
@@ -90,16 +90,16 @@
         </div>
 
         <!-- Sort by -->
-        <div class="relative" x-data="{ open: false }">
-          <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+        <div class="relative w-full sm:w-auto" x-data="{ open: false }">
+          <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
                   @click="open = !open"
                   type="button">
             {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4 mr-2" %}
-            <span x-text="sortLabels[sort] || sort"></span>
+            <span class="flex-1 text-left" x-text="sortLabels[sort] || sort"></span>
             {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
           </button>
 
-          <div class="absolute z-10 mt-2 py-1 w-48 bg-[#39404b] rounded-md shadow-lg overflow-hidden border border-gray-700"
+          <div class="absolute z-10 mt-2 w-48 overflow-hidden rounded-lg border border-[#2c3136] bg-[#1b1c22] py-1 shadow-xl"
                x-cloak
                x-show="open"
                @click.outside="open = false"
@@ -115,7 +115,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="sort === '{{ value }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="sort === '{{ value }}' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
                       @click="sort = '{{ value }}'; open = false"
                       type="button">{{ label }}</button>
             {% endfor %}
@@ -124,16 +124,16 @@
 
         <!-- Filter by Genre -->
         {% if genre_choices %}
-          <div class="relative" x-data="{ open: false }">
-            <button class="flex items-center px-4 py-2 bg-[#39404b] rounded-md hover:bg-[#454d5a] transition-colors cursor-pointer"
+          <div class="relative w-full sm:w-auto" x-data="{ open: false }">
+            <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
                     @click="open = !open"
                     type="button">
               {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
-              <span x-text="genre || 'All Genres'"></span>
+              <span class="flex-1 text-left" x-text="genre || 'All Genres'"></span>
               {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
             </button>
 
-            <div class="absolute z-10 mt-2 py-1 w-48 max-h-80 overflow-y-auto bg-[#39404b] rounded-md shadow-lg border border-gray-700"
+            <div class="absolute z-10 mt-2 max-h-80 w-48 overflow-y-auto rounded-lg border border-[#2c3136] bg-[#1b1c22] py-1 shadow-xl"
                  x-cloak
                  x-show="open"
                  @click.outside="open = false"
@@ -148,7 +148,7 @@
                       hx-include="#filter-form"
                       hx-indicator="#loading-indicator"
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                      :class="genre === '' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                      :class="genre === '' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
                       @click="genre = ''; open = false"
                       type="button">All Genres</button>
               {% for name in genre_choices %}
@@ -157,7 +157,7 @@
                         hx-include="#filter-form"
                         hx-indicator="#loading-indicator"
                         class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
-                        :class="genre === '{{ name|escapejs }}' ? 'bg-indigo-600 text-white font-medium' : 'text-gray-300 hover:bg-[#454d5a] hover:text-white'"
+                        :class="genre === '{{ name|escapejs }}' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
                         @click="genre = '{{ name|escapejs }}'; open = false"
                         type="button">{{ name }}</button>
               {% endfor %}
@@ -166,15 +166,15 @@
         {% endif %}
 
         <!-- Layout Toggle -->
-        <div class="flex rounded-md overflow-hidden border border-gray-700">
+        <div class="flex w-full overflow-hidden rounded-lg border border-[#2c3136] sm:w-auto">
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}layout=grid`"
-             class="p-2 cursor-pointer"
-             :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
+             :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
           <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}layout=table`"
-             class="p-2 cursor-pointer"
-             :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#39404b] hover:bg-[#454d5a]'"
+             class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
+             :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Table View"
              @click="layout = 'table'">{% include "app/icons/table.svg" with classes="w-5 h-5" %}</a>
         </div>
