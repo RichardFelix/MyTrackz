@@ -5,7 +5,7 @@ import socket
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from celery import shared_task
@@ -53,22 +53,55 @@ def _is_safe_image_host(url):
     )
 
 
+def _safe_image_get(url, *, timeout, headers=None, max_redirects=5):
+    """GET an image URL, following redirects while re-validating each hop's host.
+
+    Some providers don't serve the image bytes directly: OpenLibrary answers a
+    cover request with ``302 -> archive.org``, so redirects have to be followed or
+    those images never download. But ``requests``' built-in redirect following would
+    chase a hop into a private/internal host before we could vet it (SSRF). So we
+    follow manually, running every URL in the chain (including the first) through
+    ``_is_safe_image_host`` before requesting it.
+
+    Returns the final, non-redirect streaming ``Response``, or ``None`` when a hop
+    is unsafe, no ``Location`` is given, or the chain exceeds ``max_redirects``.
+    """
+    for _ in range(max_redirects + 1):
+        if not _is_safe_image_host(url):
+            return None
+        response = requests.get(
+            url,
+            timeout=timeout,
+            stream=True,
+            allow_redirects=False,
+            headers=headers,
+        )
+        if not response.is_redirect:
+            return response
+        location = response.headers.get("Location")
+        response.close()
+        if not location:
+            return None
+        url = urljoin(url, location)
+    return None
+
+
 @shared_task(name="Cache item image", bind=True, max_retries=2, default_retry_delay=30)
 def cache_item_image(self, item_id, image_url):
     """Download an Item's external image and store it locally as a normalized WebP."""
     from app.models import ImageCacheFormat, Item  # noqa: PLC0415 avoid import cycle
 
-    if not _is_safe_image_host(image_url):
-        logger.warning("Refusing to cache image for item %s: unsafe URL", item_id)
-        return False
-
     try:
-        response = requests.get(
+        response = _safe_image_get(
             image_url,
             timeout=settings.IMAGE_DOWNLOAD_TIMEOUT,
-            stream=True,
-            allow_redirects=False,
         )
+        if response is None:
+            logger.warning(
+                "Refusing to cache image for item %s: unsafe URL or redirect chain",
+                item_id,
+            )
+            return False
 
         if response.status_code != requests.codes.ok:
             logger.warning(

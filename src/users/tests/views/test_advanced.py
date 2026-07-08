@@ -24,6 +24,7 @@ def _jpeg_bytes():
 def _mock_response():
     response = MagicMock()
     response.status_code = 200
+    response.is_redirect = False
     response.headers = {"Content-Type": "image/jpeg"}
     response.iter_content.return_value = iter([_jpeg_bytes()])
     return response

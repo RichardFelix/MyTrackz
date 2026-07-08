@@ -29,8 +29,18 @@ def _jpeg_bytes():
 def _mock_response(status_code=200, content_type="image/jpeg", chunks=None):
     response = MagicMock()
     response.status_code = status_code
+    response.is_redirect = False
     response.headers = {"Content-Type": content_type}
     response.iter_content.return_value = iter(chunks or [_jpeg_bytes()])
+    return response
+
+
+def _mock_redirect(location, status_code=302):
+    """A redirect response, as _safe_image_get sees a hop it must follow."""
+    response = MagicMock()
+    response.status_code = status_code
+    response.is_redirect = True
+    response.headers = {"Location": location}
     return response
 
 
@@ -100,14 +110,62 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_rejects_non_200_status(self, mock_get, _mock_safe):
-        """A redirect or error response is refused (redirects are never followed)."""
-        mock_get.return_value = _mock_response(status_code=302)
+        """A non-redirect error response is refused."""
+        mock_get.return_value = _mock_response(status_code=404)
 
         result = cache_item_image(self.item.id, self.item.image)
 
         self.assertFalse(result)
-        mock_get.assert_called_once()
-        self.assertFalse(mock_get.call_args.kwargs.get("allow_redirects", True))
+        self.item.refresh_from_db()
+        self.assertFalse(self.item.image_cached)
+
+    @patch("app.tasks._is_safe_image_host", return_value=True)
+    @patch("app.tasks.requests.get")
+    def test_follows_redirect_to_final_image(self, mock_get, _mock_safe):
+        """A cover served via redirect (OpenLibrary -> archive.org) is followed and cached."""
+        mock_get.side_effect = [
+            _mock_redirect("https://archive.org/download/covers/final.jpg"),
+            _mock_response(),
+        ]
+
+        result = cache_item_image(self.item.id, self.item.image)
+
+        self.assertTrue(result)
+        self.item.refresh_from_db()
+        self.assertTrue(self.item.image_cached)
+        self.assertEqual(mock_get.call_count, 2)
+        # Every hop must be requested with automatic following disabled so each
+        # target host can be revalidated before we connect to it.
+        for call in mock_get.call_args_list:
+            self.assertFalse(call.kwargs.get("allow_redirects", True))
+
+    @patch("app.tasks.requests.get")
+    def test_rejects_redirect_to_unsafe_host(self, mock_get):
+        """A redirect pointing at a private/internal host is refused, not followed."""
+        mock_get.return_value = _mock_redirect("http://169.254.169.254/latest/meta-data")
+
+        # Only the internal redirect target resolves unsafe; the original URL is fine.
+        def is_safe(url):
+            return "169.254.169.254" not in url
+
+        with patch("app.tasks._is_safe_image_host", side_effect=is_safe):
+            result = cache_item_image(self.item.id, self.item.image)
+
+        self.assertFalse(result)
+        self.item.refresh_from_db()
+        self.assertFalse(self.item.image_cached)
+
+    @patch("app.tasks._is_safe_image_host", return_value=True)
+    @patch("app.tasks.requests.get")
+    def test_rejects_overlong_redirect_chain(self, mock_get, _mock_safe):
+        """A redirect loop/chain longer than the cap is refused instead of looping forever."""
+        mock_get.return_value = _mock_redirect("https://example.com/again.jpg")
+
+        result = cache_item_image(self.item.id, self.item.image)
+
+        self.assertFalse(result)
+        self.item.refresh_from_db()
+        self.assertFalse(self.item.image_cached)
 
     def test_rejects_unsafe_host_without_making_a_request(self):
         """A URL resolving to a private/loopback address is refused before any request."""

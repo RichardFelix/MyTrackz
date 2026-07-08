@@ -31,10 +31,7 @@ def _download_image_bytes(image_url):
     import requests  # noqa: PLC0415
     from django.conf import settings  # noqa: PLC0415
 
-    from app.tasks import _is_safe_image_host  # noqa: PLC0415
-
-    if not _is_safe_image_host(image_url):
-        return None
+    from app.tasks import _safe_image_get  # noqa: PLC0415
 
     # A same-origin Referer gets past most hotlink blocks, and retrying transient
     # statuses handles CDNs that challenge the first request (Cloudflare, magnific,
@@ -52,13 +49,13 @@ def _download_image_bytes(image_url):
     # connection drop retries too (larger images fail this way more often).
     for attempt in range(_IMAGE_FETCH_ATTEMPTS):
         try:
-            response = requests.get(
+            response = _safe_image_get(
                 image_url,
                 timeout=settings.IMAGE_DOWNLOAD_TIMEOUT,
-                stream=True,
-                allow_redirects=False,
                 headers=headers,
             )
+            if response is None:
+                return None
             if response.status_code == requests.codes.ok:
                 content_type = (
                     response.headers.get("Content-Type", "").split(";")[0].strip()
