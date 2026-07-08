@@ -84,6 +84,30 @@ class CacheItemImageTaskTests(TestCase):
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
+    def test_caches_octet_stream_with_valid_image_bytes(self, mock_get, _mock_safe):
+        """A real image mislabeled application/octet-stream (ComicVine) still caches."""
+        mock_get.return_value = _mock_response(content_type="application/octet-stream")
+
+        result = cache_item_image(self.item.id, self.item.image)
+
+        self.assertTrue(result)
+        self.item.refresh_from_db()
+        self.assertTrue(self.item.image_cached)
+
+    @patch("app.tasks._is_safe_image_host", return_value=True)
+    @patch("app.tasks.requests.get")
+    def test_sends_browser_headers(self, mock_get, _mock_safe):
+        """The request carries a browser UA and same-origin Referer to beat hotlink blocks."""
+        mock_get.return_value = _mock_response()
+
+        cache_item_image(self.item.id, self.item.image)
+
+        headers = mock_get.call_args.kwargs.get("headers") or {}
+        self.assertIn("Mozilla/", headers.get("User-Agent", ""))
+        self.assertEqual(headers.get("Referer"), "https://image.tmdb.org/")
+
+    @patch("app.tasks._is_safe_image_host", return_value=True)
+    @patch("app.tasks.requests.get")
     def test_rejects_response_exceeding_size_cap(self, mock_get, _mock_safe):
         """A response exceeding IMAGE_DOWNLOAD_MAX_BYTES is refused."""
         oversized_chunk = b"a" * (5 * 1024 * 1024 + 1)

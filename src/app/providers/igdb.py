@@ -448,7 +448,10 @@ def get_image_url(response):
     # when no image, cover is not present in the response
     # e.g game: 287348
     try:
-        return f"https://images.igdb.com/igdb/image/upload/t_original/{response['cover']['image_id']}.jpg"
+        # t_1080p (762x1080 for a portrait cover, ~200KB) rather than t_original,
+        # whose full-res files run 5-9MB and blow past IMAGE_DOWNLOAD_MAX_BYTES so
+        # the cover never caches. This resolution is ample for cards and the hero.
+        return f"https://images.igdb.com/igdb/image/upload/t_1080p/{response['cover']['image_id']}.jpg"
     except KeyError:
         return settings.IMG_NONE
 

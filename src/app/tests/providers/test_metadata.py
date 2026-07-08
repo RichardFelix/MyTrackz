@@ -367,6 +367,19 @@ class Metadata(TestCase):
 
         self.assertIsNone(igdb_game_id)
 
+    def test_get_image_url_uses_sized_variant(self):
+        """Covers use the size-capped t_1080p variant, not the multi-MB t_original."""
+        url = igdb.get_image_url({"cover": {"image_id": "co9wxo"}})
+
+        self.assertEqual(
+            url,
+            "https://images.igdb.com/igdb/image/upload/t_1080p/co9wxo.jpg",
+        )
+
+    def test_get_image_url_without_cover(self):
+        """A response with no cover falls back to the no-image placeholder."""
+        self.assertEqual(igdb.get_image_url({}), settings.IMG_NONE)
+
     def test_book(self):
         """Test the metadata method for books."""
         response = openlibrary.book("OL21733390M")

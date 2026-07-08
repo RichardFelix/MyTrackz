@@ -5,7 +5,7 @@ import socket
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlsplit
 
 import requests
 from celery import shared_task
@@ -18,6 +18,27 @@ from PIL import Image, UnidentifiedImageError
 from app.models import UserMessage
 
 logger = logging.getLogger(__name__)
+
+# A browser-like UA plus a same-origin Referer gets past the hotlink blocks some
+# image hosts apply to bare requests (e.g. HowLongToBeat 403s, pbs.twimg.com).
+_BROWSER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+
+def _browser_image_headers(url):
+    """Return browser-like request headers for fetching an image from ``url``.
+
+    We deliberately don't advertise AVIF in Accept — some CDNs would then serve
+    AVIF, which our allowlist/PIL can't read.
+    """
+    parts = urlsplit(url)
+    return {
+        "User-Agent": _BROWSER_UA,
+        "Accept": "image/webp,image/jpeg,image/png,image/gif,*/*;q=0.8",
+        "Referer": f"{parts.scheme}://{parts.netloc}/",
+    }
 
 
 @shared_task(name="Cleanup user messages")
@@ -95,6 +116,7 @@ def cache_item_image(self, item_id, image_url):
         response = _safe_image_get(
             image_url,
             timeout=settings.IMAGE_DOWNLOAD_TIMEOUT,
+            headers=_browser_image_headers(image_url),
         )
         if response is None:
             logger.warning(

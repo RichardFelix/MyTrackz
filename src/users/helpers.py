@@ -7,15 +7,12 @@ from django.utils import timezone
 
 import integrations
 
-# A browser-like UA avoids blanket blocks from some image CDNs (e.g. Twitter's
-# pbs.twimg.com). Retries smooth over transient timeouts since profile-image
-# caching runs synchronously inside the user's save request.
+# Retries smooth over transient timeouts since profile-image caching runs
+# synchronously inside the user's save request. Browser-like request headers
+# (UA + same-origin Referer) come from app.tasks._browser_image_headers, shared
+# with the item-image cache task.
 _IMAGE_FETCH_ATTEMPTS = 3
 _IMAGE_FETCH_BACKOFF = 0.5
-_BROWSER_UA = (
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-)
 
 
 def _download_image_bytes(image_url):
@@ -26,23 +23,16 @@ def _download_image_bytes(image_url):
     """
     import time  # noqa: PLC0415
     from io import BytesIO  # noqa: PLC0415
-    from urllib.parse import urlsplit  # noqa: PLC0415
 
     import requests  # noqa: PLC0415
     from django.conf import settings  # noqa: PLC0415
 
-    from app.tasks import _safe_image_get  # noqa: PLC0415
+    from app.tasks import _browser_image_headers, _safe_image_get  # noqa: PLC0415
 
-    # A same-origin Referer gets past most hotlink blocks, and retrying transient
-    # statuses handles CDNs that challenge the first request (Cloudflare, magnific,
-    # twimg, ...) before serving the image. We deliberately don't advertise AVIF in
-    # Accept — some CDNs would then serve AVIF, which our allowlist/PIL can't read.
-    parts = urlsplit(image_url)
-    headers = {
-        "User-Agent": _BROWSER_UA,
-        "Accept": "image/webp,image/jpeg,image/png,image/gif,*/*;q=0.8",
-        "Referer": f"{parts.scheme}://{parts.netloc}/",
-    }
+    # Browser headers get past most hotlink blocks; retrying transient statuses
+    # handles CDNs that challenge the first request (Cloudflare, magnific, twimg,
+    # ...) before serving the image.
+    headers = _browser_image_headers(image_url)
     retryable_status = {403, 429, 500, 502, 503, 504}
 
     # Each attempt covers the whole fetch AND streamed read, so a mid-download

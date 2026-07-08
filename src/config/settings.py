@@ -341,7 +341,16 @@ IMAGE_CACHE_DIR = "items"
 PROFILE_IMAGE_DIR = "profiles"
 IMAGE_DOWNLOAD_TIMEOUT = 15  # seconds
 IMAGE_DOWNLOAD_MAX_BYTES = 5 * 1024 * 1024
-IMAGE_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+# octet-stream is allowed because ComicVine (and some CDNs) serve genuine JPEGs
+# with a generic binary Content-Type; the PIL decode/verify in cache_item_image
+# is the real validity gate, so this only widens the cheap pre-filter.
+IMAGE_ALLOWED_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "application/octet-stream",
+}
 # Total on-disk budget for the image cache; oldest-cached files are evicted first
 # once this is exceeded. 0 or less disables eviction.
 IMAGE_CACHE_MAX_BYTES = 5 * 1024 * 1024 * 1024  # 5 GiB
