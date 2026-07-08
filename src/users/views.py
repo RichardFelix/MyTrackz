@@ -16,6 +16,7 @@ from app.models import Item, MediaTypes
 from app.providers import tmdb
 from app.tasks import get_image_cache_stats, purge_cached_images
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
+from users.helpers import cache_profile_image
 from users.models import (
     DateFormatChoices,
     QuickWatchDateChoices,
@@ -36,10 +37,28 @@ def account(request):
     if request.method == "POST":
         # Handle username update
         if "username" in request.POST:
+            previous_image = request.user.image
+            previous_crop = request.user.image_crop
             user_form = UserUpdateForm(request.POST, instance=request.user)
 
             if user_form.is_valid():
-                user_form.save()
+                user = user_form.save()
+                image_changed = (
+                    user.image != previous_image or user.image_crop != previous_crop
+                )
+                if user.image and image_changed:
+                    cached = cache_profile_image(user.id, user.image, user.image_crop)
+                    user.image_cached = cached
+                    user.save(update_fields=["image_cached"])
+                    if not cached:
+                        messages.warning(
+                            request,
+                            "Couldn't fetch that profile image; "
+                            "showing the link directly.",
+                        )
+                elif not user.image and user.image_cached:
+                    user.image_cached = False
+                    user.save(update_fields=["image_cached"])
                 messages.success(request, "Your profile has been updated!")
                 logger.info(
                     "Successful profile change for user: %s",

@@ -336,6 +336,9 @@ if BASE_URL:
     MEDIA_URL = f"{BASE_URL}/media/"
 
 IMAGE_CACHE_DIR = "items"
+# Separate from the item cache so eviction (which only scans IMAGE_CACHE_DIR)
+# never deletes a user's profile image.
+PROFILE_IMAGE_DIR = "profiles"
 IMAGE_DOWNLOAD_TIMEOUT = 15  # seconds
 IMAGE_DOWNLOAD_MAX_BYTES = 5 * 1024 * 1024
 IMAGE_ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}

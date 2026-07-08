@@ -254,10 +254,16 @@
                 <div class="group relative flex cursor-pointer items-center gap-3 rounded-lg bg-[#2a2f35] p-2.5 ring-1 ring-white/5 transition-colors hover:bg-[#313842] {% if settings_active %}ring-indigo-400/40{% endif %}">
                   {# Whole chip is a link to Settings; interactive exceptions are raised above it #}
                   <a href="{{ account_url }}" class="absolute inset-0 z-0" aria-label="Open settings"></a>
-                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[#241505]"
-                       style="background: linear-gradient(140deg, #f0c070, #b06a2c);">
-                    {{ user.username|first|upper }}
-                  </div>
+                  {% if user.cached_image_url %}
+                    <img src="{{ user.cached_image_url }}"
+                         alt="{{ user.username }}"
+                         class="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/10">
+                  {% else %}
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[#241505]"
+                         style="background: linear-gradient(140deg, #f0c070, #b06a2c);">
+                      {{ user.username|first|upper }}
+                    </div>
+                  {% endif %}
                   <div class="min-w-0 flex-1">
                     <div class="truncate text-sm font-semibold text-white">{{ user.username }}</div>
                     <div class="flex items-center gap-2 text-xs text-gray-400">

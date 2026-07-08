@@ -50,12 +50,21 @@ class UserUpdateForm(forms.ModelForm):
         """Add crispy form helper to add submit button."""
         super().__init__(*args, **kwargs)
         self.fields["username"].help_text = None
+        self.fields["image"].required = False
+
+    def clean_image(self):
+        """Trim the URL and require an http(s) scheme when provided."""
+        url = (self.cleaned_data.get("image") or "").strip()
+        if url and not url.lower().startswith(("http://", "https://")):
+            msg = "Enter a valid http(s) image URL."
+            raise forms.ValidationError(msg)
+        return url
 
     class Meta:
-        """Only allow updating username."""
+        """Allow updating username, profile visibility and profile image."""
 
         model = User
-        fields = ["username", "profile_private"]
+        fields = ["username", "profile_private", "image", "image_crop"]
 
 
 class PasswordChangeForm(PasswordChangeForm):

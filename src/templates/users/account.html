@@ -60,6 +60,74 @@
           </div>
         </div>
 
+        <div x-data="avatarCropper"
+             data-image="{{ user_form.image.value|default:'' }}"
+             data-crop="{{ user_form.image_crop.value|default:'' }}">
+          <label for="{{ user_form.image.id_for_label }}"
+                 class="block text-sm font-medium mb-2 text-gray-300">Profile image</label>
+
+          <div class="rounded-lg border border-[#39404b] bg-[#23242d]/40 p-4">
+            <div class="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+              {# Circular cropper stage #}
+              <div class="shrink-0">
+                <div class="relative h-64 w-64 select-none overflow-hidden rounded-full bg-[#17181d] ring-2 ring-white/15"
+                     :class="ready ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : ''"
+                     style="touch-action: none;"
+                     @pointerdown="down($event)"
+                     @pointermove="move($event)"
+                     @pointerup="up()"
+                     @pointercancel="up()"
+                     @wheel.prevent="wheel($event)">
+                  <img x-ref="img"
+                       x-show="src"
+                       :src="src"
+                       @load="onLoad()"
+                       @error="onError()"
+                       draggable="false"
+                       alt="Profile preview"
+                       class="pointer-events-none absolute left-0 top-0 max-w-none origin-top-left"
+                       :style="`width:${w}px; height:${h}px; transform: translate(${x}px, ${y}px);`">
+                  <div x-show="!src"
+                       class="flex h-full w-full items-center justify-center text-6xl font-bold text-[#241505]"
+                       style="background: linear-gradient(140deg, #f0c070, #b06a2c);">
+                    {{ user.username|first|upper }}
+                  </div>
+                </div>
+
+                <div class="mt-3 flex items-center gap-2" x-show="ready" x-cloak>
+                  {% include "app/icons/magnifying-glass.svg" with classes="w-4 h-4 text-gray-500 shrink-0" %}
+                  <input type="range"
+                         min="1"
+                         max="5"
+                         step="0.001"
+                         :value="zoom"
+                         @input="setZoom($event.target.value)"
+                         class="w-full accent-indigo-500 cursor-pointer">
+                </div>
+              </div>
+
+              {# URL input + help #}
+              <div class="w-full flex-1">
+                <input id="{{ user_form.image.id_for_label }}"
+                       name="{{ user_form.image.html_name }}"
+                       class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border {% if user_form.image.errors %}border-red-500{% else %}border-gray-600{% endif %} focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                       type="url"
+                       placeholder="https://example.com/avatar.png"
+                       value="{{ user_form.image.value|default:'' }}"
+                       @input.debounce.400ms="changeUrl($event.target.value)">
+                <p class="mt-2 text-xs text-gray-400">Paste an image URL — it's downloaded and cached on your server. <span x-show="ready" x-cloak>Drag to move and zoom (slider or scroll) to frame it in the circle.</span> Leave blank to use your initial.</p>
+                {% if user_form.image.errors %}
+                  <p class="mt-1 text-sm text-red-400">{{ user_form.image.errors.0 }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <input type="hidden"
+                 name="{{ user_form.image_crop.html_name }}"
+                 :value="crop">
+        </div>
+
         <div class="pt-2">
           <button type="submit"
                   class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
@@ -187,3 +255,136 @@
   </div>
 
 {% endblock settings_content %}
+
+{% block js %}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("avatarCropper", () => ({
+        stage: 256,
+        minZoom: 1,
+        maxZoom: 5,
+        src: "",
+        natW: 0,
+        natH: 0,
+        base: 1,
+        zoom: 1,
+        x: 0,
+        y: 0,
+        dragging: false,
+        px: 0,
+        py: 0,
+        ready: false,
+        crop: "",
+        pendingCrop: "",
+
+        init() {
+          this.src = (this.$el.dataset.image || "").trim();
+          this.pendingCrop = this.$el.dataset.crop || "";
+          this.crop = this.pendingCrop;
+        },
+        get w() {
+          return this.natW * this.base * this.zoom;
+        },
+        get h() {
+          return this.natH * this.base * this.zoom;
+        },
+        onLoad() {
+          const img = this.$refs.img;
+          if (!img.naturalWidth || !img.naturalHeight) {
+            this.ready = false;
+            return;
+          }
+          this.natW = img.naturalWidth;
+          this.natH = img.naturalHeight;
+          this.base = Math.max(this.stage / this.natW, this.stage / this.natH);
+          this.zoom = this.minZoom;
+          this.center();
+          if (this.pendingCrop) {
+            this.applyCrop(this.pendingCrop);
+            this.pendingCrop = "";
+          }
+          this.clamp();
+          this.ready = true;
+          this.update();
+        },
+        onError() {
+          this.ready = false;
+        },
+        center() {
+          this.x = (this.stage - this.w) / 2;
+          this.y = (this.stage - this.h) / 2;
+        },
+        applyCrop(raw) {
+          const p = (raw || "").split(",").map(parseFloat);
+          if (p.length !== 3 || !(p[2] > 0)) return;
+          const scale = this.stage / (p[2] * this.natW);
+          this.zoom = Math.min(this.maxZoom, Math.max(this.minZoom, scale / this.base));
+          const s = this.base * this.zoom;
+          this.x = -(p[0] * this.natW) * s;
+          this.y = -(p[1] * this.natH) * s;
+        },
+        setZoom(value) {
+          const nz = Math.min(
+            this.maxZoom,
+            Math.max(this.minZoom, parseFloat(value) || this.minZoom),
+          );
+          const s0 = this.base * this.zoom;
+          const s1 = this.base * nz;
+          const ix = (this.stage / 2 - this.x) / s0;
+          const iy = (this.stage / 2 - this.y) / s0;
+          this.zoom = nz;
+          this.x = this.stage / 2 - ix * s1;
+          this.y = this.stage / 2 - iy * s1;
+          this.clamp();
+          this.update();
+        },
+        wheel(e) {
+          if (!this.ready) return;
+          this.setZoom(this.zoom * (e.deltaY < 0 ? 1.08 : 0.92));
+        },
+        down(e) {
+          if (!this.ready) return;
+          this.dragging = true;
+          this.px = e.clientX;
+          this.py = e.clientY;
+          if (e.currentTarget.setPointerCapture) {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }
+        },
+        move(e) {
+          if (!this.dragging) return;
+          this.x += e.clientX - this.px;
+          this.y += e.clientY - this.py;
+          this.px = e.clientX;
+          this.py = e.clientY;
+          this.clamp();
+          this.update();
+        },
+        up() {
+          this.dragging = false;
+        },
+        clamp() {
+          if (!this.natW) return;
+          this.x = Math.min(0, Math.max(this.stage - this.w, this.x));
+          this.y = Math.min(0, Math.max(this.stage - this.h, this.y));
+        },
+        update() {
+          if (!this.ready || !this.natW) {
+            this.crop = this.src ? this.pendingCrop : "";
+            return;
+          }
+          const s = this.base * this.zoom;
+          const left = Math.max(0, -this.x / s / this.natW);
+          const top = Math.max(0, -this.y / s / this.natH);
+          const side = this.stage / s / this.natW;
+          this.crop = [left, top, side].map((v) => v.toFixed(5)).join(",");
+        },
+        changeUrl(value) {
+          this.src = (value || "").trim();
+          this.ready = false;
+          this.crop = "";
+        },
+      }));
+    });
+  </script>
+{% endblock js %}

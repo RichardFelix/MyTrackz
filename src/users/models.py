@@ -1,5 +1,7 @@
+import hashlib
 import secrets
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django_celery_beat.models import PeriodicTask
@@ -129,6 +131,17 @@ class User(AbstractUser):
     profile_private = models.BooleanField(
         default=True, help_text="Toggle profile visibility to anonymous users"
     )
+
+    image = models.CharField(
+        max_length=2000,
+        blank=True,
+        default="",
+        help_text="URL of a profile image; cached locally when saved.",
+    )
+    image_cached = models.BooleanField(default=False)
+    # Chosen circular crop as "left,top,side" fractions (0-1) of the source
+    # image; blank means use the whole image (center-cropped by CSS).
+    image_crop = models.CharField(max_length=64, blank=True, default="")
 
     last_search_type = models.CharField(
         max_length=10,
@@ -565,6 +578,22 @@ class User(AbstractUser):
                 condition=models.Q(theme__in=ThemeChoices.values),
             ),
         ]
+
+    @property
+    def cached_image_url(self):
+        """Return the locally cached profile image URL, or the raw URL as fallback."""
+        if not self.image:
+            return ""
+        if self.image_cached:
+            key = f"{self.pk}:{self.image}".encode()
+            digest = hashlib.sha256(key).hexdigest()
+            relpath = f"{settings.PROFILE_IMAGE_DIR}/{digest[:2]}/{digest}.webp"
+            # The file is overwritten in place when only the crop changes (same
+            # URL -> same path), so bust the browser cache with a crop-derived
+            # version. nginx ignores the query string when serving the file.
+            version = hashlib.sha256(self.image_crop.encode()).hexdigest()[:8]
+            return f"{settings.MEDIA_URL}{relpath}?v={version}"
+        return self.image
 
     def update_preference(self, field_name, new_value):
         """
