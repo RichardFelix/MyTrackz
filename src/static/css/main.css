@@ -1636,6 +1636,9 @@
   .p-1 {
     padding: var(--spacing);
   }
+  .p-1\.5 {
+    padding: calc(var(--spacing) * 1.5);
+  }
   .p-2 {
     padding: calc(var(--spacing) * 2);
   }
@@ -2822,6 +2825,11 @@
       outline-style: none;
     }
   }
+  .active\:cursor-grabbing {
+    &:active {
+      cursor: grabbing;
+    }
+  }
   .active\:bg-indigo-500 {
     &:active {
       background-color: var(--color-indigo-500);
@@ -2835,6 +2843,11 @@
   .disabled\:cursor-not-allowed {
     &:disabled {
       cursor: not-allowed;
+    }
+  }
+  .disabled\:opacity-30 {
+    &:disabled {
+      opacity: 30%;
     }
   }
   .disabled\:opacity-40 {
@@ -3101,6 +3114,11 @@
   .md\:max-w-\[250px\] {
     @media (width >= 48rem) {
       max-width: 250px;
+    }
+  }
+  .md\:max-w-md {
+    @media (width >= 48rem) {
+      max-width: var(--container-md);
     }
   }
   .md\:-translate-x-1\/2 {

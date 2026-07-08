@@ -289,6 +289,76 @@
         </div>
       </div>
 
+      <div class="border-t border-gray-600 my-5"></div>
+
+      {# Home Screen Row Order #}
+      <div class="mb-5"
+           x-data="{
+             items: [{% for mt in home_media_types %}'{{ mt|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+             labels: { {% for mt in home_media_types %}'{{ mt|escapejs }}': '{{ mt|media_type_readable_plural|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %} },
+             dragging: null,
+             move(from, to) {
+               if (to < 0 || to >= this.items.length) return;
+               [this.items[from], this.items[to]] = [this.items[to], this.items[from]];
+             },
+             reorder(to) {
+               if (this.dragging === null || this.dragging === to) return;
+               const moved = this.items.splice(this.dragging, 1)[0];
+               this.items.splice(to, 0, moved);
+               this.dragging = to;
+             }
+           }">
+        <div class="flex items-center mb-4">
+          {% include "app/icons/arrows-up-down.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-lg font-semibold">Home Screen Row Order</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          Drag the rows (or use the arrows) to set the order media types appear on your home screen. Types you've disabled above are skipped.
+        </p>
+
+        <input type="hidden" name="home_media_order" :value="items.join(',')">
+
+        <div class="space-y-2 md:max-w-md">
+          <template x-for="(slug, i) in items" :key="slug">
+            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md select-none transition-opacity"
+                 draggable="true"
+                 @dragstart="dragging = i"
+                 @dragover.prevent="reorder(i)"
+                 @drop.prevent="dragging = null"
+                 @dragend="dragging = null"
+                 :class="dragging === i ? 'opacity-40 ring-2 ring-indigo-500' : ''">
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500 cursor-grab active:cursor-grabbing"
+                      title="Drag to reorder"
+                      aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <circle cx="7" cy="5" r="1.5" /><circle cx="13" cy="5" r="1.5" />
+                    <circle cx="7" cy="10" r="1.5" /><circle cx="13" cy="10" r="1.5" />
+                    <circle cx="7" cy="15" r="1.5" /><circle cx="13" cy="15" r="1.5" />
+                  </svg>
+                </span>
+                <span class="text-gray-500 text-xs w-5 text-right" x-text="i + 1"></span>
+                <span class="text-gray-200 text-sm" x-text="labels[slug]"></span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button"
+                        @click="move(i, i - 1)"
+                        :disabled="i === 0"
+                        class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  {% include "app/icons/chevron-up.svg" with classes="w-4 h-4" %}
+                </button>
+                <button type="button"
+                        @click="move(i, i + 1)"
+                        :disabled="i === items.length - 1"
+                        class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
       <div class="mt-5 pt-4 border-gray-600">
         <button type="submit"
                 class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">

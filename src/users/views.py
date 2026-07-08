@@ -243,11 +243,16 @@ def preferences(request):
     watch_provider_regions = tmdb.watch_provider_regions()
 
     if request.method == "GET":
+        # Home rows use `season` (not `tv`); order them by the user's saved order.
+        home_media_types = request.user.order_media_types_for_home(
+            [mt for mt in media_types if mt != MediaTypes.TV.value],
+        )
         return render(
             request,
             "users/preferences.html",
             {
                 "media_types": media_types,
+                "home_media_types": home_media_types,
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
@@ -289,6 +294,17 @@ def preferences(request):
     if theme in ThemeChoices.values:
         request.user.theme = theme
     media_types_checked = request.POST.getlist("media_types_checkboxes")
+
+    # Home screen media-type row order: keep valid, non-episode slugs, deduped.
+    submitted_order = request.POST.get("home_media_order", "")
+    seen = set()
+    request.user.home_media_order = ",".join(
+        mt
+        for mt in submitted_order.split(",")
+        if mt in MediaTypes.values
+        and mt != MediaTypes.EPISODE.value
+        and not (mt in seen or seen.add(mt))
+    )
 
     provider_region = request.POST.get("watch_provider_region", "")
     if provider_region in [region[0] for region in watch_provider_regions]:

@@ -561,12 +561,13 @@ class MediaManager(models.Manager):
         if specific_media_type:
             return [specific_media_type]
 
-        # Get active types excluding TV
-        return [
+        # Get active types excluding TV, in the user's chosen home order
+        active = [
             media_type
             for media_type in user.get_active_media_types()
             if media_type != MediaTypes.TV.value
         ]
+        return user.order_media_types_for_home(active)
 
     def _annotate_next_event(self, media_list):
         """Annotate next_event for media items."""

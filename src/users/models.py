@@ -154,6 +154,10 @@ class User(AbstractUser):
         default=HomeSortChoices.UPCOMING,
         choices=HomeSortChoices,
     )
+    home_media_order = models.TextField(
+        default="",
+        help_text="Comma-separated media type order for the home screen.",
+    )
 
     # Media type preferences: TV Shows
     tv_enabled = models.BooleanField(default=True)
@@ -692,6 +696,19 @@ class User(AbstractUser):
             enabled_types.insert(0, MediaTypes.SEASON.value)
 
         return enabled_types
+
+    def order_media_types_for_home(self, media_types):
+        """Reorder an iterable of media types by the user's saved home order.
+
+        Types present in the saved order come first (in that order); any not
+        listed keep their original (enum) order at the end.
+        """
+        if not self.home_media_order:
+            return list(media_types)
+
+        saved = [mt for mt in self.home_media_order.split(",") if mt]
+        index = {mt: position for position, mt in enumerate(saved)}
+        return sorted(media_types, key=lambda mt: index.get(mt, len(index)))
 
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""

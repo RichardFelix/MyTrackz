@@ -448,3 +448,48 @@ class UserWeekStartDayTests(TestCase):
         self.assertEqual(result, WeekStartDayChoices.SUNDAY)
         user.refresh_from_db()
         self.assertEqual(user.week_start_day, WeekStartDayChoices.SUNDAY)
+
+
+class UserOrderMediaTypesForHomeTests(TestCase):
+    """Tests for the User.order_media_types_for_home helper."""
+
+    def setUp(self):
+        """Create a user."""
+        credentials = {"username": "ordertest", "password": "testpassword"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    def test_empty_order_preserves_input(self):
+        """With no saved order, the input order is returned unchanged."""
+        self.user.home_media_order = ""
+        media_types = [MediaTypes.MOVIE.value, MediaTypes.GAME.value]
+        self.assertEqual(
+            self.user.order_media_types_for_home(media_types),
+            media_types,
+        )
+
+    def test_full_order_reorders(self):
+        """A saved order fully reorders the input."""
+        self.user.home_media_order = f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"
+        result = self.user.order_media_types_for_home(
+            [MediaTypes.MOVIE.value, MediaTypes.GAME.value],
+        )
+        self.assertEqual(result, [MediaTypes.GAME.value, MediaTypes.MOVIE.value])
+
+    def test_partial_order_lists_saved_first(self):
+        """Saved types come first; unlisted types keep input order at the end."""
+        self.user.home_media_order = MediaTypes.GAME.value
+        result = self.user.order_media_types_for_home(
+            [MediaTypes.MOVIE.value, MediaTypes.GAME.value, MediaTypes.ANIME.value],
+        )
+        self.assertEqual(
+            result,
+            [MediaTypes.GAME.value, MediaTypes.MOVIE.value, MediaTypes.ANIME.value],
+        )
+
+    def test_unknown_saved_slug_ignored(self):
+        """A saved slug not present in the input has no effect."""
+        self.user.home_media_order = f"bogus,{MediaTypes.GAME.value}"
+        result = self.user.order_media_types_for_home(
+            [MediaTypes.MOVIE.value, MediaTypes.GAME.value],
+        )
+        self.assertEqual(result, [MediaTypes.GAME.value, MediaTypes.MOVIE.value])

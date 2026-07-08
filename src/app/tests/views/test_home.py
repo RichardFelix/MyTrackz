@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from app.models import (
     Anime,
+    BasicMedia,
     Episode,
     Item,
     MediaTypes,
@@ -301,3 +302,26 @@ class HomeViewTests(TestCase):
         self.assertIn("media_list", response.context)
         self.assertEqual(len(response.context["media_list"]["items"]), 2)
         self.assertEqual(response.context["media_list"]["total"], 16)
+
+
+class HomeMediaTypeOrderTests(TestCase):
+    """Test that the home media-type rows honor the user's saved order."""
+
+    def setUp(self):
+        """Create a user (all media types enabled by default)."""
+        credentials = {"username": "ordertest", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+
+    def test_default_order_is_enum_order(self):
+        """With no saved order, TV is excluded and season leads the enum order."""
+        result = BasicMedia.objects._get_media_types_to_process(self.user, None)
+        self.assertNotIn(MediaTypes.TV.value, result)
+        self.assertEqual(result[0], MediaTypes.SEASON.value)
+
+    def test_saved_order_moves_type_to_front(self):
+        """A saved order puts the chosen type first, others keep enum order."""
+        self.user.home_media_order = MediaTypes.GAME.value
+        self.user.save()
+        result = BasicMedia.objects._get_media_types_to_process(self.user, None)
+        self.assertEqual(result[0], MediaTypes.GAME.value)
+        self.assertNotIn(MediaTypes.TV.value, result)
