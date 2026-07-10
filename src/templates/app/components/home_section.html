@@ -1,6 +1,6 @@
 {% load app_tags %}
 
-<section class="space-y-5">
+<section id="{{ section.key|slugify }}" class="scroll-mt-24 space-y-5">
   <div class="flex items-center justify-between gap-4 border-b border-white/5 pb-4">
     <div class="flex items-center gap-3">
       <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#39404b] {% if section.key == Status.IN_PROGRESS.value %}{{ Status.IN_PROGRESS.value|status_color }}{% else %}{{ Status.PLANNING.value|status_color }}{% endif %}">

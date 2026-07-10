@@ -3,7 +3,7 @@
 
 <!DOCTYPE html>
 <html lang="en"
-      class="scheme-dark bg-[#000]{% if user.theme == 'grey' %} theme-grey{% endif %}">
+      class="scheme-dark scroll-smooth bg-[#000]{% if user.theme == 'grey' %} theme-grey{% endif %}">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
@@ -103,6 +103,27 @@
                     {% endif %}
                     <span>Home</span>
                   </a>
+                </li>
+
+                <li>
+                  <ul class="ml-6 space-y-0.5 border-l border-[#2c3136] pl-2">
+                    <li>
+                      <a href="{% url 'home' %}#in-progress"
+                         @click="isMobileMenuOpen = false"
+                         class="group flex items-center space-x-2.5 px-3 py-1.5 rounded-md transition-colors duration-200 text-[13px] text-gray-500 hover:text-white hover:bg-[#23272b]">
+                        {% include "app/icons/states/in-progress.svg" with classes="w-4 h-4 shrink-0" %}
+                        <span>In Progress</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a href="{% url 'home' %}#planning"
+                         @click="isMobileMenuOpen = false"
+                         class="group flex items-center space-x-2.5 px-3 py-1.5 rounded-md transition-colors duration-200 text-[13px] text-gray-500 hover:text-white hover:bg-[#23272b]">
+                        {% include "app/icons/states/planning.svg" with classes="w-4 h-4 shrink-0" %}
+                        <span>Planning</span>
+                      </a>
+                    </li>
+                  </ul>
                 </li>
 
                 {% get_sidebar_media_types user as sidebar_media_types %}
