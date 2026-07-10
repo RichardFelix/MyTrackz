@@ -8,7 +8,7 @@
       <img alt="{{ media.item }}"
            class="lazyload min-w-10 w-10 h-10 object-cover rounded-md {% if request.user == target_user %}parent-hover-tap:hidden{% endif %}"
            data-src="{{ media.item.cached_image_url }}"
-           src="{{ IMG_NONE }}">
+           src="{{ IMG_PLACEHOLDER }}">
       {% if request.user == target_user %}
         <button class="w-10 h-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors items-center justify-center hidden cursor-pointer parent-hover-tap:flex"
                 hx-get="{% media_view_url 'track_modal' media.item %}"

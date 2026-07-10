@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.conf import settings
+from django.templatetags.static import static
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -107,11 +108,15 @@ class AppTagsTests(TestCase):
         """A raw dict (untracked search/recommendation result) uses its own image."""
         result = app_tags.cached_image_url({"image": "http://example.com/x.jpg"})
         self.assertEqual(result, "http://example.com/x.jpg")
-        self.assertEqual(app_tags.cached_image_url({}), settings.IMG_NONE)
+        self.assertEqual(app_tags.cached_image_url({}), static("img/no-image.svg"))
+        self.assertEqual(
+            app_tags.cached_image_url({"image": settings.IMG_NONE}),
+            static("img/no-image.svg"),
+        )
 
     def test_cached_image_url_with_none_item(self):
-        """A missing item falls back to the placeholder image."""
-        self.assertEqual(app_tags.cached_image_url(None), settings.IMG_NONE)
+        """A missing item falls back to the local placeholder image."""
+        self.assertEqual(app_tags.cached_image_url(None), static("img/no-image.svg"))
 
     def test_cached_image_url_prefers_tracked_media_item(self):
         """A tracked Media instance's Item (with the local cache) takes priority."""

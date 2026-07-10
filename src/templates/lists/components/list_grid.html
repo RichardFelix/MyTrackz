@@ -5,7 +5,7 @@
     <div class="relative h-48 flex items-center justify-center">
       <img alt="{{ custom_list.name }}"
            class="{% if custom_list.image != IMG_NONE %}w-full h-full object-cover{% else %}w-3/5 h-3/5{% endif %}"
-           src="{{ custom_list.image }}">
+           src="{% if custom_list.image != IMG_NONE %}{{ custom_list.image }}{% else %}{{ IMG_PLACEHOLDER }}{% endif %}">
 
       <div class="absolute inset-0 bg-black/40 transition-opacity group-hover:bg-black/50"></div>
       <a href="{% url 'list_detail' custom_list.id %}"

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from django import template
 from django.conf import settings
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import formats, timezone
 from django.utils.dateparse import parse_date
@@ -65,9 +66,12 @@ def cached_image_url(item, media=None):
     if media:
         return media.item.cached_image_url
     if isinstance(item, dict):
-        return item.get("image") or settings.IMG_NONE
+        image = item.get("image")
+        if not image or image == settings.IMG_NONE:
+            return static("img/no-image.svg")
+        return image
     if item is None:
-        return settings.IMG_NONE
+        return static("img/no-image.svg")
     return item.cached_image_url
 
 

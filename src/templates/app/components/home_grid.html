@@ -6,9 +6,9 @@
     <div class="relative">
       <a href="{{ media.item|media_url }}">
         <img alt="{{ media }}"
-             class="lazyload w-full aspect-2/3 {% if media.item.cached_image_url != IMG_NONE %}object-cover{% endif %}"
+             class="lazyload w-full aspect-2/3 {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
              data-src="{{ media.item.cached_image_url }}"
-             src="{{ IMG_NONE }}">
+             src="{{ IMG_PLACEHOLDER }}">
       </a>
 
       {% if media.next_event and not media.next_event.is_max_datetime %}

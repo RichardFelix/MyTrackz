@@ -22,6 +22,7 @@ from django.db.models import (
     Window,
 )
 from django.db.models.functions import RowNumber
+from django.templatetags.static import static
 from django.utils import timezone
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
@@ -241,7 +242,9 @@ class Item(CalendarTriggerMixin, models.Model):
         if self.image_cached:
             relpath = _cached_image_relpath(self.image, self.image_cache_format)
             return f"{settings.MEDIA_URL}{relpath}"
-        return self.image or settings.IMG_NONE
+        if not self.image or self.image == settings.IMG_NONE:
+            return static("img/no-image.svg")
+        return self.image
 
     @classmethod
     def generate_manual_id(cls):

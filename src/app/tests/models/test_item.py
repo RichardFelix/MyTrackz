@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.conf import settings
+from django.templatetags.static import static
 from django.test import TestCase
 
 from app.models import (
@@ -118,8 +119,8 @@ class ItemModel(TestCase):
         self.assertTrue(cached_url.endswith(".jpg"))
         self.assertNotEqual(cached_url, self.item.image)
 
-    def test_cached_image_url_falls_back_to_img_none(self):
-        """Return IMG_NONE when the item has no image at all."""
+    def test_cached_image_url_falls_back_to_local_placeholder(self):
+        """Return the local placeholder when the item has no image at all."""
         item = Item.objects.create(
             media_id="5",
             source=Sources.TMDB.value,
@@ -128,4 +129,16 @@ class ItemModel(TestCase):
             image="",
         )
 
-        self.assertEqual(item.cached_image_url, settings.IMG_NONE)
+        self.assertEqual(item.cached_image_url, static("img/no-image.svg"))
+
+    def test_cached_image_url_resolves_img_none_to_local_placeholder(self):
+        """Return the local placeholder instead of the remote IMG_NONE sentinel."""
+        item = Item.objects.create(
+            media_id="6",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Sentinel Image Movie",
+            image=settings.IMG_NONE,
+        )
+
+        self.assertEqual(item.cached_image_url, static("img/no-image.svg"))
