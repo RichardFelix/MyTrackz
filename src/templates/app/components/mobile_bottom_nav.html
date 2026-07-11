@@ -45,6 +45,14 @@
               <span class="max-w-full truncate text-[11px] font-medium text-gray-300">{{ item.display_name }}</span>
             </a>
           {% endfor %}
+          <a href="{% url 'lists' %}"
+             @click="libraryOpen = false"
+             class="flex flex-col items-center gap-1">
+            <span class="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-gray-300">
+              {% include "app/icons/folder-plus.svg" with classes="w-5 h-5" %}
+            </span>
+            <span class="max-w-full truncate text-[11px] font-medium text-gray-300">Lists</span>
+          </a>
           <a href="{% url 'create_entry' %}"
              @click="libraryOpen = false"
              class="flex flex-col items-center gap-1">
