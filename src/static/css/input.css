@@ -48,6 +48,21 @@
   @apply grid grid-cols-2 xs:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
 }
 
+/* Mobile bottom nav (modern-ui): iOS-style translucent glass capsule.
+   Layered gradient fakes the specular/lensing look on top of the blur. */
+.liquid-glass {
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.12);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.12);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 32%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.07)),
+    rgba(24, 25, 32, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.05);
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
 @custom-variant parent-hover-tap (.hover-tap:hover &);

@@ -58,7 +58,7 @@
     {% block body %}
       {# Main container for the layout #}
       <div class="flex min-h-screen bg-[#000] text-gray-100"
-           x-data="{ isMobileMenuOpen: false, paletteOpen: false, openPalette() { this.isMobileMenuOpen = false; this.paletteOpen = true; this.$nextTick(() => { const el = document.getElementById('palette-input'); if (el) { el.focus(); el.select(); } }); } }"
+           x-data="{ isMobileMenuOpen: false, paletteOpen: false, openPalette() { this.isMobileMenuOpen = false; const tmp = document.createElement('input'); tmp.type = 'text'; tmp.style.cssText = 'position:fixed;top:40%;left:0;width:1px;height:1px;opacity:0;border:0;padding:0'; document.body.appendChild(tmp); tmp.focus({ preventScroll: true }); this.paletteOpen = true; this.$nextTick(() => { const el = document.getElementById('palette-input'); if (el) { el.focus({ preventScroll: true }); el.select(); } tmp.remove(); }); } }"
            @open-search-palette.window="openPalette()">
 
         {# Mobile menu overlay #}
@@ -310,8 +310,8 @@
 
         {# Main content #}
         <div class="flex-1 min-w-0 flex flex-col min-h-screen">
-          {# Top bar #}
-          <div class="sticky top-0 z-10 border-b border-[#2c3136] bg-[#000] shadow-md">
+          {# Top bar; collapsed (not display:none) on mobile so the fixed command palette inside stays usable #}
+          <div class="sticky top-0 z-10 border-b border-[#2c3136] bg-[#000] shadow-md max-lg:invisible max-lg:h-0 max-lg:overflow-hidden max-lg:border-0 max-lg:shadow-none">
             <div class="mx-auto flex h-16 items-center gap-3 px-4 sm:px-6">
               {# Mobile: sidebar toggle button #}
               <button @click="isMobileMenuOpen = !isMobileMenuOpen"
@@ -377,7 +377,7 @@
                      @keydown.escape.window="paletteOpen = false"
                      @click="paletteOpen = false"
                      x-transition.opacity
-                     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 pt-24">
+                     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 pt-24 max-lg:visible">
                   <div @click.stop
                        class="w-full max-w-xl overflow-hidden rounded-xl border border-[#2c3136] bg-[#1b1c22] shadow-2xl"
                        x-data="{ selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }} }">
@@ -425,12 +425,16 @@
           </div>
 
           <main class="flex-1 relative bg-[#000]">
-            <div class="container mx-auto px-8 py-12">
+            <div class="container mx-auto px-8 py-12 max-lg:pb-32">
               {% block content %}
               {% endblock content %}
             </div>
           </main>
         </div>
+
+        {% if user.is_authenticated %}
+          {% include "app/components/mobile_bottom_nav.html" %}
+        {% endif %}
       </div>
     {% endblock body %}
 
