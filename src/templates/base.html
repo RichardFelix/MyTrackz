@@ -28,6 +28,8 @@
           type="text/css"
           href="{% static 'css/main.css' %}{% get_static_file_mtime 'css/main.css' %}">
 
+    {# Must load before Alpine, not deferred: filters Firefox anonymous-content leaks out of MutationObserver records #}
+    <script src="{% static 'js/mutationObserverGuard.js' %}{% get_static_file_mtime 'js/mutationObserverGuard.js' %}"></script>
     <script src="{% static 'js/libraries/htmx-2.0.4.min.js' %}"></script>
     <script defer src="{% static 'js/libraries/alpinejs-3.14.9.min.js' %}"></script>
     <script src="{% static 'js/libraries/lazysizes-5.3.2.min.js' %}" async></script>
