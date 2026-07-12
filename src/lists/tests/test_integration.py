@@ -1,5 +1,4 @@
 import os
-import re
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -39,14 +38,18 @@ class IntegrationTest(StaticLiveServerTestCase):
         cls.browser.close()
         cls.playwright.stop()
 
+    def palette_search(self, query, media_type_display):
+        """Search via the command palette that replaced the top-bar search form."""
+        self.page.get_by_role("button", name="Search or jump to").click()
+        palette_input = self.page.locator("#palette-input")
+        expect(palette_input).to_be_visible()
+        self.page.get_by_role("button", name=media_type_display, exact=True).click()
+        palette_input.fill(query)
+        palette_input.press("Enter")
+
     def test_blank_modal(self):
         """Test the blank modal for creating a list."""
-        self.page.get_by_role("button", name="TV Shows").click()
-        self.page.locator("li").filter(has_text=re.compile(r"^Anime$")).click()
-        self.page.get_by_placeholder("Search anime...").fill("perfect blue")
-        self.page.locator("form").filter(has_text="Anime TV").get_by_role(
-            "button",
-        ).first.click()
+        self.palette_search("perfect blue", "Anime")
         self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
         expect(self.page.locator("#lists-anime-437")).to_contain_text(
             "You haven't created any lists yet.",
@@ -66,13 +69,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         ).to_be_visible()
 
         # Add item to list
-        self.page.get_by_role("button", name="TV Shows").click()
-        self.page.locator("li").filter(has_text=re.compile(r"^Anime$")).click()
-        self.page.get_by_placeholder("Search anime...").click()
-        self.page.get_by_placeholder("Search anime...").fill("perfect blue")
-        self.page.locator("form").filter(has_text="Anime TV").get_by_role(
-            "button",
-        ).first.click()
+        self.palette_search("perfect blue", "Anime")
         self.page.locator(".absolute > .relative > button:nth-child(2)").first.click()
         expect(self.page.locator("#lists-anime-437")).to_contain_text("Lists test Add")
         self.page.get_by_role("button", name="Add", exact=True).click()

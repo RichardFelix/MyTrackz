@@ -40,10 +40,18 @@ class IntegrationTest(StaticLiveServerTestCase):
         cls.browser.close()
         cls.playwright.stop()
 
+    def palette_search(self, query, media_type_display):
+        """Search via the command palette that replaced the top-bar search form."""
+        self.page.get_by_role("button", name="Search or jump to").click()
+        palette_input = self.page.locator("#palette-input")
+        expect(palette_input).to_be_visible()
+        self.page.get_by_role("button", name=media_type_display, exact=True).click()
+        palette_input.fill(query)
+        palette_input.press("Enter")
+
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""
-        self.page.get_by_placeholder("Search tv shows...").fill("breaking bad")
-        self.page.get_by_role("button").nth(1).click()
+        self.palette_search("breaking bad", "TV Shows")
         expect(self.page.locator("h2")).to_contain_text("Search Results")
         self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
@@ -75,11 +83,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_tv_completed(self):
         """Test the completed status of a TV show."""
-        self.page.get_by_placeholder("Search tv shows...").click()
-        self.page.get_by_placeholder("Search tv shows...").fill("breaking bad")
-        self.page.locator("form").filter(has_text="TV Shows TV").get_by_role(
-            "button",
-        ).first.click()
+        self.palette_search("breaking bad", "TV Shows")
         expect(self.page.locator("h2")).to_contain_text("Search Results")
         self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
@@ -93,8 +97,7 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_season_completed(self):
         """Test the completed status of a season."""
-        self.page.get_by_placeholder("Search tv shows...").fill("breaking bad")
-        self.page.get_by_role("button").nth(1).click()
+        self.palette_search("breaking bad", "TV Shows")
         expect(self.page.locator("h2")).to_contain_text("Search Results")
         self.page.get_by_title("Breaking Bad", exact=True).click()
         expect(self.page.get_by_role("main")).to_contain_text("Breaking Bad")
@@ -111,7 +114,7 @@ class IntegrationTest(StaticLiveServerTestCase):
     def test_tv_manual(self):
         """Test the manual creation of a TV show."""
         # Create TV show
-        self.page.get_by_role("link", name="Create Custom").click()
+        self.page.get_by_role("link", name="Create Custom", exact=True).click()
         self.page.get_by_placeholder("Enter title").click()
         self.page.get_by_placeholder("Enter title").fill("Friends")
         self.page.get_by_placeholder("Enter image URL").click()
