@@ -63,6 +63,25 @@
     inset 0 -1px 1px rgba(255, 255, 255, 0.05);
 }
 
+/* Media card hover lift (modern-ui): desktop pointers only, motion-safe.
+   Applied via an Alpine :class binding in media_card.html / home_grid.html
+   that drops it while any card modal is open — a transform would make the
+   card the containing block for its fixed-position modals and clip them. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card-lift {
+    outline: 1px solid transparent;
+    transition:
+      transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1),
+      box-shadow 0.22s ease,
+      outline-color 0.22s ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-6px) scale(1.02);
+    outline-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 22px 34px -14px rgba(0, 0, 0, 0.85);
+  }
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
 @custom-variant parent-hover-tap (.hover-tap:hover &);

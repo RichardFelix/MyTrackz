@@ -15,7 +15,7 @@
                 hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ media.id }}"}'
                 hx-target="#{% component_id 'track' media.item media.id %}"
                 hx-trigger="click once"
-                @click="trackOpen = true">{% include "app/icons/edit.svg" with classes="w-4 h-4" %}</button>
+                @click="trackOpen = true">{% include "app/icons/pen.svg" with classes="w-4 h-4" %}</button>
 
         {# Track Modal #}
         <div x-show="trackOpen"

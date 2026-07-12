@@ -43,7 +43,7 @@
           </div>
 
           <div class="h-5 mx-2 border-l border-white/30"></div>
-          {% include "app/icons/edit.svg" with classes="w-5 h-5 shrink-0" %}
+          {% include "app/icons/pen.svg" with classes="w-5 h-5 shrink-0" %}
         </button>
 
         {# Track Modal #}
@@ -325,7 +325,7 @@
                                 hx-target="#{% component_id 'track' media user_media.id %}"
                                 hx-trigger="click once"
                                 @click="trackOpen = true">
-                          {% include "app/icons/edit-flat.svg" with classes="w-4 h-4" %}
+                          {% include "app/icons/pen.svg" with classes="w-4 h-4" %}
                         </button>
 
                         <div x-show="trackOpen"
@@ -397,7 +397,7 @@
                   hx-target="#{% component_id 'lists' media %}"
                   hx-trigger="click once"
                   @click="listsOpen = true">
-            {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
+            {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
             Lists
           </button>
 
@@ -420,7 +420,7 @@
                   hx-target="#{% component_id 'history' media %}"
                   hx-trigger="click once"
                   @click="historyOpen = true">
-            {% include "app/icons/history.svg" with classes="w-4 h-4" %}
+            {% include "app/icons/hourglass.svg" with classes="w-4 h-4" %}
             History
           </button>
 
@@ -676,7 +676,7 @@
                                         hx-target="#{% component_id 'lists' episode %}"
                                         hx-trigger="click once"
                                         @click="listsOpen = true">
-                                  {% include "app/icons/list-add.svg" with classes="w-4 h-4" %}
+                                  {% include "app/icons/plus.svg" with classes="w-4 h-4" %}
                                 </button>
 
                                 <div x-show="listsOpen"
@@ -698,7 +698,7 @@
                                         hx-target="#{% component_id 'history' episode %}"
                                         hx-trigger="click once"
                                         @click="historyOpen = true">
-                                  {% include "app/icons/history.svg" with classes="w-4 h-4" %}
+                                  {% include "app/icons/hourglass.svg" with classes="w-4 h-4" %}
                                 </button>
                                 <div x-show="historyOpen"
                                      @keydown.escape.window="historyOpen = false"
