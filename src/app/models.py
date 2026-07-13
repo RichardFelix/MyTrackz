@@ -277,13 +277,19 @@ class Item(CalendarTriggerMixin, models.Model):
         """Sync this item's release format from a provider metadata dict.
 
         Anime-only: the format only drives anime UI (movie checkmark,
-        list-page format filter). Metadata without a format is a no-op, so a
-        flaky provider response can't wipe a format that was stored before.
+        list-page format filter), which only ever distinguishes Movie vs TV -
+        MAL's finer categories (OVA, Special, Music, Unknown...) collapse to
+        TV, same as the details page's separate "TV"/"ONA" merge. Metadata
+        without a format is a no-op, so a flaky provider response can't wipe
+        a format that was stored before.
         """
         if self.media_type != MediaTypes.ANIME.value:
             return
-        media_format = metadata.get("details", {}).get("format") or ""
-        if not media_format or media_format == self.media_format:
+        raw_format = metadata.get("details", {}).get("format") or ""
+        if not raw_format:
+            return
+        media_format = "Movie" if raw_format == "Movie" else "TV"
+        if media_format == self.media_format:
             return
         self.media_format = media_format
         self.save(update_fields=["media_format"])
