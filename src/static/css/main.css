@@ -679,6 +679,9 @@
   .h-\[360px\] {
     height: 360px;
   }
+  .h-auto {
+    height: auto;
+  }
   .h-full {
     height: 100%;
   }
@@ -1906,6 +1909,9 @@
   }
   .text-\[13px\] {
     font-size: 13px;
+  }
+  .text-\[25px\] {
+    font-size: 25px;
   }
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
