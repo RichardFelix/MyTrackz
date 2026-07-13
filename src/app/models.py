@@ -129,6 +129,9 @@ class Item(CalendarTriggerMixin, models.Model):
     # restored by "Revert to original"; empty when no custom image is set.
     image_original = models.URLField(blank=True, default="")
     genres = models.ManyToManyField(Genre, blank=True, related_name="items")
+    # Provider release format (e.g. MAL: TV/Movie/OVA, IGDB: Main game/DLC),
+    # captured from metadata like genres; empty until first details view/backfill.
+    media_format = models.CharField(max_length=30, blank=True, default="")
     season_number = models.PositiveIntegerField(null=True, blank=True)
     episode_number = models.PositiveIntegerField(null=True, blank=True)
 
@@ -270,6 +273,21 @@ class Item(CalendarTriggerMixin, models.Model):
             [Genre.objects.get_or_create(name=name)[0] for name in names],
         )
 
+    def set_format_from_metadata(self, metadata):
+        """Sync this item's release format from a provider metadata dict.
+
+        Anime-only: the format only drives anime UI (movie checkmark,
+        list-page format filter). Metadata without a format is a no-op, so a
+        flaky provider response can't wipe a format that was stored before.
+        """
+        if self.media_type != MediaTypes.ANIME.value:
+            return
+        media_format = metadata.get("details", {}).get("format") or ""
+        if not media_format or media_format == self.media_format:
+            return
+        self.media_format = media_format
+        self.save(update_fields=["media_format"])
+
     def fetch_releases(self, delay):
         """Fetch releases for the item."""
         if self._disable_calendar_triggers:
@@ -325,6 +343,7 @@ class MediaManager(models.Manager):
         sort_filter,
         search=None,
         genre_filter=None,
+        format_filter=None,
     ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
@@ -338,6 +357,9 @@ class MediaManager(models.Manager):
 
         if genre_filter:
             queryset = queryset.filter(item__genres__name=genre_filter)
+
+        if format_filter:
+            queryset = queryset.filter(item__media_format=format_filter)
 
         queryset = queryset.annotate(
             repeats=Window(

@@ -525,3 +525,49 @@ def backfill_item_genres():
     msg = f"Genre backfill: {filled} filled, {failed} failed, {len(items)} candidates"
     logger.info(msg)
     return msg
+
+
+@shared_task(name="Backfill item formats")
+def backfill_item_formats():
+    """Populate the release format for tracked anime that don't have one yet.
+
+    Formats normally get captured when an item is tracked or its details page
+    is visited; this fills the gaps (imports, items tracked before the field
+    existed). Anime-only: the format only drives anime UI (movie checkmark,
+    list-page filter), so other types aren't worth a metadata call. One call
+    per item, throttled by the shared rate-limited provider session.
+    """
+    from django.db.models import Q  # noqa: PLC0415 avoid import cycle
+
+    from app.models import Item, Sources  # noqa: PLC0415 avoid import cycle
+    from app.providers import services  # noqa: PLC0415 avoid import cycle
+
+    items = list(
+        Item.objects.filter(
+            ~Q(source=Sources.MANUAL.value),
+            anime__isnull=False,
+            media_format="",
+        ).distinct(),
+    )
+
+    filled = 0
+    failed = 0
+    for item in items:
+        try:
+            metadata = services.get_media_metadata(
+                item.media_type,
+                item.media_id,
+                item.source,
+                [item.season_number],
+            )
+            item.set_format_from_metadata(metadata)
+        except Exception:  # noqa: BLE001 one item's failure shouldn't kill the run
+            failed += 1
+            logger.warning("Format backfill failed for %s", item, exc_info=True)
+            continue
+        if item.media_format:
+            filled += 1
+
+    msg = f"Format backfill: {filled} filled, {failed} failed, {len(items)} candidates"
+    logger.info(msg)
+    return msg

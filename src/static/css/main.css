@@ -2765,6 +2765,14 @@
       }
     }
   }
+  .hover\:shadow-\[0_0_14px_rgba\(16\,185\,129\,0\.35\)\] {
+    &:hover {
+      @media (hover: hover) {
+        --tw-shadow: 0 0 14px var(--tw-shadow-color, rgba(16,185,129,0.35));
+        box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+      }
+    }
+  }
   .hover\:shadow-\[0_0_14px_rgba\(99\,102\,241\,0\.35\)\] {
     &:hover {
       @media (hover: hover) {

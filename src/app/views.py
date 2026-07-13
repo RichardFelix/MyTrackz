@@ -335,6 +335,7 @@ def media_list(request, username, media_type):
 
     search_query = request.GET.get("search", "")
     genre_filter = request.GET.get("genre", "")
+    format_filter = request.GET.get("format", "")
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
@@ -349,6 +350,7 @@ def media_list(request, username, media_type):
         sort_filter=sort_filter,
         search=search_query,
         genre_filter=genre_filter,
+        format_filter=format_filter,
     )
 
     # Paginate results
@@ -370,6 +372,7 @@ def media_list(request, username, media_type):
         "current_sort": sort_filter,
         "current_status": status_filter,
         "current_genre": genre_filter,
+        "current_format": format_filter,
         "sort_choices": MediaSortChoices.choices,
         "status_choices": MediaStatusChoices.choices,
         "target_user": target_user,
@@ -402,8 +405,31 @@ def media_list(request, username, media_type):
             .distinct()
             .values_list("name", flat=True),
         )
+        context["format_choices"] = _get_format_choices(media_type, target_user)
 
     return render(request, template_name, context)
+
+
+def _get_format_choices(media_type, target_user):
+    """Return the format-filter options for the user's library.
+
+    The format filter is anime-only (TV vs Movie vs OVA...). A single-option
+    filter is noise, so fewer than two distinct formats renders no dropdown.
+    """
+    if media_type != MediaTypes.ANIME.value:
+        return []
+    format_choices = sorted(
+        Item.objects.filter(
+            **{f"{media_type}__user": target_user},
+        )
+        .exclude(media_format="")
+        .values_list("media_format", flat=True)
+        # clear Item's default ordering: its column would join the DISTINCT
+        # and duplicate each format once per item
+        .order_by()
+        .distinct(),
+    )
+    return format_choices if len(format_choices) > 1 else []
 
 
 @require_GET
@@ -462,6 +488,7 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
         item = helpers.ensure_item_cached(media_metadata, media_type)
 
     item.set_genres_from_metadata(media_metadata)
+    item.set_format_from_metadata(media_metadata)
 
     # Enrich related items with user tracking data
     if media_metadata.get("related"):
@@ -654,6 +681,7 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
                 metadata,
             ),
         )
+        item.set_format_from_metadata(metadata)
         title = metadata["title"]
         if season_number:
             title += f" - Season {season_number}"
@@ -920,6 +948,7 @@ def media_save(request):
                 "image": metadata["image"],
             },
         )
+        item.set_format_from_metadata(metadata)
         model = apps.get_model(app_label="app", model_name=media_type)
         instance = model(item=item, user=request.user)
 

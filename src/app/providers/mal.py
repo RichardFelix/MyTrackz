@@ -268,11 +268,11 @@ def get_format(response):
     """Return the original type of the media."""
     media_format = response["media_type"]
 
-    # MAL return tv in metadata for anime
-    if media_format == "tv":
-        return "Anime"
-    if media_format in ("ova", "ona"):
-        return media_format.upper()
+    # ONAs are web-released series - group them with TV
+    if media_format in ("tv", "ona"):
+        return "TV"
+    if media_format == "ova":
+        return "OVA"
     return media_format.replace("_", " ").title()
 
 

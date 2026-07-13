@@ -13,7 +13,7 @@
     {{ media_type|media_type_readable_plural }}
   </h1>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', genre: '{{ current_genre|escapejs }}', statusLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', genre: '{{ current_genre|escapejs }}', format: '{{ current_format|escapejs }}', statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -34,6 +34,7 @@
       <input type="hidden" name="search" x-model="search">
       <input type="hidden" name="layout" x-model="layout">
       <input type="hidden" name="genre" x-model="genre">
+      <input type="hidden" name="format" x-model="format">
     </form>
 
     <div class="flex flex-col md:flex-row gap-4 mb-6">
@@ -165,14 +166,57 @@
           </div>
         {% endif %}
 
+        <!-- Filter by Format -->
+        {% if format_choices %}
+          <div class="relative w-full sm:w-auto" x-data="{ open: false }">
+            <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
+                    @click="open = !open"
+                    type="button">
+              {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
+              <span class="flex-1 text-left" x-text="format || 'All Formats'"></span>
+              {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
+            </button>
+
+            <div class="absolute z-10 mt-2 max-h-80 w-48 overflow-y-auto rounded-lg border border-[#2c3136] bg-[#1b1c22] py-1 shadow-xl"
+                 x-cloak
+                 x-show="open"
+                 @click.outside="open = false"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="transform opacity-0 scale-95"
+                 x-transition:enter-end="transform opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="transform opacity-100 scale-100"
+                 x-transition:leave-end="transform opacity-0 scale-95">
+              <button hx-get="{% url 'medialist' target_user.username media_type %}"
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="format === '' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
+                      @click="format = ''; open = false"
+                      type="button">All Formats</button>
+              {% for name in format_choices %}
+                <button hx-get="{% url 'medialist' target_user.username media_type %}"
+                        {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                        hx-include="#filter-form"
+                        hx-indicator="#loading-indicator"
+                        class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                        :class="format === '{{ name|escapejs }}' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
+                        @click="format = '{{ name|escapejs }}'; open = false"
+                        type="button">{{ name }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
         <!-- Layout Toggle -->
         <div class="flex w-full overflow-hidden rounded-lg border border-[#2c3136] sm:w-auto">
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}layout=grid`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}layout=grid`"
              class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}layout=table`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}layout=table`"
              class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Table View"
