@@ -135,6 +135,9 @@ def unfinished_collections(request):
     returns an invisible self-polling fragment (the widget shows nothing
     while loading).
     """
+    if not request.user.show_continue_story:
+        return HttpResponse()
+
     suggestions = helpers.get_cached_unfinished_collections(request.user)
     if suggestions is None:
         _queue_feed_build(

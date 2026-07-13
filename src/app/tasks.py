@@ -394,12 +394,14 @@ def _compute_user_feed(user_id, label, compute, cache_key, pending_key, ttl, bui
     return len(suggestions)
 
 
-def _fan_out_per_user(compute_task):
-    """Queue a per-user feed rebuild for every active user."""
+def _fan_out_per_user(compute_task, **user_filters):
+    """Queue a per-user feed rebuild for every active user matching the filters."""
     from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
 
     user_ids = list(
-        get_user_model().objects.filter(is_active=True).values_list("id", flat=True)
+        get_user_model()
+        .objects.filter(is_active=True, **user_filters)
+        .values_list("id", flat=True)
     )
     for user_id in user_ids:
         compute_task.delay(user_id)
@@ -447,8 +449,8 @@ def compute_unfinished_collections(user_id, build_id=None):
 
 @shared_task(name="Refresh unfinished collections")
 def refresh_unfinished_collections():
-    """Queue a "Continue the Story" rebuild for every active user."""
-    return _fan_out_per_user(compute_unfinished_collections)
+    """Queue a "Continue the Story" rebuild for users who show the section."""
+    return _fan_out_per_user(compute_unfinished_collections, show_continue_story=True)
 
 
 @shared_task(name="Compute trending feed")

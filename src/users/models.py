@@ -385,6 +385,12 @@ class User(AbstractUser):
         help_text="Hide zero ratings from media cards",
     )
 
+    # Continue the Story home section
+    show_continue_story = models.BooleanField(
+        default=True,
+        help_text="Show the Continue the Story section on the home page",
+    )
+
     # Watch provider region
     watch_provider_region = models.CharField(
         max_length=5,

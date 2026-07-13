@@ -279,6 +279,7 @@ def preferences(request):
         "hide_completed_recommendations" in request.POST
     )
     request.user.hide_zero_rating = "hide_zero_rating" in request.POST
+    request.user.show_continue_story = "show_continue_story" in request.POST
     request.user.date_format = request.POST.get(
         "date_format",
         DateFormatChoices.ISO,

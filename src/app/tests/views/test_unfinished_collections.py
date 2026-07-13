@@ -252,6 +252,28 @@ class UnfinishedCollectionsViewTests(TestCase):
         titles = [s["item"]["title"] for s in response.context["suggestions"]]
         self.assertEqual(titles, ["Sequel Movie"])
 
+    def test_disabled_preference_returns_empty_and_queues_nothing(self):
+        """With the preference off, the view renders nothing and never builds."""
+        self.user.show_continue_story = False
+        self.user.save()
+
+        with patch("app.views.compute_unfinished_collections.delay") as mock_delay:
+            response = self.client.get(reverse("unfinished_collections"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"")
+        mock_delay.assert_not_called()
+
+    def test_disabled_preference_skipped_by_refresh_task(self):
+        """The beat task must not precompute for users who hid the section."""
+        self.user.show_continue_story = False
+        self.user.save()
+        self.mock_get_media_metadata.return_value = self._sequel_metadata()
+
+        queued = refresh_unfinished_collections()
+
+        self.assertEqual(queued, 0)
+
     def test_polling_does_not_queue_duplicate_builds(self):
         """While a build is pending, further polls must not queue more builds."""
         with patch("app.views.compute_unfinished_collections.delay") as mock_delay:
