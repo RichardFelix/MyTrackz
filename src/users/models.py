@@ -707,14 +707,26 @@ class User(AbstractUser):
         """Reorder an iterable of media types by the user's saved home order.
 
         Types present in the saved order come first (in that order); any not
-        listed keep their original (enum) order at the end.
+        listed keep their original (enum) order at the end. The saved order
+        stores `season` (home rows never show `tv`), so `tv` borrows
+        `season`'s position — this lets the sidebar, which links `tv`,
+        reuse the same order.
         """
         if not self.home_media_order:
             return list(media_types)
 
         saved = [mt for mt in self.home_media_order.split(",") if mt]
         index = {mt: position for position, mt in enumerate(saved)}
-        return sorted(media_types, key=lambda mt: index.get(mt, len(index)))
+
+        def sort_key(media_type):
+            lookup = (
+                MediaTypes.SEASON.value
+                if media_type == MediaTypes.TV.value
+                else media_type
+            )
+            return index.get(lookup, len(index))
+
+        return sorted(media_types, key=sort_key)
 
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""

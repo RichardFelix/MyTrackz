@@ -256,7 +256,7 @@ def get_search_media_types(user):
 @register.simple_tag
 def get_sidebar_media_types(user):
     """Return available media types for sidebar navigation based on user preferences."""
-    enabled_types = user.get_enabled_media_types()
+    enabled_types = user.order_media_types_for_home(user.get_enabled_media_types())
 
     # Format the types for sidebar
     return [

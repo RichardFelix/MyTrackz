@@ -493,3 +493,16 @@ class UserOrderMediaTypesForHomeTests(TestCase):
             [MediaTypes.MOVIE.value, MediaTypes.GAME.value],
         )
         self.assertEqual(result, [MediaTypes.GAME.value, MediaTypes.MOVIE.value])
+
+    def test_tv_borrows_season_position(self):
+        """`tv` sorts by `season`'s saved position (used by the sidebar)."""
+        self.user.home_media_order = (
+            f"{MediaTypes.GAME.value},{MediaTypes.SEASON.value}"
+        )
+        result = self.user.order_media_types_for_home(
+            [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.GAME.value],
+        )
+        self.assertEqual(
+            result,
+            [MediaTypes.GAME.value, MediaTypes.TV.value, MediaTypes.MOVIE.value],
+        )

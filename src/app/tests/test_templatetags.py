@@ -489,3 +489,56 @@ class AppTagsTests(TestCase):
         for seconds, expected in cases:
             with self.subTest(seconds=seconds):
                 self.assertEqual(app_tags.seconds_to_duration(seconds), expected)
+
+
+class GetSidebarMediaTypesTests(TestCase):
+    """Test that the sidebar media types follow the home row order."""
+
+    def setUp(self):
+        """Create a user with a few media types enabled."""
+        from django.contrib.auth import get_user_model  # noqa: PLC0415
+
+        credentials = {"username": "sidebartest", "password": "testpassword"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        for media_type in MediaTypes.values:
+            if media_type == MediaTypes.EPISODE.value:
+                continue
+            setattr(self.user, f"{media_type}_enabled", False)
+        self.user.tv_enabled = True
+        self.user.movie_enabled = True
+        self.user.game_enabled = True
+
+    def _sidebar_slugs(self):
+        return [
+            entry["media_type"]
+            for entry in app_tags.get_sidebar_media_types(self.user)
+        ]
+
+    def test_no_saved_order_keeps_enum_order(self):
+        """Without a saved home order, the sidebar keeps enum order."""
+        self.user.home_media_order = ""
+        self.assertEqual(
+            self._sidebar_slugs(),
+            [MediaTypes.TV.value, MediaTypes.MOVIE.value, MediaTypes.GAME.value],
+        )
+
+    def test_saved_order_reorders_sidebar(self):
+        """The saved home order dictates the sidebar order."""
+        self.user.home_media_order = (
+            f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"
+        )
+        self.assertEqual(
+            self._sidebar_slugs(),
+            [MediaTypes.GAME.value, MediaTypes.MOVIE.value, MediaTypes.TV.value],
+        )
+
+    def test_tv_takes_seasons_saved_position(self):
+        """The saved order stores `season`; the sidebar's `tv` link uses its slot."""
+        self.user.home_media_order = (
+            f"{MediaTypes.MOVIE.value},{MediaTypes.SEASON.value},"
+            f"{MediaTypes.GAME.value}"
+        )
+        self.assertEqual(
+            self._sidebar_slugs(),
+            [MediaTypes.MOVIE.value, MediaTypes.TV.value, MediaTypes.GAME.value],
+        )
