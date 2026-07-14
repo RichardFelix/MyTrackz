@@ -11,7 +11,6 @@ db.sqlite3-shm
 db.sqlite3-wal
 .vscode/launch.json
 .agents
-AGENTS.md
 requests.http
 TODO.txt
 .codex
