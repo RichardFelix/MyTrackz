@@ -635,6 +635,52 @@ def _sync_item_defaults(media_id, source, media_type, season_number, metadata):
     return defaults
 
 
+def _sync_existing_episodes(metadata, source, media_id, season_number, title):
+    """Refresh existing episode Items from newly fetched season metadata."""
+    episodes = tmdb.process_episodes(metadata, [])
+    existing_episodes = {
+        episode.episode_number: episode
+        for episode in Item.objects.filter(
+            source=source,
+            media_type=MediaTypes.EPISODE.value,
+            media_id=media_id,
+            season_number=season_number,
+        )
+    }
+
+    episodes_to_update = []
+    episodes_with_new_image = []
+    for episode_data in episodes:
+        episode_item = existing_episodes.get(episode_data["episode_number"])
+        if episode_item is None:
+            continue
+
+        episode_item.title = episode_data["title"]
+        if _episode_image_changed(episode_item, episode_data):
+            episode_item.image = episode_data["image"]
+            episode_item.image_cached = False
+            episodes_with_new_image.append(episode_item)
+        episodes_to_update.append(episode_item)
+
+    logger.info(
+        "Found %s existing episodes to update for %s",
+        len(episodes_to_update),
+        title,
+    )
+    if not episodes_to_update:
+        return
+
+    updated_count = Item.objects.bulk_update(
+        episodes_to_update,
+        ["title", "image", "image_cached"],
+        batch_size=100,
+    )
+    logger.info("Successfully updated %s episodes for %s", updated_count, title)
+    for updated_item in episodes_with_new_image:
+        if updated_item.image and updated_item.image != settings.IMG_NONE:
+            cache_item_image.delay(updated_item.id, updated_item.image)
+
+
 @require_POST
 def sync_metadata(request, source, media_type, media_id, season_number=None):
     """Refresh the metadata for a media item."""
@@ -687,58 +733,13 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             title += f" - Season {season_number}"
 
         if media_type == MediaTypes.SEASON.value:
-            metadata["episodes"] = tmdb.process_episodes(
+            _sync_existing_episodes(
                 metadata,
-                [],
-            )
-
-            # Create a dictionary of existing episodes keyed by episode number
-            existing_episodes = {
-                ep.episode_number: ep
-                for ep in Item.objects.filter(
-                    source=source,
-                    media_type=MediaTypes.EPISODE.value,
-                    media_id=media_id,
-                    season_number=season_number,
-                )
-            }
-
-            episodes_to_update = []
-            episodes_with_new_image = []
-            episode_count = 0
-
-            for episode_data in metadata["episodes"]:
-                episode_number = episode_data["episode_number"]
-                if episode_number in existing_episodes:
-                    episode_item = existing_episodes[episode_number]
-                    episode_item.title = metadata["title"]
-                    if _episode_image_changed(episode_item, episode_data):
-                        episode_item.image = episode_data["image"]
-                        episode_item.image_cached = False
-                        episodes_with_new_image.append(episode_item)
-                    episodes_to_update.append(episode_item)
-                    episode_count += 1
-
-            logger.info(
-                "Found %s existing episodes to update for %s",
-                episode_count,
+                source,
+                media_id,
+                season_number,
                 title,
             )
-
-            if episodes_to_update:
-                updated_count = Item.objects.bulk_update(
-                    episodes_to_update,
-                    ["title", "image", "image_cached"],
-                    batch_size=100,
-                )
-                logger.info(
-                    "Successfully updated %s episodes for %s",
-                    updated_count,
-                    title,
-                )
-                for updated_item in episodes_with_new_image:
-                    if updated_item.image and updated_item.image != settings.IMG_NONE:
-                        cache_item_image.delay(updated_item.id, updated_item.image)
 
         item.fetch_releases(delay=False)
 

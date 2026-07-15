@@ -5,6 +5,7 @@ import time
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
@@ -36,7 +37,7 @@ def _mock_response(status_code=200, content_type="image/jpeg", chunks=None):
 
 
 def _mock_redirect(location, status_code=302):
-    """A redirect response, as _safe_image_get sees a hop it must follow."""
+    """Return a redirect response for a hop that _safe_image_get must follow."""
     response = MagicMock()
     response.status_code = status_code
     response.is_redirect = True
@@ -97,7 +98,7 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_sends_browser_headers(self, mock_get, _mock_safe):
-        """The request carries a browser UA and same-origin Referer to beat hotlink blocks."""
+        """Send browser headers to avoid hotlink blocks."""
         mock_get.return_value = _mock_response()
 
         cache_item_image(self.item.id, self.item.image)
@@ -122,7 +123,7 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_rejects_invalid_image_bytes(self, mock_get, _mock_safe):
-        """Bytes that don't parse as a real image are refused, even with a spoofed type."""
+        """Reject invalid image bytes even when the content type is spoofed."""
         mock_get.return_value = _mock_response(chunks=[b"not an image"])
 
         result = cache_item_image(self.item.id, self.item.image)
@@ -146,7 +147,7 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_follows_redirect_to_final_image(self, mock_get, _mock_safe):
-        """A cover served via redirect (OpenLibrary -> archive.org) is followed and cached."""
+        """Follow and cache a cover served through a safe redirect."""
         mock_get.side_effect = [
             _mock_redirect("https://archive.org/download/covers/final.jpg"),
             _mock_response(),
@@ -182,7 +183,7 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_rejects_overlong_redirect_chain(self, mock_get, _mock_safe):
-        """A redirect loop/chain longer than the cap is refused instead of looping forever."""
+        """Reject redirect chains longer than the configured cap."""
         mock_get.return_value = _mock_redirect("https://example.com/again.jpg")
 
         result = cache_item_image(self.item.id, self.item.image)
@@ -192,7 +193,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     def test_rejects_unsafe_host_without_making_a_request(self):
-        """A URL resolving to a private/loopback address is refused before any request."""
+        """Reject private or loopback hosts before making a request."""
         with patch("app.tasks.requests.get") as mock_get:
             result = cache_item_image(self.item.id, "http://127.0.0.1/image.jpg")
 
@@ -202,7 +203,7 @@ class CacheItemImageTaskTests(TestCase):
     @patch("app.tasks._is_safe_image_host", return_value=True)
     @patch("app.tasks.requests.get")
     def test_stale_url_race_does_not_mark_cached(self, mock_get, _mock_safe):
-        """If the Item's image changed since the task was queued, skip flipping the flag."""
+        """Leave the cache flag unset when the Item URL changed after queuing."""
         mock_get.return_value = _mock_response()
         original_image = self.item.image
 
@@ -455,8 +456,6 @@ class TranscodeCachedImageToWebpTaskTests(TestCase):
 
 
 def _relative_media_path(media_url):
-    from django.conf import settings
-
     return media_url.removeprefix(settings.MEDIA_URL)
 
 

@@ -519,7 +519,8 @@
             <h3 class="text-sm font-semibold text-gray-400">SOURCE</h3>
             <a href="{{ media.source_url }}"
                class="text-gray-200 hover:text-indigo-500 transition-colors duration-200"
-               target="_blank">{{ media.source|source_readable }}</a>
+               target="_blank"
+               rel="noopener noreferrer">{{ media.source|source_readable }}</a>
           </div>
           {% if media.external_links %}
             <div class="mt-4">
@@ -527,7 +528,8 @@
               {% for name, url in media.external_links.items %}
                 <a href="{{ url }}"
                    class="text-gray-200 hover:text-indigo-500 transition-colors duration-200 block"
-                   target="_blank">{{ name }}</a>
+                   target="_blank"
+                   rel="noopener noreferrer">{{ name }}</a>
               {% endfor %}
             </div>
           {% endif %}
@@ -571,6 +573,7 @@
             {% if media.total_cast_count > 30 %}
               <a href="{{ media.source_url }}/cast"
                  target="_blank"
+                 rel="noopener noreferrer"
                  class="bg-[#2a2f35] rounded-lg shadow-lg flex flex-col items-center justify-center hover:bg-[#343a40] transition-colors duration-200 min-w-44">
                 <div class="p-2.5 bg-indigo-600 text-white rounded-full mb-3">
                   {% include "app/icons/external-link.svg" with classes="w-6 h-6" %}

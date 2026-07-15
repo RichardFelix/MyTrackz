@@ -217,3 +217,60 @@ class ItemImage(TestCase):
 
         self.item.refresh_from_db()
         self.assertEqual(self.item.image, new_provider_image)
+
+    @patch("app.tasks.cache_item_image.delay")
+    @patch("events.tasks.reload_calendar")
+    @patch("app.views.services.get_media_metadata")
+    def test_sync_updates_existing_episode_title(
+        self,
+        mock_metadata,
+        _mock_reload,
+        _mock_cache,
+    ):
+        """Season sync stores each episode title, not the parent show title."""
+        Item.objects.create(
+            media_id="2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Example Show",
+            image=PROVIDER_IMAGE,
+        )
+        episode = Item.objects.create(
+            media_id="2",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Old Episode Title",
+            image=PROVIDER_IMAGE,
+            season_number=1,
+            episode_number=1,
+        )
+        mock_metadata.return_value = {
+            "media_id": "2",
+            "season_number": 1,
+            "title": "Example Show",
+            "image": PROVIDER_IMAGE,
+            "episodes": [
+                {
+                    "episode_number": 1,
+                    "air_date": "2026-01-01",
+                    "still_path": "/episode-one.jpg",
+                    "name": "Episode One",
+                    "overview": "",
+                    "runtime": 42,
+                },
+            ],
+        }
+        kwargs = {
+            "source": Sources.TMDB.value,
+            "media_type": MediaTypes.SEASON.value,
+            "media_id": "2",
+            "season_number": 1,
+        }
+
+        self.client.post(
+            reverse("sync_metadata", kwargs=kwargs) + "?next=/",
+            {"next": "/"},
+        )
+
+        episode.refresh_from_db()
+        self.assertEqual(episode.title, "Episode One")

@@ -56,7 +56,7 @@ def cleanup_user_messages():
 
 
 def _is_safe_image_host(url):
-    """Reject non-http(s) schemes and hostnames resolving to private/internal addresses."""
+    """Reject non-HTTP schemes and private or internal addresses."""
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         return False

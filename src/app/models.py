@@ -241,7 +241,7 @@ class Item(CalendarTriggerMixin, models.Model):
 
     @property
     def cached_image_url(self):
-        """Return the local cached image URL if available, else the original/fallback."""
+        """Return the cached image URL, or the original/fallback URL."""
         if self.image_cached:
             relpath = _cached_image_relpath(self.image, self.image_cache_format)
             return f"{settings.MEDIA_URL}{relpath}"

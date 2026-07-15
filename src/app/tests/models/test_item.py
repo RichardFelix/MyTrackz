@@ -92,7 +92,7 @@ class ItemModel(TestCase):
 
     @patch("app.tasks.cache_item_image.delay")
     def test_save_with_img_none_does_not_queue(self, mock_delay):
-        """Setting the image to the IMG_NONE placeholder does not queue the cache task."""
+        """Do not cache the IMG_NONE placeholder."""
         item = Item.objects.create(
             media_id="4",
             source=Sources.TMDB.value,
