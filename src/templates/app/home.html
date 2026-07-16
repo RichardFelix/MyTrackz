@@ -6,6 +6,12 @@
 {% endblock title %}
 
 {% block content %}
+  {# Wordmark for mobile/tablet, where the sidebar (which carries it) is hidden. #}
+  {# Anchored to <main> (positioned, flush with the viewport on mobile), not the content column. #}
+  <a href="{% url 'home' %}"
+     class="lg:hidden absolute top-2.5 left-1/2 -translate-x-1/2 hover:opacity-80 transition-opacity">
+    <span class="text-2xl font-semibold"><span style="color: #E8E4DC;">My</span><span style="color: #F0C070;">Trackz</span></span>
+  </a>
   <div class="space-y-8">
     <div class="flex flex-col gap-4 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
       <div class="text-center sm:col-start-2">

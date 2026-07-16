@@ -334,6 +334,9 @@
   .top-2 {
     top: calc(var(--spacing) * 2);
   }
+  .top-2\.5 {
+    top: calc(var(--spacing) * 2.5);
+  }
   .top-3 {
     top: calc(var(--spacing) * 3);
   }
