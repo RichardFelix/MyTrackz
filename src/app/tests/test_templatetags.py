@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from app.models import Item, MediaTypes, Sources
+from app.models import Item, MediaTypes, Sources, Status
 from app.templatetags import app_tags
 
 
@@ -64,6 +64,13 @@ class AppTagsTests(TestCase):
             "season_number": 1,
             "episode_number": 1,
         }
+
+    def test_planning_status_is_displayed_as_backlog(self):
+        """The stored Planning status has the Backlog presentation label."""
+        self.assertEqual(
+            app_tags.media_status_readable(Status.PLANNING.value),
+            "Backlog",
+        )
 
     @patch("pathlib.Path.stat")
     def test_get_static_file_mtime(self, mock_stat):

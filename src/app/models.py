@@ -905,7 +905,7 @@ class Status(models.TextChoices):
 
     COMPLETED = "Completed", "Completed"
     IN_PROGRESS = "In progress", "In Progress"
-    PLANNING = "Planning", "Planning"
+    PLANNING = "Planning", "Backlog"
     PAUSED = "Paused", "Paused"
     DROPPED = "Dropped", "Dropped"
 

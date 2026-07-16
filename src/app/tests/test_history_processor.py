@@ -47,7 +47,7 @@ class HistoryProcessorTests(TestCase):
                 Status.PLANNING.value,
                 MediaTypes.GAME.value,
             ),
-            "Added to playing list",
+            "Added to Backlog",
         )
         self.assertEqual(
             format_description(
@@ -119,6 +119,15 @@ class HistoryProcessorTests(TestCase):
         self.assertEqual(
             format_description("status", "Custom1", "Custom2", MediaTypes.TV.value),
             "Changed status from Custom1 to Custom2",
+        )
+        self.assertEqual(
+            format_description(
+                "status",
+                Status.PLANNING.value,
+                Status.PAUSED.value,
+                MediaTypes.TV.value,
+            ),
+            "Changed status from Backlog to Paused",
         )
 
     def test_format_description_score(self):

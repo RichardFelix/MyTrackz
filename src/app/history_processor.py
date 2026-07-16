@@ -216,7 +216,7 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
             if new_value == Status.COMPLETED.value:
                 return f"{action} finished {verb}ing"
             if new_value == Status.PLANNING.value:
-                return f"Added to {verb}ing list"
+                return "Added to Backlog"
             if new_value == Status.DROPPED.value:
                 return f"{action} dropped"
             if new_value == Status.PAUSED.value:
@@ -269,10 +269,18 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
                 Status.DROPPED.value,
             ): f"Stopped {verb}ing",
         }
-        return transitions.get(
-            (old_value, new_value),
-            f"Changed status from {old_value} to {new_value}",
-        )
+        if (old_value, new_value) in transitions:
+            return transitions[(old_value, new_value)]
+
+        try:
+            old_label = Status(old_value).label
+        except ValueError:
+            old_label = old_value
+        try:
+            new_label = Status(new_value).label
+        except ValueError:
+            new_label = new_value
+        return f"Changed status from {old_label} to {new_label}"
 
     if field_name == "score":
         if old_value == 0:

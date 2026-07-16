@@ -604,22 +604,26 @@ class StatisticsTests(TestCase):
         completed_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Status.COMPLETED.value
+            if d["label"] == Status.COMPLETED.label
         )
         in_progress_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Status.IN_PROGRESS.value
+            if d["label"] == Status.IN_PROGRESS.label
         )
         planning_dataset = next(
             d
             for d in status_distribution["datasets"]
-            if d["label"] == Status.PLANNING.value
+            if d["label"] == Status.PLANNING.label
         )
 
         self.assertEqual(completed_dataset["total"], 1)  # Anime
         self.assertEqual(in_progress_dataset["total"], 1)  # TV
         self.assertEqual(planning_dataset["total"], 1)  # Movie
+        self.assertNotIn(
+            "Planning",
+            [d["label"] for d in status_distribution["datasets"]],
+        )
 
     def test_get_status_pie_chart_data(self):
         """Test the get_status_pie_chart_data function."""
@@ -628,25 +632,25 @@ class StatisticsTests(TestCase):
             "labels": ["TV", "Movie", "Anime"],
             "datasets": [
                 {
-                    "label": Status.COMPLETED.value,
+                    "label": Status.COMPLETED.label,
                     "data": [1, 0, 0],
                     "background_color": "#10b981",
                     "total": 1,
                 },
                 {
-                    "label": Status.IN_PROGRESS.value,
+                    "label": Status.IN_PROGRESS.label,
                     "data": [0, 1, 0],
                     "background_color": "#6366f1",
                     "total": 1,
                 },
                 {
-                    "label": Status.PLANNING.value,
+                    "label": Status.PLANNING.label,
                     "data": [0, 0, 1],
                     "background_color": "#3b82f6",
                     "total": 1,
                 },
                 {
-                    "label": Status.PAUSED.value,
+                    "label": Status.PAUSED.label,
                     "data": [0, 0, 0],
                     "background_color": "#f97316",
                     "total": 0,

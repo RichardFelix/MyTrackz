@@ -175,7 +175,7 @@ def get_status_distribution(user_media):
         "labels": [app_tags.media_type_readable(x) for x in distribution],
         "datasets": [
             {
-                "label": status,
+                "label": app_tags.media_status_readable(status),
                 "data": [
                     distribution[media_type][status] for media_type in distribution
                 ],

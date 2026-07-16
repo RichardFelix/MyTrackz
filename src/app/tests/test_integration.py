@@ -49,6 +49,18 @@ class IntegrationTest(StaticLiveServerTestCase):
         palette_input.fill(query)
         palette_input.press("Enter")
 
+    def test_planning_status_is_displayed_as_backlog(self):
+        """Status navigation and forms display Backlog but retain Planning."""
+        expect(
+            self.page.get_by_role("link", name="Backlog", exact=True)
+        ).to_be_visible()
+
+        self.page.get_by_role("link", name="Create Custom", exact=True).click()
+        planning_option = self.page.locator(
+            'select[name="status"] option[value="Planning"]'
+        )
+        expect(planning_option).to_have_text("Backlog")
+
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""
         self.palette_search("breaking bad", "TV Shows")
