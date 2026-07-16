@@ -3581,6 +3581,7 @@
 }
 .modal-glass {
   position: relative;
+  color-scheme: dark;
   background-color: rgba(25, 26, 31, 0.72);
   background-color: var(--card);
   @supports (color: color-mix(in lab, red, red)) {
@@ -3636,6 +3637,14 @@
 }
 .modal-glass .border-gray-600:hover {
   border-color: rgba(255, 255, 255, 0.26) !important;
+}
+.modal-glass select option {
+  color: #f9fafb;
+  background-color: #24262d;
+}
+.modal-glass select option:checked {
+  color: #fff;
+  background-color: #4f46e5;
 }
 .modal-glass .bg-indigo-600 {
   background-color: rgba(99, 102, 241, 0.75) !important;

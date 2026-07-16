@@ -89,6 +89,7 @@
    are retinted to glass here, same idiom as the surface token system below. */
 .modal-glass {
   position: relative;
+  color-scheme: dark;
   background-color: rgba(25, 26, 31, 0.72);
   background-color: color-mix(in srgb, var(--card) 72%, transparent);
   backdrop-filter: blur(18px) saturate(1.5);
@@ -156,6 +157,19 @@
 }
 .modal-glass .border-gray-600:hover {
   border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+/* Native select popovers are rendered outside the modal's painted surface.
+   Firefox otherwise keeps the select's white text but uses a light popover,
+   making every unselected option appear blank. */
+.modal-glass select option {
+  color: #f9fafb;
+  background-color: #24262d;
+}
+
+.modal-glass select option:checked {
+  color: #fff;
+  background-color: #4f46e5;
 }
 
 /* Frosted accent buttons: translucent fills, inner glass ring via inset
