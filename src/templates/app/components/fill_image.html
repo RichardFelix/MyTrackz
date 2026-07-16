@@ -1,10 +1,10 @@
 {% load app_tags %}
 
-<div class="bg-[#2a2f35] p-6 rounded-lg max-h-[85svh] overflow-y-auto"
+<div class="modal-glass p-6 rounded-lg max-h-[calc(100svh-20px)] sm:max-h-[85svh] overflow-y-auto"
      x-data="{ url: '{{ item.image|escapejs }}' }">
   <div class="flex items-center justify-between mb-6">
     <h2 class="text-2xl font-bold text-white">Change Image</h2>
-    <button class="text-gray-400 hover:text-white cursor-pointer"
+    <button class="modal-x text-gray-400 hover:text-white cursor-pointer"
             @click="imageOpen = false">{% include "app/icons/x.svg" with classes="w-6 h-6" %}</button>
   </div>
 

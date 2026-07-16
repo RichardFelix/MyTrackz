@@ -82,6 +82,115 @@
   }
 }
 
+/* Modal liquid glass (modern-ui): translucent blurred panel with a specular
+   top edge and a pointer-following highlight (driven by modalGlassHighlight.js
+   setting --mx/--my). Replaces bg-[#2a2f35] on the six modal panels; the
+   controls inside keep their historical bg-[#39404b]/bg-[#343a40] classes and
+   are retinted to glass here, same idiom as the surface token system below. */
+.modal-glass {
+  position: relative;
+  background-color: rgba(25, 26, 31, 0.72);
+  background-color: color-mix(in srgb, var(--card) 72%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 10px 40px -10px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.modal-glass:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 14px 48px -10px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.modal-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(255, 255, 255, 0.07),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.modal-glass:hover::after {
+  opacity: 1;
+}
+/* No blur support -> translucency would show raw page content; go solid. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .modal-glass {
+    background-color: var(--card);
+  }
+}
+
+/* Close X: circular glass fill on hover (negative margin keeps layout). */
+.modal-x {
+  border-radius: 9999px;
+  padding: 0.375rem;
+  margin: -0.375rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.modal-x:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Raised surfaces inside glass modals (inputs, selects, history/list rows). */
+.modal-glass .bg-\[\#39404b\],
+.modal-glass .bg-\[\#343a40\] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.modal-glass .bg-\[\#39404b\]:hover,
+.modal-glass .bg-\[\#343a40\]:hover {
+  background-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.modal-glass .border-gray-600 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+.modal-glass .border-gray-600:hover {
+  border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+/* Frosted accent buttons: translucent fills, inner glass ring via inset
+   shadow (a real border would shift layout), accent glow on hover. */
+.modal-glass .bg-indigo-600 {
+  background-color: rgba(99, 102, 241, 0.75) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.modal-glass .hover\:bg-indigo-700:hover {
+  background-color: rgba(99, 102, 241, 0.95) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 16px -4px rgba(99, 102, 241, 0.5);
+}
+.modal-glass .bg-red-700 {
+  background-color: rgba(185, 28, 28, 0.72) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.modal-glass .hover\:bg-red-800:hover {
+  background-color: rgba(220, 38, 38, 0.9) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 16px -4px rgba(239, 68, 68, 0.4);
+}
+.modal-glass .bg-gray-600 {
+  background-color: rgba(255, 255, 255, 0.09) !important;
+}
+.modal-glass .hover\:bg-gray-700:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
 /* https://tailwindcss.com/docs/upgrade-guide#hover-styles-on-mobile */
 @custom-variant hover-tap (&:hover);
 @custom-variant parent-hover-tap (.hover-tap:hover &);

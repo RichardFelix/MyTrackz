@@ -71,7 +71,7 @@
     {# Track Modal #}
     <div x-show="trackOpen"
          @keydown.escape.window="trackOpen = false"
-         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+         class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
       <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
            @click.outside="trackOpen = false">
         <div id="{% component_id 'track' item media.id %}"></div>
@@ -82,7 +82,7 @@
   {# Lists Modal #}
   <div x-show="listsOpen"
        @keydown.escape.window="listsOpen = false"
-       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+       class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
          @click.outside="listsOpen = false">
       <div id="{% component_id 'lists' item %}"></div>
@@ -92,7 +92,7 @@
   {# History Modal #}
   <div x-show="historyOpen"
        @keydown.escape.window="historyOpen = false"
-       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+       class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
          @click.outside="historyOpen = false">
       <div id="{% component_id 'history' item %}"></div>
