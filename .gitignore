@@ -13,7 +13,6 @@ db.sqlite3-wal
 .agents
 requests.http
 TODO.txt
-.codex
 .cache
 node_modules
 .claude/settings.local.json
