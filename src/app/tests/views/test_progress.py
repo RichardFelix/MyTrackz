@@ -172,8 +172,8 @@ class ProgressEditAnime(TestCase):
         """The re-rendered pill keeps showing "x / max" after a progress edit.
 
         max_progress is an ad-hoc annotation, so the progress_edit view must
-        return an instance that has it, else the "/ max" text and the plus
-        button's disabled state silently disappear on the HTMX swap.
+        return an instance that has it, else the "/ max" text and the next-episode
+        checkmark's disabled state silently disappear on the HTMX swap.
         """
         Event.objects.create(
             item=self.item,
@@ -195,6 +195,8 @@ class ProgressEditAnime(TestCase):
         )
 
         self.assertContains(response, "/ 26")
+        self.assertContains(response, "bg-red-600")
+        self.assertContains(response, 'aria-label="Mark next episode watched"')
 
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""
