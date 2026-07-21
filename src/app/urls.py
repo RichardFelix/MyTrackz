@@ -90,7 +90,7 @@ urlpatterns = [
         name="progress_edit",
     ),
     path(
-        "episode_info/<int:instance_id>",
+        "episode_info/<media_type:media_type>/<int:instance_id>",
         views.episode_info,
         name="episode_info",
     ),

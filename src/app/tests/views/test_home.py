@@ -225,6 +225,16 @@ class HomeViewTests(TestCase):
         self.assertContains(response, 'aria-label="Mark current episode unwatched"')
         self.assertContains(
             response,
+            reverse(
+                "episode_info",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": Anime.objects.get(user=self.user).id,
+                },
+            ),
+        )
+        self.assertContains(
+            response,
             'hx-vals=\'{"operation": "decrease", "home_layout": "list"}\'',
         )
         self.assertContains(response, "-mx-[27px] space-y-4 sm:mx-0")
@@ -261,7 +271,13 @@ class HomeViewTests(TestCase):
         }
 
         response = self.client.get(
-            reverse("episode_info", kwargs={"instance_id": self.season.id}),
+            reverse(
+                "episode_info",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
         )
 
         self.assertEqual(response.status_code, 200)
@@ -280,6 +296,45 @@ class HomeViewTests(TestCase):
             ).exists(),
         )
 
+    def test_episode_info_returns_next_anime_episode(self):
+        """The home episode sheet supports episodic anime rows."""
+        self.mock_get_media_metadata.side_effect = None
+        self.mock_get_media_metadata.return_value = {
+            "title": "Test Anime",
+            "image": "http://example.com/anime.jpg",
+            "max_progress": 24,
+            "synopsis": "Anime synopsis",
+            "details": {"runtime": "24 min"},
+        }
+        anime = Anime.objects.get(user=self.user)
+
+        response = self.client.get(
+            reverse(
+                "episode_info",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": anime.id,
+                },
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "E11")
+        self.assertContains(response, "Test Anime")
+        self.assertContains(response, "Anime synopsis")
+        self.assertContains(response, "24 min")
+        self.assertContains(response, "Mark as watched")
+        self.assertContains(
+            response,
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": anime.id,
+                },
+            ),
+        )
+
     def test_episode_info_rejects_another_users_season(self):
         """Episode metadata cannot be requested for someone else's tracker row."""
         other_user = get_user_model().objects.create_user(
@@ -288,7 +343,13 @@ class HomeViewTests(TestCase):
         self.client.force_login(other_user)
 
         response = self.client.get(
-            reverse("episode_info", kwargs={"instance_id": self.season.id}),
+            reverse(
+                "episode_info",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
         )
 
         self.assertEqual(response.status_code, 404)

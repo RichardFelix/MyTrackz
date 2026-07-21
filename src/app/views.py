@@ -312,38 +312,71 @@ def progress_edit(request, media_type, instance_id):
 
 
 @require_GET
-def episode_info(request, instance_id):
-    """Return details for the next episode of an owned in-progress season."""
-    season = helpers.get_owned_media_or_404(
+def episode_info(request, media_type, instance_id):
+    """Return details for the next episode of owned episodic media."""
+    if media_type not in (MediaTypes.SEASON.value, MediaTypes.ANIME.value):
+        message = "Episode information is unavailable for this media type"
+        raise Http404(message)
+
+    media = helpers.get_owned_media_or_404(
         request,
-        MediaTypes.SEASON.value,
+        media_type,
         instance_id,
         prefetch=True,
     )
+
+    if media_type == MediaTypes.ANIME.value:
+        metadata = services.get_media_metadata(
+            media_type,
+            media.item.media_id,
+            media.item.source,
+        )
+        next_episode_number = media.progress + 1
+        max_progress = metadata.get("max_progress")
+        episode = None
+        if max_progress is None or next_episode_number <= max_progress:
+            episode = {
+                "episode_number": next_episode_number,
+                "title": metadata.get("title", media.item.title),
+                "overview": metadata.get("synopsis"),
+                "runtime": metadata.get("details", {}).get("runtime"),
+                "item": media.item,
+            }
+
+        return render(
+            request,
+            "app/components/home_episode_info.html",
+            {
+                "media": media,
+                "episode": episode,
+                "home_status": Status.IN_PROGRESS.value,
+            },
+        )
+
     season_metadata = services.get_media_metadata(
         MediaTypes.SEASON.value,
-        season.item.media_id,
-        season.item.source,
-        [season.item.season_number],
+        media.item.media_id,
+        media.item.source,
+        [media.item.season_number],
     )
     episodes = season_metadata.get("episodes", [])
 
-    if season.progress == 0:
+    if media.progress == 0:
         next_episode_number = episodes[0]["episode_number"] if episodes else None
     else:
-        next_episode_number = tmdb.find_next_episode(season.progress, episodes)
+        next_episode_number = tmdb.find_next_episode(media.progress, episodes)
 
     episode = None
     if next_episode_number is not None:
-        if season.item.source == Sources.MANUAL.value:
+        if media.item.source == Sources.MANUAL.value:
             processed_episodes = manual.process_episodes(
                 season_metadata,
-                season.episodes.all(),
+                media.episodes.all(),
             )
         else:
             processed_episodes = tmdb.process_episodes(
                 season_metadata,
-                season.episodes.all(),
+                media.episodes.all(),
             )
 
         episode = next(
@@ -356,7 +389,7 @@ def episode_info(request, instance_id):
         )
 
     if episode is not None:
-        episode_item = season.get_episode_item(next_episode_number, season_metadata)
+        episode_item = media.get_episode_item(next_episode_number, season_metadata)
         helpers.refresh_item_image_if_missing(episode_item, episode.get("image"))
         episode["item"] = episode_item
 
@@ -364,7 +397,7 @@ def episode_info(request, instance_id):
         request,
         "app/components/home_episode_info.html",
         {
-            "media": season,
+            "media": media,
             "episode": episode,
             "home_status": Status.IN_PROGRESS.value,
         },
