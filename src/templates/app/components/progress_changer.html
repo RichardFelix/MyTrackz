@@ -27,7 +27,7 @@
     {% endif %}
   {% else %}
     <div class="inline-flex items-stretch rounded-full bg-gray-800 ring-1 ring-white/5 transition-shadow duration-200 hover:shadow-[0_0_14px_rgba(99,102,241,0.35)]{% if media.item.media_type != MediaTypes.GAME.value %} py-0.5{% endif %}">
-      <button class="group flex cursor-pointer items-center rounded-full px-2 py-1.5 sm:px-4 sm:py-2 transition-colors disabled:pointer-events-none disabled:opacity-40 {% if media.item.media_type == MediaTypes.GAME.value %}text-gray-300 hover:bg-indigo-600 hover:text-white active:bg-indigo-500{% else %}bg-red-600 text-white hover:bg-red-500{% endif %}"
+      <button class="group flex cursor-pointer items-center rounded-full px-2 py-1.5 sm:px-4 sm:py-2 transition-colors disabled:pointer-events-none disabled:opacity-40 {% if media.item.media_type == MediaTypes.GAME.value or not user.colored_grid_progress_buttons %}text-gray-300 hover:bg-indigo-600 hover:text-white active:bg-indigo-500{% else %}bg-red-600 text-white hover:bg-red-500{% endif %}"
               {% if media.progress == 0 %}disabled{% endif %}
               aria-label="Decrease progress"
               title="Decrease progress"
@@ -57,7 +57,7 @@
         {% endif %}
       </div>
 
-      <button class="group flex cursor-pointer items-center rounded-full px-2 py-1.5 sm:px-4 sm:py-2 transition-colors disabled:pointer-events-none {% if media.item.media_type == MediaTypes.GAME.value %}text-gray-300 hover:bg-indigo-600 hover:text-white active:bg-indigo-500 disabled:opacity-40{% elif media.progress == media.max_progress %}bg-emerald-600 text-white{% else %}bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-[0_0_14px_rgba(16,185,129,0.35)] active:bg-emerald-500{% endif %}"
+      <button class="group flex cursor-pointer items-center rounded-full px-2 py-1.5 sm:px-4 sm:py-2 transition-colors disabled:pointer-events-none {% if media.item.media_type == MediaTypes.GAME.value or not user.colored_grid_progress_buttons %}text-gray-300 hover:bg-indigo-600 hover:text-white active:bg-indigo-500 disabled:opacity-40{% elif media.progress == media.max_progress %}bg-emerald-600 text-white{% else %}bg-emerald-600 text-white hover:bg-emerald-500 hover:shadow-[0_0_14px_rgba(16,185,129,0.35)] active:bg-emerald-500{% endif %}"
               {% if media.progress == media.max_progress %}disabled{% endif %}
               aria-label="{% if media.item.media_type == MediaTypes.GAME.value %}Increase progress{% else %}Mark next {{ media.item.media_type|long_unit|lower }} watched{% endif %}"
               title="{% if media.item.media_type == MediaTypes.GAME.value %}Increase progress{% else %}Mark next {{ media.item.media_type|long_unit|lower }} watched{% endif %}"

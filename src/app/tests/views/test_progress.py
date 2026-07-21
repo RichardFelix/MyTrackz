@@ -204,6 +204,27 @@ class ProgressEditAnime(TestCase):
         self.assertContains(response, "bg-red-600")
         self.assertContains(response, 'aria-label="Mark next episode watched"')
 
+    def test_progress_edit_can_render_neutral_grid_buttons(self):
+        """The grid color preference restores the original neutral controls."""
+        self.user.colored_grid_progress_buttons = False
+        self.user.save(update_fields=["colored_grid_progress_buttons"])
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {"operation": "increase"},
+        )
+
+        self.assertNotContains(response, "bg-red-600")
+        self.assertNotContains(response, "bg-emerald-600")
+        self.assertContains(response, "hover:bg-indigo-600", count=2)
+        self.assertContains(response, 'aria-label="Mark next episode watched"')
+
     def test_compact_home_progress_rerenders_list_item(self):
         """Compact home actions update the row without a full page reload."""
         response = self.client.post(

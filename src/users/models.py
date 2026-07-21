@@ -174,6 +174,10 @@ class User(AbstractUser):
             "episode airs."
         ),
     )
+    colored_grid_progress_buttons = models.BooleanField(
+        default=True,
+        help_text="Show red and green backgrounds on grid progress buttons.",
+    )
     home_media_order = models.TextField(
         default="",
         help_text="Comma-separated media type order for the home screen.",

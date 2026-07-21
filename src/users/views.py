@@ -274,6 +274,9 @@ def preferences(request):
         if "compact_home_list" in request.POST
         else HomeLayoutChoices.GRID
     )
+    request.user.colored_grid_progress_buttons = (
+        "colored_grid_progress_buttons" in request.POST
+    )
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
     request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     request.user.quick_watch_date = request.POST.get(

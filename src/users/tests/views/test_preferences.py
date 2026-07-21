@@ -64,6 +64,30 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
 
+    def test_colored_grid_progress_buttons_default_on_and_can_be_disabled(self):
+        """The colored grid controls are enabled by default and can be disabled."""
+        response = self.client.get(reverse("preferences"))
+        self.assertTrue(self.user.colored_grid_progress_buttons)
+        self.assertContains(response, 'name="colored_grid_progress_buttons"')
+
+        self.client.post(reverse("preferences"), {})
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.colored_grid_progress_buttons)
+
+    def test_colored_grid_progress_buttons_can_be_enabled(self):
+        """Checking the switch saves the colored grid control preference."""
+        self.user.colored_grid_progress_buttons = False
+        self.user.save(update_fields=["colored_grid_progress_buttons"])
+
+        self.client.post(
+            reverse("preferences"),
+            {"colored_grid_progress_buttons": "on"},
+        )
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.colored_grid_progress_buttons)
+
     def test_invalid_and_duplicate_slugs_stripped(self):
         """Unknown/episode/duplicate slugs are removed, order preserved."""
         submitted = (
