@@ -7,7 +7,7 @@
 
 MyTrackz is a self-hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
-It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus a handful of features not available upstream: local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, and a genre filter.
+It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus a handful of features not available upstream: local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, a genre filter, and a compact home list with aired-only filtering.
 
 Every fork-only addition (marked ⭐ below) was designed and implemented by [Claude Code](https://claude.com/claude-code).
 
@@ -44,6 +44,9 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - ⏱️ Fine-grained preferences: a "quick watch date" mode for one-tap episode/season tracking, plus independent date format, 12/24-hour time format, and first-day-of-week settings.
 - 🗓️ Calendar grid/list layout toggle and a manual "reload" to refresh upcoming release dates on demand.
 - 🔐 Regenerate your personal webhook/ICS token any time, with granular controls for which Jellyfin events (play/stop, manual mark played/unplayed) and which Plex usernames are processed.
+- 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
+- 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control.
+- 🎨 ⭐ **Colored grid progress buttons** — optionally use clear red/green backgrounds for decrease/increase progress actions in the home card grid.
 - 🖼️ ⭐ **Local image caching** — provider posters/covers are downloaded and served locally (WebP) instead of hotlinking, with size-capped eviction and a manual purge option in Settings → Advanced.
 - 🧭 ⭐ **Discover page** — personalized recommendations aggregated from everything you've completed or are currently tracking, ranked and interleaved across media types.
 - 🔥 ⭐ **Trending page** — what's popular right now per media type (TMDB, MyAnimeList, IGDB, BGG), hiding anything you already track.
@@ -63,9 +66,17 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 | ------------------------------------------------------------------ | ------------------------------------------------------------ |
 | ![Homepage](docs/assets/screenshots/homepage.webp)                 | ![Command Palette](docs/assets/screenshots/search_modal.webp) |
 
-| Mobile Navigation ⭐                                                 | Mobile Library Panel ⭐                                         |
+| Grid Mobile Navigation ⭐                                            | Mobile Grid Library Panel ⭐                                  |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Mobile Home](docs/assets/screenshots/mobile_home.webp)                | ![Mobile Library Panel](docs/assets/screenshots/mobile_library_panel.webp) |
+| ![Grid Mobile Navigation](docs/assets/screenshots/mobile_home.webp)     | ![Mobile Grid Library Panel](docs/assets/screenshots/mobile_library_panel.webp) |
+
+| Mobile Compact Home List ⭐                                           | Swipe to Mark the Next Unit Watched ⭐                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![Mobile compact home list](docs/assets/screenshots/mobile_home_list.png) | ![Swipe gesture revealing the mark-watched action](docs/assets/screenshots/mobile_home_list_swipe.png) |
+
+| Compact Home List + Aired Only ⭐                                     | Preferences ⭐                                                   |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![Compact home list with Aired only](docs/assets/screenshots/home_list_aired_only.png) | ![Preferences](docs/assets/screenshots/settings_preferences.png) |
 
 | Discover ⭐                                                          | Trending ⭐                                                     |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -121,6 +132,6 @@ See `docs/development.md` in this repo, or `CLAUDE.md` for the fork-specific arc
 
 MyTrackz is a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) by [FuzzyGrim](https://github.com/FuzzyGrim). All of the core tracking functionality and most of the codebase comes from that upstream project — go star it, and if you don't need any of the fork-only features above, you're probably better served running Yamtrack directly.
 
-All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filter, the redesigned UI, command palette, profile images, home row ordering, and cache management — were built by [Claude Code](https://claude.com/claude-code).
+All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filter, the redesigned UI, command palette, profile images, compact home lists, Aired-only filtering, colored progress controls, home row ordering, and cache management — were built by [Claude Code](https://claude.com/claude-code).
 
 <!-- --8<-- [end:docs-index-body] -->
