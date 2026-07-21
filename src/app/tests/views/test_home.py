@@ -387,6 +387,12 @@ class HomeViewTests(TestCase):
                 status=Status.PLANNING.value,
             )
 
+        home_response = self.client.get(reverse("home"))
+
+        self.assertContains(home_response, "Load all (16)")
+        self.assertContains(home_response, "hx-on::after-request=")
+        self.assertNotContains(home_response, 'hx-on:click="this.remove()"')
+
         response = self.client.get(
             reverse("home")
             + (

@@ -38,7 +38,7 @@
           </div>
 
           {% if media_list.total > items_limit %}
-            <div class="mt-5 flex justify-center">
+            <div class="mt-5 flex justify-center" data-load-all-controls>
               <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}"
                       hx-target="#media-grid-{{ section.id }}-{{ media_type }}"
                       hx-swap="beforeend"
@@ -46,7 +46,7 @@
                       hx-trigger="click"
                       type="button"
                       class="rounded-md border border-gray-700 bg-[#2a2f35] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#313842] cursor-pointer"
-                      hx-on:click="this.remove()">Load all ({{ media_list.total }})</button>
+                      hx-on::after-request="if (event.detail.successful) this.closest('[data-load-all-controls]').remove()">Load all ({{ media_list.total }})</button>
               <div id="loading-indicator-{{ section.id }}-{{ media_type }}"
                    class="htmx-indicator hidden text-center">
                 <div class="inline-flex items-center justify-center">
