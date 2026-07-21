@@ -17,6 +17,7 @@ from app.models import (
     Sources,
     Status,
 )
+from events.models import Event
 from users.models import HomeLayoutChoices, HomeSortChoices
 
 
@@ -249,6 +250,31 @@ class HomeViewTests(TestCase):
         self.assertNotContains(response, "data-home-list-item")
         self.assertContains(response, 'class="media-grid"')
         self.assertContains(response, 'title="Add to tracker"')
+
+    def test_home_list_shows_upcoming_releases(self):
+        """Backlog and in-progress rows show releases in list layout only."""
+        planned_movie = Movie.objects.get(user=self.user)
+        Event.objects.create(
+            item=planned_movie.item,
+            datetime=timezone.now() + timezone.timedelta(days=7),
+        )
+        in_progress_anime = Anime.objects.get(user=self.user)
+        Event.objects.create(
+            item=in_progress_anime.item,
+            content_number=11,
+            datetime=timezone.now() + timezone.timedelta(days=3),
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "Releases ", count=2)
+        self.assertContains(response, "E11 •")
+
+        self.user.home_layout = HomeLayoutChoices.GRID
+        self.user.save(update_fields=["home_layout"])
+        response = self.client.get(reverse("home"))
+
+        self.assertNotContains(response, "Releases ")
 
     def test_episode_info_returns_the_specific_next_episode(self):
         """The home episode sheet describes the episode after current progress."""

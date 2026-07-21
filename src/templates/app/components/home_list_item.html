@@ -45,6 +45,18 @@
         {% endif %}
       </p>
 
+      {% if media.next_event and not media.next_event.is_max_datetime %}
+        <div class="mt-2 flex items-center gap-1.5 text-sm font-medium {% if home_status == Status.PLANNING.value %}text-sky-300{% else %}text-indigo-300{% endif %}">
+          {% include "app/icons/clock.svg" with classes="h-4 w-4 shrink-0" %}
+          <span class="truncate">
+            {% if media.next_event.content_number %}
+              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
+            {% endif %}
+            Releases {{ media.next_event.datetime|natural_day:user }}
+          </span>
+        </div>
+      {% endif %}
+
       <div class="mt-auto">
         {% if user.progress_bar and home_status == Status.IN_PROGRESS.value %}
           <div class="flex items-center gap-3">
