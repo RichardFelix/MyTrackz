@@ -1,0 +1,127 @@
+{% load app_tags %}
+
+<div id="home-list-item-{{ media.item.media_type }}-{{ media.id }}"
+     class="relative overflow-hidden rounded-xl bg-[#202228] shadow-lg"
+     data-home-list-item
+     x-data="homeSwipe({ enabled: {% if home_status == Status.IN_PROGRESS.value %}true{% else %}false{% endif %} })"
+     @pointerdown="start($event)"
+     @pointermove="move($event)"
+     @pointerup="finish($event)"
+     @pointercancel="cancel()"
+     @click.capture="guardClick($event)"
+     style="touch-action: pan-y;">
+  {% if home_status == Status.IN_PROGRESS.value %}
+    <div class="absolute inset-0 flex items-center justify-between bg-emerald-600 px-6 text-white"
+         aria-hidden="true">
+      {% include "app/icons/checkmark.svg" with classes="h-7 w-7" %}
+      {% include "app/icons/checkmark.svg" with classes="h-7 w-7" %}
+    </div>
+  {% endif %}
+
+  <div class="relative flex min-h-40 gap-4 bg-[#202228] p-3 transition-transform duration-200 ease-out sm:min-h-44 sm:gap-5 sm:p-4"
+       :class="dragging ? '!duration-0' : ''"
+       :style="`transform: translateX(${offset}px)`">
+    <a href="{{ media.item|media_url }}" class="w-24 shrink-0 self-stretch overflow-hidden rounded-lg sm:w-28">
+      <img alt="{{ media }}"
+           class="lazyload h-full w-full {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
+           data-src="{{ media.item.cached_image_url }}"
+           src="{{ IMG_PLACEHOLDER }}">
+    </a>
+
+    <div class="flex min-w-0 flex-1 flex-col py-0.5">
+      <a href="{{ media.item|media_url }}"
+         class="line-clamp-1 text-lg font-bold text-white transition-colors hover:text-indigo-300 sm:text-xl"
+         title="{{ media }}">{{ media.item.title }}</a>
+
+      <p class="mt-1 line-clamp-1 text-sm text-gray-300 sm:text-base">
+        {% if media.item.media_type == MediaTypes.SEASON.value %}
+          S{{ media.item.season_number|stringformat:"02d" }}E{{ media.progress|add:"1"|stringformat:"02d" }} · Next episode
+        {% elif media.item.media_type == MediaTypes.MOVIE.value or media.item.media_format == "Movie" %}
+          {% if media.progress %}Watched{% else %}Ready to watch{% endif %}
+        {% elif media.item.media_type == MediaTypes.GAME.value %}
+          Current progress · {{ media.formatted_progress }}
+        {% else %}
+          Next {{ media.item.media_type|long_unit|lower }} {{ media.progress|add:"1" }}
+        {% endif %}
+      </p>
+
+      <div class="mt-auto">
+        {% if user.progress_bar and home_status == Status.IN_PROGRESS.value %}
+          <div class="flex items-center gap-3">
+            <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-600">
+              {% if media.max_progress %}
+                {% widthratio media.progress media.max_progress 100 as progress_width %}
+                <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500"
+                     style="width: {{ progress_width }}%"></div>
+              {% else %}
+                <div class="h-full w-full rounded-full bg-indigo-500"></div>
+              {% endif %}
+            </div>
+            <span class="shrink-0 text-xs text-gray-500 tabular-nums sm:text-sm">
+              {{ media.formatted_progress }}{% if media.max_progress %}/{{ media.max_progress }}{% endif %}
+            </span>
+          </div>
+        {% endif %}
+
+        <div class="mt-4 flex items-center gap-3">
+          {% if media.item.media_type == MediaTypes.SEASON.value and home_status == Status.IN_PROGRESS.value %}
+            {% if media.progress %}
+              <button type="button"
+                      class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-500"
+                      aria-label="Mark current episode unwatched"
+                      title="Mark current episode unwatched"
+                      hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
+                      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                      hx-vals='{"operation": "decrease", "home_layout": "list"}'
+                      hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
+                      hx-swap="outerHTML">
+                {% include "app/icons/minus.svg" with classes="h-4.5 w-4.5" %}
+              </button>
+            {% endif %}
+            <button type="button"
+                    class="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-[#303239] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3a3d45]"
+                    hx-get="{% url 'episode_info' media.id %}"
+                    hx-target="#home-episode-info-content-{{ media.id }}"
+                    hx-swap="innerHTML"
+                    @click="episodeInfoOpen = true">Episode info</button>
+          {% else %}
+            <a href="{{ media.item|media_url }}"
+               class="inline-flex min-h-10 items-center rounded-lg bg-[#303239] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3a3d45]">Details</a>
+          {% endif %}
+
+          {% if home_status == Status.IN_PROGRESS.value %}
+            <button type="button"
+                    x-ref="swipeAction"
+                    class="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-500"
+                    aria-label="{% if media.item.media_type == MediaTypes.MOVIE.value or media.item.media_format == 'Movie' %}Mark watched{% elif media.item.media_type == MediaTypes.GAME.value %}Increase progress{% else %}Mark next {{ media.item.media_type|long_unit|lower }} watched{% endif %}"
+                    title="Swipe either way or tap to mark progress"
+                    hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                    hx-vals='{"operation": "increase", "home_layout": "list"}'
+                    hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
+                    hx-swap="outerHTML">
+              {% include "app/icons/checkmark.svg" with classes="h-4.5 w-4.5" %}
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if media.item.media_type == MediaTypes.SEASON.value and home_status == Status.IN_PROGRESS.value %}
+    <template x-teleport="body">
+      <div x-show="episodeInfoOpen"
+           x-cloak
+           @keydown.escape.window="episodeInfoOpen = false"
+           class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 pb-2.5 sm:items-center sm:pb-0">
+        <div class="relative z-60 w-full px-2.5 sm:max-w-xl sm:px-4"
+             @click.outside="episodeInfoOpen = false">
+          <div id="home-episode-info-content-{{ media.id }}"
+               class="modal-glass max-h-[calc(100svh-20px)] overflow-y-auto rounded-2xl p-6">
+            <div class="flex min-h-72 items-center justify-center text-sm text-gray-400">Loading episode…</div>
+          </div>
+        </div>
+      </div>
+    </template>
+  {% endif %}
+</div>

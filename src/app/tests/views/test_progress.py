@@ -198,6 +198,23 @@ class ProgressEditAnime(TestCase):
         self.assertContains(response, "bg-red-600")
         self.assertContains(response, 'aria-label="Mark next episode watched"')
 
+    def test_compact_home_progress_rerenders_list_item(self):
+        """Compact home actions update the row without a full page reload."""
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {"operation": "increase", "home_layout": "list"},
+        )
+
+        self.assertTemplateUsed(response, "app/components/home_list_item.html")
+        self.assertContains(response, "data-home-list-item")
+        self.assertContains(response, "Next episode 4")
+
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""
         item = Item.objects.create(

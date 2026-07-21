@@ -1,6 +1,9 @@
 {% load app_tags %}
 
 {% for media in media_list.items %}
+  {% if user.home_layout == "list" %}
+    {% include "app/components/home_list_item.html" with media=media home_status=home_status %}
+  {% else %}
   {# no transition-all here: easing the transform out would keep this div the containing block for the fixed modals for the duration, flashing the modal inside the card #}
   <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
        x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
@@ -102,4 +105,5 @@
       </div>
     </div>
   </div>
+  {% endif %}
 {% endfor %}

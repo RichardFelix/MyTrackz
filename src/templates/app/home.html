@@ -1,9 +1,13 @@
 {% extends "base.html" %}
-{% load app_tags %}
+{% load app_tags static %}
 
 {% block title %}
   Home - MyTrackz
 {% endblock title %}
+
+{% block extra_head %}
+  <script src="{% static 'js/homeSwipe.js' %}{% get_static_file_mtime 'js/homeSwipe.js' %}"></script>
+{% endblock extra_head %}
 
 {% block content %}
   {# Wordmark for mobile/tablet, where the sidebar (which carries it) is hidden. #}

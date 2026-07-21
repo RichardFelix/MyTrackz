@@ -1,0 +1,59 @@
+{% load app_tags %}
+
+<div x-data="{ synopsisExpanded: false }" class="relative">
+  <button type="button"
+          class="modal-x absolute right-0 top-0 z-10 cursor-pointer text-gray-300 hover:text-white"
+          aria-label="Close episode information"
+          @click="episodeInfoOpen = false">
+    {% include "app/icons/x.svg" with classes="h-5 w-5" %}
+  </button>
+
+  {% if episode %}
+    <img src="{{ IMG_PLACEHOLDER }}"
+         data-src="{{ episode.item.cached_image_url }}"
+         alt="{{ episode.title }}"
+         class="lazyload aspect-video w-full rounded-xl {% if episode.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}">
+
+    <div class="mt-6 flex justify-center">
+      <button type="button"
+              class="inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border-2 border-indigo-500 bg-[#303239] px-5 text-base font-bold text-white transition-colors hover:bg-[#3a3d45]"
+              hx-post="{% url 'progress_edit' MediaTypes.SEASON.value media.id %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-vals='{"operation": "increase", "home_layout": "list"}'
+              hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
+              hx-swap="outerHTML"
+              @click="episodeInfoOpen = false">
+        {% include "app/icons/eye.svg" with classes="h-5 w-5" %}
+        Mark as watched
+      </button>
+    </div>
+
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm text-gray-200">
+      <span class="rounded-full bg-[#3b3d44] px-3 py-1.5">
+        {{ episode.air_date|iso_date_format:request.user|default_if_none:"Unknown air date" }}
+      </span>
+      {% if episode.runtime %}
+        <span aria-hidden="true">•</span>
+        <span class="rounded-full bg-[#3b3d44] px-3 py-1.5">{{ episode.runtime }}</span>
+      {% endif %}
+    </div>
+
+    <div class="mt-8">
+      <p class="text-sm font-bold text-indigo-300">
+        S{{ media.item.season_number|stringformat:"02d" }}E{{ episode.episode_number|stringformat:"02d" }}
+      </p>
+      <h2 class="mt-1 text-2xl font-bold text-white">{{ episode.title }}</h2>
+      <p class="mt-3 text-base leading-relaxed text-gray-300"
+         :class="synopsisExpanded ? '' : 'line-clamp-4'">{{ episode.overview|default:"No synopsis available." }}</p>
+      <button type="button"
+              class="mt-2 cursor-pointer text-left text-sm font-medium text-gray-400 hover:text-white"
+              @click="synopsisExpanded = !synopsisExpanded"
+              x-text="synopsisExpanded ? 'Show less' : 'Read more'">Read more</button>
+    </div>
+  {% else %}
+    <div class="py-16 text-center">
+      <h2 class="text-xl font-bold text-white">No next episode available</h2>
+      <p class="mt-2 text-sm text-gray-400">This season does not currently have another episode to show.</p>
+    </div>
+  {% endif %}
+</div>

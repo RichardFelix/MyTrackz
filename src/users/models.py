@@ -32,6 +32,13 @@ class HomeSortChoices(models.TextChoices):
     TITLE = "title", "Title"
 
 
+class HomeLayoutChoices(models.TextChoices):
+    """Choices for the home page item layout."""
+
+    LIST = "list", "Compact list"
+    GRID = "grid", "Cards"
+
+
 class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
@@ -153,6 +160,12 @@ class User(AbstractUser):
         max_length=20,
         default=HomeSortChoices.UPCOMING,
         choices=HomeSortChoices,
+    )
+    home_layout = models.CharField(
+        max_length=10,
+        default=HomeLayoutChoices.LIST,
+        choices=HomeLayoutChoices,
+        help_text="Display home screen items as a compact list or card grid.",
     )
     home_media_order = models.TextField(
         default="",

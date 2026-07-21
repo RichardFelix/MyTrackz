@@ -19,6 +19,7 @@ from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdate
 from users.helpers import cache_profile_image
 from users.models import (
     DateFormatChoices,
+    HomeLayoutChoices,
     QuickWatchDateChoices,
     ThemeChoices,
     TimeFormatChoices,
@@ -268,6 +269,11 @@ def preferences(request):
         return redirect("preferences")
 
     # Process form submission
+    request.user.home_layout = (
+        HomeLayoutChoices.LIST
+        if "compact_home_list" in request.POST
+        else HomeLayoutChoices.GRID
+    )
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
     request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     request.user.quick_watch_date = request.POST.get(

@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
+from users.models import HomeLayoutChoices
 
 
 class PreferencesHomeOrderTests(TestCase):
@@ -10,6 +13,12 @@ class PreferencesHomeOrderTests(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
+        regions_patcher = patch(
+            "users.views.tmdb.watch_provider_regions",
+            return_value=[("UNSET", "Disabled")],
+        )
+        regions_patcher.start()
+        self.addCleanup(regions_patcher.stop)
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -34,6 +43,26 @@ class PreferencesHomeOrderTests(TestCase):
         self.client.post(reverse("preferences"), {"home_media_order": order})
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_media_order, order)
+
+    def test_compact_home_list_preference_defaults_on_and_can_be_disabled(self):
+        """The compact list is the default and an unchecked switch restores cards."""
+        response = self.client.get(reverse("preferences"))
+        self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
+        self.assertContains(response, 'name="compact_home_list"')
+
+        self.client.post(reverse("preferences"), {})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_layout, HomeLayoutChoices.GRID)
+
+    def test_compact_home_list_preference_can_be_enabled(self):
+        """Checking the switch saves the compact list choice."""
+        self.user.home_layout = HomeLayoutChoices.GRID
+        self.user.save(update_fields=["home_layout"])
+
+        self.client.post(reverse("preferences"), {"compact_home_list": "on"})
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
 
     def test_invalid_and_duplicate_slugs_stripped(self):
         """Unknown/episode/duplicate slugs are removed, order preserved."""

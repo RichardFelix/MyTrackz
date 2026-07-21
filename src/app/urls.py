@@ -89,6 +89,11 @@ urlpatterns = [
         views.progress_edit,
         name="progress_edit",
     ),
+    path(
+        "episode_info/<int:instance_id>",
+        views.episode_info,
+        name="episode_info",
+    ),
     path("media_save", views.media_save, name="media_save"),
     path("media_delete", views.media_delete, name="media_delete"),
     path(

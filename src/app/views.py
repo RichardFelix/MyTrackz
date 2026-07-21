@@ -275,10 +275,80 @@ def progress_edit(request, media_type, instance_id):
     context = {
         "media": media,
     }
+    if request.POST.get("home_layout") == "list":
+        if media.status != Status.IN_PROGRESS.value:
+            return HttpResponse()
+        context["home_status"] = Status.IN_PROGRESS.value
+        return render(
+            request,
+            "app/components/home_list_item.html",
+            context,
+        )
+
     return render(
         request,
         "app/components/progress_changer.html",
         context,
+    )
+
+
+@require_GET
+def episode_info(request, instance_id):
+    """Return details for the next episode of an owned in-progress season."""
+    season = helpers.get_owned_media_or_404(
+        request,
+        MediaTypes.SEASON.value,
+        instance_id,
+        prefetch=True,
+    )
+    season_metadata = services.get_media_metadata(
+        MediaTypes.SEASON.value,
+        season.item.media_id,
+        season.item.source,
+        [season.item.season_number],
+    )
+    episodes = season_metadata.get("episodes", [])
+
+    if season.progress == 0:
+        next_episode_number = episodes[0]["episode_number"] if episodes else None
+    else:
+        next_episode_number = tmdb.find_next_episode(season.progress, episodes)
+
+    episode = None
+    if next_episode_number is not None:
+        if season.item.source == Sources.MANUAL.value:
+            processed_episodes = manual.process_episodes(
+                season_metadata,
+                season.episodes.all(),
+            )
+        else:
+            processed_episodes = tmdb.process_episodes(
+                season_metadata,
+                season.episodes.all(),
+            )
+
+        episode = next(
+            (
+                candidate
+                for candidate in processed_episodes
+                if candidate["episode_number"] == next_episode_number
+            ),
+            None,
+        )
+
+    if episode is not None:
+        episode_item = season.get_episode_item(next_episode_number, season_metadata)
+        helpers.refresh_item_image_if_missing(episode_item, episode.get("image"))
+        episode["item"] = episode_item
+
+    return render(
+        request,
+        "app/components/home_episode_info.html",
+        {
+            "media": season,
+            "episode": episode,
+            "home_status": Status.IN_PROGRESS.value,
+        },
     )
 
 

@@ -32,7 +32,8 @@
             </div>
           </div>
 
-          <div id="media-grid-{{ section.id }}-{{ media_type }}" class="media-grid">
+          <div id="media-grid-{{ section.id }}-{{ media_type }}"
+               class="{% if user.home_layout == 'list' %}-mx-[27px] space-y-4 sm:mx-0{% else %}media-grid{% endif %}">
             {% include "app/components/home_grid.html" with media_list=media_list home_status=section.key %}
           </div>
 

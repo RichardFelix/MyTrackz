@@ -84,10 +84,14 @@ class IntegrationTest(StaticLiveServerTestCase):
             f"Last watched: {fixed_date.strftime(datetime_format)}",
         )
         self.page.get_by_role("link", name="Home").click()
-        expect(self.page.get_by_text("Breaking Bad S1")).to_be_visible()
-        self.page.locator("#media-grid-in-progress-season").get_by_role("button").nth(
-            4,
-        ).click()
+        expect(self.page.get_by_title("Breaking Bad S1")).to_be_visible()
+        swipe_target = self.page.get_by_text("S01E02 · Next episode")
+        box = swipe_target.bounding_box()
+        self.page.mouse.move(box["x"] + 10, box["y"] + 10)
+        self.page.mouse.down()
+        self.page.mouse.move(box["x"] + 100, box["y"] + 10, steps=4)
+        self.page.mouse.up()
+        expect(self.page.get_by_text("S01E03 · Next episode")).to_be_visible()
         self.page.get_by_title("Breaking Bad S1").click()
 
         today = timezone.localtime().strftime(datetime_format)

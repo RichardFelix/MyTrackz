@@ -9,6 +9,7 @@ from app.models import (
     Anime,
     BasicMedia,
     Episode,
+    Game,
     Item,
     MediaTypes,
     Movie,
@@ -16,7 +17,7 @@ from app.models import (
     Sources,
     Status,
 )
-from users.models import HomeSortChoices
+from users.models import HomeLayoutChoices, HomeSortChoices
 
 
 class HomeViewTests(TestCase):
@@ -108,7 +109,7 @@ class HomeViewTests(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
         )
-        season = Season.objects.create(
+        self.season = Season.objects.create(
             item=season_item,
             user=self.user,
             status=Status.IN_PROGRESS.value,
@@ -127,7 +128,7 @@ class HomeViewTests(TestCase):
             )
             Episode.objects.create(
                 item=episode_item,
-                related_season=season,
+                related_season=self.season,
                 end_date=base_watched_at - timezone.timedelta(days=6 - i),
             )
 
@@ -192,6 +193,105 @@ class HomeViewTests(TestCase):
         planning_movies = planning_section["media_types"][MediaTypes.MOVIE.value]
         self.assertEqual(len(planning_movies["items"]), 1)
         self.assertEqual(planning_movies["items"][0].status, Status.PLANNING.value)
+
+    def test_home_uses_compact_swipe_list_by_default(self):
+        """The default home layout renders swipe actions for in-progress items."""
+        Movie.objects.update(status=Status.IN_PROGRESS.value)
+        game_item = Item.objects.create(
+            media_id="home-game",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Test Game",
+            image="http://example.com/game.jpg",
+        )
+        game = Game(
+            item=game_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            progress=90,
+        )
+        Game.save_base(game)
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "data-home-list-item")
+        self.assertContains(response, "homeSwipe({ enabled: true })")
+        self.assertContains(
+            response,
+            'hx-vals=\'{"operation": "increase", "home_layout": "list"}\'',
+        )
+        self.assertContains(response, "Swipe either way or tap to mark progress")
+        self.assertContains(response, 'aria-label="Mark watched"')
+        self.assertContains(response, "Current progress · 1h 30min")
+        self.assertContains(response, 'aria-label="Mark current episode unwatched"')
+        self.assertContains(
+            response,
+            'hx-vals=\'{"operation": "decrease", "home_layout": "list"}\'',
+        )
+        self.assertContains(response, "-mx-[27px] space-y-4 sm:mx-0")
+
+    def test_home_can_restore_card_grid(self):
+        """The saved card setting keeps the previous homepage presentation."""
+        self.user.home_layout = HomeLayoutChoices.GRID
+        self.user.save(update_fields=["home_layout"])
+
+        response = self.client.get(reverse("home"))
+
+        self.assertNotContains(response, "data-home-list-item")
+        self.assertContains(response, 'class="media-grid"')
+        self.assertContains(response, 'title="Add to tracker"')
+
+    def test_episode_info_returns_the_specific_next_episode(self):
+        """The home episode sheet describes the episode after current progress."""
+        self.mock_get_media_metadata.side_effect = None
+        self.mock_get_media_metadata.return_value = {
+            "media_id": "1668",
+            "source": Sources.TMDB.value,
+            "season_number": 1,
+            "episodes": [
+                {
+                    "episode_number": episode_number,
+                    "air_date": "2026-07-02",
+                    "still_path": f"/episode-{episode_number}.jpg",
+                    "name": f"Episode title {episode_number}",
+                    "overview": f"Episode synopsis {episode_number}",
+                    "runtime": 54,
+                }
+                for episode_number in range(1, 11)
+            ],
+        }
+
+        response = self.client.get(
+            reverse("episode_info", kwargs={"instance_id": self.season.id}),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "S01E06")
+        self.assertContains(response, "Episode title 6")
+        self.assertContains(response, "Episode synopsis 6")
+        self.assertContains(response, "54m")
+        self.assertContains(response, "Mark as watched")
+        self.assertNotContains(response, "Episode title 5")
+        self.assertTrue(
+            Item.objects.filter(
+                media_id="1668",
+                media_type=MediaTypes.EPISODE.value,
+                season_number=1,
+                episode_number=6,
+            ).exists(),
+        )
+
+    def test_episode_info_rejects_another_users_season(self):
+        """Episode metadata cannot be requested for someone else's tracker row."""
+        other_user = get_user_model().objects.create_user(
+            username="other",
+        )
+        self.client.force_login(other_user)
+
+        response = self.client.get(
+            reverse("episode_info", kwargs={"instance_id": self.season.id}),
+        )
+
+        self.assertEqual(response.status_code, 404)
 
     def test_home_view_with_sort(self):
         """Test the home view with sorting parameter."""
