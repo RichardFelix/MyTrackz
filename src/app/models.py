@@ -614,8 +614,7 @@ class MediaManager(models.Manager):
         return [
             media
             for media in media_list
-            if media.item.season_number == 0
-            or media.item.season_number == earliest_by_tv.get(media.related_tv_id)
+            if media.item.season_number == earliest_by_tv.get(media.related_tv_id)
         ]
 
     def _filter_home_to_aired(self, media_list, media_type):

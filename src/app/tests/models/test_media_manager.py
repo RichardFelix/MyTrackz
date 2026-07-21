@@ -675,6 +675,49 @@ class MediaManagerTests(TestCase):
             [seasons[16]],
         )
 
+    def test_home_hides_tv_specials_for_all_active_statuses(self):
+        """Season zero stays tracked but does not appear on Home."""
+        special_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=0,
+        )
+        special = Season.objects.create(
+            item=special_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.IN_PROGRESS.value,
+        )
+
+        manager = MediaManager()
+        for status in (Status.IN_PROGRESS.value, Status.PLANNING.value):
+            Season.objects.filter(pk__in=(self.season1.pk, special.pk)).update(
+                status=status,
+            )
+
+            home_status = manager.get_home_status(
+                user=self.user,
+                status=status,
+                sort_by=HomeSortChoices.UPCOMING,
+                items_limit=14,
+            )
+
+            self.assertEqual(
+                home_status[MediaTypes.SEASON.value]["items"],
+                [self.season1],
+            )
+
+        library_seasons = manager.get_media_list(
+            user=self.user,
+            media_type=MediaTypes.SEASON.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="title",
+        )
+        self.assertIn(special, library_seasons)
+
     def test_aired_only_hides_caught_up_episodic_media(self):
         """A future next episode hides shows with no released episode to watch."""
         self.user.home_aired_only = True
