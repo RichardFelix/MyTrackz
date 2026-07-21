@@ -612,6 +612,69 @@ class MediaManagerTests(TestCase):
         self.assertEqual(movie.max_progress, 1)
         self.assertIsNone(movie.next_event)
 
+    def test_home_shows_only_earliest_active_season_for_tv_show(self):
+        """Later tracked seasons stay hidden until the earlier season is done."""
+        Season.objects.filter(pk=self.season1.pk).update(
+            status=Status.COMPLETED.value,
+        )
+
+        first_season_number = 15
+        seasons = {}
+        for season_number in range(first_season_number, 19):
+            item = Item.objects.create(
+                media_id="1668",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.SEASON.value,
+                title="Friends",
+                image="http://example.com/image.jpg",
+                season_number=season_number,
+            )
+            seasons[season_number] = Season.objects.create(
+                item=item,
+                user=self.user,
+                related_tv=self.tv,
+                status=(
+                    Status.IN_PROGRESS.value
+                    if season_number == first_season_number
+                    else Status.PLANNING.value
+                ),
+            )
+
+        manager = MediaManager()
+        in_progress = manager.get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+        planning = manager.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertEqual(
+            in_progress[MediaTypes.SEASON.value]["items"],
+            [seasons[first_season_number]],
+        )
+        self.assertNotIn(MediaTypes.SEASON.value, planning)
+
+        Season.objects.filter(pk=seasons[first_season_number].pk).update(
+            status=Status.COMPLETED.value,
+        )
+        planning = manager.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertEqual(
+            planning[MediaTypes.SEASON.value]["items"],
+            [seasons[16]],
+        )
+
     def test_aired_only_hides_caught_up_episodic_media(self):
         """A future next episode hides shows with no released episode to watch."""
         self.user.home_aired_only = True

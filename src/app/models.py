@@ -563,6 +563,9 @@ class MediaManager(models.Manager):
                 sort_filter=None,
             )
 
+            if media_type == MediaTypes.SEASON.value:
+                media_list = self._filter_home_to_earliest_seasons(media_list, user)
+
             if not media_list:
                 continue
 
@@ -592,6 +595,28 @@ class MediaManager(models.Manager):
             }
 
         return list_by_type
+
+    def _filter_home_to_earliest_seasons(self, media_list, user):
+        """Show only the earliest active regular season for each TV show."""
+        active_seasons = (
+            Season.objects.filter(
+                user=user,
+                status__in=(Status.IN_PROGRESS.value, Status.PLANNING.value),
+                item__season_number__gt=0,
+            )
+            .order_by("related_tv_id", "item__season_number")
+            .values_list("related_tv_id", "item__season_number")
+        )
+        earliest_by_tv = {}
+        for related_tv_id, season_number in active_seasons:
+            earliest_by_tv.setdefault(related_tv_id, season_number)
+
+        return [
+            media
+            for media in media_list
+            if media.item.season_number == 0
+            or media.item.season_number == earliest_by_tv.get(media.related_tv_id)
+        ]
 
     def _filter_home_to_aired(self, media_list, media_type):
         """Hide episodic media when the user is caught up to a future release."""
