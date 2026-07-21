@@ -2,7 +2,8 @@
 
 <div x-data="{ synopsisExpanded: false }" class="relative">
   <button type="button"
-          class="modal-x absolute right-0 top-0 z-10 cursor-pointer text-gray-300 hover:text-white"
+          class="modal-x absolute z-10 cursor-pointer text-white"
+          style="top: -18px; right: -20px"
           aria-label="Close episode information"
           @click="episodeInfoOpen = false">
     {% include "app/icons/x.svg" with classes="h-5 w-5" %}
