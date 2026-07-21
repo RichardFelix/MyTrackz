@@ -303,6 +303,22 @@ class HomeViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_sort, "completion")
 
+    def test_home_aired_only_toggle_persists(self):
+        """The homepage control saves and reflects the aired-only preference."""
+        response = self.client.get(reverse("home") + "?aired_only=1")
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.home_aired_only)
+        self.assertContains(response, "Aired only")
+        self.assertContains(response, 'aria-pressed="true"')
+
+        response = self.client.get(reverse("home") + "?aired_only=0")
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.home_aired_only)
+        self.assertContains(response, 'aria-pressed="false"')
+
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):
         """Test the HTMX load more functionality."""

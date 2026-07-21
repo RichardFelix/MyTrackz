@@ -57,6 +57,12 @@ logger = logging.getLogger(__name__)
 def home(request):
     """Home page with media items in progress and planning."""
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
+    aired_only = request.GET.get("aired_only")
+    if aired_only in ("0", "1"):
+        new_value = aired_only == "1"
+        if request.user.home_aired_only != new_value:
+            request.user.home_aired_only = new_value
+            request.user.save(update_fields=["home_aired_only"])
     media_type_to_load = request.GET.get("load_media_type")
     status_to_load = request.GET.get("load_status", Status.IN_PROGRESS.value)
     items_limit = 14
@@ -278,6 +284,19 @@ def progress_edit(request, media_type, instance_id):
     if request.POST.get("home_layout") == "list":
         if media.status != Status.IN_PROGRESS.value:
             return HttpResponse()
+        if request.user.home_aired_only and media_type in (
+            MediaTypes.SEASON.value,
+            MediaTypes.ANIME.value,
+        ):
+            visible_media = BasicMedia.objects.get_home_status(
+                user=request.user,
+                status=Status.IN_PROGRESS.value,
+                sort_by=request.user.home_sort,
+                items_limit=0,
+                specific_media_type=media_type,
+            ).get(media_type, {"items": []})["items"]
+            if not any(item.id == media.id for item in visible_media):
+                return HttpResponse()
         context["home_status"] = Status.IN_PROGRESS.value
         return render(
             request,

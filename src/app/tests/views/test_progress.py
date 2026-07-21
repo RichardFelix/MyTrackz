@@ -112,6 +112,12 @@ class ProgressEditAnime(TestCase):
 
     def setUp(self):
         """Prepare the database with an anime."""
+        metadata_patcher = patch(
+            "app.providers.services.get_media_metadata",
+            return_value={"max_progress": 26},
+        )
+        metadata_patcher.start()
+        self.addCleanup(metadata_patcher.stop)
         self.credentials = {"username": "test", "password": "12345"}
         self.external_credentials = {"username": "test2", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
@@ -214,6 +220,36 @@ class ProgressEditAnime(TestCase):
         self.assertTemplateUsed(response, "app/components/home_list_item.html")
         self.assertContains(response, "data-home-list-item")
         self.assertContains(response, "Next episode 4")
+
+    def test_aired_only_removes_row_when_user_catches_up(self):
+        """Watching the last aired episode immediately removes the compact row."""
+        now = datetime.datetime.now(datetime.UTC)
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+        Event.objects.create(
+            item=self.item,
+            content_number=3,
+            datetime=now - datetime.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=self.item,
+            content_number=4,
+            datetime=now + datetime.timedelta(days=1),
+        )
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {"operation": "increase", "home_layout": "list"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"")
 
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""

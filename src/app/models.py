@@ -570,6 +570,12 @@ class MediaManager(models.Manager):
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)
 
+            if user.home_aired_only and status == Status.IN_PROGRESS.value:
+                media_list = self._filter_home_to_aired(media_list, media_type)
+
+            if not media_list:
+                continue
+
             # Sort the media list
             sorted_list = self._sort_home_media(media_list, sort_by)
 
@@ -586,6 +592,28 @@ class MediaManager(models.Manager):
             }
 
         return list_by_type
+
+    def _filter_home_to_aired(self, media_list, media_type):
+        """Hide episodic media when the user is caught up to a future release."""
+        if media_type not in (MediaTypes.SEASON.value, MediaTypes.ANIME.value):
+            return media_list
+
+        return [
+            media
+            for media in media_list
+            if media.item.media_format == "Movie"
+            or (
+                media.max_progress is None
+                and (
+                    media.next_event is None
+                    or media.next_event.content_number is None
+                )
+            )
+            or (
+                media.max_progress is not None
+                and media.progress < media.max_progress
+            )
+        ]
 
     def _get_media_types_to_process(self, user, specific_media_type):
         """Determine which media types to process based on user settings."""

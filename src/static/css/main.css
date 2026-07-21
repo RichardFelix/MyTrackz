@@ -763,6 +763,9 @@
   .w-1\/5 {
     width: calc(1 / 5 * 100%);
   }
+  .w-2 {
+    width: calc(var(--spacing) * 2);
+  }
   .w-2\/5 {
     width: calc(2 / 5 * 100%);
   }

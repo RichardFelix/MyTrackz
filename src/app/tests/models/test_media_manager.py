@@ -612,6 +612,90 @@ class MediaManagerTests(TestCase):
         self.assertEqual(movie.max_progress, 1)
         self.assertIsNone(movie.next_event)
 
+    def test_aired_only_hides_caught_up_episodic_media(self):
+        """A future next episode hides shows with no released episode to watch."""
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=4,
+            datetime=timezone.now() + timedelta(days=1),
+            notification_sent=False,
+        )
+
+        home_status = MediaManager().get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertNotIn(MediaTypes.SEASON.value, home_status)
+        self.assertNotIn(MediaTypes.ANIME.value, home_status)
+        self.assertIn(MediaTypes.GAME.value, home_status)
+        self.assertIn(MediaTypes.MANGA.value, home_status)
+
+    def test_aired_only_keeps_show_with_released_unwatched_episode(self):
+        """An episodic show remains visible until all aired episodes are watched."""
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=4,
+            datetime=timezone.now() - timedelta(days=1),
+            notification_sent=True,
+        )
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=5,
+            datetime=timezone.now() + timedelta(days=1),
+            notification_sent=False,
+        )
+
+        home_status = MediaManager().get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertIn(MediaTypes.SEASON.value, home_status)
+        self.assertEqual(home_status[MediaTypes.SEASON.value]["total"], 1)
+
+    def test_aired_only_keeps_show_with_unknown_next_air_date(self):
+        """Missing release-calendar data must not make a show disappear."""
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+
+        home_status = MediaManager().get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertIn(MediaTypes.SEASON.value, home_status)
+
+    def test_aired_only_hides_caught_up_show_without_future_event(self):
+        """A caught-up show stays hidden even when no later episode is scheduled."""
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+        Event.objects.create(
+            item=self.season1_item,
+            content_number=3,
+            datetime=timezone.now() - timedelta(days=1),
+            notification_sent=True,
+        )
+
+        home_status = MediaManager().get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+
+        self.assertNotIn(MediaTypes.SEASON.value, home_status)
+
     def test_get_home_status_specific_media_type_returns_remaining_items(self):
         """Test get_home_status returns the remaining items for load-more."""
         manager = MediaManager()

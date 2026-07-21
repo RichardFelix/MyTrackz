@@ -22,29 +22,37 @@
         <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-400">Your library</p>
         <h1 class="mt-1 text-3xl font-bold">Home</h1>
       </div>
-      <div class="relative sm:col-start-3 sm:justify-self-end"
-           x-data="{ open: false }">
-        <button @click="open = !open"
-                @click.outside="open = false"
-                class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
-          {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-          <span>{{ current_sort|no_underscore|title }}</span>
-          {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
-        </button>
-        <div x-show="open"
-             x-transition:enter="transition ease-out duration-100"
-             x-transition:enter-start="transform opacity-0 scale-95"
-             x-transition:enter-end="transform opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-75"
-             x-transition:leave-start="transform opacity-100 scale-100"
-             x-transition:leave-end="transform opacity-0 scale-95"
-             class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
-          {% for value, label in sort_choices %}
-            <a href="{% url 'home' %}?sort={{ value }}"
-               class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-              {{ label }}
-            </a>
-          {% endfor %}
+      <div class="flex items-center justify-center gap-2 sm:col-start-3 sm:justify-self-end">
+        <a href="{% url 'home' %}?aired_only={% if user.home_aired_only %}0{% else %}1{% endif %}"
+           aria-pressed="{% if user.home_aired_only %}true{% else %}false{% endif %}"
+           title="Hide caught-up shows until their next episode airs"
+           class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors {% if user.home_aired_only %}border-indigo-400 bg-indigo-600 text-white{% else %}border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+          <span class="h-2 w-2 rounded-full {% if user.home_aired_only %}bg-white{% else %}bg-gray-500{% endif %}"></span>
+          <span>Aired only</span>
+        </a>
+        <div class="relative" x-data="{ open: false }">
+          <button @click="open = !open"
+                  @click.outside="open = false"
+                  class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
+            {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
+            <span>{{ current_sort|no_underscore|title }}</span>
+            {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
+          </button>
+          <div x-show="open"
+               x-transition:enter="transition ease-out duration-100"
+               x-transition:enter-start="transform opacity-0 scale-95"
+               x-transition:enter-end="transform opacity-100 scale-100"
+               x-transition:leave="transition ease-in duration-75"
+               x-transition:leave-start="transform opacity-100 scale-100"
+               x-transition:leave-end="transform opacity-0 scale-95"
+               class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
+            {% for value, label in sort_choices %}
+              <a href="{% url 'home' %}?sort={{ value }}"
+                 class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+                {{ label }}
+              </a>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>

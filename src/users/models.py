@@ -167,6 +167,13 @@ class User(AbstractUser):
         choices=HomeLayoutChoices,
         help_text="Display home screen items as a compact list or card grid.",
     )
+    home_aired_only = models.BooleanField(
+        default=False,
+        help_text=(
+            "Hide caught-up episodic shows from the home screen until their next "
+            "episode airs."
+        ),
+    )
     home_media_order = models.TextField(
         default="",
         help_text="Comma-separated media type order for the home screen.",
