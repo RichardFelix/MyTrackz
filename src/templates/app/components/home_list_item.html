@@ -84,7 +84,7 @@
                       title="Mark current episode unwatched"
                       hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                      hx-vals='{"operation": "decrease", "home_layout": "list"}'
+                      hx-vals='{"operation": "decrease", "home_layout": "list", "home_section": "1"}'
                       hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
                       hx-swap="outerHTML">
                 {% include "app/icons/minus.svg" with classes="h-4.5 w-4.5" %}
@@ -109,7 +109,7 @@
                     title="Swipe either way or tap to mark progress"
                     hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                    hx-vals='{"operation": "increase", "home_layout": "list"}'
+                    hx-vals='{"operation": "increase", "home_layout": "list", "home_section": "1"}'
                     hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
                     hx-swap="outerHTML">
               {% include "app/icons/checkmark.svg" with classes="h-4.5 w-4.5" %}

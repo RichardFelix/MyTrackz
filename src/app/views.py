@@ -55,6 +55,22 @@ from users.models import (
 logger = logging.getLogger(__name__)
 
 
+def _build_home_section(user, status, sort_by, items_limit):
+    """Build one homepage status section with its grouped media and count."""
+    media_types = BasicMedia.objects.get_home_status(
+        user=user,
+        status=status,
+        sort_by=sort_by,
+        items_limit=items_limit,
+    )
+    return {
+        "key": status,
+        "id": slugify(status),
+        "media_types": media_types,
+        "count": sum(media_list["total"] for media_list in media_types.values()),
+    }
+
+
 @require_GET
 def home(request):
     """Home page with media items in progress and planning."""
@@ -84,24 +100,10 @@ def home(request):
         }
         return render(request, "app/components/home_grid.html", context)
 
-    home_sections = []
-    for status in (Status.IN_PROGRESS.value, Status.PLANNING.value):
-        media_types = BasicMedia.objects.get_home_status(
-            user=request.user,
-            status=status,
-            sort_by=sort_by,
-            items_limit=items_limit,
-        )
-        home_sections.append(
-            {
-                "key": status,
-                "id": slugify(status),
-                "media_types": media_types,
-                "count": sum(
-                    media_list["total"] for media_list in media_types.values()
-                ),
-            },
-        )
+    home_sections = [
+        _build_home_section(request.user, status, sort_by, items_limit)
+        for status in (Status.IN_PROGRESS.value, Status.PLANNING.value)
+    ]
 
     context = {
         "home_sections": home_sections,
@@ -269,6 +271,7 @@ def progress_edit(request, media_type, instance_id):
     media = helpers.get_owned_media_or_404(
         request, media_type, instance_id, prefetch=True
     )
+    previous_status = media.status
 
     if operation == "increase":
         media.increase_progress()
@@ -279,6 +282,30 @@ def progress_edit(request, media_type, instance_id):
         # clear prefetch cache to get the updated episodes
         media.refresh_from_db()
         prefetch_related_objects([media], "episodes")
+
+    if (
+        request.POST.get("home_section")
+        and previous_status == Status.IN_PROGRESS.value
+        and media.status != Status.IN_PROGRESS.value
+    ):
+        items_limit = 14
+        response = render(
+            request,
+            "app/components/home_section_update.html",
+            {
+                "section": _build_home_section(
+                    request.user,
+                    Status.IN_PROGRESS.value,
+                    request.user.home_sort,
+                    items_limit,
+                ),
+                "current_sort": request.user.home_sort,
+                "items_limit": items_limit,
+            },
+        )
+        response["HX-Retarget"] = "#in-progress"
+        response["HX-Reswap"] = "outerHTML"
+        return response
 
     context = {
         "media": media,

@@ -360,6 +360,80 @@ class ProgressEditPersistentMessages(TestCase):
         Episode.save_base(episode)
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_season_refreshes_home_section_with_next_season(
+        self,
+        mock_get_media_metadata,
+    ):
+        """Finishing a homepage season swaps in the newly activated season."""
+        next_season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=2,
+        )
+        next_season = Season.objects.create(
+            item=next_season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+        mock_get_media_metadata.return_value = {
+            "episodes": [
+                {"episode_number": 1},
+                {"episode_number": 2},
+            ],
+            "season/1": {
+                "episodes": [
+                    {"episode_number": 1},
+                    {"episode_number": 2},
+                ],
+            },
+            "related": {
+                "seasons": [
+                    {"season_number": 1},
+                    {
+                        "season_number": 2,
+                        "first_air_date": datetime.datetime(
+                            2020,
+                            1,
+                            1,
+                            tzinfo=datetime.UTC,
+                        ),
+                    },
+                ],
+            },
+        }
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
+            {"operation": "increase", "home_section": "1"},
+            headers={"HX-Request": "true"},
+        )
+
+        self.season.refresh_from_db()
+        next_season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+        self.assertEqual(next_season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(response.headers["HX-Retarget"], "#in-progress")
+        self.assertEqual(response.headers["HX-Reswap"], "outerHTML")
+        self.assertTemplateUsed(response, "app/components/home_section_update.html")
+        self.assertTemplateUsed(response, "app/components/home_section.html")
+        self.assertContains(response, 'hx-swap-oob="beforeend"')
+        self.assertContains(response, f'id="home-list-item-season-{next_season.id}"')
+        self.assertNotContains(
+            response,
+            f'id="home-list-item-season-{self.season.id}"',
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_progress_edit_htmx_appends_persistent_messages(
         self,
         mock_get_media_metadata,
@@ -389,7 +463,7 @@ class ProgressEditPersistentMessages(TestCase):
                     "instance_id": self.season.id,
                 },
             ),
-            {"operation": "increase"},
+            {"operation": "increase", "home_section": "1"},
             headers={"HX-Request": "true"},
         )
 

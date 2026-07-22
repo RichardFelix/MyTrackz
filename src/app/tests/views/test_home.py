@@ -218,7 +218,8 @@ class HomeViewTests(TestCase):
         self.assertContains(response, "homeSwipe({ enabled: true })")
         self.assertContains(
             response,
-            'hx-vals=\'{"operation": "increase", "home_layout": "list"}\'',
+            'hx-vals=\'{"operation": "increase", "home_layout": "list", '
+            '"home_section": "1"}\'',
         )
         self.assertContains(response, "Swipe either way or tap to mark progress")
         self.assertContains(response, 'aria-label="Mark watched"')
@@ -236,7 +237,8 @@ class HomeViewTests(TestCase):
         )
         self.assertContains(
             response,
-            'hx-vals=\'{"operation": "decrease", "home_layout": "list"}\'',
+            'hx-vals=\'{"operation": "decrease", "home_layout": "list", '
+            '"home_section": "1"}\'',
         )
         self.assertContains(response, "-mx-[27px] space-y-4 sm:mx-0")
 
@@ -250,6 +252,7 @@ class HomeViewTests(TestCase):
         self.assertNotContains(response, "data-home-list-item")
         self.assertContains(response, 'class="media-grid"')
         self.assertContains(response, 'title="Add to tracker"')
+        self.assertContains(response, '"home_section": "1"')
 
     def test_home_list_shows_upcoming_releases(self):
         """Backlog and in-progress rows show releases in list layout only."""
