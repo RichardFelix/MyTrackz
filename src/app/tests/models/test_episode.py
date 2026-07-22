@@ -179,10 +179,10 @@ class EpisodeStatusTests(TestCase):
         mock_get_metadata.return_value = {
             "season/1": {
                 "episodes": [
-                    {"episode_number": 1},
-                    {"episode_number": 2},
-                    {"episode_number": 25},
-                ],
+                    {"episode_number": episode_number}
+                    for episode_number in range(1, 24)
+                ]
+                + [{"episode_number": 25}],
             },
             "related": {"seasons": [{"season_number": 1}]},
         }
@@ -198,6 +198,38 @@ class EpisodeStatusTests(TestCase):
 
         self.tv.refresh_from_db()
         self.assertEqual(self.tv.status, Status.COMPLETED.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_numbered_bonus_does_not_prevent_real_finale(self, mock_get_metadata):
+        """Episode 23 completes a season that also has a bonus numbered 100."""
+        finale_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Finale",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=23,
+        )
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [
+                    {"episode_number": episode_number}
+                    for episode_number in range(1, 24)
+                ]
+                + [{"episode_number": 100}],
+            },
+            "related": {"seasons": [{"season_number": 1}]},
+        }
+
+        Episode.objects.create(
+            item=finale_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        self.season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_middle_episode_does_not_change_status(self, mock_get_metadata):

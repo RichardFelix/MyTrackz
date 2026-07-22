@@ -520,9 +520,44 @@ def process_tv(response):
     }
 
 
+def get_season_progress_episodes(episodes):
+    """Return episodes that belong to the season's numbered progress run.
+
+    TMDB occasionally places a bonus episode in a regular season with an
+    extreme number such as 100. Treating that number as the season maximum
+    makes a 23-episode season appear to contain 100 episodes. Allow one gap in
+    the normal numbering (some real finales skip a number), while excluding
+    those extreme outliers.
+    """
+    numbered_episodes = [
+        episode
+        for episode in episodes
+        if isinstance(episode.get("episode_number"), int)
+        and episode["episode_number"] > 0
+    ]
+    if not numbered_episodes:
+        return []
+
+    reasonable_max = len(numbered_episodes) + 1
+    progress_episodes = [
+        episode
+        for episode in numbered_episodes
+        if episode["episode_number"] <= reasonable_max
+    ]
+    return progress_episodes or numbered_episodes
+
+
+def get_season_max_progress(episodes):
+    """Return the highest episode number used for season progress."""
+    progress_episodes = get_season_progress_episodes(episodes)
+    if not progress_episodes:
+        return 0
+    return max(episode["episode_number"] for episode in progress_episodes)
+
+
 def process_season(response, providers_response):
     """Process the metadata for the selected season from The Movie Database."""
-    episodes = response["episodes"]
+    episodes = get_season_progress_episodes(response["episodes"])
     num_episodes = len(episodes)
 
     runtimes = []
@@ -544,7 +579,7 @@ def process_season(response, providers_response):
         "source": Sources.TMDB.value,
         "media_type": MediaTypes.SEASON.value,
         "season_title": response["name"],
-        "max_progress": episodes[-1]["episode_number"] if episodes else 0,
+        "max_progress": get_season_max_progress(response["episodes"]),
         "image": get_image_url(response["poster_path"]),
         "season_number": response["season_number"],
         "synopsis": get_synopsis(response["overview"]),
@@ -788,6 +823,8 @@ def process_episodes(season_metadata, episodes_in_db):
 
 def find_next_episode(episode_number, episodes_metadata):
     """Find the next episode number."""
+    episodes_metadata = get_season_progress_episodes(episodes_metadata)
+
     # Find the current episode in the sorted list
     current_episode_index = None
     for index, episode in enumerate(episodes_metadata):

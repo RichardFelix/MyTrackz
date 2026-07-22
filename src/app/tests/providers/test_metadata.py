@@ -312,6 +312,26 @@ class Metadata(TestCase):
         next_episode = tmdb.find_next_episode(5, episodes_metadata)
         self.assertIsNone(next_episode)
 
+    def test_tmdb_season_progress_ignores_extreme_bonus_number(self):
+        """A numbered casting special does not turn 23 episodes into 100."""
+        episodes_metadata = [
+            {"episode_number": episode_number}
+            for episode_number in range(1, 24)
+        ] + [{"episode_number": 100}]
+
+        self.assertEqual(tmdb.get_season_max_progress(episodes_metadata), 23)
+        self.assertIsNone(tmdb.find_next_episode(23, episodes_metadata))
+
+    def test_tmdb_season_progress_preserves_single_numbering_gap(self):
+        """A genuine finale after one skipped number remains trackable."""
+        episodes_metadata = [
+            {"episode_number": episode_number}
+            for episode_number in range(1, 24)
+        ] + [{"episode_number": 25}]
+
+        self.assertEqual(tmdb.get_season_max_progress(episodes_metadata), 25)
+        self.assertEqual(tmdb.find_next_episode(23, episodes_metadata), 25)
+
     def test_movie(self):
         """Test the metadata method for movies."""
         response = tmdb.movie("10494")

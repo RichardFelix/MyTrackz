@@ -724,8 +724,8 @@ class MediaManager(models.Manager):
             return
 
         # For other media types, calculate max_progress from events
-        # Create a dictionary mapping item_id to max content_number
-        max_progress_dict = {}
+        # Create a dictionary mapping item_id to content numbers
+        progress_numbers_dict = {}
 
         item_ids = [media.item.id for media in media_list]
 
@@ -740,11 +740,21 @@ class MediaManager(models.Manager):
             item_id = event["item_id"]
             content_number = event["content_number"]
             if content_number is not None:
-                current_max = max_progress_dict.get(item_id, 0)
-                max_progress_dict[item_id] = max(current_max, content_number)
+                progress_numbers_dict.setdefault(item_id, []).append(content_number)
 
         for media in media_list:
-            media.max_progress = max_progress_dict.get(media.item.id)
+            progress_numbers = progress_numbers_dict.get(media.item.id, [])
+            if media_type == MediaTypes.SEASON.value:
+                media.max_progress = providers.tmdb.get_season_max_progress(
+                    [
+                        {"episode_number": episode_number}
+                        for episode_number in progress_numbers
+                    ],
+                )
+                if not media.max_progress:
+                    media.max_progress = None
+            else:
+                media.max_progress = max(progress_numbers, default=None)
 
     def _annotate_tv_released_episodes(self, tv_list, current_datetime):
         """Annotate TV shows with the number of released episodes."""
@@ -1681,7 +1691,10 @@ class Season(Media):
         released_episode_exists = False
         undated_remaining_exists = False
 
-        for episode in season_metadata["episodes"]:
+        progress_episodes = providers.tmdb.get_season_progress_episodes(
+            season_metadata["episodes"],
+        )
+        for episode in progress_episodes:
             air_date = episode.get("air_date")
             if app.helpers.is_released_date(air_date, current_date):
                 released_episode_exists = True
@@ -1771,7 +1784,9 @@ class Season(Media):
             self.item.source,
             [self.item.season_number],
         )
-        episodes = season_metadata["episodes"]
+        episodes = providers.tmdb.get_season_progress_episodes(
+            season_metadata["episodes"],
+        )
 
         if self.progress == 0:
             # start watching from the first episode
@@ -1786,8 +1801,8 @@ class Season(Media):
 
         if next_episode_number:
             self.watch(next_episode_number, now)
-        elif episodes and self.progress >= max(
-            episode["episode_number"] for episode in episodes
+        elif episodes and self.progress >= providers.tmdb.get_season_max_progress(
+            episodes,
         ):
             # Recover seasons that were left in progress by historical finale
             # detection based on episode count (which fails for numbering gaps).
@@ -1908,7 +1923,10 @@ class Season(Media):
         now = timezone.now().replace(second=0, microsecond=0)
 
         # Create Episode objects for the remaining episodes
-        for episode in reversed(season_metadata["episodes"]):
+        progress_episodes = providers.tmdb.get_season_progress_episodes(
+            season_metadata["episodes"],
+        )
+        for episode in reversed(progress_episodes):
             if episode["episode_number"] <= latest_watched_ep_num:
                 break
 
@@ -2014,18 +2032,14 @@ class Episode(models.Model):
             [season_number],
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-        episode_numbers = [
-            episode["episode_number"]
-            for episode in season_metadata["episodes"]
-            if episode.get("episode_number") is not None
-        ]
+        max_progress = providers.tmdb.get_season_max_progress(
+            season_metadata["episodes"],
+        )
 
         # clear prefetch cache to get the updated episodes
         self.related_season.refresh_from_db()
 
-        is_finale = bool(episode_numbers) and self.item.episode_number == max(
-            episode_numbers
-        )
+        is_finale = bool(max_progress) and self.item.episode_number == max_progress
         season_just_completed = False
         if is_finale:
             if self.related_season.status != Status.COMPLETED.value:

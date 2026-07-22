@@ -1044,6 +1044,27 @@ class MediaManagerTests(TestCase):
         manager._annotate_tv_released_episodes(tv_list, timezone.now())
         self.assertEqual(tv_list[0].max_progress, 10)
 
+    def test_annotate_season_max_progress_ignores_numbered_bonus(self):
+        """Season progress ignores a provider bonus numbered as episode 100."""
+        now = timezone.now()
+        for episode_number in [*range(1, 24), 100]:
+            Event.objects.create(
+                item=self.season1_item,
+                content_number=episode_number,
+                datetime=now - timedelta(days=1),
+            )
+
+        season_list = list(
+            Season.objects.filter(user=self.user).select_related("item"),
+        )
+
+        MediaManager().annotate_max_progress(
+            season_list,
+            MediaTypes.SEASON.value,
+        )
+
+        self.assertEqual(season_list[0].max_progress, 23)
+
     def test_get_media(self):
         """Test the get_media method."""
         manager = MediaManager()
