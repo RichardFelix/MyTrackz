@@ -254,6 +254,34 @@ class HomeViewTests(TestCase):
         self.assertContains(response, 'title="Add to tracker"')
         self.assertContains(response, '"home_section": "1"')
 
+    def test_home_list_does_not_invent_episode_after_provider_max(self):
+        """A stuck finale row should not claim a nonexistent next episode."""
+        finale_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test TV Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=25,
+        )
+        finale = Episode(
+            item=finale_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+        Episode.save_base(finale)
+        Event.objects.create(
+            item=self.season.item,
+            content_number=25,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "Season ready to finish")
+        self.assertNotContains(response, "S01E26")
+
     def test_home_list_shows_upcoming_releases(self):
         """Backlog and in-progress rows show releases in list layout only."""
         planned_movie = Movie.objects.get(user=self.user)
@@ -315,6 +343,7 @@ class HomeViewTests(TestCase):
         self.assertContains(response, "Episode synopsis 6")
         self.assertContains(response, "54m")
         self.assertContains(response, "Mark as watched")
+        self.assertContains(response, '"home_section": "1"')
         self.assertNotContains(response, "Episode title 5")
         self.assertTrue(
             Item.objects.filter(

@@ -20,7 +20,7 @@
               class="inline-flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border-2 border-indigo-500 bg-[#303239] px-5 text-base font-bold text-white transition-colors hover:bg-[#3a3d45]"
               hx-post="{% url 'progress_edit' media.item.media_type media.id %}"
               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-vals='{"operation": "increase", "home_layout": "list"}'
+              hx-vals='{"operation": "increase", "home_layout": "list", "home_section": "1"}'
               hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
               hx-swap="outerHTML"
               @click="episodeInfoOpen = false">

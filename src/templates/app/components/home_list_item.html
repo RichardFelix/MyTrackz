@@ -35,7 +35,11 @@
 
       <p class="mt-1 line-clamp-1 text-sm text-gray-300 sm:text-base">
         {% if media.item.media_type == MediaTypes.SEASON.value %}
-          S{{ media.item.season_number|stringformat:"02d" }}E{{ media.progress|add:"1"|stringformat:"02d" }} · Next episode
+          {% if media.max_progress and media.progress >= media.max_progress %}
+            Season ready to finish
+          {% else %}
+            S{{ media.item.season_number|stringformat:"02d" }}E{{ media.progress|add:"1"|stringformat:"02d" }} · Next episode
+          {% endif %}
         {% elif media.item.media_type == MediaTypes.MOVIE.value or media.item.media_format == "Movie" %}
           {% if media.progress %}Watched{% else %}Ready to watch{% endif %}
         {% elif media.item.media_type == MediaTypes.GAME.value %}

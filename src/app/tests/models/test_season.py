@@ -243,6 +243,34 @@ class SeasonModel(TestCase):
 
         self.assertEqual(self.season.episodes.count(), 24)
 
+    def test_increase_progress_completes_stuck_gapped_finale(self):
+        """Retrying progress repairs a season already at a gapped finale."""
+        self.episodes_metadata = [
+            {"episode_number": 1, "air_date": datetime(2023, 1, 1, tzinfo=UTC)},
+            {"episode_number": 2, "air_date": datetime(2023, 1, 2, tzinfo=UTC)},
+            {"episode_number": 25, "air_date": None},
+        ]
+        finale_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=25,
+        )
+        finale = Episode(
+            item=finale_item,
+            related_season=self.season,
+            end_date=datetime(2023, 6, 25, tzinfo=UTC),
+        )
+        Episode.save_base(finale)
+
+        self.season.increase_progress()
+
+        self.season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+
     @patch("app.models.Season.get_episode_item")
     def test_watch_method(self, mock_get_episode_item):
         """Test the watch method of the Season model."""

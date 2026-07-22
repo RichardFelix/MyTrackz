@@ -165,6 +165,41 @@ class EpisodeStatusTests(TestCase):
         self.assertEqual(self.tv.status, Status.COMPLETED.value)
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_highest_gapped_episode_sets_season_completed(self, mock_get_metadata):
+        """The highest actual episode number is the finale when numbers skip."""
+        finale_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Reunion",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=25,
+        )
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [
+                    {"episode_number": 1},
+                    {"episode_number": 2},
+                    {"episode_number": 25},
+                ],
+            },
+            "related": {"seasons": [{"season_number": 1}]},
+        }
+
+        Episode.objects.create(
+            item=finale_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        self.season.refresh_from_db()
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+
+        self.tv.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_middle_episode_does_not_change_status(self, mock_get_metadata):
         """Test middle episode doesn't change season/TV status."""
         mock_metadata = {

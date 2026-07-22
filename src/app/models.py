@@ -1786,6 +1786,13 @@ class Season(Media):
 
         if next_episode_number:
             self.watch(next_episode_number, now)
+        elif episodes and self.progress >= max(
+            episode["episode_number"] for episode in episodes
+        ):
+            # Recover seasons that were left in progress by historical finale
+            # detection based on episode count (which fails for numbering gaps).
+            self.status = Status.COMPLETED.value
+            self.save(update_fields=["status"])
         else:
             logger.info("No more episodes to watch.")
 
@@ -2007,12 +2014,18 @@ class Episode(models.Model):
             [season_number],
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-        max_progress = len(season_metadata["episodes"])
+        episode_numbers = [
+            episode["episode_number"]
+            for episode in season_metadata["episodes"]
+            if episode.get("episode_number") is not None
+        ]
 
         # clear prefetch cache to get the updated episodes
         self.related_season.refresh_from_db()
 
-        is_finale = self.item.episode_number == max_progress
+        is_finale = bool(episode_numbers) and self.item.episode_number == max(
+            episode_numbers
+        )
         season_just_completed = False
         if is_finale:
             if self.related_season.status != Status.COMPLETED.value:
