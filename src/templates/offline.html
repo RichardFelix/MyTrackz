@@ -1,0 +1,34 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" class="bg-[#000]">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="MyTrackz, offline">
+    <meta name="description" content="MyTrackz is currently offline.">
+    <meta name="theme-color" content="#000000">
+    <title>Offline - MyTrackz</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { align-items: center; background: #000; color: #f3f4f6; display: flex; justify-content: center; margin: 0; min-height: 100svh; padding: 1.5rem; }
+      main { background: #17181d; border: 1px solid #2c3136; border-radius: 1rem; max-width: 28rem; padding: 2rem; text-align: center; width: 100%; }
+      img { height: 5rem; width: 5rem; }
+      h1 { font-size: 1.5rem; margin: 1.25rem 0 .75rem; }
+      p { color: #9ca3af; line-height: 1.5; margin: 0 0 1.5rem; }
+      a { background: #4f46e5; border-radius: .5rem; color: #fff; display: inline-block; font-weight: 600; padding: .75rem 1rem; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="{% static 'favicon/android-chrome-192x192.png' %}"
+           alt=""
+           width="80"
+           height="80">
+      <h1>You’re offline</h1>
+      <p>MyTrackz needs a connection to load your current library. Reconnect, then try again.</p>
+      <a href="{% url 'home' %}">Try again</a>
+    </main>
+  </body>
+</html>

@@ -12,8 +12,10 @@
     <meta name="description" content="Search and track media on MyTrackz.">
 
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-title" content="MyTrackz">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MyTrackz">
 
     <title>
       {% block title %}
@@ -45,7 +47,7 @@
           type="image/png"
           sizes="16x16"
           href="{% static "favicon/favicon-16x16.png" %}">
-    <link rel="manifest" href="{% static "favicon/site.webmanifest" %}">
+    <link rel="manifest" href="{% url 'webmanifest' %}">
     <link rel="mask-icon"
           href="{% static "favicon/safari-pinned-tab.svg" color="#000000" %}">
     <link rel="shortcut icon" href="{% static "favicon/favicon.ico" %}">
@@ -449,23 +451,23 @@
 
     <div id="persistent-messages-actions">{% include "app/components/messages/persistent_messages_actions.html" %}</div>
 
+    <div id="pwa-update-notice"
+         class="fixed right-4 bottom-24 z-50 hidden max-w-sm rounded-lg border border-[#3d444d] bg-[#20242a] p-4 text-sm text-gray-200 shadow-xl lg:bottom-4"
+         role="status">
+      <p class="font-medium">A MyTrackz update is ready.</p>
+      <button id="pwa-update-button"
+              type="button"
+              class="mt-3 rounded-md bg-indigo-600 px-3 py-2 font-medium text-white transition-colors hover:bg-indigo-500">
+        Reload to update
+      </button>
+    </div>
+
     {% block js %}
     {% endblock js %}
 
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/static/js/serviceworker.js')
-            .then((registration) => {
-              console.log('SW registered: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-    </script>
-
+    <script src="{% static 'js/pwa.js' %}{% get_static_file_mtime 'js/pwa.js' %}"
+            data-service-worker-url="{% url 'service_worker' %}"
+            data-service-worker-scope="{% url 'home' %}"></script>
     <script src="{% static 'js/mediaStatusDateHandler.js' %}{% get_static_file_mtime 'js/mediaStatusDateHandler.js' %}"></script>
     <script src="{% static 'js/searchShortcut.js' %}{% get_static_file_mtime 'js/searchShortcut.js' %}"></script>
     <script src="{% static 'js/modalGlassHighlight.js' %}{% get_static_file_mtime 'js/modalGlassHighlight.js' %}"></script>

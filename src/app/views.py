@@ -13,6 +13,7 @@ from django.db import IntegrityError
 from django.db.models import prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -1442,11 +1443,145 @@ def statistics(request):
     return render(request, "app/statistics.html", context)
 
 
+def _deployment_path(request, path):
+    """Ensure an app URL includes the configured reverse-proxy script prefix."""
+    script_name = request.META.get("SCRIPT_NAME") or getattr(
+        settings,
+        "FORCE_SCRIPT_NAME",
+        "",
+    ) or ""
+    script_name = script_name.rstrip("/")
+    if script_name and path != script_name and not path.startswith(f"{script_name}/"):
+        return f"{script_name}/{path.lstrip('/')}"
+    return path
+
+
+@login_not_required
 @require_GET
-def service_worker():
+def webmanifest(request):
+    """Return install metadata using this deployment's URL prefix."""
+    def manifest_url(name):
+        return _deployment_path(request, reverse(name))
+
+    app_root = manifest_url("home")
+    manifest = {
+        "id": app_root,
+        "name": "MyTrackz - Media Tracker",
+        "short_name": "MyTrackz",
+        "description": (
+            "Track your movies, TV shows, anime, manga, games, books, "
+            "comics, and board games."
+        ),
+        "start_url": app_root,
+        "scope": app_root,
+        "display": "standalone",
+        "display_override": ["standalone"],
+        "theme_color": "#000000",
+        "background_color": "#000000",
+        "lang": "en",
+        "categories": ["entertainment", "productivity"],
+        "prefer_related_applications": False,
+        "icons": [
+            {
+                "src": static("favicon/android-chrome-192x192.png"),
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": static("favicon/android-chrome-512x512.png"),
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": static("favicon/android-chrome-192x192-maskable.png"),
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+            {
+                "src": static("favicon/android-chrome-512x512-maskable.png"),
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+        ],
+        "screenshots": [
+            {
+                "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2",
+                "sizes": "2305x1350",
+                "type": "image/png",
+                "label": "MyTrackz library home screen",
+            },
+            {
+                "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/statistics.png",
+                "sizes": "2305x1350",
+                "type": "image/png",
+                "form_factor": "wide",
+                "label": "MyTrackz media statistics",
+            },
+        ],
+        "shortcuts": [
+            {
+                "name": "Home",
+                "short_name": "Home",
+                "description": "Open your media library",
+                "url": manifest_url("home"),
+                "icons": [
+                    {
+                        "src": static("img/shortcuts/home.svg"),
+                        "sizes": "192x192",
+                        "type": "image/svg+xml",
+                    }
+                ],
+            },
+            {
+                "name": "Discover",
+                "short_name": "Discover",
+                "description": "Find something new to track",
+                "url": manifest_url("discover"),
+            },
+            {
+                "name": "Trending",
+                "short_name": "Trending",
+                "description": "See what is trending",
+                "url": manifest_url("trending"),
+            },
+            {
+                "name": "Search",
+                "short_name": "Search",
+                "description": "Search for media",
+                "url": manifest_url("search"),
+            },
+        ],
+    }
+    response = JsonResponse(
+        manifest,
+        content_type="application/manifest+json",
+        json_dumps_params={"indent": 2},
+    )
+    response["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@login_not_required
+@require_GET
+def offline(request):
+    """Render the non-personalized fallback used for offline navigation."""
+    return render(request, "offline.html")
+
+
+@login_not_required
+@require_GET
+def service_worker(request):
     """Serve the service worker file."""
     sw_path = Path(settings.STATICFILES_DIRS[0]) / "js" / "serviceworker.js"
     with sw_path.open() as f:
         response = HttpResponse(f.read(), content_type="application/javascript")
-        response["Service-Worker-Allowed"] = "/"
+        response["Cache-Control"] = "no-cache"
+        response["Service-Worker-Allowed"] = _deployment_path(
+            request,
+            reverse("home"),
+        )
         return response

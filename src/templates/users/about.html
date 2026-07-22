@@ -12,6 +12,23 @@
     <h2 class="text-2xl font-bold mb-6">About MyTrackz</h2>
 
     <div class="space-y-6">
+      <div id="pwa-install-section" class="hidden space-y-2">
+        <div class="flex items-center gap-2 text-lg font-medium text-gray-200">
+          {% include "app/icons/download.svg" with classes="w-5 h-5 text-indigo-400" %}
+          <h3>Install app</h3>
+        </div>
+        <div class="pl-7">
+          <p class="mb-3 text-sm text-gray-300">
+            Install MyTrackz on this device for a standalone, app-like experience.
+          </p>
+          <button type="button"
+                  data-pwa-install
+                  class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500">
+            Install MyTrackz
+          </button>
+        </div>
+      </div>
+
       <div class="space-y-2">
         <div class="flex items-center gap-2 text-lg font-medium text-gray-200">
           {% include "app/icons/info.svg" with classes="w-5 h-5 text-indigo-400" %}

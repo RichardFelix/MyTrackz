@@ -8,6 +8,9 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("manifest.webmanifest", views.webmanifest, name="webmanifest"),
+    path("offline/", views.offline, name="offline"),
+    path("serviceworker.js", views.service_worker, name="service_worker"),
     path(
         "home/unfinished-collections",
         views.unfinished_collections,
@@ -130,5 +133,4 @@ urlpatterns = [
         name="search_parent_season",
     ),
     path("statistics", views.statistics, name="statistics"),
-    path("serviceworker.js", views.service_worker, name="service_worker"),
 ]
