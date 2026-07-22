@@ -116,6 +116,27 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.colored_grid_progress_buttons)
 
+    def test_show_all_home_items_defaults_on_and_can_be_disabled(self):
+        """Home rows load every item by default and can restore the load button."""
+        response = self.client.get(reverse("preferences"))
+
+        self.assertTrue(self.user.show_all_home_items)
+        self.assertContains(response, 'name="show_all_home_items"')
+        self.client.post(reverse("preferences"), {})
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.show_all_home_items)
+
+    def test_show_all_home_items_can_be_enabled(self):
+        """Checking the switch saves automatic loading for all home items."""
+        self.user.show_all_home_items = False
+        self.user.save(update_fields=["show_all_home_items"])
+
+        self.client.post(reverse("preferences"), {"show_all_home_items": "on"})
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.show_all_home_items)
+
     def test_invalid_and_duplicate_slugs_stripped(self):
         """Unknown/episode/duplicate slugs are removed, order preserved."""
         submitted = (

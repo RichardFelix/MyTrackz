@@ -181,6 +181,17 @@
         <div class="grid gap-3 lg:grid-cols-2">
           <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
             <span>
+              <span class="block text-sm font-medium text-gray-200">Show all home items</span>
+              <span class="block text-xs text-gray-400 mt-1">Load every item in each Home row instead of showing a Load all button.</span>
+            </span>
+            <input class="sr-only peer"
+                   type="checkbox"
+                   name="show_all_home_items"
+                   {% if user.show_all_home_items %}checked{% endif %}>
+            <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+          </label>
+          <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+            <span>
               <span class="block text-sm font-medium text-gray-200">Continue the Story</span>
               <span class="block text-xs text-gray-400 mt-1">Suggest sequels, next volumes, and expansions on Home.</span>
             </span>

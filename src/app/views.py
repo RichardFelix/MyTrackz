@@ -101,7 +101,12 @@ def home(request):
         return render(request, "app/components/home_grid.html", context)
 
     home_sections = [
-        _build_home_section(request.user, status, sort_by, items_limit)
+        _build_home_section(
+            request.user,
+            status,
+            sort_by,
+            None if request.user.show_all_home_items else items_limit,
+        )
         for status in (Status.IN_PROGRESS.value, Status.PLANNING.value)
     ]
 

@@ -524,6 +524,21 @@ class HomeViewTests(TestCase):
 
         home_response = self.client.get(reverse("home"))
 
+        planning_section = next(
+            section
+            for section in home_response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        self.assertEqual(
+            len(planning_section["media_types"][MediaTypes.MOVIE.value]["items"]),
+            16,
+        )
+        self.assertNotContains(home_response, "Load all (16)")
+
+        self.user.show_all_home_items = False
+        self.user.save(update_fields=["show_all_home_items"])
+        home_response = self.client.get(reverse("home"))
+
         self.assertContains(home_response, "Load all (16)")
         self.assertContains(home_response, "hx-on::after-request=")
         self.assertNotContains(home_response, 'hx-on:click="this.remove()"')

@@ -275,6 +275,7 @@ def preferences(request):
         if "compact_home_list" in request.POST
         else HomeLayoutChoices.GRID
     )
+    request.user.show_all_home_items = "show_all_home_items" in request.POST
     request.user.colored_grid_progress_buttons = (
         "colored_grid_progress_buttons" in request.POST
     )

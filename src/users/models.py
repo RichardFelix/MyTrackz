@@ -174,6 +174,10 @@ class User(AbstractUser):
         choices=HomeLayoutChoices,
         help_text="Display home screen items as a compact list or card grid.",
     )
+    show_all_home_items = models.BooleanField(
+        default=True,
+        help_text="Show every item in each home screen row without a load button.",
+    )
     home_aired_only = models.BooleanField(
         default=False,
         help_text=(

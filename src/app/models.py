@@ -586,6 +586,8 @@ class MediaManager(models.Manager):
             total_count = len(sorted_list)
             if specific_media_type:
                 paginated_list = sorted_list[items_limit:]
+            elif items_limit is None:
+                paginated_list = sorted_list
             else:
                 paginated_list = sorted_list[:items_limit]
 

@@ -37,7 +37,7 @@
             {% include "app/components/home_grid.html" with media_list=media_list home_status=section.key %}
           </div>
 
-          {% if media_list.total > items_limit %}
+          {% if not user.show_all_home_items and media_list.total > items_limit %}
             <div class="mt-5 flex justify-center" data-load-all-controls>
               <button hx-get="{% url 'home' %}?sort={{ current_sort }}&load_status={{ section.key }}&load_media_type={{ media_type }}"
                       hx-target="#media-grid-{{ section.id }}-{{ media_type }}"
