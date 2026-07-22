@@ -1278,7 +1278,7 @@ class TV(Media):
         )
         max_progress = tv_metadata["max_progress"]
 
-        if not max_progress or self.progress > max_progress:
+        if not max_progress:
             return
 
         seasons_to_create = []
@@ -1678,17 +1678,27 @@ class Season(Media):
         latest_watched_ep_num = self._get_latest_watched_episode_number()
         released_remaining_exists = False
         unreleased_remaining_exists = False
+        released_episode_exists = False
+        undated_remaining_exists = False
 
         for episode in season_metadata["episodes"]:
+            air_date = episode.get("air_date")
+            if app.helpers.is_released_date(air_date, current_date):
+                released_episode_exists = True
+
             if episode["episode_number"] <= latest_watched_ep_num:
                 continue
 
-            if app.helpers.is_released_date(episode.get("air_date"), current_date):
+            if app.helpers.is_released_date(air_date, current_date):
                 released_remaining_exists = True
+            elif air_date is None:
+                undated_remaining_exists = True
             else:
                 unreleased_remaining_exists = True
 
-        if not unreleased_remaining_exists:
+        if not unreleased_remaining_exists and (
+            not undated_remaining_exists or released_episode_exists
+        ):
             return Status.COMPLETED.value
 
         if latest_watched_ep_num > 0 or released_remaining_exists:

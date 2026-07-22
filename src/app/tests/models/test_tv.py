@@ -254,6 +254,103 @@ class TVStatusTests(TestCase):
             self.assertTrue(season.episodes.exists())
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_updates_seasons_when_progress_exceeds_provider_total(
+        self,
+        mock_get_metadata,
+    ):
+        """Stale provider totals must not prevent the season completion cascade."""
+        episode_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Test Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=3,
+        )
+        Episode.objects.create(
+            item=episode_item,
+            related_season=self.season1,
+        )
+        mock_get_metadata.return_value = {
+            "max_progress": 2,
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "image": "img1.jpg"},
+                    {"season_number": 2, "image": "img2.jpg"},
+                ],
+            },
+            "season/1": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                ],
+            },
+            "season/2": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                ],
+            },
+        }
+
+        self.assertGreater(self.tv.progress, 2)
+
+        self.tv.status = Status.COMPLETED.value
+        self.tv.save()
+
+        self.season1.refresh_from_db()
+        self.season2.refresh_from_db()
+        self.assertEqual(self.season1.status, Status.COMPLETED.value)
+        self.assertEqual(self.season2.status, Status.COMPLETED.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_status_ignores_undated_extra_in_released_season(
+        self,
+        mock_get_metadata,
+    ):
+        """An undated provider extra must not keep a historical season open."""
+        mock_get_metadata.return_value = {
+            "max_progress": 3,
+            "related": {
+                "seasons": [
+                    {"season_number": 1, "image": "img1.jpg"},
+                    {"season_number": 2, "image": "img2.jpg"},
+                ],
+            },
+            "season/1": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 1,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                    {"episode_number": 2, "air_date": None},
+                ],
+            },
+            "season/2": {
+                "image": "http://example.com/image.jpg",
+                "season_number": 2,
+                "episodes": [
+                    {"episode_number": 1, "air_date": datetime(2020, 1, 1, tzinfo=UTC)},
+                ],
+            },
+        }
+
+        self.tv.status = Status.COMPLETED.value
+        self.tv.save()
+
+        self.tv.refresh_from_db()
+        self.season1.refresh_from_db()
+        self.season2.refresh_from_db()
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+        self.assertEqual(self.season1.status, Status.COMPLETED.value)
+        self.assertEqual(self.season2.status, Status.COMPLETED.value)
+        self.assertFalse(
+            self.season1.episodes.filter(item__episode_number=2).exists(),
+        )
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_completed_status_skips_unaired_episodes_and_future_seasons(
         self,
         mock_get_metadata,
