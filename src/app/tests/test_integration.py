@@ -49,17 +49,17 @@ class IntegrationTest(StaticLiveServerTestCase):
         palette_input.fill(query)
         palette_input.press("Enter")
 
-    def test_planning_status_is_displayed_as_backlog(self):
-        """Status navigation and forms display Backlog but retain Planning."""
+    def test_planning_status_is_displayed_as_wishlist(self):
+        """Status navigation and forms default to Wishlist but retain Planning."""
         expect(
-            self.page.get_by_role("link", name="Backlog", exact=True)
+            self.page.get_by_role("link", name="Wishlist", exact=True)
         ).to_be_visible()
 
         self.page.get_by_role("link", name="Create Custom", exact=True).click()
         planning_option = self.page.locator(
             'select[name="status"] option[value="Planning"]'
         )
-        expect(planning_option).to_have_text("Backlog")
+        expect(planning_option).to_have_text("Wishlist")
 
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""
@@ -203,10 +203,10 @@ class IntegrationTest(StaticLiveServerTestCase):
 
         # Verify the obfuscate setting is visible
         expect(self.page.get_by_role("main")).to_contain_text(
-            "Obfuscate Unseen Episodes"
+            "Obfuscate unseen episodes"
         )
         expect(self.page.get_by_role("main")).to_contain_text(
-            "unseen episode images and descriptions will be blurred"
+            "Blur images and descriptions for episodes you have not watched."
         )
 
         # Find and check the obfuscate checkbox by clicking the label
@@ -217,7 +217,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         obfuscate_label.click()
 
         # Save preferences
-        self.page.get_by_role("button", name="Save Preferences").click()
+        self.page.get_by_role("button", name="Save").nth(1).click()
 
         # Verify success message
         expect(self.page.locator(".scheme-dark")).to_contain_text("Settings updated")
@@ -247,7 +247,7 @@ class IntegrationTest(StaticLiveServerTestCase):
             obfuscate_label.click()
 
             # Save preferences
-            self.page.get_by_role("button", name="Save Preferences").click()
+            self.page.get_by_role("button", name="Save").nth(1).click()
 
             # Verify success message
             expect(self.page.locator(".scheme-dark")).to_contain_text(

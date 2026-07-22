@@ -34,6 +34,7 @@ from app.models import (
     Sources,
     Status,
     UserMessage,
+    get_status_choices,
 )
 from app.providers import manual, services, tmdb
 from app.tasks import (
@@ -497,7 +498,7 @@ def media_list(request, username, media_type):
         "current_genre": genre_filter,
         "current_format": format_filter,
         "sort_choices": MediaSortChoices.choices,
-        "status_choices": MediaStatusChoices.choices,
+        "status_choices": get_status_choices(target_user, include_all=True),
         "target_user": target_user,
     }
 
@@ -1030,7 +1031,11 @@ def track_modal(
         if media_type == MediaTypes.SEASON.value:
             title += f" S{season_number}"
 
-    form = get_form_class(media_type)(instance=media, initial=initial_data)
+    form = get_form_class(media_type)(
+        instance=media,
+        initial=initial_data,
+        user=request.user,
+    )
 
     return render(
         request,
@@ -1078,7 +1083,7 @@ def media_save(request):
 
     # Validate the form and save the instance if it's valid
     form_class = get_form_class(media_type)
-    form = form_class(request.POST, instance=instance)
+    form = form_class(request.POST, instance=instance, user=request.user)
     if form.is_valid():
         form.save()
         logger.info("%s saved successfully.", form.instance)
@@ -1213,7 +1218,7 @@ def create_entry(request):
     # Prepare and validate the media form
     updated_request = request.POST.copy()
     updated_request.update({"source": item.source, "media_id": item.media_id})
-    media_form = get_form_class(item.media_type)(updated_request)
+    media_form = get_form_class(item.media_type)(updated_request, user=request.user)
 
     if not media_form.is_valid():
         # Handle media form validation errors
@@ -1418,7 +1423,7 @@ def statistics(request):
         media_count,
     )
     score_distribution, top_rated = stats.get_score_distribution(user_media)
-    status_distribution = stats.get_status_distribution(user_media)
+    status_distribution = stats.get_status_distribution(user_media, request.user)
     status_pie_chart_data = stats.get_status_pie_chart_data(
         status_distribution,
     )

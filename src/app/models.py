@@ -962,6 +962,27 @@ class Status(models.TextChoices):
     DROPPED = "Dropped", "Dropped"
 
 
+def get_status_label(status, user=None):
+    """Return a status label using the viewer's preferred planning term."""
+    if status == Status.PLANNING.value:
+        return (
+            "Backlog"
+            if getattr(user, "planning_term", "wishlist") == "backlog"
+            else "Wishlist"
+        )
+    return Status(status).label
+
+
+def get_status_choices(user=None, *, include_all=False):
+    """Return status choices using the viewer's preferred planning term."""
+    choices = [
+        (status.value, get_status_label(status.value, user)) for status in Status
+    ]
+    if include_all:
+        return [("All", "All"), *choices]
+    return choices
+
+
 class UserMessageLevel(models.TextChoices):
     """Choices for persistent user messages."""
 

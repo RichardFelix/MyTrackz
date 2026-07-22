@@ -612,9 +612,7 @@ class StatisticsTests(TestCase):
             if d["label"] == Status.IN_PROGRESS.label
         )
         planning_dataset = next(
-            d
-            for d in status_distribution["datasets"]
-            if d["label"] == Status.PLANNING.label
+            d for d in status_distribution["datasets"] if d["label"] == "Wishlist"
         )
 
         self.assertEqual(completed_dataset["total"], 1)  # Anime

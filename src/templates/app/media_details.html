@@ -36,7 +36,7 @@
                 @click="trackOpen = true">
           <div class="flex-1 text-center font-medium">
             {% if user_medias %}
-              {{ current_instance.status|media_status_readable }}
+              {{ current_instance.status|media_status_readable:user }}
             {% else %}
               Add to tracker
             {% endif %}
@@ -340,7 +340,7 @@
                     </div>
 
                     <div class="space-y-2">
-                      <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable }}</div>
+                      <div class="text-xs text-gray-400">Status: {{ user_media.status|media_status_readable:user }}</div>
 
                       {% if media.media_type != MediaTypes.MOVIE.value %}
                         <div class="text-xs text-gray-400">

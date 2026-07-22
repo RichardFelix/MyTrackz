@@ -12,7 +12,7 @@ from django.utils.html import format_html
 from unidecode import unidecode
 
 from app import config, helpers
-from app.models import MediaTypes, Sources, Status
+from app.models import MediaTypes, Sources, Status, get_status_label
 
 register = template.Library()
 
@@ -196,9 +196,15 @@ def media_type_readable_plural(media_type):
 
 
 @register.filter
-def media_status_readable(media_status):
+def media_status_readable(media_status, user=None):
     """Return the readable media status."""
-    return Status(media_status).label
+    return get_status_label(media_status, user)
+
+
+@register.filter
+def planning_term(user):
+    """Return the user's preferred label for planned media."""
+    return get_status_label(Status.PLANNING.value, user)
 
 
 @register.filter

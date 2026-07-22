@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
-from users.models import HomeLayoutChoices
+from users.models import HomeLayoutChoices, PlanningTermChoices
 
 
 class PreferencesHomeOrderTests(TestCase):
@@ -29,13 +29,41 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.save()
         response = self.client.get(reverse("preferences"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Home Screen Row Order")
+        self.assertContains(response, "Home and navigation order")
         self.assertContains(response, 'name="home_media_order"')
         # Saved order leads the seeded Alpine array; tv is excluded (home uses season).
         home_types = response.context["home_media_types"]
         self.assertEqual(home_types[0], MediaTypes.GAME.value)
         self.assertEqual(home_types[1], MediaTypes.MOVIE.value)
         self.assertNotIn(MediaTypes.TV.value, home_types)
+
+    def test_preferences_are_grouped_with_repeated_global_save_buttons(self):
+        """Categories share one form and expose a convenient Save button each."""
+        response = self.client.get(reverse("preferences"))
+
+        self.assertContains(response, "Appearance")
+        self.assertContains(response, "Tracking")
+        self.assertContains(response, "Home &amp; Recommendations")
+        self.assertContains(response, "Region &amp; Formats")
+        self.assertContains(response, "Library &amp; Navigation")
+        self.assertContains(response, "Any Save button applies all changes")
+        self.assertEqual(response.content.count(b'name="planning_term"'), 1)
+        self.assertGreaterEqual(response.content.count(b"Save"), 5)
+        self.assertNotContains(response, "{#")
+        self.assertNotContains(response, "{%")
+        self.assertNotContains(response, "{{")
+
+    def test_planning_term_defaults_to_wishlist_and_can_use_backlog(self):
+        """Users can opt into Backlog without changing the stored status value."""
+        self.assertEqual(self.user.planning_term, PlanningTermChoices.WISHLIST)
+
+        self.client.post(
+            reverse("preferences"),
+            {"planning_term": PlanningTermChoices.BACKLOG},
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.planning_term, PlanningTermChoices.BACKLOG)
 
     def test_valid_order_persists(self):
         """A valid submitted order is saved verbatim."""

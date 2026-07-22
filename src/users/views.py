@@ -20,6 +20,7 @@ from users.helpers import cache_profile_image
 from users.models import (
     DateFormatChoices,
     HomeLayoutChoices,
+    PlanningTermChoices,
     QuickWatchDateChoices,
     ThemeChoices,
     TimeFormatChoices,
@@ -254,6 +255,7 @@ def preferences(request):
             {
                 "media_types": media_types,
                 "home_media_types": home_media_types,
+                "planning_term_choices": PlanningTermChoices.choices,
                 "quick_watch_date_choices": QuickWatchDateChoices.choices,
                 "date_format_choices": DateFormatChoices.choices,
                 "time_format_choices": TimeFormatChoices.choices,
@@ -268,7 +270,6 @@ def preferences(request):
         messages.error(request, "This section is view-only for demo accounts.")
         return redirect("preferences")
 
-    # Process form submission
     request.user.home_layout = (
         HomeLayoutChoices.LIST
         if "compact_home_list" in request.POST
@@ -278,34 +279,40 @@ def preferences(request):
         "colored_grid_progress_buttons" in request.POST
     )
     request.user.clickable_media_cards = "clickable_media_cards" in request.POST
-    request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
-    request.user.quick_watch_date = request.POST.get(
-        "quick_watch_date",
-        QuickWatchDateChoices.CURRENT_DATE,
-    )
     request.user.progress_bar = "progress_bar" in request.POST
+    request.user.hide_zero_rating = "hide_zero_rating" in request.POST
+    request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
     request.user.hide_completed_recommendations = (
         "hide_completed_recommendations" in request.POST
     )
-    request.user.hide_zero_rating = "hide_zero_rating" in request.POST
     request.user.show_continue_story = "show_continue_story" in request.POST
-    request.user.date_format = request.POST.get(
-        "date_format",
-        DateFormatChoices.ISO,
-    )
-    request.user.time_format = request.POST.get(
-        "time_format",
-        TimeFormatChoices.HOUR_24,
-    )
-    week_start_day = request.POST.get("week_start_day")
-    if week_start_day in WeekStartDayChoices.values:
-        request.user.week_start_day = week_start_day
-    theme = request.POST.get("theme")
-    if theme in ThemeChoices.values:
-        request.user.theme = theme
-    media_types_checked = request.POST.getlist("media_types_checkboxes")
 
-    # Home screen media-type row order: keep valid, non-episode slugs, deduped.
+    for field, choices in (
+        ("theme", ThemeChoices),
+        ("quick_watch_date", QuickWatchDateChoices),
+        ("planning_term", PlanningTermChoices),
+        ("date_format", DateFormatChoices),
+        ("time_format", TimeFormatChoices),
+        ("week_start_day", WeekStartDayChoices),
+    ):
+        value = request.POST.get(field)
+        if value in choices.values:
+            setattr(request.user, field, value)
+
+    provider_region = request.POST.get("watch_provider_region", "")
+    if provider_region in [region[0] for region in watch_provider_regions]:
+        request.user.watch_provider_region = provider_region
+    else:
+        request.user.watch_provider_region = "UNSET"
+
+    media_types_checked = request.POST.getlist("media_types_checkboxes")
+    for media_type in media_types:
+        setattr(
+            request.user,
+            f"{media_type}_enabled",
+            media_type in media_types_checked,
+        )
+
     submitted_order = request.POST.get("home_media_order", "")
     seen = set()
     request.user.home_media_order = ",".join(
@@ -316,21 +323,6 @@ def preferences(request):
         and not (mt in seen or seen.add(mt))
     )
 
-    provider_region = request.POST.get("watch_provider_region", "")
-    if provider_region in [region[0] for region in watch_provider_regions]:
-        request.user.watch_provider_region = provider_region
-    else:
-        request.user.watch_provider_region = "UNSET"
-
-    # Update user preferences for each media type
-    for media_type in media_types:
-        setattr(
-            request.user,
-            f"{media_type}_enabled",
-            media_type in media_types_checked,
-        )
-
-    # Save changes and redirect
     request.user.save()
     messages.success(request, "Settings updated.")
 

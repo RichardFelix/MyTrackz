@@ -108,9 +108,17 @@ class BasicMediaForm(TestCase):
         self.assertFalse(form.fields["start_date"].required)
         self.assertFalse(form.fields["end_date"].required)
 
-    def test_planning_value_is_displayed_as_backlog(self):
-        """Tracking forms keep the Planning value but display Backlog."""
+    def test_planning_value_is_displayed_as_wishlist_by_default(self):
+        """Tracking forms keep the Planning value but default to Wishlist."""
         form = AnimeForm()
+
+        self.assertEqual(dict(form.fields["status"].choices)["Planning"], "Wishlist")
+
+    def test_planning_value_uses_user_backlog_preference(self):
+        """Tracking forms use Backlog when that user selected it."""
+        self.user.planning_term = "backlog"
+
+        form = AnimeForm(user=self.user)
 
         self.assertEqual(dict(form.fields["status"].choices)["Planning"], "Backlog")
 

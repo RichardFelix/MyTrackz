@@ -18,6 +18,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    get_status_label,
 )
 
 
@@ -256,6 +257,17 @@ class MediaForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        """Use the current user's preferred planning-status label."""
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user is None and getattr(self.instance, "user_id", None):
+            user = self.instance.user
+        self.fields["status"].choices = [
+            (value, get_status_label(value, user) if value else label)
+            for value, label in self.fields["status"].choices
+        ]
+
 
 class MangaForm(MediaForm):
     """Form for manga."""
@@ -394,6 +406,7 @@ class EpisodeForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize the form."""
+        kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
 
         if settings.TRACK_TIME:

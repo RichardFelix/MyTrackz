@@ -7,433 +7,357 @@
 {% endblock title %}
 
 {% block settings_content %}
-  <div class="bg-[#2a2f35] rounded-lg p-6">
-    <div class="flex items-center mb-4">
-      {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
-      <h2 class="text-xl font-semibold">Preferences</h2>
+  <div class="space-y-5">
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-2">
+        {% include "app/icons/vertical-sliders.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Preferences</h2>
+      </div>
+      <p class="text-gray-400 text-sm">Settings are grouped by purpose. Any Save button applies all changes on this page.</p>
     </div>
-    <p class="text-gray-400 mb-5 text-sm">Customize the look and behavior of the application.</p>
-    <form method="post">
+
+    <form method="post" class="space-y-5">
       {% csrf_token %}
-
-      {# Theme #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/moon.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Theme</span>
+      <div class="bg-[#2a2f35] rounded-lg p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <div class="flex items-center mb-1">
+              {% include "app/icons/moon.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-lg font-semibold">Appearance</h3>
             </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Choose between the dark theme (black background) and the grey theme (dark grey background).
-            </p>
+            <p class="text-sm text-gray-400">Control the app theme and how media cards present information.</p>
           </div>
-          <select name="theme"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in theme_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.theme == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
+          <button type="submit"
+                  class="shrink-0 flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save
+          </button>
+        </div>
+        <div class="space-y-3">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-200">Theme</div>
+              <p class="text-xs text-gray-400 mt-1">Choose the dark or grey surface palette.</p>
+            </div>
+            <select name="theme"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in theme_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.theme == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span>
+                <span class="block text-sm font-medium text-gray-200">Compact home list</span>
+                <span class="block text-xs text-gray-400 mt-1">Use compact poster rows instead of cards on Home.</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="compact_home_list"
+                     {% if user.home_layout == "list" %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
+            <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span>
+                <span class="block text-sm font-medium text-gray-200">Colored grid controls</span>
+                <span class="block text-xs text-gray-400 mt-1">Color decrease and increase actions red and green.</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="colored_grid_progress_buttons"
+                     {% if user.colored_grid_progress_buttons %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
+            <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span>
+                <span class="block text-sm font-medium text-gray-200">Hide touch hover overlays</span>
+                <span class="block text-xs text-gray-400 mt-1">Make media cards directly clickable on touch devices.</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="clickable_media_cards"
+                     {% if user.clickable_media_cards %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
+            <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span>
+                <span class="block text-sm font-medium text-gray-200">Show progress bars</span>
+                <span class="block text-xs text-gray-400 mt-1">Display progress along the bottom of media items.</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="progress_bar"
+                     {% if user.progress_bar %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
+            <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer lg:col-span-2">
+              <span>
+                <span class="block text-sm font-medium text-gray-200">Hide zero ratings</span>
+                <span class="block text-xs text-gray-400 mt-1">Hide rating badges until an item has a rating.</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="hide_zero_rating"
+                     {% if user.hide_zero_rating %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
+          </div>
         </div>
       </div>
 
-      {# Home Layout #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/four-square.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Compact home list</span>
+      <div class="bg-[#2a2f35] rounded-lg p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <div class="flex items-center mb-1">
+              {% include "app/icons/circle-check.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-lg font-semibold">Tracking</h3>
             </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Show home screen items in a compact poster list. Swipe an in-progress item left or right to mark the next unit watched. Turn this off to restore the card layout.
-            </p>
+            <p class="text-sm text-gray-400">Choose tracking terminology and completion behavior.</p>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="compact_home_list"
-                   {% if user.home_layout == "list" %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
-          </label>
+          <button type="submit"
+                  class="shrink-0 flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save
+          </button>
         </div>
-      </div>
-
-      {# Grid Progress Button Colors #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/checkmark.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Colored grid progress buttons</span>
+        <div class="space-y-3">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-200">Planned media terminology</div>
+              <p class="text-xs text-gray-400 mt-1">Call items saved for later “Wishlist” or “Backlog” throughout the app.</p>
             </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Show red and green backgrounds on the decrease and increase buttons in the home card grid. Turn this off for the original neutral buttons.
-            </p>
+            <select name="planning_term"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in planning_term_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.planning_term == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="colored_grid_progress_buttons"
-                   {% if user.colored_grid_progress_buttons %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-200">Bulk completion date</div>
+              <p class="text-xs text-gray-400 mt-1">Date applied to episodes when completing a show or season.</p>
             </div>
-          </label>
-        </div>
-      </div>
-
-      {# Media Card Overlay #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/image.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide Hover Overlay on Touch Devices</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Hide the media card hover overlay with action buttons on touch devices for a cleaner mobile experience.
-              On desktop, the overlay will still appear when you hover your mouse over media cards.
-            </p>
+            <select name="quick_watch_date"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in quick_watch_date_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.quick_watch_date == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="clickable_media_cards"
-                   {% if user.clickable_media_cards %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {# Obfuscate Unseen Episodes #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/eye.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Obfuscate Unseen Episodes</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">When enabled, unseen episode images and descriptions will be blurred.</p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
+          <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+            <span>
+              <span class="block text-sm font-medium text-gray-200">Obfuscate unseen episodes</span>
+              <span class="block text-xs text-gray-400 mt-1">Blur images and descriptions for episodes you have not watched.</span>
+            </span>
             <input class="sr-only peer"
                    type="checkbox"
                    name="obfuscate_unseen_episodes"
                    {% if user.obfuscate_unseen_episodes %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
+            <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
           </label>
         </div>
       </div>
 
-      {# Quick Watch Date #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Bulk Completion Date</span>
+      <div class="bg-[#2a2f35] rounded-lg p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <div class="flex items-center mb-1">
+              {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-lg font-semibold">Home &amp; Recommendations</h3>
             </div>
-            <p class="text-xs text-gray-400 ml-7">
-              When marking a TV show or season as completed, its episodes will be marked as completed with this date.
-            </p>
+            <p class="text-sm text-gray-400">Tune discovery and follow-up suggestions.</p>
           </div>
-          <select name="quick_watch_date"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in quick_watch_date_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.quick_watch_date == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
+          <button type="submit"
+                  class="shrink-0 flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save
+          </button>
         </div>
-      </div>
-
-      {# Progress bar #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/minus.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Show progress bar on media items</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Display a progress bar on media items. Items which don't have max progress will be using a dotted line.
-            </p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="progress_bar"
-                   {% if user.progress_bar %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {# Hide Completed Recommendations #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/circle-check.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide completed media in recommendations</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Hide media you've already completed from the recommendations section on detail pages.
-            </p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="hide_completed_recommendations"
-                   {% if user.hide_completed_recommendations %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {# Hide Zero Ratings #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/star.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Hide zero ratings</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">Hide the rating badge from media cards when the rating is zero.</p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
-            <input class="sr-only peer"
-                   type="checkbox"
-                   name="hide_zero_rating"
-                   {% if user.hide_zero_rating %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {# Continue the Story #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/book-open.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Show Continue the Story section</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Show the Continue the Story section on the home page, suggesting direct follow-ups (sequels, next in series, expansions) to media you've watched, read or played.
-            </p>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer ml-4">
+        <div class="grid gap-3 lg:grid-cols-2">
+          <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+            <span>
+              <span class="block text-sm font-medium text-gray-200">Continue the Story</span>
+              <span class="block text-xs text-gray-400 mt-1">Suggest sequels, next volumes, and expansions on Home.</span>
+            </span>
             <input class="sr-only peer"
                    type="checkbox"
                    name="show_continue_story"
                    {% if user.show_continue_story %}checked{% endif %}>
-            <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-            </div>
+            <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+          </label>
+          <label class="flex items-center justify-between gap-4 p-3 bg-[#39404b] rounded-md cursor-pointer">
+            <span>
+              <span class="block text-sm font-medium text-gray-200">Hide completed recommendations</span>
+              <span class="block text-xs text-gray-400 mt-1">Exclude finished media from detail-page recommendations.</span>
+            </span>
+            <input class="sr-only peer"
+                   type="checkbox"
+                   name="hide_completed_recommendations"
+                   {% if user.hide_completed_recommendations %}checked{% endif %}>
+            <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
           </label>
         </div>
       </div>
 
-      {# Date Format #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/calendar.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Date Format</span>
+      <div class="bg-[#2a2f35] rounded-lg p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <div class="flex items-center mb-1">
+              {% include "app/icons/globe.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-lg font-semibold">Region &amp; Formats</h3>
             </div>
-            <p class="text-xs text-gray-400 ml-7">Choose how dates are displayed throughout the application.</p>
+            <p class="text-sm text-gray-400">Set date, time, calendar, and streaming-region formats.</p>
           </div>
-          <select name="date_format"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in date_format_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.date_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
+          <button type="submit"
+                  class="shrink-0 flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save
+          </button>
+        </div>
+        <div class="grid gap-3 lg:grid-cols-2">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div>
+              <div class="text-sm font-medium text-gray-200">Date format</div>
+              <p class="text-xs text-gray-400 mt-1">How dates appear throughout MyTrackz.</p>
+            </div>
+            <select name="date_format"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in date_format_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.date_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div>
+              <div class="text-sm font-medium text-gray-200">Time format</div>
+              <p class="text-xs text-gray-400 mt-1">Use a 12-hour or 24-hour clock.</p>
+            </div>
+            <select name="time_format"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in time_format_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.time_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div>
+              <div class="text-sm font-medium text-gray-200">Week starts on</div>
+              <p class="text-xs text-gray-400 mt-1">Used by calendars and statistics.</p>
+            </div>
+            <select name="week_start_day"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in week_start_day_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.week_start_day == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-[#39404b] rounded-md">
+            <div>
+              <div class="text-sm font-medium text-gray-200">Watch provider region</div>
+              <p class="text-xs text-gray-400 mt-1">Controls streaming availability on media pages.</p>
+            </div>
+            <select name="watch_provider_region"
+                    class="p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              {% for choice in watch_provider_choices %}
+                <option value="{{ choice.0 }}"
+                        {% if user.watch_provider_region == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
         </div>
       </div>
 
-      {# Time Format #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/clock.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Time Format</span>
+      <div class="bg-[#2a2f35] rounded-lg p-5 sm:p-6">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <div class="flex items-center mb-1">
+              {% include "app/icons/four-square.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+              <h3 class="text-lg font-semibold">Library &amp; Navigation</h3>
             </div>
-            <p class="text-xs text-gray-400 ml-7">Choose between 12-hour or 24-hour clock display.</p>
+            <p class="text-sm text-gray-400">Choose visible media types and their order across Home and navigation.</p>
           </div>
-          <select name="time_format"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in time_format_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.time_format == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
+          <button type="submit"
+                  class="shrink-0 flex items-center px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+            Save
+          </button>
         </div>
-      </div>
-
-      {# Week Start Day #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/week.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Week Start Day</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">Choose which day the week starts on for calendars and statistics.</p>
-          </div>
-          <select name="week_start_day"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in week_start_day_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.week_start_day == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      {# Watch Provider Region #}
-      <div class="mb-5">
-        <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-          <div class="flex-1">
-            <div class="flex items-center text-gray-200 mb-1">
-              {% include "app/icons/globe.svg" with classes="w-5 h-5 mr-2" %}
-              <span class="text-sm font-medium">Watch provider region</span>
-            </div>
-            <p class="text-xs text-gray-400 ml-7">
-              Choose the region to show watch providers for. Setting this to disabled will hide the box from the media page.
-            </p>
-          </div>
-          <select name="watch_provider_region"
-                  class="ml-4 p-2 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            {% for choice in watch_provider_choices %}
-              <option value="{{ choice.0 }}"
-                      {% if user.watch_provider_region == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <div class="border-t border-gray-600 my-5"></div>
-
-      {# Media Types Settings #}
-      <div class="mb-5">
-        <div class="flex items-center mb-4">
-          {% include "app/icons/four-square.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-          <h3 class="text-lg font-semibold">Media Types</h3>
-        </div>
-        <p class="text-gray-400 mb-4 text-sm">
-          Control which media types are visible throughout the app (sidebar, search, calendar, notifications).
-        </p>
-
-        <div class="grid gap-3 md:grid-cols-3">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-6">
           {% for media_type in media_types %}
-            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md">
-              <div class="flex items-center text-gray-400">
+            <label class="flex items-center justify-between gap-3 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span class="flex items-center text-gray-400">
                 {% icon media_type is_active=False %}
                 <span class="text-gray-200 text-sm ml-2">{{ media_type|media_type_readable_plural }}</span>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                {% with enabled_field=media_type|add:"_enabled" %}
-                  <input class="sr-only peer"
-                         type="checkbox"
-                         name="media_types_checkboxes"
-                         value="{{ media_type }}"
-                         {% if user|get_attr:enabled_field %}checked{% endif %}>
-                {% endwith %}
-                <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600">
-                </div>
-              </label>
-            </div>
+              </span>
+              {% with enabled_field=media_type|add:"_enabled" %}
+                <input class="sr-only peer"
+                       type="checkbox"
+                       name="media_types_checkboxes"
+                       value="{{ media_type }}"
+                       {% if user|get_attr:enabled_field %}checked{% endif %}>
+              {% endwith %}
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600"></span>
+            </label>
           {% endfor %}
         </div>
-      </div>
-
-      <div class="border-t border-gray-600 my-5"></div>
-
-      {# Home Screen Row Order #}
-      <div class="mb-5"
-           x-data="{
-             items: [{% for mt in home_media_types %}'{{ mt|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
-             labels: { {% for mt in home_media_types %}'{{ mt|escapejs }}': '{{ mt|media_type_readable_plural|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %} },
-             dragging: null,
-             move(from, to) {
-               if (to < 0 || to >= this.items.length) return;
-               [this.items[from], this.items[to]] = [this.items[to], this.items[from]];
-             },
-             reorder(to) {
-               if (this.dragging === null || this.dragging === to) return;
-               const moved = this.items.splice(this.dragging, 1)[0];
-               this.items.splice(to, 0, moved);
-               this.dragging = to;
-             }
-           }">
-        <div class="flex items-center mb-4">
-          {% include "app/icons/arrows-up-down.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
-          <h3 class="text-lg font-semibold">Home Screen Row Order</h3>
-        </div>
-        <p class="text-gray-400 mb-4 text-sm">
-          Drag the rows (or use the arrows) to set the order media types appear on your home screen and in the sidebar / library navigation. Types you've disabled above are skipped.
-        </p>
-
-        <input type="hidden" name="home_media_order" :value="items.join(',')">
-
-        <div class="space-y-2 md:max-w-md">
-          <template x-for="(slug, i) in items" :key="slug">
-            <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md select-none transition-opacity"
-                 draggable="true"
-                 @dragstart="dragging = i"
-                 @dragover.prevent="reorder(i)"
-                 @drop.prevent="dragging = null"
-                 @dragend="dragging = null"
-                 :class="dragging === i ? 'opacity-40 ring-2 ring-indigo-500' : ''">
-              <div class="flex items-center gap-2">
-                <span class="text-gray-500 cursor-grab active:cursor-grabbing"
-                      title="Drag to reorder"
-                      aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <circle cx="7" cy="5" r="1.5" /><circle cx="13" cy="5" r="1.5" />
-                    <circle cx="7" cy="10" r="1.5" /><circle cx="13" cy="10" r="1.5" />
-                    <circle cx="7" cy="15" r="1.5" /><circle cx="13" cy="15" r="1.5" />
-                  </svg>
-                </span>
-                <span class="text-gray-500 text-xs w-5 text-right" x-text="i + 1"></span>
-                <span class="text-gray-200 text-sm" x-text="labels[slug]"></span>
+        <div class="border-t border-gray-600 pt-5" x-data="{ items: [
+          {% for mt in home_media_types %}
+            '{{ mt|escapejs }}'
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+          ], labels: {
+          {% for mt in home_media_types %}
+            '{{ mt|escapejs }}': '{{ mt|media_type_readable_plural|escapejs }}'
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+          }, dragging: null, move(from, to) { if (to >= 0 && to < this.items.length) [this.items[from], this.items[to]] = [this.items[to], this.items[from]]; }, reorder(to) { if (this.dragging === null || this.dragging === to) return; const moved = this.items.splice(this.dragging, 1)[0]; this.items.splice(to, 0, moved); this.dragging = to; } }">
+          <h4 class="text-sm font-semibold text-gray-200">Home and navigation order</h4>
+          <p class="text-xs text-gray-400 mt-1 mb-3">Drag rows or use the arrows. Disabled types are skipped automatically.</p>
+          <input type="hidden" name="home_media_order" :value="items.join(',')">
+          <div class="space-y-2 md:max-w-md">
+            <template x-for="(slug, i) in items" :key="slug">
+              <div class="flex items-center justify-between p-3 bg-[#39404b] rounded-md select-none transition-opacity"
+                   draggable="true"
+                   @dragstart="dragging = i"
+                   @dragover.prevent="reorder(i)"
+                   @drop.prevent="dragging = null"
+                   @dragend="dragging = null"
+                   :class="dragging === i ? 'opacity-40 ring-2 ring-indigo-500' : ''">
+                <div class="flex items-center gap-2">
+                  <span class="text-gray-500 cursor-grab active:cursor-grabbing"
+                        title="Drag to reorder"
+                        aria-hidden="true">⋮⋮</span>
+                  <span class="text-gray-500 text-xs w-5 text-right" x-text="i + 1"></span>
+                  <span class="text-gray-200 text-sm" x-text="labels[slug]"></span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button type="button"
+                          @click="move(i, i - 1)"
+                          :disabled="i === 0"
+                          aria-label="Move up"
+                          class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                    {% include "app/icons/chevron-up.svg" with classes="w-4 h-4" %}
+                  </button>
+                  <button type="button"
+                          @click="move(i, i + 1)"
+                          :disabled="i === items.length - 1"
+                          aria-label="Move down"
+                          class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                    {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
+                  </button>
+                </div>
               </div>
-              <div class="flex items-center gap-1">
-                <button type="button"
-                        @click="move(i, i - 1)"
-                        :disabled="i === 0"
-                        class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-                  {% include "app/icons/chevron-up.svg" with classes="w-4 h-4" %}
-                </button>
-                <button type="button"
-                        @click="move(i, i + 1)"
-                        :disabled="i === items.length - 1"
-                        class="p-1.5 rounded-md text-gray-300 hover:bg-[#454d5a] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
-                  {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
-                </button>
-              </div>
-            </div>
-          </template>
+            </template>
+          </div>
         </div>
-      </div>
-
-      <div class="mt-5 pt-4 border-gray-600">
-        <button type="submit"
-                class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
-          {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
-          Save Preferences
-        </button>
       </div>
     </form>
   </div>

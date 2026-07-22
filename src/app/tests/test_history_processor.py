@@ -47,7 +47,7 @@ class HistoryProcessorTests(TestCase):
                 Status.PLANNING.value,
                 MediaTypes.GAME.value,
             ),
-            "Added to Backlog",
+            "Added to Wishlist",
         )
         self.assertEqual(
             format_description(
@@ -127,7 +127,7 @@ class HistoryProcessorTests(TestCase):
                 Status.PAUSED.value,
                 MediaTypes.TV.value,
             ),
-            "Changed status from Backlog to Paused",
+            "Changed status from Wishlist to Paused",
         )
 
     def test_format_description_score(self):

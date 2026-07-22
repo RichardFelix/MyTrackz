@@ -65,7 +65,7 @@
       {% if media_type == MediaTypes.TV.value %}<td class="p-2 text-center">{{ media.last_watched }}</td>{% endif %}
     {% endif %}
 
-    <td class="p-2 text-center">{{ media.status|media_status_readable }}</td>
+    <td class="p-2 text-center">{{ media.status|media_status_readable:user }}</td>
 
     {% if media.start_date %}
       <td class="p-2 text-center">{{ media.start_date|date_format:target_user }}</td>

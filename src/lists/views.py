@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from app import helpers
-from app.models import Item, MediaManager, MediaTypes
+from app.models import Item, MediaManager, MediaTypes, get_status_choices
 from app.providers import services
 from lists.forms import CustomListForm
 from lists.models import CustomList, CustomListItem
@@ -181,7 +181,7 @@ def list_detail(request, list_id):
         "current_sort": params["sort_by"],
         "current_status": params["status_filter"] or MediaStatusChoices.ALL,
         "sort_choices": ListDetailSortChoices.choices,
-        "status_choices": MediaStatusChoices.choices,
+        "status_choices": get_status_choices(request.user, include_all=True),
     }
 
     # Additional context for full page render

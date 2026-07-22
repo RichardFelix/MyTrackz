@@ -2,7 +2,7 @@ from django.apps import apps
 from django.template.defaultfilters import pluralize
 
 from app import config, helpers
-from app.models import MediaTypes, Status
+from app.models import MediaTypes, Status, get_status_label
 from app.templatetags import app_tags
 
 
@@ -216,7 +216,7 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
             if new_value == Status.COMPLETED.value:
                 return f"{action} finished {verb}ing"
             if new_value == Status.PLANNING.value:
-                return "Added to Backlog"
+                return f"Added to {get_status_label(new_value, user)}"
             if new_value == Status.DROPPED.value:
                 return f"{action} dropped"
             if new_value == Status.PAUSED.value:
@@ -273,11 +273,11 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
             return transitions[(old_value, new_value)]
 
         try:
-            old_label = Status(old_value).label
+            old_label = get_status_label(old_value, user)
         except ValueError:
             old_label = old_value
         try:
-            new_label = Status(new_value).label
+            new_label = get_status_label(new_value, user)
         except ValueError:
             new_label = new_value
         return f"Changed status from {old_label} to {new_label}"

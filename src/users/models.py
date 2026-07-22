@@ -39,6 +39,13 @@ class HomeLayoutChoices(models.TextChoices):
     GRID = "grid", "Cards"
 
 
+class PlanningTermChoices(models.TextChoices):
+    """User-facing names for the planning status."""
+
+    WISHLIST = "wishlist", "Wishlist"
+    BACKLOG = "backlog", "Backlog"
+
+
 class MediaSortChoices(models.TextChoices):
     """Choices for media list sort options."""
 
@@ -177,6 +184,12 @@ class User(AbstractUser):
     colored_grid_progress_buttons = models.BooleanField(
         default=True,
         help_text="Show red and green backgrounds on grid progress buttons.",
+    )
+    planning_term = models.CharField(
+        max_length=10,
+        default=PlanningTermChoices.WISHLIST,
+        choices=PlanningTermChoices,
+        help_text="Preferred name for media planned for later.",
     )
     home_media_order = models.TextField(
         default="",

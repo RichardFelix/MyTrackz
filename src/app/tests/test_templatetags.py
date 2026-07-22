@@ -65,10 +65,19 @@ class AppTagsTests(TestCase):
             "episode_number": 1,
         }
 
-    def test_planning_status_is_displayed_as_backlog(self):
-        """The stored Planning status has the Backlog presentation label."""
+    def test_planning_status_is_displayed_as_wishlist_by_default(self):
+        """The stored Planning status defaults to the Wishlist label."""
         self.assertEqual(
             app_tags.media_status_readable(Status.PLANNING.value),
+            "Wishlist",
+        )
+
+    def test_planning_status_uses_backlog_preference(self):
+        """The planning label follows the supplied user's preference."""
+        user = MagicMock(planning_term="backlog")
+
+        self.assertEqual(
+            app_tags.media_status_readable(Status.PLANNING.value, user),
             "Backlog",
         )
 
@@ -517,8 +526,7 @@ class GetSidebarMediaTypesTests(TestCase):
 
     def _sidebar_slugs(self):
         return [
-            entry["media_type"]
-            for entry in app_tags.get_sidebar_media_types(self.user)
+            entry["media_type"] for entry in app_tags.get_sidebar_media_types(self.user)
         ]
 
     def test_no_saved_order_keeps_enum_order(self):
@@ -531,9 +539,7 @@ class GetSidebarMediaTypesTests(TestCase):
 
     def test_saved_order_reorders_sidebar(self):
         """The saved home order dictates the sidebar order."""
-        self.user.home_media_order = (
-            f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"
-        )
+        self.user.home_media_order = f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"
         self.assertEqual(
             self._sidebar_slugs(),
             [MediaTypes.GAME.value, MediaTypes.MOVIE.value, MediaTypes.TV.value],

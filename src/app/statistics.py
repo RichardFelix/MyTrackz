@@ -15,7 +15,16 @@ from django.db.models import (
 from django.utils import timezone
 
 from app import config
-from app.models import TV, BasicMedia, Episode, MediaManager, MediaTypes, Season, Status
+from app.models import (
+    TV,
+    BasicMedia,
+    Episode,
+    MediaManager,
+    MediaTypes,
+    Season,
+    Status,
+    get_status_label,
+)
 from app.templatetags import app_tags
 from users.models import WeekStartDayChoices
 
@@ -154,7 +163,7 @@ def get_media_type_distribution(media_count):
     return chart_data
 
 
-def get_status_distribution(user_media):
+def get_status_distribution(user_media, user=None):
     """Get status distribution for each media type within date range."""
     distribution = {}
     total_completed = 0
@@ -175,7 +184,7 @@ def get_status_distribution(user_media):
         "labels": [app_tags.media_type_readable(x) for x in distribution],
         "datasets": [
             {
-                "label": app_tags.media_status_readable(status),
+                "label": get_status_label(status, user),
                 "data": [
                     distribution[media_type][status] for media_type in distribution
                 ],
