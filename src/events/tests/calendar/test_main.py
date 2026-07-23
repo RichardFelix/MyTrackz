@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import Item, Sources
+from app.models import TV, Item, MediaTypes, Season, Sources, Status
 from events.calendar.main import cleanup_invalid_events, fetch_releases, save_events
 from events.models import Event
 from events.tests.calendar.utils import CalendarFixturesMixin
@@ -132,6 +132,41 @@ class CalendarMainTests(CalendarFixturesMixin, TestCase):
         result = fetch_releases(self.user.id)
 
         self.assertEqual(result, "No items to process")
+
+    @patch("events.calendar.main.get_items_to_process")
+    def test_fetch_releases_repairs_tv_when_no_items_need_provider_refresh(
+        self,
+        mock_get_items_to_process,
+    ):
+        """Existing future events should reconcile even without provider work."""
+        mock_get_items_to_process.return_value = []
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        TV.objects.filter(pk=tv.pk).update(status=Status.COMPLETED.value)
+        Season.objects.filter(
+            item=self.season_item,
+            user=self.user,
+        ).update(status=Status.COMPLETED.value)
+        season_four_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/season4.jpg",
+            season_number=4,
+        )
+        Event.objects.create(
+            item=season_four_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(hours=4),
+        )
+
+        result = fetch_releases(self.user.id)
+
+        self.assertEqual(result, "No items to process")
+        tv.refresh_from_db()
+        season_four = Season.objects.get(item=season_four_item, user=self.user)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season_four.status, Status.PLANNING.value)
 
     def test_save_events_updates_existing_unnumbered_event(self):
         """Existing unnumbered events should be updated in place."""

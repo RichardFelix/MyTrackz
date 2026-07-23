@@ -3,10 +3,19 @@ from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import requests
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase
+from django.utils import timezone
 
-from app.models import TV, Item, Season, Status
+from app.models import (
+    TV,
+    BasicMedia,
+    Item,
+    MediaTypes,
+    Season,
+    Status,
+)
 from events.calendar.helpers import date_parser
 from events.calendar.tv import (
     get_episode_datetime,
@@ -15,9 +24,11 @@ from events.calendar.tv import (
     get_tvmaze_response,
     process_season_episodes,
     process_tv,
+    reconcile_completed_tv_seasons,
 )
 from events.models import Event
 from events.tests.calendar.utils import CalendarFixturesMixin
+from users.models import HomeSortChoices
 
 
 class CalendarTVTests(CalendarFixturesMixin, TestCase):
@@ -93,13 +104,13 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
     @patch("events.calendar.tv.get_tvmaze_episode_map")
     @patch("events.calendar.tv.tmdb.tv_with_seasons")
     @patch("events.calendar.tv.tmdb.tv")
-    def test_process_tv_reopens_completed_show_with_new_season_as_planning(
+    def test_saved_new_season_event_reopens_completed_show_as_planning(
         self,
         mock_tv,
         mock_tv_with_seasons,
         mock_get_tvmaze_episode_map,
     ):
-        """Completed TV should reopen and create the discovered season as planning."""
+        """A newly saved season event should reopen a completed TV."""
         TV.objects.filter(item=self.tv_item, user=self.user).update(
             status=Status.COMPLETED.value,
         )
@@ -135,6 +146,10 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         events_bulk = []
         process_tv(self.tv_item, events_bulk)
+        Event.objects.bulk_create(events_bulk)
+        repaired_tvs, created_seasons = reconcile_completed_tv_seasons(
+            user=self.user,
+        )
 
         season_two_item = Item.objects.get(
             media_id=self.tv_item.media_id,
@@ -148,6 +163,7 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         self.assertEqual(tv.status, Status.IN_PROGRESS.value)
         self.assertEqual(season_two.status, Status.PLANNING.value)
         self.assertEqual(len(events_bulk), 1)
+        self.assertEqual((repaired_tvs, created_seasons), (1, 1))
 
     @patch("events.calendar.tv.get_tvmaze_episode_map")
     @patch("events.calendar.tv.tmdb.tv_with_seasons")
@@ -194,6 +210,10 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         events_bulk = []
         process_tv(self.tv_item, events_bulk)
+        Event.objects.bulk_create(events_bulk)
+        repaired_tvs, created_seasons = reconcile_completed_tv_seasons(
+            user=self.user,
+        )
 
         tv = TV.objects.get(item=self.tv_item, user=self.user)
         self.assertEqual(tv.status, Status.COMPLETED.value)
@@ -206,6 +226,196 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
             ).exists(),
         )
         self.assertEqual(len(events_bulk), 1)
+        self.assertEqual((repaired_tvs, created_seasons), (0, 0))
+
+    def test_reconcile_repairs_existing_future_season_event_idempotently(self):
+        """Saved future events should repair tracker drift exactly once."""
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        TV.objects.filter(pk=tv.pk).update(status=Status.COMPLETED.value)
+        Season.objects.filter(
+            item=self.season_item,
+            user=self.user,
+        ).update(status=Status.COMPLETED.value)
+        season_four_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/season4.jpg",
+            season_number=4,
+        )
+        Event.objects.create(
+            item=season_four_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(hours=4),
+        )
+
+        result = reconcile_completed_tv_seasons(user=self.user.id)
+
+        self.assertEqual(result, (1, 1))
+        tv.refresh_from_db()
+        season_four = Season.objects.get(item=season_four_item, user=self.user)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season_four.status, Status.PLANNING.value)
+        self.assertEqual(season_four.history.count(), 1)
+        self.assertEqual(season_four.history.first().history_user, self.user)
+        self.assertEqual(tv.history.first().history_user, self.user)
+
+        planning_home = BasicMedia.objects.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+        self.assertEqual(
+            planning_home[MediaTypes.SEASON.value]["items"],
+            [season_four],
+        )
+
+        Event.objects.filter(item=season_four_item).update(
+            datetime=timezone.now() - timezone.timedelta(minutes=1),
+        )
+        result = reconcile_completed_tv_seasons(user=self.user)
+
+        self.assertEqual(result, (0, 0))
+        self.assertEqual(
+            Season.objects.filter(item=season_four_item, user=self.user).count(),
+            1,
+        )
+        season_four.refresh_from_db()
+        self.assertEqual(season_four.status, Status.PLANNING.value)
+
+    def test_reconcile_repairs_in_progress_tv_without_status_change(self):
+        """An already reopened TV should still receive its missing season."""
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        TV.objects.filter(pk=tv.pk).update(status=Status.IN_PROGRESS.value)
+        Season.objects.filter(
+            item=self.season_item,
+            user=self.user,
+        ).update(status=Status.IN_PROGRESS.value)
+        season_four_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/season4.jpg",
+            season_number=4,
+        )
+        Event.objects.create(
+            item=season_four_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(hours=4),
+        )
+        history_count = tv.history.count()
+
+        result = reconcile_completed_tv_seasons(user=self.user)
+
+        self.assertEqual(result, (1, 1))
+        tv.refresh_from_db()
+        season_four = Season.objects.get(item=season_four_item, user=self.user)
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(tv.history.count(), history_count)
+        self.assertEqual(season_four.status, Status.PLANNING.value)
+        self.assertEqual(season_four.history.first().history_user, self.user)
+
+        planning_home = BasicMedia.objects.get_home_status(
+            user=self.user,
+            status=Status.PLANNING.value,
+            sort_by=HomeSortChoices.UPCOMING,
+            items_limit=14,
+        )
+        self.assertNotIn(
+            season_four,
+            planning_home.get(MediaTypes.SEASON.value, {}).get("items", []),
+        )
+
+    def test_reconcile_is_user_scoped(self):
+        """A manual refresh should only repair the requesting user's tracker."""
+        second_user = get_user_model().objects.create_user(username="second")
+        first_tv = TV.objects.get(item=self.tv_item, user=self.user)
+        TV.objects.filter(pk=first_tv.pk).update(status=Status.COMPLETED.value)
+        second_tv = TV.objects.create(
+            item=self.tv_item,
+            user=second_user,
+            status=Status.PLANNING.value,
+        )
+        TV.objects.filter(pk=second_tv.pk).update(status=Status.COMPLETED.value)
+        season_two_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/season2.jpg",
+            season_number=2,
+        )
+        Event.objects.create(
+            item=season_two_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+
+        result = reconcile_completed_tv_seasons(user=self.user)
+
+        self.assertEqual(result, (1, 1))
+        self.assertTrue(
+            Season.objects.filter(item=season_two_item, user=self.user).exists(),
+        )
+        self.assertFalse(
+            Season.objects.filter(item=season_two_item, user=second_user).exists(),
+        )
+        second_tv.refresh_from_db()
+        self.assertEqual(second_tv.status, Status.COMPLETED.value)
+
+        result = reconcile_completed_tv_seasons()
+
+        self.assertEqual(result, (1, 1))
+        second_tv.refresh_from_db()
+        self.assertEqual(second_tv.status, Status.IN_PROGRESS.value)
+        self.assertTrue(
+            Season.objects.filter(item=season_two_item, user=second_user).exists(),
+        )
+
+    def test_reconcile_excludes_specials_past_events_and_ineligible_tv(self):
+        """Only future regular seasons belonging to eligible TVs are repaired."""
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        special_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/specials.jpg",
+            season_number=0,
+        )
+        past_season_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image="http://example.com/season2.jpg",
+            season_number=2,
+        )
+        Event.objects.create(
+            item=special_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=past_season_item,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        result = reconcile_completed_tv_seasons(user=self.user)
+
+        self.assertEqual(result, (0, 0))
+        self.assertFalse(
+            Season.objects.filter(
+                user=self.user,
+                item__in=(special_item, past_season_item),
+            ).exists(),
+        )
+        tv.refresh_from_db()
+        self.assertEqual(tv.status, Status.PLANNING.value)
 
     @patch("events.calendar.tv.services.api_request")
     def test_get_tvmaze_episode_map(self, mock_api_request):

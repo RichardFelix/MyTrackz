@@ -7,7 +7,7 @@ from .anime import process_anime_bulk
 from .comic import process_comic
 from .other import process_other
 from .selectors import get_items_to_process
-from .tv import process_tv
+from .tv import process_tv, reconcile_completed_tv_seasons
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +17,21 @@ def fetch_releases(user=None, items_to_process=None):
     if items_to_process and items_to_process[0].source == Sources.MANUAL.value:
         return "Manual sources are not processed"
 
+    explicit_items = items_to_process is not None
     items_to_process = items_to_process or get_items_to_process(user)
+
+    if items_to_process:
+        events_bulk = process_items(items_to_process)
+        items_updated = save_events(events_bulk)
+        cleanup_invalid_events(events_bulk)
+    else:
+        items_updated = set()
+
+    tv_items = items_to_process if explicit_items else None
+    reconcile_completed_tv_seasons(user=user, tv_items=tv_items)
+
     if not items_to_process:
         return "No items to process"
-
-    events_bulk = process_items(items_to_process)
-    items_updated = save_events(events_bulk)
-    cleanup_invalid_events(events_bulk)
 
     return generate_final_message(items_to_process, items_updated)
 
