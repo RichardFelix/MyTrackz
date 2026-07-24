@@ -36,8 +36,11 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
         ids = self._extract_external_ids(payload)
         logger.info("Extracted IDs from payload: %s", ids)
 
-        if not any(ids.values()):
-            logger.warning("Ignoring Jellyfin webhook call because no ID was found.")
+        if not self._has_processable_identity(payload, ids):
+            logger.warning(
+                "Ignoring Jellyfin webhook call because no usable media identity "
+                "was found.",
+            )
             return
 
         self._process_media(payload, user, ids)
@@ -80,7 +83,11 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
             series_name = payload["Item"].get("SeriesName")
             season_number = payload["Item"].get("ParentIndexNumber")
             episode_number = payload["Item"].get("IndexNumber")
-            title = f"{series_name} S{season_number:02d}E{episode_number:02d}"
+            title = self._format_tv_title(
+                series_name,
+                season_number,
+                episode_number,
+            )
 
         elif self._get_media_type(payload) == MediaTypes.MOVIE.value:
             movie_name = payload["Item"].get("Name")
@@ -92,6 +99,15 @@ class JellyfinWebhookProcessor(BaseWebhookProcessor):
 
     def _get_episode_number(self, payload):
         return payload["Item"].get("IndexNumber")
+
+    def _get_series_title(self, payload):
+        return payload["Item"].get("SeriesName")
+
+    def _get_episode_title(self, payload):
+        return payload["Item"].get("Name")
+
+    def _get_season_number(self, payload):
+        return payload["Item"].get("ParentIndexNumber")
 
     def _extract_external_ids(self, payload):
         provider_ids = payload["Item"].get("ProviderIds", {})

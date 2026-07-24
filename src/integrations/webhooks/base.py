@@ -50,6 +50,45 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         """Get episode number from payload."""
         raise NotImplementedError
 
+    def _get_series_title(self, payload):
+        """Get the parent TV series title from an episode payload."""
+        raise NotImplementedError
+
+    def _get_episode_title(self, payload):
+        """Get the episode title from a TV payload."""
+        raise NotImplementedError
+
+    def _get_season_number(self, payload):
+        """Get the season number from a TV payload."""
+        raise NotImplementedError
+
+    def _has_processable_identity(self, payload, ids):
+        """Return whether a webhook has enough identity data to process."""
+        if any(ids.values()):
+            return True
+
+        if self._get_media_type(payload) != MediaTypes.TV.value:
+            return False
+
+        series_title = self._get_series_title(payload)
+        season_number = self._get_season_number(payload)
+        episode_number = self._get_episode_number(payload)
+        return bool(
+            series_title
+            and season_number is not None
+            and episode_number is not None
+        )
+
+    @staticmethod
+    def _format_tv_title(series_title, season_number, episode_number):
+        """Format a TV episode label without failing on malformed coordinates."""
+        try:
+            return (
+                f"{series_title} S{int(season_number):02d}E{int(episode_number):02d}"
+            )
+        except (TypeError, ValueError):
+            return series_title
+
     def _process_media(self, payload, user, ids):
         """Route processing based on media type."""
         media_type = self._get_media_type(payload)
