@@ -86,9 +86,18 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         }
 
         mock_get_tvmaze_episode_map.return_value = {
-            "1_1": "2008-01-20T22:00:00+00:00",
-            "1_2": "2008-01-27T22:00:00+00:00",
-            "1_3": "2008-02-03T22:00:00+00:00",
+            "1_1": {
+                "airdate": "2008-01-20",
+                "airstamp": "2008-01-20T22:00:00+00:00",
+            },
+            "1_2": {
+                "airdate": "2008-01-27",
+                "airstamp": "2008-01-27T22:00:00+00:00",
+            },
+            "1_3": {
+                "airdate": "2008-02-03",
+                "airstamp": "2008-02-03T22:00:00+00:00",
+            },
         }
 
         events_bulk = []
@@ -430,12 +439,14 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
                         {
                             "season": 1,
                             "number": 1,
+                            "airdate": "2008-01-20",
                             "airstamp": "2008-01-20T22:00:00+00:00",
                             "airtime": "22:00",
                         },
                         {
                             "season": 1,
                             "number": 2,
+                            "airdate": "2008-01-27",
                             "airstamp": "2008-01-27T22:00:00+00:00",
                             "airtime": "22:00",
                         },
@@ -449,10 +460,22 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         self.assertEqual(len(result), 2)
         self.assertIn("1_1", result)
         self.assertIn("1_2", result)
-        self.assertEqual(result["1_1"], "2008-01-20T22:00:00+00:00")
-        self.assertEqual(result["1_2"], "2008-01-27T22:00:00+00:00")
+        self.assertEqual(
+            result["1_1"],
+            {
+                "airdate": "2008-01-20",
+                "airstamp": "2008-01-20T22:00:00+00:00",
+            },
+        )
+        self.assertEqual(
+            result["1_2"],
+            {
+                "airdate": "2008-01-27",
+                "airstamp": "2008-01-27T22:00:00+00:00",
+            },
+        )
 
-        cached_result = cache.get("tvmaze_map_81189")
+        cached_result = cache.get("tvmaze_episode_map_v2_81189")
         self.assertEqual(cached_result, result)
 
         mock_api_request.reset_mock()
@@ -477,6 +500,92 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
             season_number=1,
             episode_number=2,
             tvmaze_map={},
+        )
+
+        self.assertEqual(result, date_parser("2025-01-31"))
+
+    def test_get_episode_datetime_uses_tvmaze_when_local_dates_agree(self):
+        """Matching local dates should retain TVMaze's exact timestamp."""
+        result = get_episode_datetime(
+            {"air_date": "2026-07-24"},
+            season_number=28,
+            episode_number=9,
+            tvmaze_map={
+                "28_9": {
+                    "airdate": "2026-07-24",
+                    "airstamp": "2026-07-25T01:00:00+00:00",
+                },
+            },
+        )
+
+        self.assertEqual(
+            result,
+            datetime.datetime.fromisoformat("2026-07-25T01:00:00+00:00"),
+        )
+
+    def test_get_episode_datetime_uses_tmdb_when_dates_conflict(self):
+        """TMDB should win when TVMaze maps the episode number to another date."""
+        result = get_episode_datetime(
+            {"air_date": "2026-07-24"},
+            season_number=28,
+            episode_number=9,
+            tvmaze_map={
+                "28_9": {
+                    "airdate": "2026-07-29",
+                    "airstamp": "2026-07-30T00:00:00+00:00",
+                },
+            },
+        )
+
+        self.assertEqual(result, date_parser("2026-07-24"))
+
+    def test_get_episode_datetime_uses_tvmaze_when_tmdb_date_is_missing(self):
+        """TVMaze should supply the timestamp when TMDB has no usable date."""
+        result = get_episode_datetime(
+            {"air_date": None},
+            season_number=1,
+            episode_number=2,
+            tvmaze_map={
+                "1_2": {
+                    "airdate": "2025-01-31",
+                    "airstamp": "2025-02-01T01:00:00+00:00",
+                },
+            },
+        )
+
+        self.assertEqual(
+            result,
+            datetime.datetime.fromisoformat("2025-02-01T01:00:00+00:00"),
+        )
+
+    def test_get_episode_datetime_ignores_incomplete_tvmaze_data(self):
+        """TVMaze entries without a local date should not override TMDB."""
+        result = get_episode_datetime(
+            {"air_date": "2025-01-31"},
+            season_number=1,
+            episode_number=2,
+            tvmaze_map={
+                "1_2": {
+                    "airdate": None,
+                    "airstamp": "2025-02-01T01:00:00+00:00",
+                },
+            },
+        )
+
+        self.assertEqual(result, date_parser("2025-01-31"))
+
+    def test_get_episode_datetime_falls_back_when_tvmaze_airstamp_is_invalid(self):
+        """Malformed TVMaze timestamps should fall back to the TMDB date."""
+        result = get_episode_datetime(
+            {"air_date": "2025-01-31"},
+            season_number=1,
+            episode_number=2,
+            tvmaze_map={
+                "1_2": {
+                    "airdate": "2025-01-31",
+                    "airstamp": "not-a-datetime",
+                },
+            },
         )
 
         self.assertEqual(result, date_parser("2025-01-31"))

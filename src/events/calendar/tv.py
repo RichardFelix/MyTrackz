@@ -297,28 +297,58 @@ def process_season_episodes(item, metadata, events_bulk):
 def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
     """Determine the most accurate air datetime for an episode."""
     tvmaze_key = f"{season_number}_{episode_number}"
-    tvmaze_airstamp = tvmaze_map.get(tvmaze_key)
+    tvmaze_episode = tvmaze_map.get(tvmaze_key, {})
+    tmdb_air_date = episode.get("air_date")
+    tmdb_datetime = None
 
-    if tvmaze_airstamp:
-        return datetime.fromisoformat(tvmaze_airstamp)
-
-    if episode["air_date"]:
+    if tmdb_air_date:
         try:
-            return date_parser(episode["air_date"])
-        except ValueError:
+            tmdb_datetime = date_parser(tmdb_air_date)
+        except (TypeError, ValueError):
             logger.warning(
                 "Invalid air date for S%sE%s from TMDB: %s",
                 season_number,
                 episode_number,
-                episode["air_date"],
+                tmdb_air_date,
             )
+
+    tvmaze_air_date = tvmaze_episode.get("airdate")
+    tvmaze_airstamp = tvmaze_episode.get("airstamp")
+    dates_agree = tvmaze_air_date == tmdb_air_date
+    tvmaze_datetime = None
+
+    if tvmaze_airstamp:
+        try:
+            tvmaze_datetime = datetime.fromisoformat(tvmaze_airstamp)
+        except (TypeError, ValueError):
+            logger.warning(
+                "Invalid airstamp for S%sE%s from TVMaze: %s",
+                season_number,
+                episode_number,
+                tvmaze_airstamp,
+            )
+
+    if tvmaze_datetime is not None and (dates_agree or tmdb_datetime is None):
+        return tvmaze_datetime
+
+    if tmdb_datetime is not None:
+        if tvmaze_air_date and not dates_agree:
+            logger.warning(
+                "Conflicting air dates for S%sE%s: TMDB=%s, TVMaze=%s; "
+                "using TMDB",
+                season_number,
+                episode_number,
+                tmdb_air_date,
+                tvmaze_air_date,
+            )
+        return tmdb_datetime
 
     return datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 
 
 def get_tvmaze_episode_map(tvdb_id):
     """Fetch and process episode data from TVMaze using TVDB ID with caching."""
-    cache_key = f"tvmaze_map_{tvdb_id}"
+    cache_key = f"tvmaze_episode_map_v2_{tvdb_id}"
     cached_map = cache.get(cache_key)
 
     if cached_map:
@@ -336,7 +366,10 @@ def get_tvmaze_episode_map(tvdb_id):
             episode_num = episode.get("number")
             if season_num is not None and episode_num is not None:
                 key = f"{season_num}_{episode_num}"
-                tvmaze_map[key] = episode.get("airstamp")
+                tvmaze_map[key] = {
+                    "airdate": episode.get("airdate"),
+                    "airstamp": episode.get("airstamp"),
+                }
 
     cache.set(cache_key, tvmaze_map)
     logger.info(
