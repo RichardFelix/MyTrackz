@@ -48,6 +48,18 @@ class AdvancedSettingsImageCacheTests(TestCase):
         self.assertEqual(response.context["image_cache_file_count"], 0)
         self.assertEqual(response.context["image_cache_size_bytes"], 0)
 
+    def test_advanced_page_confirms_destructive_cache_actions(self):
+        """Cache actions are submitted only from their confirmation dialogs."""
+        response = self.client.get(reverse("advanced"))
+
+        self.assertContains(response, 'role="dialog"', count=2)
+        self.assertContains(response, "Clear search cache?")
+        self.assertContains(response, "Purge image cache?")
+        self.assertContains(response, "Cancel", count=2)
+        self.assertContains(response, "Proceed", count=2)
+        self.assertContains(response, f'action="{reverse("clear_search_cache")}"')
+        self.assertContains(response, f'action="{reverse("purge_image_cache")}"')
+
     def test_advanced_page_shows_cache_stats(self):
         """Cached images are reflected in the page's size/count context."""
         with patch("app.tasks.cache_item_image.delay"):

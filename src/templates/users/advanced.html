@@ -16,7 +16,8 @@
         <h2 class="text-xl font-semibold">Advanced</h2>
       </div>
 
-      <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+      <div class="bg-[#39404b] p-5 rounded-lg mb-6"
+           x-data="{ confirmSearchCacheClear: false }">
         <div class="flex items-center mb-3">
           {% include "app/icons/trashcan.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
           <h3 class="text-base font-medium">Clear Search Cache</h3>
@@ -30,18 +31,61 @@
           Your next search may be slightly slower as fresh data is retrieved.
         </p>
         <div class="flex space-x-3">
-          <form method="post" action="{% url 'clear_search_cache' %}">
-            {% csrf_token %}
-            <button type="submit"
-                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
-              {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
-              Clear Search Cache
-            </button>
-          </form>
+          <button type="button"
+                  @click="confirmSearchCacheClear = true; $nextTick(() => $refs.proceedSearchCacheClear.focus())"
+                  class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+            Clear Search Cache
+          </button>
         </div>
+
+        <template x-teleport="body">
+          <div x-show="confirmSearchCacheClear"
+               x-cloak
+               x-transition.opacity
+               @keydown.escape.window="confirmSearchCacheClear = false"
+               @click.self="confirmSearchCacheClear = false"
+               class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-2.5 sm:items-center sm:p-4"
+               role="dialog"
+               aria-modal="true"
+               aria-labelledby="clear-search-cache-title"
+               aria-describedby="clear-search-cache-description">
+            <div class="modal-glass w-full max-w-md rounded-2xl p-6 shadow-2xl">
+              <div class="flex items-start gap-4">
+                <div class="shrink-0 rounded-full bg-red-500/15 p-3 text-red-300">
+                  {% include "app/icons/warning.svg" with classes="w-10 h-10" %}
+                </div>
+                <div>
+                  <h3 id="clear-search-cache-title"
+                      class="text-lg font-semibold text-white">Clear search cache?</h3>
+                  <p id="clear-search-cache-description"
+                     class="mt-2 text-sm leading-6 text-gray-300">
+                    This deletes every cached search result. Your next searches may be slower while MyTrackz retrieves fresh results from each provider.
+                  </p>
+                </div>
+              </div>
+              <div class="mt-6 flex items-center justify-center gap-3">
+                <button type="button"
+                        @click="confirmSearchCacheClear = false"
+                        class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:bg-gray-700 cursor-pointer">
+                  Cancel
+                </button>
+                <form method="post" action="{% url 'clear_search_cache' %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          x-ref="proceedSearchCacheClear"
+                          class="rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 cursor-pointer">
+                    Proceed
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
-      <div class="bg-[#39404b] p-5 rounded-lg mb-6">
+      <div class="bg-[#39404b] p-5 rounded-lg mb-6"
+           x-data="{ confirmImageCachePurge: false }">
         <div class="flex items-center mb-3">
           {% include "app/icons/image.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
           <h3 class="text-base font-medium">Image Cache</h3>
@@ -60,15 +104,56 @@
           its image the next time it's viewed or updated.
         </p>
         <div class="flex space-x-3">
-          <form method="post" action="{% url 'purge_image_cache' %}">
-            {% csrf_token %}
-            <button type="submit"
-                    class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
-              {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
-              Purge Image Cache
-            </button>
-          </form>
+          <button type="button"
+                  @click="confirmImageCachePurge = true; $nextTick(() => $refs.proceedImageCachePurge.focus())"
+                  class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+            Purge Image Cache
+          </button>
         </div>
+
+        <template x-teleport="body">
+          <div x-show="confirmImageCachePurge"
+               x-cloak
+               x-transition.opacity
+               @keydown.escape.window="confirmImageCachePurge = false"
+               @click.self="confirmImageCachePurge = false"
+               class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-2.5 sm:items-center sm:p-4"
+               role="dialog"
+               aria-modal="true"
+               aria-labelledby="purge-image-cache-title"
+               aria-describedby="purge-image-cache-description">
+            <div class="modal-glass w-full max-w-md rounded-2xl p-6 shadow-2xl">
+              <div class="flex items-start gap-4">
+                <div class="shrink-0 rounded-full bg-red-500/15 p-3 text-red-300">
+                  {% include "app/icons/warning.svg" with classes="w-10 h-10" %}
+                </div>
+                <div>
+                  <h3 id="purge-image-cache-title" class="text-lg font-semibold text-white">Purge image cache?</h3>
+                  <p id="purge-image-cache-description"
+                     class="mt-2 text-sm leading-6 text-gray-300">
+                    This deletes every locally cached poster and cover. Images will be downloaded again as items are viewed or updated, which may temporarily make pages load more slowly.
+                  </p>
+                </div>
+              </div>
+              <div class="mt-6 flex items-center justify-center gap-3">
+                <button type="button"
+                        @click="confirmImageCachePurge = false"
+                        class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:bg-gray-700 cursor-pointer">
+                  Cancel
+                </button>
+                <form method="post" action="{% url 'purge_image_cache' %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          x-ref="proceedImageCachePurge"
+                          class="rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 cursor-pointer">
+                    Proceed
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
