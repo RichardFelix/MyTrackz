@@ -387,6 +387,10 @@ class User(AbstractUser):
         choices=QuickWatchDateChoices,
         help_text="Date to use when bulk-marking media as completed",
     )
+    auto_mark_previous_episodes = models.BooleanField(
+        default=False,
+        help_text="Mark earlier TV episodes watched when tracking a later episode",
+    )
 
     date_format = models.CharField(
         max_length=20,

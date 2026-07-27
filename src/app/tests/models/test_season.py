@@ -22,6 +22,217 @@ from users.models import QuickWatchDateChoices
 mock_path = Path(__file__).resolve().parent.parent / "mock_data"
 
 
+class PreviousEpisodeBackfillTests(TestCase):
+    """Test filling earlier TV episodes when a user starts partway through."""
+
+    def setUp(self):
+        """Create a three-season show tracked from its third season."""
+        credentials = {"username": "backfill-user", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        tv_item = Item.objects.create(
+            media_id="300",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Three Season Show",
+            image="tv.jpg",
+        )
+        self.tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.PLANNING.value,
+        )
+        TV.save_base(self.tv)
+
+        season_item = Item.objects.create(
+            media_id="300",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Three Season Show",
+            image="season3.jpg",
+            season_number=3,
+        )
+        self.season = Season(
+            item=season_item,
+            user=self.user,
+            related_tv=self.tv,
+            status=Status.PLANNING.value,
+        )
+        Season.save_base(self.season)
+
+        def metadata(media_type, _media_id, _source, season_numbers=None, **_kwargs):
+            if media_type == MediaTypes.TV.value:
+                return {
+                    "related": {
+                        "seasons": [
+                            {"season_number": 0},
+                            {"season_number": 1},
+                            {"season_number": 2},
+                            {"season_number": 3},
+                        ],
+                    },
+                }
+
+            episodes = {
+                season_number: [
+                    {
+                        "episode_number": episode_number,
+                        "image": f"s{season_number}e{episode_number}.jpg",
+                        "air_date": datetime(
+                            2020 + season_number,
+                            1,
+                            episode_number,
+                            tzinfo=UTC,
+                        ),
+                    }
+                    for episode_number in range(1, 5)
+                ]
+                + [
+                    {
+                        "episode_number": 100,
+                        "image": "bonus.jpg",
+                        "air_date": datetime(2020, 1, 1, tzinfo=UTC),
+                    },
+                ]
+                for season_number in season_numbers
+            }
+            if media_type == MediaTypes.SEASON.value:
+                season_number = season_numbers[0]
+                return {
+                    "image": f"season{season_number}.jpg",
+                    "episodes": episodes[season_number],
+                }
+            return {
+                "title": "Three Season Show",
+                **{
+                    f"season/{season_number}": {
+                        "image": f"season{season_number}.jpg",
+                        "episodes": season_episodes,
+                    }
+                    for season_number, season_episodes in episodes.items()
+                },
+            }
+
+        self.metadata_patcher = patch(
+            "app.models.providers.services.get_media_metadata",
+            side_effect=metadata,
+        )
+        self.metadata_patcher.start()
+        self.addCleanup(self.metadata_patcher.stop)
+
+    def test_marks_all_released_regular_episodes_before_s03e03(self):
+        """S03E03 fills Seasons 1-2 and the first two Season 3 episodes."""
+        target_end_date = datetime(2025, 1, 1, tzinfo=UTC)
+        created_count = self.season.mark_previous_episodes_watched(
+            3,
+            target_end_date,
+        )
+
+        self.assertEqual(created_count, 10)
+        self.assertEqual(
+            set(
+                Episode.objects.filter(related_season__related_tv=self.tv).values_list(
+                    "item__season_number",
+                    "item__episode_number",
+                ),
+            ),
+            {
+                (1, 1),
+                (1, 2),
+                (1, 3),
+                (1, 4),
+                (2, 1),
+                (2, 2),
+                (2, 3),
+                (2, 4),
+                (3, 1),
+                (3, 2),
+            },
+        )
+        statuses = dict(
+            Season.objects.filter(related_tv=self.tv).values_list(
+                "item__season_number",
+                "status",
+            ),
+        )
+        self.assertEqual(statuses[1], Status.COMPLETED.value)
+        self.assertEqual(statuses[2], Status.COMPLETED.value)
+        self.assertEqual(statuses[3], Status.PLANNING.value)
+        self.assertFalse(
+            Episode.objects.filter(item__episode_number=100).exists(),
+        )
+        created_ids = Episode.objects.values_list("id", flat=True)
+        self.assertEqual(
+            Episode.history.model.objects.filter(id__in=created_ids).count(),
+            created_count,
+        )
+
+        self.season.watch(3, target_end_date)
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(self.season.progress, 3)
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    def test_skips_existing_watches_and_uses_no_date_preference(self):
+        """A partial history is not duplicated and implied watches may be undated."""
+        self.user.quick_watch_date = QuickWatchDateChoices.NO_DATE
+        self.user.save(update_fields=["quick_watch_date"])
+        episode_item = Item.objects.create(
+            media_id="300",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Three Season Show",
+            image="existing.jpg",
+            season_number=3,
+            episode_number=1,
+        )
+        existing_episode = Episode(
+            related_season=self.season,
+            item=episode_item,
+            end_date=datetime(2025, 1, 1, tzinfo=UTC),
+        )
+        Episode.save_base(existing_episode)
+
+        first_count = self.season.mark_previous_episodes_watched(3, None)
+        second_count = self.season.mark_previous_episodes_watched(3, None)
+
+        self.assertEqual(first_count, 9)
+        self.assertEqual(second_count, 0)
+        self.assertEqual(
+            Episode.objects.filter(
+                related_season=self.season,
+                item__episode_number=1,
+            ).count(),
+            1,
+        )
+        self.assertFalse(
+            Episode.objects.exclude(id=existing_episode.id).filter(
+                end_date__isnull=False,
+            ),
+        )
+
+    def test_tracking_finale_after_backfill_completes_show(self):
+        """Filling through the last episode completes every parent season and TV."""
+        target_end_date = datetime(2025, 1, 1, tzinfo=UTC)
+
+        created_count = self.season.mark_previous_episodes_watched(
+            4,
+            target_end_date,
+        )
+        self.season.watch(4, target_end_date)
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(created_count, 11)
+        self.assertEqual(self.season.status, Status.COMPLETED.value)
+        self.assertEqual(self.tv.status, Status.COMPLETED.value)
+        self.assertFalse(
+            Season.objects.filter(related_tv=self.tv)
+            .exclude(status=Status.COMPLETED.value)
+            .exists(),
+        )
+
+
 class SeasonModel(TestCase):
     """Test the @properties and custom save of the Season model."""
 

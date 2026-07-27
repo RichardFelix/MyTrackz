@@ -283,6 +283,9 @@ def preferences(request):
     request.user.progress_bar = "progress_bar" in request.POST
     request.user.hide_zero_rating = "hide_zero_rating" in request.POST
     request.user.obfuscate_unseen_episodes = "obfuscate_unseen_episodes" in request.POST
+    request.user.auto_mark_previous_episodes = (
+        "auto_mark_previous_episodes" in request.POST
+    )
     request.user.hide_completed_recommendations = (
         "hide_completed_recommendations" in request.POST
     )

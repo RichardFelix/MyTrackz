@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -15,6 +16,15 @@ from app.models import (
     Sources,
     Status,
 )
+from app.providers import services
+
+
+def raise_provider_error(*_args, **_kwargs):
+    """Raise the provider-layer error produced by a failed metadata request."""
+    raise services.ProviderAPIError(
+        Sources.TMDB.value,
+        ValueError("metadata unavailable"),
+    )
 
 
 class CreateMedia(TestCase):
@@ -124,6 +134,107 @@ class CreateMedia(TestCase):
                 item__episode_number=1,
             ).exists(),
             True,
+        )
+
+    def _create_tracked_season(self):
+        """Create a tracked TV season without invoking provider-backed saves."""
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="tv.jpg",
+        )
+        tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(tv)
+        season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Friends",
+            image="season.jpg",
+            season_number=3,
+        )
+        season = Season(
+            item=season_item,
+            user=self.user,
+            related_tv=tv,
+            status=Status.IN_PROGRESS.value,
+        )
+        Season.save_base(season)
+        return season
+
+    @patch.object(Season, "watch")
+    @patch.object(Season, "mark_previous_episodes_watched", return_value=4)
+    def test_episode_save_backfills_when_preference_enabled(
+        self,
+        mock_mark_previous,
+        mock_watch,
+    ):
+        """The episode endpoint fills earlier watches for opted-in users."""
+        self._create_tracked_season()
+        self.user.auto_mark_previous_episodes = True
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+
+        self.client.post(
+            reverse("episode_save"),
+            {
+                "media_id": "1668",
+                "season_number": 3,
+                "episode_number": 3,
+                "source": Sources.TMDB.value,
+                "end_date": "2025-01-01",
+            },
+        )
+
+        mock_mark_previous.assert_called_once()
+        self.assertEqual(mock_mark_previous.call_args.args[0], 3)
+        self.assertEqual(
+            mock_mark_previous.call_args.args[1].date().isoformat(),
+            "2025-01-01",
+        )
+        mock_watch.assert_called_once()
+        self.assertEqual(mock_watch.call_args.args[0], 3)
+        self.assertEqual(mock_watch.call_args.args[1].date().isoformat(), "2025-01-01")
+
+    @patch.object(Season, "watch")
+    @patch.object(
+        Season,
+        "mark_previous_episodes_watched",
+        side_effect=raise_provider_error,
+    )
+    def test_episode_save_tracks_target_when_backfill_metadata_fails(
+        self,
+        mock_mark_previous,
+        mock_watch,
+    ):
+        """A failed optional backfill does not discard the selected watch."""
+        self._create_tracked_season()
+        self.user.auto_mark_previous_episodes = True
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+
+        response = self.client.post(
+            reverse("episode_save"),
+            {
+                "media_id": "1668",
+                "season_number": 3,
+                "episode_number": 3,
+                "source": Sources.TMDB.value,
+                "end_date": "2025-01-01",
+            },
+            follow=True,
+        )
+
+        mock_mark_previous.assert_called_once()
+        mock_watch.assert_called_once()
+        self.assertContains(
+            response,
+            "The selected episode was tracked, but earlier episodes could not be "
+            "marked watched.",
         )
 
 

@@ -116,6 +116,31 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.colored_grid_progress_buttons)
 
+    def test_auto_mark_previous_episodes_defaults_off_and_can_be_enabled(self):
+        """Users explicitly opt into filling earlier TV episode watches."""
+        response = self.client.get(reverse("preferences"))
+
+        self.assertFalse(self.user.auto_mark_previous_episodes)
+        self.assertContains(response, 'name="auto_mark_previous_episodes"')
+
+        self.client.post(
+            reverse("preferences"),
+            {"auto_mark_previous_episodes": "on"},
+        )
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.auto_mark_previous_episodes)
+
+    def test_auto_mark_previous_episodes_can_be_disabled(self):
+        """An unchecked tracking preference disables automatic filling."""
+        self.user.auto_mark_previous_episodes = True
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+
+        self.client.post(reverse("preferences"), {})
+
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.auto_mark_previous_episodes)
+
     def test_show_all_home_items_defaults_on_and_can_be_disabled(self):
         """Home rows load every item by default and can restore the load button."""
         response = self.client.get(reverse("preferences"))

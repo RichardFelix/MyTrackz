@@ -3,13 +3,14 @@ import uuid
 from collections import Counter
 from pathlib import Path
 
+import requests
 from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import prefetch_related_objects
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -1212,7 +1213,34 @@ def episode_save(request):
 
         logger.info("%s did not exist, it was created successfully.", related_season)
 
-    related_season.watch(episode_number, form.cleaned_data["end_date"])
+    with transaction.atomic():
+        if request.user.auto_mark_previous_episodes:
+            try:
+                with transaction.atomic():
+                    related_season.mark_previous_episodes_watched(
+                        episode_number,
+                        form.cleaned_data["end_date"],
+                    )
+            except (
+                KeyError,
+                ValueError,
+                requests.RequestException,
+                services.ProviderAPIError,
+            ):
+                logger.warning(
+                    "Could not mark previous episodes for %s S%02dE%02d",
+                    related_season.item.title,
+                    season_number,
+                    episode_number,
+                    exc_info=True,
+                )
+                messages.warning(
+                    request,
+                    "The selected episode was tracked, but earlier episodes could "
+                    "not be marked watched.",
+                )
+
+        related_season.watch(episode_number, form.cleaned_data["end_date"])
 
     return helpers.redirect_back(request)
 

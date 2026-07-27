@@ -1827,6 +1827,180 @@ class Season(Media):
             episode,
         )
 
+    def mark_previous_episodes_watched(self, episode_number, target_end_date):
+        """Mark missing released episodes before the selected episode as watched."""
+        target_season_number = self.item.season_number
+        tv_metadata = providers.services.get_media_metadata(
+            MediaTypes.TV.value,
+            self.item.media_id,
+            self.item.source,
+        )
+        season_numbers = sorted(
+            {
+                season["season_number"]
+                for season in tv_metadata.get("related", {}).get("seasons", [])
+                if 0 < season["season_number"] <= target_season_number
+            }
+            | {target_season_number},
+        )
+        tv_with_seasons_metadata = providers.services.get_media_metadata(
+            "tv_with_seasons",
+            self.item.media_id,
+            self.item.source,
+            season_numbers,
+        )
+
+        current_date = timezone.localdate()
+        existing_seasons = self._get_or_create_backfill_seasons(
+            season_numbers,
+            tv_with_seasons_metadata,
+        )
+        episodes_to_create = self._get_previous_episode_entries(
+            existing_seasons,
+            tv_with_seasons_metadata,
+            episode_number,
+            current_date,
+            target_end_date,
+        )
+        bulk_create_with_history(episodes_to_create, Episode)
+
+        seasons_to_update = []
+        for season_number in season_numbers:
+            if season_number >= target_season_number:
+                continue
+
+            season = existing_seasons[season_number]
+            target_status = season.get_completion_status(
+                tv_with_seasons_metadata[f"season/{season_number}"],
+                unreleased_only_status=Status.IN_PROGRESS.value,
+                current_date=current_date,
+            )
+            if season.status != target_status:
+                season.status = target_status
+                seasons_to_update.append(season)
+
+        if seasons_to_update:
+            bulk_update_with_history(
+                seasons_to_update,
+                Season,
+                fields=["status"],
+            )
+
+        created_count = len(episodes_to_create)
+        if created_count:
+            episode_label = "episode" if created_count == 1 else "episodes"
+            self.related_tv.create_user_message(
+                f"had {created_count} earlier {episode_label} marked as watched "
+                "automatically.",
+                level=UserMessageLevel.INFO,
+            )
+
+        return created_count
+
+    def _get_or_create_backfill_seasons(
+        self,
+        season_numbers,
+        tv_with_seasons_metadata,
+    ):
+        """Return tracked seasons needed by an earlier-episode backfill."""
+        related_tv = self.related_tv
+        existing_seasons = {
+            season.item.season_number: season
+            for season in related_tv.seasons.select_related("item").filter(
+                item__season_number__in=season_numbers,
+            )
+        }
+        existing_seasons[self.item.season_number] = self
+        seasons_to_create = []
+
+        for season_number in season_numbers:
+            if season_number in existing_seasons:
+                continue
+
+            season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+            item, _ = Item.objects.get_or_create(
+                media_id=self.item.media_id,
+                source=self.item.source,
+                media_type=MediaTypes.SEASON.value,
+                season_number=season_number,
+                defaults={
+                    "title": tv_with_seasons_metadata.get("title", self.item.title),
+                    "image": season_metadata["image"],
+                },
+            )
+            season = Season(
+                item=item,
+                user=self.user,
+                related_tv=related_tv,
+                status=Status.IN_PROGRESS.value,
+            )
+            seasons_to_create.append(season)
+            existing_seasons[season_number] = season
+
+        bulk_create_with_history(seasons_to_create, Season)
+        return existing_seasons
+
+    def _get_previous_episode_entries(
+        self,
+        existing_seasons,
+        tv_with_seasons_metadata,
+        episode_number,
+        current_date,
+        target_end_date,
+    ):
+        """Build missing released episode entries before the selected episode."""
+        target_season_number = self.item.season_number
+        episodes_to_create = []
+        for season_number in sorted(existing_seasons):
+            season = existing_seasons[season_number]
+            season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
+            watched_episode_numbers = set(
+                season.episodes.values_list("item__episode_number", flat=True),
+            )
+
+            for episode in providers.tmdb.get_season_progress_episodes(
+                season_metadata["episodes"],
+            ):
+                candidate_number = episode["episode_number"]
+                if (
+                    season_number == target_season_number
+                    and candidate_number >= episode_number
+                ):
+                    continue
+                if candidate_number in watched_episode_numbers:
+                    continue
+                air_date = episode.get("air_date")
+                if air_date is not None and not app.helpers.is_released_date(
+                    air_date,
+                    current_date,
+                ):
+                    continue
+
+                item = season.get_episode_item(candidate_number, season_metadata)
+                episodes_to_create.append(
+                    Episode(
+                        related_season=season,
+                        item=item,
+                        end_date=self._resolve_previous_episode_date(
+                            target_end_date,
+                            air_date,
+                        ),
+                    ),
+                )
+
+        return episodes_to_create
+
+    def _resolve_previous_episode_date(self, target_end_date, release_date):
+        """Keep an implied watch from appearing newer than the selected episode."""
+        if target_end_date is None:
+            return None
+
+        resolved_date = self.user.resolve_watch_date(target_end_date, release_date)
+        if resolved_date is None:
+            return None
+
+        return min(resolved_date, target_end_date)
+
     def decrease_progress(self):
         """Unwatch the current episode of the season."""
         self.unwatch(self.progress)
