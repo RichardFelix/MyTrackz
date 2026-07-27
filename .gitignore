@@ -15,6 +15,15 @@ requests.http
 TODO.txt
 .cache
 node_modules
+
+# Android wrapper local state and secrets
+/android/.gradle/
+/android/**/build/
+/android/local.properties
+/android/signing.properties
+/android/*.jks
+/android/*.keystore
+
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/worktrees/
