@@ -1,7 +1,9 @@
 import logging
+import re
 import unicodedata
 
 import requests
+from django.db import transaction
 from django.utils import timezone
 
 import app
@@ -276,24 +278,31 @@ class TVWebhookMixin:
         tmdb_episode_id,
     ):
         """Return TMDB candidates validated against title and episode metadata."""
-        try:
-            search_results = app.providers.tmdb.search(
-                MediaTypes.TV.value,
-                series_title,
-                1,
-            ).get("results", [])
-        except (services.ProviderAPIError, requests.exceptions.RequestException):
-            logger.exception(
-                "TMDB search failed during TV title fallback for %s S%02dE%02d",
-                series_title,
-                season_number,
-                episode_number,
-            )
-            return None
+        search_results = []
+        for search_title in self._get_title_search_queries(series_title):
+            try:
+                search_results.extend(
+                    app.providers.tmdb.search(
+                        MediaTypes.TV.value,
+                        search_title,
+                        1,
+                    ).get("results", []),
+                )
+            except (
+                services.ProviderAPIError,
+                requests.exceptions.RequestException,
+            ):
+                logger.exception(
+                    "TMDB search failed during TV title fallback for %s S%02dE%02d",
+                    search_title,
+                    season_number,
+                    episode_number,
+                )
+                return None
 
         matches = []
         seen_media_ids = set()
-        normalized_series_title = self._normalize_title(series_title)
+        normalized_series_title = self._normalize_series_title(series_title)
         for candidate in search_results:
             media_id = candidate.get("media_id")
             if not media_id or media_id in seen_media_ids:
@@ -301,7 +310,7 @@ class TVWebhookMixin:
             seen_media_ids.add(media_id)
             if (
                 not tmdb_episode_id
-                and self._normalize_title(candidate.get("title"))
+                and self._normalize_series_title(candidate.get("title"))
                 != normalized_series_title
             ):
                 continue
@@ -316,6 +325,25 @@ class TVWebhookMixin:
             if match:
                 matches.append(match)
         return matches
+
+    @classmethod
+    def _get_title_search_queries(cls, series_title):
+        """Return title searches, retrying without a Plex-style trailing year."""
+        queries = [series_title]
+        title_without_year = cls._strip_trailing_year(series_title)
+        if title_without_year != series_title.strip():
+            queries.append(title_without_year)
+        return queries
+
+    @staticmethod
+    def _strip_trailing_year(title):
+        """Remove a trailing parenthetical year used to disambiguate Plex titles."""
+        return re.sub(r"\s+\((?:19|20)\d{2}\)\s*$", "", str(title)).strip()
+
+    @classmethod
+    def _normalize_series_title(cls, title):
+        """Normalize a series title after removing a Plex disambiguation year."""
+        return cls._normalize_title(cls._strip_trailing_year(title))
 
     def _match_title_fallback_candidate(
         self,
@@ -553,7 +581,7 @@ class TVWebhookMixin:
                     )
 
             if should_create:
-                app.models.Episode.objects.create(
+                episode = app.models.Episode.objects.create(
                     item=episode_item,
                     related_season=season_instance,
                     end_date=now,
@@ -564,12 +592,51 @@ class TVWebhookMixin:
                     season_number,
                     episode_number,
                 )
+                self._mark_previous_episodes_after_webhook(
+                    season_instance,
+                    episode,
+                    episode_number,
+                    tv_metadata["title"],
+                    user,
+                )
         else:
             logger.debug(
                 "Episode not marked as played: %s S%02dE%02d",
                 tv_metadata["title"],
                 season_number,
                 episode_number,
+            )
+
+    @staticmethod
+    def _mark_previous_episodes_after_webhook(
+        season,
+        episode,
+        episode_number,
+        series_title,
+        user,
+    ):
+        """Apply the user's earlier-episode preference after a webhook watch."""
+        if not user.auto_mark_previous_episodes:
+            return
+
+        try:
+            with transaction.atomic():
+                season.mark_previous_episodes_watched(
+                    episode_number,
+                    episode.end_date,
+                )
+        except (
+            KeyError,
+            ValueError,
+            requests.exceptions.RequestException,
+            services.ProviderAPIError,
+        ):
+            logger.warning(
+                "Could not mark previous episodes after webhook for %s S%02dE%02d",
+                series_title,
+                season.item.season_number,
+                episode_number,
+                exc_info=True,
             )
 
     def _delete_tv_episode(self, media_id, season_number, episode_number, user):

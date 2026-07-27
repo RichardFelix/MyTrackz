@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import requests
 from django.contrib.auth import get_user_model
@@ -109,6 +109,59 @@ class TVWebhookTitleFallbackTests(TestCase):
             "anime_enabled": False,
         }
         self.user = get_user_model().objects.create_superuser(**credentials)
+        self.user.auto_mark_previous_episodes = False
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_plex_title_with_year_retries_without_year(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """A Plex disambiguation year does not prevent an episode ID match."""
+        mock_search.side_effect = (
+            tmdb_search_results(),
+            tmdb_search_results({"media_id": 90266, "title": "Press Your Luck"}),
+        )
+        mock_tv_with_seasons.return_value = tmdb_tv_metadata(
+            media_id=90266,
+            series_title="Press Your Luck",
+            season_number=7,
+            episode_number=3,
+            episode_id=6727877,
+            episode_title="Big Bass, No Whammy",
+        )
+        payload = plex_payload(
+            tmdb_id="6727877",
+            series_title="Press Your Luck (2019)",
+        )
+        payload["Metadata"].update(
+            {
+                "parentIndex": 7,
+                "index": 3,
+                "title": "Big Bass, No Whammy",
+            },
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        self.assertEqual(
+            mock_search.call_args_list,
+            [
+                call(MediaTypes.TV.value, "Press Your Luck (2019)", 1),
+                call(MediaTypes.TV.value, "Press Your Luck", 1),
+            ],
+        )
+        mock_handle_tv_episode.assert_called_once_with(
+            90266,
+            7,
+            3,
+            payload,
+            self.user,
+        )
 
     @patch("app.providers.tmdb.tv")
     @patch("app.providers.tmdb.tv_with_seasons")
@@ -158,6 +211,36 @@ class TVWebhookTitleFallbackTests(TestCase):
                 item__episode_number=3,
             ).exists(),
         )
+
+    @patch.object(Season, "mark_previous_episodes_watched")
+    @patch("app.providers.tmdb.tv")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_scrobble_applies_previous_episode_preference(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_tv,
+        mock_mark_previous,
+    ):
+        """A successful webhook scrobble backfills earlier episodes when enabled."""
+        self.user.auto_mark_previous_episodes = True
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 1685, "title": "Project Runway"},
+        )
+        mock_tv_with_seasons.return_value = tmdb_tv_metadata()
+        mock_tv.return_value = {"related": {"seasons": []}}
+        payload = plex_payload()
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        episode = Episode.objects.get(
+            related_season__user=self.user,
+            item__season_number=22,
+            item__episode_number=3,
+        )
+        mock_mark_previous.assert_called_once_with(3, episode.end_date)
 
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
     @patch("app.providers.tmdb.tv_with_seasons")
