@@ -5,6 +5,7 @@ import unicodedata
 import requests
 from django.db import transaction
 from django.utils import timezone
+from simple_history.utils import bulk_update_with_history
 
 import app
 from app.models import MediaTypes, Sources, Status
@@ -502,19 +503,11 @@ class TVWebhookMixin:
         tv_instance, tv_created = app.models.TV.objects.get_or_create(
             item=tv_item,
             user=user,
-            defaults={"status": Status.IN_PROGRESS.value},
+            defaults={"status": Status.PLANNING.value},
         )
 
         if tv_created:
             logger.info("Created new TV instance: %s", tv_metadata["title"])
-        elif tv_instance.status != Status.IN_PROGRESS.value:
-            tv_instance.status = Status.IN_PROGRESS.value
-            tv_instance.save()
-            logger.info(
-                "Updated TV instance status to %s: %s",
-                Status.IN_PROGRESS.value,
-                tv_metadata["title"],
-            )
 
         season_item, _ = app.models.Item.objects.get_or_create(
             media_id=media_id,
@@ -548,6 +541,19 @@ class TVWebhookMixin:
                 Status.IN_PROGRESS.value,
                 tv_metadata["title"],
                 season_number,
+            )
+
+        if tv_instance.status != Status.IN_PROGRESS.value:
+            tv_instance.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [tv_instance],
+                app.models.TV,
+                fields=["status"],
+            )
+            logger.info(
+                "Updated TV instance status to %s: %s",
+                Status.IN_PROGRESS.value,
+                tv_metadata["title"],
             )
 
         episode_item = season_instance.get_episode_item(episode_number, season_metadata)
@@ -627,6 +633,7 @@ class TVWebhookMixin:
                 )
         except (
             KeyError,
+            TypeError,
             ValueError,
             requests.exceptions.RequestException,
             services.ProviderAPIError,

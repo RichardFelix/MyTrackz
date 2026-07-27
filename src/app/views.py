@@ -1223,6 +1223,7 @@ def episode_save(request):
                     )
             except (
                 KeyError,
+                TypeError,
                 ValueError,
                 requests.RequestException,
                 services.ProviderAPIError,

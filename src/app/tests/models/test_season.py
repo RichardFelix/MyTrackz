@@ -27,6 +27,7 @@ class PreviousEpisodeBackfillTests(TestCase):
 
     def setUp(self):
         """Create a three-season show tracked from its third season."""
+        self.air_dates_as_strings = False
         credentials = {"username": "backfill-user", "password": "12345"}
         self.user = get_user_model().objects.create_user(**credentials)
         tv_item = Item.objects.create(
@@ -72,17 +73,23 @@ class PreviousEpisodeBackfillTests(TestCase):
                     },
                 }
 
+            def air_date(season_number, episode_number):
+                value = datetime(
+                    2020 + season_number,
+                    1,
+                    episode_number,
+                    tzinfo=UTC,
+                )
+                if self.air_dates_as_strings:
+                    return value.date().isoformat()
+                return value
+
             episodes = {
                 season_number: [
                     {
                         "episode_number": episode_number,
                         "image": f"s{season_number}e{episode_number}.jpg",
-                        "air_date": datetime(
-                            2020 + season_number,
-                            1,
-                            episode_number,
-                            tzinfo=UTC,
-                        ),
+                        "air_date": air_date(season_number, episode_number),
                     }
                     for episode_number in range(1, 5)
                 ]
@@ -231,6 +238,25 @@ class PreviousEpisodeBackfillTests(TestCase):
             .exclude(status=Status.COMPLETED.value)
             .exists(),
         )
+
+    def test_release_date_preference_accepts_provider_date_strings(self):
+        """Release-date backfills normalize TMDB's ISO date strings."""
+        self.air_dates_as_strings = True
+        self.user.quick_watch_date = QuickWatchDateChoices.RELEASE_DATE
+        self.user.save(update_fields=["quick_watch_date"])
+
+        created_count = self.season.mark_previous_episodes_watched(
+            3,
+            datetime(2025, 1, 1, tzinfo=UTC),
+        )
+
+        watched = Episode.objects.filter(
+            related_season__related_tv=self.tv,
+        ).order_by("item__season_number", "item__episode_number")
+        self.assertEqual(created_count, 10)
+        self.assertTrue(all(episode.end_date is not None for episode in watched))
+        self.assertEqual(watched.first().end_date, datetime(2021, 1, 1, tzinfo=UTC))
+        self.assertEqual(watched.last().end_date, datetime(2023, 1, 2, tzinfo=UTC))
 
 
 class SeasonModel(TestCase):

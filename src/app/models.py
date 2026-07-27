@@ -2,6 +2,7 @@ import functools
 import hashlib
 import logging
 import uuid
+from datetime import date, datetime, time
 
 from django.apps import apps
 from django.conf import settings
@@ -24,6 +25,7 @@ from django.db.models import (
 from django.db.models.functions import RowNumber
 from django.templatetags.static import static
 from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 from model_utils import FieldTracker
 from model_utils.fields import MonitorField
 from simple_history.models import HistoricalRecords
@@ -1999,7 +2001,32 @@ class Season(Media):
         if resolved_date is None:
             return None
 
-        return min(resolved_date, target_end_date)
+        resolved_datetime = self._normalize_watch_datetime(resolved_date)
+        target_datetime = self._normalize_watch_datetime(target_end_date)
+        return min(resolved_datetime, target_datetime)
+
+    @staticmethod
+    def _normalize_watch_datetime(value):
+        """Return provider dates as timezone-aware datetimes for comparison."""
+        if isinstance(value, datetime):
+            normalized = value
+        elif isinstance(value, date):
+            normalized = datetime.combine(value, time.min)
+        elif isinstance(value, str):
+            normalized = parse_datetime(value)
+            if normalized is None:
+                parsed_date = parse_date(value)
+                if parsed_date is None:
+                    msg = f"Invalid watch date: {value}"
+                    raise ValueError(msg)
+                normalized = datetime.combine(parsed_date, time.min)
+        else:
+            msg = f"Unsupported watch date type: {type(value).__name__}"
+            raise TypeError(msg)
+
+        if timezone.is_naive(normalized):
+            return timezone.make_aware(normalized)
+        return normalized
 
     def decrease_progress(self):
         """Unwatch the current episode of the season."""

@@ -4,7 +4,7 @@ import requests
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from app.models import TV, Episode, Item, MediaTypes, Season
+from app.models import TV, Episode, Item, MediaTypes, Season, Status
 from app.providers import services
 from integrations.webhooks.emby import EmbyWebhookProcessor
 from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
@@ -211,6 +211,56 @@ class TVWebhookTitleFallbackTests(TestCase):
                 item__episode_number=3,
             ).exists(),
         )
+
+    @patch("app.providers.tmdb.tv")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_play_starts_reported_season_without_starting_season_one(
+        self,
+        mock_tv_with_seasons,
+        mock_tv,
+    ):
+        """Starting a later-season episode does not create an S01E01 placeholder."""
+        mock_tv_with_seasons.return_value = tmdb_tv_metadata()
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {
+                        "season_number": 1,
+                        "first_air_date": "2004-12-01",
+                        "image": "https://example.com/season-1.jpg",
+                    },
+                    {
+                        "season_number": 22,
+                        "first_air_date": "2026-01-01",
+                        "image": "https://example.com/season-22.jpg",
+                    },
+                ],
+            },
+        }
+        payload = plex_payload()
+        payload["event"] = "media.play"
+
+        PlexWebhookProcessor()._handle_tv_episode(
+            1685,
+            22,
+            3,
+            payload,
+            self.user,
+        )
+
+        tv = TV.objects.get(user=self.user, item__media_id="1685")
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(
+            list(
+                Season.objects.filter(related_tv=tv).values_list(
+                    "item__season_number",
+                    flat=True,
+                ),
+            ),
+            [22],
+        )
+        self.assertEqual(tv.seasons.get().status, Status.IN_PROGRESS.value)
+        self.assertFalse(Episode.objects.filter(related_season__related_tv=tv).exists())
 
     @patch.object(Season, "mark_previous_episodes_watched")
     @patch("app.providers.tmdb.tv")
