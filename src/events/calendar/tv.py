@@ -3,6 +3,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import requests
+from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Prefetch, Q
@@ -124,16 +125,37 @@ def process_tv_seasons(tv_item, seasons_to_process, events_bulk):
 
         season_metadata = process_seasons_data[season_key]
 
-        season_item, _ = Item.objects.get_or_create(
+        provider_image = season_metadata.get("image")
+        has_season_image = provider_image and provider_image != settings.IMG_NONE
+        season_image = provider_image if has_season_image else tv_item.image
+
+        season_item, created = Item.objects.get_or_create(
             media_id=tv_item.media_id,
             source=tv_item.source,
             media_type=MediaTypes.SEASON.value,
             season_number=season_number,
             defaults={
                 "title": tv_item.title,
-                "image": season_metadata["image"],
+                "image": season_image,
             },
         )
+
+        # Calendar reloads revisit upcoming seasons as provider metadata matures.
+        # Keep the show poster as a temporary fallback, then replace it as soon as
+        # TMDB supplies the season-specific poster. Never overwrite a custom image
+        # or downgrade an existing season poster when the provider has no image.
+        has_usable_image = season_image not in {None, "", settings.IMG_NONE}
+        existing_image_missing = season_item.image in {"", settings.IMG_NONE}
+        should_sync_image = (
+            not created
+            and not season_item.image_locked
+            and has_usable_image
+            and season_item.image != season_image
+            and (has_season_image or existing_image_missing)
+        )
+        if should_sync_image:
+            season_item.image = season_image
+            season_item.save(update_fields=["image"])
 
         process_season_episodes(season_item, season_metadata, events_bulk)
 

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
 
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TestCase
@@ -24,6 +25,7 @@ from events.calendar.tv import (
     get_tvmaze_response,
     process_season_episodes,
     process_tv,
+    process_tv_seasons,
     reconcile_completed_tv_seasons,
 )
 from events.models import Event
@@ -33,6 +35,67 @@ from users.models import HomeSortChoices
 
 class CalendarTVTests(CalendarFixturesMixin, TestCase):
     """Test TV calendar processing."""
+
+    @patch("events.calendar.tv.process_season_episodes")
+    @patch("events.calendar.tv.tmdb.tv_with_seasons")
+    def test_season_poster_falls_back_to_show_then_refreshes(
+        self,
+        mock_tv_with_seasons,
+        mock_process_season_episodes,
+    ):
+        """A later calendar reload replaces the temporary show poster fallback."""
+        season_number = 4
+        mock_tv_with_seasons.return_value = {
+            f"season/{season_number}": {
+                "image": settings.IMG_NONE,
+                "season_number": season_number,
+                "episodes": [],
+            },
+        }
+
+        process_tv_seasons(self.tv_item, [season_number], [])
+
+        season_item = Item.objects.get(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            season_number=season_number,
+        )
+        self.assertEqual(season_item.image, self.tv_item.image)
+
+        season_image = "http://example.com/season4.jpg"
+        mock_tv_with_seasons.return_value[f"season/{season_number}"]["image"] = (
+            season_image
+        )
+        with patch("app.tasks.cache_item_image.delay") as mock_cache_image:
+            process_tv_seasons(self.tv_item, [season_number], [])
+
+        season_item.refresh_from_db()
+        self.assertEqual(season_item.image, season_image)
+        mock_cache_image.assert_called_once_with(season_item.id, season_image)
+        self.assertEqual(mock_process_season_episodes.call_count, 2)
+
+    @patch("events.calendar.tv.process_season_episodes")
+    @patch("events.calendar.tv.tmdb.tv_with_seasons")
+    def test_missing_season_poster_does_not_replace_existing_poster(
+        self,
+        mock_tv_with_seasons,
+        _mock_process_season_episodes,
+    ):
+        """Missing provider data must not downgrade a real season poster."""
+        mock_tv_with_seasons.return_value = {
+            "season/1": {
+                "image": settings.IMG_NONE,
+                "season_number": 1,
+                "episodes": [],
+            },
+        }
+        original_image = self.season_item.image
+
+        process_tv_seasons(self.tv_item, [1], [])
+
+        self.season_item.refresh_from_db()
+        self.assertEqual(self.season_item.image, original_image)
 
     @patch("events.calendar.tv.tmdb.tv")
     @patch("events.calendar.tv.tmdb.tv_with_seasons")
