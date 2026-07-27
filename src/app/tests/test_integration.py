@@ -6,6 +6,8 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
+from users.models import HomeLayoutChoices
+
 
 class IntegrationTest(StaticLiveServerTestCase):
     """Integration tests for the application."""
@@ -63,6 +65,9 @@ class IntegrationTest(StaticLiveServerTestCase):
 
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""
+        self.user.home_layout = HomeLayoutChoices.LIST
+        self.user.save(update_fields=["home_layout"])
+
         self.palette_search("breaking bad", "TV Shows")
         expect(self.page.locator("h2")).to_contain_text("Search Results")
         self.page.get_by_title("Breaking Bad", exact=True).click()
@@ -214,7 +219,11 @@ class IntegrationTest(StaticLiveServerTestCase):
         obfuscate_label = self.page.locator(
             'label:has(input[name="obfuscate_unseen_episodes"])'
         )
-        obfuscate_label.click()
+        obfuscate_checkbox = self.page.locator(
+            'input[name="obfuscate_unseen_episodes"]'
+        )
+        if not obfuscate_checkbox.is_checked():
+            obfuscate_label.click()
 
         # Save preferences
         self.page.get_by_role("button", name="Save").nth(1).click()

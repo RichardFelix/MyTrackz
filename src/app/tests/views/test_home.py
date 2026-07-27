@@ -28,6 +28,9 @@ class HomeViewTests(TestCase):
         """Create a user and log in."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        # Most tests in this class cover the compact-list presentation.
+        self.user.home_layout = HomeLayoutChoices.LIST
+        self.user.save(update_fields=["home_layout"])
         self.client.login(**self.credentials)
         self.metadata_patcher = patch("app.providers.services.get_media_metadata")
         self.mock_get_media_metadata = self.metadata_patcher.start()
@@ -508,6 +511,9 @@ class HomeViewTests(TestCase):
 
     def test_home_view_htmx_load_more_for_planning(self):
         """Test the HTMX load more functionality for planning media."""
+        self.user.show_all_home_items = True
+        self.user.save(update_fields=["show_all_home_items"])
+
         for i in range(1, 16):
             movie_item = Item.objects.create(
                 media_id=f"planning-{i}",

@@ -5,7 +5,12 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import MediaTypes
-from users.models import HomeLayoutChoices, PlanningTermChoices
+from users.models import (
+    HomeLayoutChoices,
+    PlanningTermChoices,
+    QuickWatchDateChoices,
+    ThemeChoices,
+)
 
 
 class PreferencesHomeOrderTests(TestCase):
@@ -65,6 +70,28 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.planning_term, PlanningTermChoices.BACKLOG)
 
+    def test_new_user_defaults_match_recommended_preferences(self):
+        """New accounts receive the application's recommended preference set."""
+        expected_defaults = {
+            "theme": ThemeChoices.DARK,
+            "home_layout": HomeLayoutChoices.GRID,
+            "colored_grid_progress_buttons": False,
+            "clickable_media_cards": True,
+            "progress_bar": True,
+            "hide_zero_rating": False,
+            "planning_term": PlanningTermChoices.WISHLIST,
+            "quick_watch_date": QuickWatchDateChoices.CURRENT_DATE,
+            "auto_mark_previous_episodes": True,
+            "obfuscate_unseen_episodes": True,
+            "show_all_home_items": False,
+            "show_continue_story": True,
+            "hide_completed_recommendations": True,
+        }
+
+        for field_name, expected in expected_defaults.items():
+            with self.subTest(field_name=field_name):
+                self.assertEqual(getattr(self.user, field_name), expected)
+
     def test_valid_order_persists(self):
         """A valid submitted order is saved verbatim."""
         order = f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"
@@ -72,15 +99,15 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_media_order, order)
 
-    def test_compact_home_list_preference_defaults_on_and_can_be_disabled(self):
-        """The compact list is the default and an unchecked switch restores cards."""
+    def test_compact_home_list_defaults_off_and_can_be_enabled(self):
+        """Cards are the default and checking the switch enables the compact list."""
         response = self.client.get(reverse("preferences"))
-        self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
+        self.assertEqual(self.user.home_layout, HomeLayoutChoices.GRID)
         self.assertContains(response, 'name="compact_home_list"')
 
-        self.client.post(reverse("preferences"), {})
+        self.client.post(reverse("preferences"), {"compact_home_list": "on"})
         self.user.refresh_from_db()
-        self.assertEqual(self.user.home_layout, HomeLayoutChoices.GRID)
+        self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
 
     def test_compact_home_list_preference_can_be_enabled(self):
         """Checking the switch saves the compact list choice."""
@@ -92,16 +119,19 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.home_layout, HomeLayoutChoices.LIST)
 
-    def test_colored_grid_progress_buttons_default_on_and_can_be_disabled(self):
-        """The colored grid controls are enabled by default and can be disabled."""
+    def test_colored_grid_progress_buttons_default_off_and_can_be_enabled(self):
+        """Colored grid controls are disabled by default and can be enabled."""
         response = self.client.get(reverse("preferences"))
-        self.assertTrue(self.user.colored_grid_progress_buttons)
+        self.assertFalse(self.user.colored_grid_progress_buttons)
         self.assertContains(response, 'name="colored_grid_progress_buttons"')
 
-        self.client.post(reverse("preferences"), {})
+        self.client.post(
+            reverse("preferences"),
+            {"colored_grid_progress_buttons": "on"},
+        )
 
         self.user.refresh_from_db()
-        self.assertFalse(self.user.colored_grid_progress_buttons)
+        self.assertTrue(self.user.colored_grid_progress_buttons)
 
     def test_colored_grid_progress_buttons_can_be_enabled(self):
         """Checking the switch saves the colored grid control preference."""
@@ -116,20 +146,17 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.colored_grid_progress_buttons)
 
-    def test_auto_mark_previous_episodes_defaults_off_and_can_be_enabled(self):
-        """Users explicitly opt into filling earlier TV episode watches."""
+    def test_auto_mark_previous_episodes_defaults_on_and_can_be_disabled(self):
+        """Earlier TV episodes are filled by default and can be disabled."""
         response = self.client.get(reverse("preferences"))
 
-        self.assertFalse(self.user.auto_mark_previous_episodes)
+        self.assertTrue(self.user.auto_mark_previous_episodes)
         self.assertContains(response, 'name="auto_mark_previous_episodes"')
 
-        self.client.post(
-            reverse("preferences"),
-            {"auto_mark_previous_episodes": "on"},
-        )
+        self.client.post(reverse("preferences"), {})
 
         self.user.refresh_from_db()
-        self.assertTrue(self.user.auto_mark_previous_episodes)
+        self.assertFalse(self.user.auto_mark_previous_episodes)
 
     def test_auto_mark_previous_episodes_can_be_disabled(self):
         """An unchecked tracking preference disables automatic filling."""
@@ -141,16 +168,16 @@ class PreferencesHomeOrderTests(TestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.auto_mark_previous_episodes)
 
-    def test_show_all_home_items_defaults_on_and_can_be_disabled(self):
-        """Home rows load every item by default and can restore the load button."""
+    def test_show_all_home_items_defaults_off_and_can_be_enabled(self):
+        """Home rows use a load button by default and can load every item."""
         response = self.client.get(reverse("preferences"))
 
-        self.assertTrue(self.user.show_all_home_items)
+        self.assertFalse(self.user.show_all_home_items)
         self.assertContains(response, 'name="show_all_home_items"')
-        self.client.post(reverse("preferences"), {})
+        self.client.post(reverse("preferences"), {"show_all_home_items": "on"})
 
         self.user.refresh_from_db()
-        self.assertFalse(self.user.show_all_home_items)
+        self.assertTrue(self.user.show_all_home_items)
 
     def test_show_all_home_items_can_be_enabled(self):
         """Checking the switch saves automatic loading for all home items."""

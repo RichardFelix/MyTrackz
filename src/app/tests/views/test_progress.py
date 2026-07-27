@@ -18,6 +18,7 @@ from app.models import (
     UserMessageLevel,
 )
 from events.models import Event
+from users.models import HomeLayoutChoices
 
 
 class ProgressEditSeason(TestCase):
@@ -186,6 +187,8 @@ class ProgressEditAnime(TestCase):
             content_number=26,
             datetime=datetime.datetime(2023, 6, 1, 0, 0, tzinfo=datetime.UTC),
         )
+        self.user.colored_grid_progress_buttons = True
+        self.user.save(update_fields=["colored_grid_progress_buttons"])
 
         response = self.client.post(
             reverse(
@@ -312,6 +315,8 @@ class ProgressEditPersistentMessages(TestCase):
         """Prepare a tracked season that completes on the next episode."""
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
+        self.user.home_layout = HomeLayoutChoices.LIST
+        self.user.save(update_fields=["home_layout"])
         self.client.login(**self.credentials)
 
         tv_item = Item.objects.create(

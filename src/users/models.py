@@ -170,12 +170,12 @@ class User(AbstractUser):
     )
     home_layout = models.CharField(
         max_length=10,
-        default=HomeLayoutChoices.LIST,
+        default=HomeLayoutChoices.GRID,
         choices=HomeLayoutChoices,
         help_text="Display home screen items as a compact list or card grid.",
     )
     show_all_home_items = models.BooleanField(
-        default=True,
+        default=False,
         help_text="Show every item in each home screen row without a load button.",
     )
     home_aired_only = models.BooleanField(
@@ -186,7 +186,7 @@ class User(AbstractUser):
         ),
     )
     colored_grid_progress_buttons = models.BooleanField(
-        default=True,
+        default=False,
         help_text="Show red and green backgrounds on grid progress buttons.",
     )
     planning_term = models.CharField(
@@ -371,12 +371,12 @@ class User(AbstractUser):
     )
 
     clickable_media_cards = models.BooleanField(
-        default=False,
+        default=True,
         help_text="Hide hover overlay on touch devices",
     )
 
     obfuscate_unseen_episodes = models.BooleanField(
-        default=False,
+        default=True,
         help_text="Blur unseen episode images and descriptions",
     )
 
@@ -388,7 +388,7 @@ class User(AbstractUser):
         help_text="Date to use when bulk-marking media as completed",
     )
     auto_mark_previous_episodes = models.BooleanField(
-        default=False,
+        default=True,
         help_text="Mark earlier TV episodes watched when tracking a later episode",
     )
 
@@ -420,7 +420,7 @@ class User(AbstractUser):
 
     # Hide completed recommendations
     hide_completed_recommendations = models.BooleanField(
-        default=False,
+        default=True,
         help_text="Hide completed media in recommendations",
     )
 
