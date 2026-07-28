@@ -1682,14 +1682,27 @@ class Season(Media):
 
         return latest_watched_ep_num or 0
 
+    def _get_watched_episode_numbers(self):
+        """Return the distinct watched episode numbers for the season."""
+        if self.pk is None:
+            return set()
+        return set(
+            Episode.objects.filter(related_season=self).values_list(
+                "item__episode_number",
+                flat=True,
+            ),
+        )
+
     def get_completion_status(
         self,
         season_metadata,
         unreleased_only_status,
         current_date,
+        *,
+        require_all_released=False,
     ):
         """Return the season status after completing all already released episodes."""
-        latest_watched_ep_num = self._get_latest_watched_episode_number()
+        watched_episode_numbers = self._get_watched_episode_numbers()
         released_remaining_exists = False
         unreleased_remaining_exists = False
         released_episode_exists = False
@@ -1698,12 +1711,17 @@ class Season(Media):
         progress_episodes = providers.tmdb.get_season_progress_episodes(
             season_metadata["episodes"],
         )
+        if require_all_released and not progress_episodes:
+            if watched_episode_numbers:
+                return Status.IN_PROGRESS.value
+            return unreleased_only_status
+
         for episode in progress_episodes:
             air_date = episode.get("air_date")
             if app.helpers.is_released_date(air_date, current_date):
                 released_episode_exists = True
 
-            if episode["episode_number"] <= latest_watched_ep_num:
+            if episode["episode_number"] in watched_episode_numbers:
                 continue
 
             if app.helpers.is_released_date(air_date, current_date):
@@ -1715,10 +1733,10 @@ class Season(Media):
 
         if not unreleased_remaining_exists and (
             not undated_remaining_exists or released_episode_exists
-        ):
+        ) and (not require_all_released or not released_remaining_exists):
             return Status.COMPLETED.value
 
-        if latest_watched_ep_num > 0 or released_remaining_exists:
+        if watched_episode_numbers or released_remaining_exists:
             return Status.IN_PROGRESS.value
 
         return unreleased_only_status
@@ -2235,31 +2253,22 @@ class Episode(models.Model):
             [season_number],
         )
         season_metadata = tv_with_seasons_metadata[f"season/{season_number}"]
-        max_progress = providers.tmdb.get_season_max_progress(
-            season_metadata["episodes"],
-        )
-
         # clear prefetch cache to get the updated episodes
         self.related_season.refresh_from_db()
 
-        is_finale = bool(max_progress) and self.item.episode_number == max_progress
-        season_just_completed = False
-        if is_finale:
-            if self.related_season.status != Status.COMPLETED.value:
-                self.related_season.status = Status.COMPLETED.value
-                bulk_update_with_history(
-                    [self.related_season],
-                    Season,
-                    fields=["status"],
-                )
-                season_just_completed = True
-                self.related_season.create_user_message(
-                    "was marked as completed automatically.",
-                    level=UserMessageLevel.SUCCESS,
-                )
-
-        elif self.related_season.status != Status.IN_PROGRESS.value:
-            self.related_season.status = Status.IN_PROGRESS.value
+        previous_season_status = self.related_season.status
+        target_season_status = self.related_season.get_completion_status(
+            season_metadata,
+            unreleased_only_status=Status.IN_PROGRESS.value,
+            current_date=timezone.localdate(),
+            require_all_released=True,
+        )
+        season_just_completed = (
+            target_season_status == Status.COMPLETED.value
+            and previous_season_status != Status.COMPLETED.value
+        )
+        if previous_season_status != target_season_status:
+            self.related_season.status = target_season_status
             bulk_update_with_history(
                 [self.related_season],
                 Season,
@@ -2267,9 +2276,15 @@ class Episode(models.Model):
             )
 
         if season_just_completed:
+            self.related_season.create_user_message(
+                "was marked as completed automatically.",
+                level=UserMessageLevel.SUCCESS,
+            )
+
+        if season_just_completed:
             self.related_season.related_tv._handle_completed_season(season_number)
         elif (
-            not is_finale
+            target_season_status != Status.COMPLETED.value
             and self.related_season.related_tv.status != Status.IN_PROGRESS.value
         ):
             self.related_season.related_tv.status = Status.IN_PROGRESS.value

@@ -167,6 +167,31 @@ class EpisodeStatusTests(TestCase):
     @patch("app.models.providers.services.get_media_metadata")
     def test_highest_gapped_episode_sets_season_completed(self, mock_get_metadata):
         """The highest actual episode number is the finale when numbers skip."""
+        Episode.save_base(
+            Episode(
+                item=self.episode_item,
+                related_season=self.season,
+                end_date=timezone.now(),
+            ),
+        )
+        for episode_number in range(2, 24):
+            watched_item = Item.objects.create(
+                media_id="123",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                title="Episode",
+                image="http://example.com/image.jpg",
+                season_number=1,
+                episode_number=episode_number,
+            )
+            Episode.save_base(
+                Episode(
+                    item=watched_item,
+                    related_season=self.season,
+                    end_date=timezone.now(),
+                ),
+            )
+
         finale_item = Item.objects.create(
             media_id="123",
             source=Sources.TMDB.value,
@@ -200,8 +225,70 @@ class EpisodeStatusTests(TestCase):
         self.assertEqual(self.tv.status, Status.COMPLETED.value)
 
     @patch("app.models.providers.services.get_media_metadata")
+    def test_finale_does_not_complete_season_with_unwatched_earlier_episode(
+        self,
+        mock_get_metadata,
+    ):
+        """Watching the finale must not skip a missing released episode."""
+        finale_item = Item.objects.create(
+            media_id="123",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.EPISODE.value,
+            title="Finale",
+            image="http://example.com/image.jpg",
+            season_number=1,
+            episode_number=3,
+        )
+        mock_get_metadata.return_value = {
+            "season/1": {
+                "episodes": [
+                    {"episode_number": 1},
+                    {"episode_number": 2},
+                    {"episode_number": 3},
+                ],
+            },
+            "related": {"seasons": [{"season_number": 1}]},
+        }
+
+        Episode.objects.create(
+            item=finale_item,
+            related_season=self.season,
+            end_date=timezone.now(),
+        )
+
+        self.season.refresh_from_db()
+        self.tv.refresh_from_db()
+        self.assertEqual(self.season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(self.tv.status, Status.IN_PROGRESS.value)
+
+    @patch("app.models.providers.services.get_media_metadata")
     def test_numbered_bonus_does_not_prevent_real_finale(self, mock_get_metadata):
         """Episode 23 completes a season that also has a bonus numbered 100."""
+        Episode.save_base(
+            Episode(
+                item=self.episode_item,
+                related_season=self.season,
+                end_date=timezone.now(),
+            ),
+        )
+        for episode_number in range(2, 23):
+            watched_item = Item.objects.create(
+                media_id="123",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.EPISODE.value,
+                title="Episode",
+                image="http://example.com/image.jpg",
+                season_number=1,
+                episode_number=episode_number,
+            )
+            Episode.save_base(
+                Episode(
+                    item=watched_item,
+                    related_season=self.season,
+                    end_date=timezone.now(),
+                ),
+            )
+
         finale_item = Item.objects.create(
             media_id="123",
             source=Sources.TMDB.value,
