@@ -4,7 +4,7 @@ import requests
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from app.models import TV, Episode, Item, MediaTypes, Season, Status
+from app.models import TV, Episode, Item, MediaTypes, Season, Sources, Status
 from app.providers import services
 from integrations.webhooks.emby import EmbyWebhookProcessor
 from integrations.webhooks.jellyfin import JellyfinWebhookProcessor
@@ -111,6 +111,19 @@ class TVWebhookTitleFallbackTests(TestCase):
         self.user = get_user_model().objects.create_superuser(**credentials)
         self.user.auto_mark_previous_episodes = False
         self.user.save(update_fields=["auto_mark_previous_episodes"])
+
+    def _track_tmdb_show(self, media_id, title):
+        """Create tracked TV state without invoking provider-backed save hooks."""
+        item = Item.objects.create(
+            media_id=str(media_id),
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title=title,
+            image="https://example.com/show.jpg",
+        )
+        TV.objects.bulk_create(
+            [TV(item=item, user=self.user, status=Status.IN_PROGRESS.value)],
+        )
 
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
     @patch("app.providers.tmdb.tv_with_seasons")
@@ -390,6 +403,171 @@ class TVWebhookTitleFallbackTests(TestCase):
             self.user,
         )
         mock_tv_with_seasons.assert_called_once_with(1685, [22])
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_tracked_show_alias_uses_exact_episode_title(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """A unique tracked show alias resolves through exact episode metadata."""
+        self._track_tmdb_show(320901, "Baddies Gone Wild DR")
+        mock_search.side_effect = (
+            tmdb_search_results(),
+            tmdb_search_results(
+                {"media_id": 320901, "title": "Baddies Gone Wild DR"},
+            ),
+        )
+        mock_tv_with_seasons.return_value = tmdb_tv_metadata(
+            media_id=320901,
+            series_title="Baddies Gone Wild DR",
+            season_number=1,
+            episode_number=12,
+            episode_id=777012,
+            episode_title="Side Order of Fades",
+        )
+        payload = plex_payload(
+            tmdb_id="",
+            series_title="Baddies Gone Wild: Dominican Republic",
+        )
+        payload["Metadata"].update(
+            {
+                "parentIndex": 1,
+                "index": 12,
+                "title": "Side Order of Fades",
+            },
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        self.assertEqual(
+            mock_search.call_args_list,
+            [
+                call(
+                    MediaTypes.TV.value,
+                    "Baddies Gone Wild: Dominican Republic",
+                    1,
+                ),
+                call(MediaTypes.TV.value, "Baddies Gone Wild", 1),
+            ],
+        )
+        mock_handle_tv_episode.assert_called_once_with(
+            320901,
+            1,
+            12,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_untracked_show_alias_is_skipped(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """A non-exact series title cannot create an untracked show."""
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 320901, "title": "Baddies Gone Wild DR"},
+        )
+        payload = plex_payload(
+            tmdb_id="",
+            series_title="Baddies Gone Wild: Dominican Republic",
+        )
+        payload["Metadata"].update(
+            {"parentIndex": 1, "index": 12, "title": "Side Order of Fades"},
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        mock_tv_with_seasons.assert_not_called()
+        mock_handle_tv_episode.assert_not_called()
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_tracked_alias_with_generic_episode_title_is_skipped(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """Generic episode labels cannot validate a non-exact series title."""
+        self._track_tmdb_show(320901, "Baddies Gone Wild DR")
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 320901, "title": "Baddies Gone Wild DR"},
+        )
+        mock_tv_with_seasons.return_value = tmdb_tv_metadata(
+            media_id=320901,
+            series_title="Baddies Gone Wild DR",
+            season_number=1,
+            episode_number=12,
+            episode_title="Episode 12",
+        )
+        payload = plex_payload(
+            tmdb_id="",
+            series_title="Baddies Gone Wild: Dominican Republic",
+        )
+        payload["Metadata"].update(
+            {"parentIndex": 1, "index": 12, "title": "Episode 12"},
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        mock_handle_tv_episode.assert_not_called()
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.search")
+    def test_ambiguous_tracked_show_alias_is_skipped(
+        self,
+        mock_search,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """Two tracked aliases with the same episode title remain ambiguous."""
+        self._track_tmdb_show(320901, "Baddies Gone Wild DR")
+        self._track_tmdb_show(320902, "Baddies Gone Wild Caribbean")
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 320901, "title": "Baddies Gone Wild DR"},
+            {"media_id": 320902, "title": "Baddies Gone Wild Caribbean"},
+        )
+        mock_tv_with_seasons.side_effect = (
+            tmdb_tv_metadata(
+                media_id=320901,
+                series_title="Baddies Gone Wild DR",
+                season_number=1,
+                episode_number=12,
+                episode_title="Side Order of Fades",
+            ),
+            tmdb_tv_metadata(
+                media_id=320902,
+                series_title="Baddies Gone Wild Caribbean",
+                season_number=1,
+                episode_number=12,
+                episode_title="Side Order of Fades",
+            ),
+        )
+        payload = plex_payload(
+            tmdb_id="",
+            series_title="Baddies Gone Wild: Dominican Republic",
+        )
+        payload["Metadata"].update(
+            {
+                "parentIndex": 1,
+                "index": 12,
+                "title": "Side Order of Fades",
+            },
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        mock_handle_tv_episode.assert_not_called()
 
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
     @patch("app.providers.tmdb.tv_with_seasons")

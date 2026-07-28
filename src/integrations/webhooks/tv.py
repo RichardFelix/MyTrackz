@@ -189,6 +189,8 @@ class TVWebhookMixin:
             season_number,
             episode_number,
             tmdb_episode_id,
+            payload,
+            user,
         )
         if matches is None:
             return False
@@ -277,6 +279,8 @@ class TVWebhookMixin:
         season_number,
         episode_number,
         tmdb_episode_id,
+        payload,
+        user,
     ):
         """Return TMDB candidates validated against title and episode metadata."""
         search_results = []
@@ -301,7 +305,8 @@ class TVWebhookMixin:
                 )
                 return None
 
-        matches = []
+        exact_matches = []
+        alias_matches = []
         seen_media_ids = set()
         normalized_series_title = self._normalize_series_title(series_title)
         for candidate in search_results:
@@ -309,11 +314,17 @@ class TVWebhookMixin:
             if not media_id or media_id in seen_media_ids:
                 continue
             seen_media_ids.add(media_id)
-            if (
+
+            exact_title = (
+                self._normalize_series_title(candidate.get("title"))
+                == normalized_series_title
+            )
+            tracked_alias = (
                 not tmdb_episode_id
-                and self._normalize_series_title(candidate.get("title"))
-                != normalized_series_title
-            ):
+                and not exact_title
+                and self._is_tracked_tmdb_show(user, media_id)
+            )
+            if not tmdb_episode_id and not exact_title and not tracked_alias:
                 continue
 
             match = self._match_title_fallback_candidate(
@@ -324,17 +335,66 @@ class TVWebhookMixin:
                 tmdb_episode_id,
             )
             if match:
-                matches.append(match)
-        return matches
+                if tmdb_episode_id or exact_title:
+                    exact_matches.append(match)
+                elif self._alias_episode_title_matches(
+                    payload,
+                    match[2],
+                    episode_number,
+                ):
+                    alias_matches.append(match)
+
+        # Never let a weaker alias candidate compete with an exact title or ID.
+        return exact_matches or alias_matches
 
     @classmethod
     def _get_title_search_queries(cls, series_title):
-        """Return title searches, retrying without a Plex-style trailing year."""
-        queries = [series_title]
+        """Return conservative title searches for Plex-style title variants."""
+        queries = [str(series_title).strip()]
         title_without_year = cls._strip_trailing_year(series_title)
-        if title_without_year != series_title.strip():
+        if title_without_year not in queries:
             queries.append(title_without_year)
+
+        # Plex libraries sometimes use a descriptive subtitle where TMDB uses an
+        # abbreviation. Searching the stable prefix can discover that candidate;
+        # tracked-show and episode-title checks still gate whether it is accepted.
+        title_without_subtitle = title_without_year.partition(":")[0].strip()
+        if title_without_subtitle and title_without_subtitle not in queries:
+            queries.append(title_without_subtitle)
         return queries
+
+    @staticmethod
+    def _is_tracked_tmdb_show(user, media_id):
+        """Return whether the user already tracks this TMDB show candidate."""
+        return app.models.TV.objects.filter(
+            user=user,
+            item__source=Sources.TMDB.value,
+            item__media_type=MediaTypes.TV.value,
+            item__media_id=str(media_id),
+        ).exists()
+
+    def _alias_episode_title_matches(
+        self,
+        payload,
+        episode_metadata,
+        episode_number,
+    ):
+        """Validate a non-exact series title using a meaningful episode title."""
+        payload_title = self._normalize_title(self._get_episode_title(payload))
+        provider_title = self._normalize_title(episode_metadata.get("name"))
+        if not payload_title or not provider_title:
+            return False
+
+        generic_titles = {
+            "episode",
+            f"episode {episode_number}",
+            f"ep {episode_number}",
+            f"e{episode_number}",
+            str(episode_number),
+            "tba",
+            "untitled",
+        }
+        return payload_title not in generic_titles and payload_title == provider_title
 
     @staticmethod
     def _strip_trailing_year(title):
