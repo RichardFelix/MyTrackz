@@ -2309,10 +2309,24 @@ class Episode(models.Model):
         season.refresh_from_db()
         tv.refresh_from_db()
 
-        if (
-            season.status == Status.COMPLETED.value
-            and season.progress < deleted_episode_number
-        ):
+        watched_episode_numbers = set(
+            Episode.objects.filter(related_season=season).values_list(
+                "item__episode_number",
+                flat=True,
+            ),
+        )
+        remaining_repeat_exists = deleted_episode_number in watched_episode_numbers
+        progress_max = providers.tmdb.get_season_max_progress(
+            [
+                {"episode_number": episode_number}
+                for episode_number in watched_episode_numbers | {deleted_episode_number}
+            ],
+        )
+        deleted_progress_episode = (
+            not remaining_repeat_exists and deleted_episode_number <= progress_max
+        )
+
+        if season.status == Status.COMPLETED.value and deleted_progress_episode:
             season.status = Status.IN_PROGRESS.value
             bulk_update_with_history(
                 [season],

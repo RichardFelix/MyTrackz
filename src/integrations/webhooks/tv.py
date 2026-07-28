@@ -647,23 +647,24 @@ class TVWebhookMixin:
                     )
 
             if should_create:
-                episode = app.models.Episode.objects.create(
-                    item=episode_item,
-                    related_season=season_instance,
-                    end_date=now,
-                )
+                with transaction.atomic():
+                    self._mark_previous_episodes_after_webhook(
+                        season_instance,
+                        episode_number,
+                        now,
+                        tv_metadata["title"],
+                        user,
+                    )
+                    app.models.Episode.objects.create(
+                        item=episode_item,
+                        related_season=season_instance,
+                        end_date=now,
+                    )
                 logger.info(
                     "Marked episode as played: %s S%02dE%02d",
                     tv_metadata["title"],
                     season_number,
                     episode_number,
-                )
-                self._mark_previous_episodes_after_webhook(
-                    season_instance,
-                    episode,
-                    episode_number,
-                    tv_metadata["title"],
-                    user,
                 )
         else:
             logger.debug(
@@ -676,8 +677,8 @@ class TVWebhookMixin:
     @staticmethod
     def _mark_previous_episodes_after_webhook(
         season,
-        episode,
         episode_number,
+        target_end_date,
         series_title,
         user,
     ):
@@ -689,7 +690,7 @@ class TVWebhookMixin:
             with transaction.atomic():
                 season.mark_previous_episodes_watched(
                     episode_number,
-                    episode.end_date,
+                    target_end_date,
                 )
         except (
             KeyError,

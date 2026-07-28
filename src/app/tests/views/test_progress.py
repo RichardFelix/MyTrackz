@@ -11,6 +11,7 @@ from app.models import (
     Episode,
     Item,
     MediaTypes,
+    Movie,
     Season,
     Sources,
     Status,
@@ -38,9 +39,23 @@ class ProgressEditSeason(TestCase):
             image="http://example.com/image.jpg",
             season_number=1,
         )
+        tv_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.TV.value,
+            title="Friends",
+            image="http://example.com/image.jpg",
+        )
+        tv = TV(
+            item=tv_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        TV.save_base(tv)
         self.season = Season.objects.create(
             item=self.item_season,
             user=self.user,
+            related_tv=tv,
             status=Status.IN_PROGRESS.value,
         )
 
@@ -60,8 +75,27 @@ class ProgressEditSeason(TestCase):
         )
         Episode.save_base(episode)
 
-    def test_progress_increase(self):
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_progress_increase(self, mock_get_metadata):
         """Test the increase of progress for a season."""
+        episodes = [
+            {
+                "episode_number": episode_number,
+                "image": f"episode-{episode_number}.jpg",
+                "air_date": datetime.datetime(
+                    2020,
+                    1,
+                    episode_number,
+                    tzinfo=datetime.UTC,
+                ),
+            }
+            for episode_number in (1, 2)
+        ]
+        mock_get_metadata.return_value = {
+            "episodes": episodes,
+            "season/1": {"episodes": episodes},
+            "related": {"seasons": [{"season_number": 1}]},
+        }
         self.client.post(
             reverse(
                 "progress_edit",
@@ -87,8 +121,15 @@ class ProgressEditSeason(TestCase):
             ).exists(),
         )
 
-    def test_progress_decrease(self):
+    @patch("app.models.Season.get_episode_item")
+    def test_progress_decrease(self, mock_get_episode_item):
         """Test the decrease of progress for a season."""
+        mock_get_episode_item.return_value = Item.objects.get(
+            media_id="1668",
+            media_type=MediaTypes.EPISODE.value,
+            season_number=1,
+            episode_number=1,
+        )
         self.client.post(
             reverse(
                 "progress_edit",
@@ -437,6 +478,63 @@ class ProgressEditPersistentMessages(TestCase):
             response,
             f'id="home-list-item-season-{self.season.id}"',
         )
+
+    @patch("app.models.providers.services.get_media_metadata")
+    def test_completed_season_refresh_preserves_show_all_home_items(
+        self,
+        mock_get_media_metadata,
+    ):
+        """A section swap keeps every item visible for show-all users."""
+        self.user.show_all_home_items = True
+        self.user.save(update_fields=["show_all_home_items"])
+        movies = []
+        for index in range(15):
+            item = Item.objects.create(
+                media_id=f"show-all-{index}",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Show All Movie {index}",
+                image="http://example.com/image.jpg",
+            )
+            movies.append(
+                Movie(
+                    item=item,
+                    user=self.user,
+                    status=Status.IN_PROGRESS.value,
+                ),
+            )
+        Movie.objects.bulk_create(movies)
+        mock_get_media_metadata.return_value = {
+            "episodes": [
+                {"episode_number": 1},
+                {"episode_number": 2},
+            ],
+            "season/1": {
+                "episodes": [
+                    {"episode_number": 1},
+                    {"episode_number": 2},
+                ],
+            },
+            "related": {"seasons": [{"season_number": 1}]},
+        }
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.SEASON.value,
+                    "instance_id": self.season.id,
+                },
+            ),
+            {"operation": "increase", "home_section": "1"},
+            headers={"HX-Request": "true"},
+        )
+
+        movie_section = response.context["section"]["media_types"][
+            MediaTypes.MOVIE.value
+        ]
+        self.assertEqual(len(movie_section["items"]), 15)
+        self.assertNotContains(response, "Load all (15)")
 
     @patch("app.models.providers.services.get_media_metadata")
     def test_progress_edit_htmx_appends_persistent_messages(

@@ -295,6 +295,9 @@ def progress_edit(request, media_type, instance_id):
         and media.status != Status.IN_PROGRESS.value
     ):
         items_limit = 14
+        effective_items_limit = (
+            None if request.user.show_all_home_items else items_limit
+        )
         response = render(
             request,
             "app/components/home_section_update.html",
@@ -303,7 +306,7 @@ def progress_edit(request, media_type, instance_id):
                     request.user,
                     Status.IN_PROGRESS.value,
                     request.user.home_sort,
-                    items_limit,
+                    effective_items_limit,
                 ),
                 "current_sort": request.user.home_sort,
                 "items_limit": items_limit,

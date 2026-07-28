@@ -305,6 +305,49 @@ class TVWebhookTitleFallbackTests(TestCase):
         )
         mock_mark_previous.assert_called_once_with(3, episode.end_date)
 
+    @patch("app.providers.tmdb.tv")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    def test_scrobble_backfill_completes_target_season(
+        self,
+        mock_tv_with_seasons,
+        mock_tv,
+    ):
+        """Webhook backfills are visible when the target episode is evaluated."""
+        self.user.auto_mark_previous_episodes = True
+        self.user.save(update_fields=["auto_mark_previous_episodes"])
+        metadata = tmdb_tv_metadata()
+        metadata["season/22"]["episodes"] = [
+            {
+                "id": 7393220 + episode_number,
+                "episode_number": episode_number,
+                "name": f"Episode {episode_number}",
+                "still_path": None,
+                "air_date": "2020-01-01",
+            }
+            for episode_number in range(1, 4)
+        ]
+        mock_tv_with_seasons.return_value = metadata
+        mock_tv.return_value = {
+            "related": {"seasons": [{"season_number": 22}]},
+        }
+
+        PlexWebhookProcessor()._handle_tv_episode(
+            1685,
+            22,
+            3,
+            plex_payload(),
+            self.user,
+        )
+
+        tv = TV.objects.get(user=self.user, item__media_id="1685")
+        season = tv.seasons.get(item__season_number=22)
+        self.assertEqual(
+            set(season.episodes.values_list("item__episode_number", flat=True)),
+            {1, 2, 3},
+        )
+        self.assertEqual(season.status, Status.COMPLETED.value)
+        self.assertEqual(tv.status, Status.COMPLETED.value)
+
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
     @patch("app.providers.tmdb.tv_with_seasons")
     @patch("app.providers.tmdb.search")
