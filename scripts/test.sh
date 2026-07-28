@@ -6,6 +6,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The gate runs on the host, where uv's default cache may belong to another
+# account (for example, after an earlier elevated run). Keep the cache outside
+# the checkout and isolate it by user; callers can still provide their own
+# UV_CACHE_DIR when a persistent cache is desired.
+export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/mytrackz-uv-cache-${UID}}"
+mkdir -p "$UV_CACHE_DIR"
+
 uv sync --locked --group dev
 
 echo "== ruff (report only, not a hard gate) =="
