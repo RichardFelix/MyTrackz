@@ -1,6 +1,7 @@
 import logging
 import re
 import unicodedata
+from datetime import date
 
 import requests
 from django.db import transaction
@@ -51,6 +52,9 @@ class TVWebhookMixin:
         if self._process_tv_title_fallback(payload, user, ids.get("tmdb_id")):
             return
 
+        if self._process_tv_air_date_fallback(payload, user, ids.get("tmdb_id")):
+            return
+
         if imdb_id:
             logger.warning(
                 "No TV episode match found for IMDB ID %s or title fallback",
@@ -58,6 +62,144 @@ class TVWebhookMixin:
             )
         else:
             logger.warning("No TV episode match found through IDs or title fallback")
+
+    def _process_tv_air_date_fallback(
+        self,
+        payload,
+        user,
+        tmdb_episode_id,
+    ):
+        """Resolve metadata-poor TV/DVR events by exact title and air date."""
+        series_title = self._get_series_title(payload)
+        air_date = self._coerce_air_date(self._get_air_date(payload))
+        if not series_title or not air_date:
+            return False
+
+        search_results = []
+        for search_title in self._get_title_search_queries(series_title):
+            try:
+                search_results.extend(
+                    app.providers.tmdb.search(
+                        MediaTypes.TV.value,
+                        search_title,
+                        1,
+                    ).get("results", []),
+                )
+            except (
+                services.ProviderAPIError,
+                requests.exceptions.RequestException,
+            ):
+                logger.exception(
+                    "TMDB search failed during TV air-date fallback for %s on %s",
+                    search_title,
+                    air_date,
+                )
+                return False
+
+        normalized_series_title = self._normalize_series_title(series_title)
+        matches = []
+        seen_media_ids = set()
+        for candidate in search_results:
+            media_id = candidate.get("media_id")
+            if not media_id or media_id in seen_media_ids:
+                continue
+            seen_media_ids.add(media_id)
+            if (
+                self._normalize_series_title(candidate.get("title"))
+                != normalized_series_title
+            ):
+                continue
+
+            matches.extend(
+                self._find_candidate_air_date_matches(
+                    media_id,
+                    air_date,
+                    tmdb_episode_id,
+                ),
+            )
+
+        if len(matches) != 1:
+            logger.warning(
+                "TV air-date fallback found %d matches for %s on %s; skipping",
+                len(matches),
+                series_title,
+                air_date,
+            )
+            return False
+
+        media_id, season_number, episode_number = matches[0]
+        logger.info(
+            "Resolved TV episode by air-date fallback: %s on %s -> "
+            "TMDB %s S%02dE%02d",
+            series_title,
+            air_date,
+            media_id,
+            season_number,
+            episode_number,
+        )
+        self._handle_tv_episode(
+            media_id,
+            season_number,
+            episode_number,
+            payload,
+            user,
+        )
+        return True
+
+    @staticmethod
+    def _coerce_air_date(value):
+        """Return an ISO air date or None for malformed provider data."""
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(str(value)[:10]).isoformat()
+        except ValueError:
+            return None
+
+    def _find_candidate_air_date_matches(
+        self,
+        media_id,
+        air_date,
+        tmdb_episode_id,
+    ):
+        """Return all episodes for one exact-title candidate on an air date."""
+        try:
+            tv_metadata = app.providers.tmdb.tv(media_id)
+            season_numbers = [
+                self._coerce_int(season.get("season_number"))
+                for season in tv_metadata.get("related", {}).get("seasons", [])
+            ]
+            season_numbers = [
+                season_number
+                for season_number in season_numbers
+                if season_number is not None and season_number >= 0
+            ]
+            tv_metadata = app.providers.tmdb.tv_with_seasons(
+                media_id,
+                season_numbers,
+            )
+        except (
+            services.ProviderAPIError,
+            requests.exceptions.RequestException,
+        ):
+            logger.exception(
+                "TMDB metadata lookup failed during TV air-date fallback for %s",
+                media_id,
+            )
+            return []
+
+        matches = []
+        for season_number in season_numbers:
+            season_metadata = tv_metadata.get(f"season/{season_number}", {})
+            for episode in season_metadata.get("episodes", []):
+                if self._coerce_air_date(episode.get("air_date")) != air_date:
+                    continue
+                if tmdb_episode_id and str(episode.get("id")) != str(tmdb_episode_id):
+                    continue
+                episode_number = self._coerce_int(episode.get("episode_number"))
+                if episode_number is not None and episode_number > 0:
+                    matches.append((media_id, season_number, episode_number))
+        return matches
 
     def _process_anidb_episode(self, anidb_id, payload, user):
         """Process an anime episode through its AniDB mapping when possible."""

@@ -43,7 +43,8 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         if not self._has_processable_identity(payload, ids):
             logger.warning(
                 "Ignoring Plex webhook call because no usable media identity "
-                "was found.",
+                "was found. Metadata summary: %s",
+                self._get_identity_summary(payload),
             )
             return
 
@@ -69,7 +70,16 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         return payload["event"] == PlexEvent.MEDIA_SCROBBLE
 
     def _get_media_type(self, payload):
-        media_type = payload["Metadata"].get("type")
+        metadata = payload["Metadata"]
+        media_type = metadata.get("type")
+        if not media_type:
+            media_type = metadata.get("librarySectionType")
+
+        # Live TV/DVR payloads can retain the TV library classification while
+        # omitting or changing the item-level type.
+        if str(metadata.get("librarySectionType", "")).lower() == "show":
+            return MediaTypes.TV.value
+
         if not media_type:
             return None
 
@@ -95,7 +105,17 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         return title
 
     def _get_episode_number(self, payload):
-        return payload["Metadata"].get("index")
+        metadata = payload["Metadata"]
+        episode_number = metadata.get("index")
+        if episode_number is not None:
+            return episode_number
+
+        match = re.fullmatch(
+            r"\s*(?:episode|ep|e)\s*#?\s*(\d+)\s*",
+            str(metadata.get("title", "")),
+            flags=re.IGNORECASE,
+        )
+        return match.group(1) if match else None
 
     def _get_series_title(self, payload):
         return payload["Metadata"].get("grandparentTitle")
@@ -104,7 +124,20 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
         return payload["Metadata"].get("title")
 
     def _get_season_number(self, payload):
-        return payload["Metadata"].get("parentIndex")
+        metadata = payload["Metadata"]
+        season_number = metadata.get("parentIndex")
+        if season_number is not None:
+            return season_number
+
+        match = re.fullmatch(
+            r"\s*season\s*#?\s*(\d+)\s*",
+            str(metadata.get("parentTitle", "")),
+            flags=re.IGNORECASE,
+        )
+        return match.group(1) if match else None
+
+    def _get_air_date(self, payload):
+        return payload["Metadata"].get("originallyAvailableAt")
 
     def _extract_external_ids(self, payload):
         guids = payload["Metadata"].get("Guid", [])
@@ -137,3 +170,19 @@ class PlexWebhookProcessor(BaseWebhookProcessor):
             "tvdb_id": get_id("tvdb"),
             "anidb_id": extract_hama_anidb_id(guid),
         }
+
+    @staticmethod
+    def _get_identity_summary(payload):
+        """Return non-sensitive fields needed to diagnose unmatched media."""
+        metadata = payload.get("Metadata", {})
+        fields = (
+            "type",
+            "librarySectionType",
+            "title",
+            "grandparentTitle",
+            "parentTitle",
+            "index",
+            "parentIndex",
+            "originallyAvailableAt",
+        )
+        return {field: metadata.get(field) for field in fields}

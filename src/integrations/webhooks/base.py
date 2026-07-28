@@ -62,6 +62,9 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         """Get the season number from a TV payload."""
         raise NotImplementedError
 
+    def _get_air_date(self, _payload):
+        """Return an episode air date when the media server supplies one."""
+
     def _has_processable_identity(self, payload, ids):
         """Return whether a webhook has enough identity data to process."""
         if any(ids.values()):
@@ -73,11 +76,8 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
         series_title = self._get_series_title(payload)
         season_number = self._get_season_number(payload)
         episode_number = self._get_episode_number(payload)
-        return bool(
-            series_title
-            and season_number is not None
-            and episode_number is not None
-        )
+        has_coordinates = season_number is not None and episode_number is not None
+        return bool(series_title and (has_coordinates or self._get_air_date(payload)))
 
     @staticmethod
     def _format_tv_title(series_title, season_number, episode_number):

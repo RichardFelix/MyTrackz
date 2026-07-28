@@ -477,3 +477,31 @@ class PlexWebhookTests(TestCase):
         result = PlexWebhookProcessor()._get_episode_number(payload)
 
         self.assertEqual(result, 7)
+
+    def test_dvr_episode_coordinates_are_parsed_from_labels(self):
+        """Plex DVR labels supply coordinates when numeric fields are absent."""
+        payload = {
+            "Metadata": {
+                "type": "episode",
+                "parentTitle": "Season 43",
+                "title": "Episode 206",
+            },
+        }
+        processor = PlexWebhookProcessor()
+
+        self.assertEqual(processor._get_season_number(payload), "43")
+        self.assertEqual(processor._get_episode_number(payload), "206")
+
+    def test_tv_library_classifies_metadata_poor_dvr_item_as_tv(self):
+        """A TV library remains usable when Plex sends a non-episode type."""
+        payload = {
+            "Metadata": {
+                "type": "clip",
+                "librarySectionType": "show",
+            },
+        }
+
+        self.assertEqual(
+            PlexWebhookProcessor()._get_media_type(payload),
+            MediaTypes.TV.value,
+        )

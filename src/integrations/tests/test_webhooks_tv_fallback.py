@@ -738,6 +738,102 @@ class TVWebhookTitleFallbackTests(TestCase):
 
         mock_search.assert_not_called()
 
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.tv")
+    @patch("app.providers.tmdb.search")
+    def test_plex_dvr_payload_without_coordinates_uses_unique_air_date(
+        self,
+        mock_search,
+        mock_tv,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """A metadata-poor Plex DVR event resolves by exact title and air date."""
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 2778, "title": "Wheel of Fortune"},
+        )
+        mock_tv.return_value = {
+            "related": {"seasons": [{"season_number": 43}]},
+        }
+        metadata = tmdb_tv_metadata(
+            media_id=2778,
+            series_title="Wheel of Fortune",
+            season_number=43,
+            episode_number=206,
+            episode_id=9000206,
+            episode_title="Episode 206",
+        )
+        metadata["season/43"]["episodes"][0]["air_date"] = "2026-07-28"
+        mock_tv_with_seasons.return_value = metadata
+        payload = plex_payload(tmdb_id="", series_title="Wheel of Fortune")
+        payload["Metadata"].pop("parentIndex")
+        payload["Metadata"].pop("index")
+        payload["Metadata"].update(
+            {
+                "type": "clip",
+                "librarySectionType": "show",
+                "originallyAvailableAt": "2026-07-28",
+            },
+        )
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        mock_tv_with_seasons.assert_called_once_with(2778, [43])
+        mock_handle_tv_episode.assert_called_once_with(
+            2778,
+            43,
+            206,
+            payload,
+            self.user,
+        )
+
+    @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_tv_episode")
+    @patch("app.providers.tmdb.tv_with_seasons")
+    @patch("app.providers.tmdb.tv")
+    @patch("app.providers.tmdb.search")
+    def test_plex_dvr_air_date_ambiguity_is_skipped(
+        self,
+        mock_search,
+        mock_tv,
+        mock_tv_with_seasons,
+        mock_handle_tv_episode,
+    ):
+        """An air date shared by multiple episodes cannot mutate tracking data."""
+        mock_search.return_value = tmdb_search_results(
+            {"media_id": 2778, "title": "Wheel of Fortune"},
+        )
+        mock_tv.return_value = {
+            "related": {"seasons": [{"season_number": 43}]},
+        }
+        metadata = tmdb_tv_metadata(
+            media_id=2778,
+            series_title="Wheel of Fortune",
+            season_number=43,
+            episode_number=205,
+        )
+        metadata["season/43"]["episodes"] = [
+            {
+                "id": 1,
+                "episode_number": 205,
+                "air_date": "2026-07-28",
+            },
+            {
+                "id": 2,
+                "episode_number": 206,
+                "air_date": "2026-07-28",
+            },
+        ]
+        mock_tv_with_seasons.return_value = metadata
+        payload = plex_payload(tmdb_id="", series_title="Wheel of Fortune")
+        payload["Metadata"].pop("parentIndex")
+        payload["Metadata"].pop("index")
+        payload["Metadata"]["originallyAvailableAt"] = "2026-07-28"
+
+        PlexWebhookProcessor().process_payload(payload, self.user)
+
+        mock_handle_tv_episode.assert_not_called()
+
     @patch("integrations.webhooks.base.BaseWebhookProcessor._handle_anime")
     @patch("integrations.webhooks.tv.anime_mappings.get_mal_id_from_tvdb")
     @patch("integrations.webhooks.tv.anime_mappings.fetch_mapping_data")
