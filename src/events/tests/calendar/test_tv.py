@@ -681,6 +681,47 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
 
         self.assertEqual(get_seasons_to_process(self.tv_item), [])
 
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_always_includes_latest_regular_season(
+        self,
+        mock_tv,
+    ):
+        """A selected show should revisit its latest season without a next episode."""
+        season_two_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image=self.tv_item.image,
+            season_number=2,
+        )
+        special_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image=self.tv_item.image,
+            season_number=0,
+        )
+        for item in (special_item, self.season_item, season_two_item):
+            Event.objects.create(
+                item=item,
+                content_number=1,
+                datetime=timezone.now() - timezone.timedelta(days=1),
+            )
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 0},
+                    {"season_number": 1},
+                    {"season_number": 2},
+                ],
+            },
+            "next_episode_season": None,
+        }
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [2])
+
     @patch("events.calendar.tv.get_seasons_to_process")
     def test_process_tv_returns_when_no_seasons_need_processing(
         self,

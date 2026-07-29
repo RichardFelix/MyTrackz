@@ -10,7 +10,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 from simple_history.utils import bulk_create_with_history, bulk_update_with_history
 
-from app.models import TV, Item, MediaTypes, Season, Status
+from app.models import TV, Episode, Item, MediaTypes, Season, Status
 from app.providers import services, tmdb
 from events.models import Event
 
@@ -79,6 +79,10 @@ def get_seasons_to_process(tv_item):
         return []
 
     next_episode_season = tv_metadata.get("next_episode_season")
+    regular_season_numbers = [number for number in season_numbers if number > 0]
+    latest_regular_season = (
+        max(regular_season_numbers) if regular_season_numbers else None
+    )
 
     existing_season_events = Event.objects.filter(
         item__media_id=tv_item.media_id,
@@ -92,6 +96,7 @@ def get_seasons_to_process(tv_item):
         for season_num in season_numbers
         if season_num not in seasons_with_events
         or (next_episode_season and season_num >= next_episode_season)
+        or season_num == latest_regular_season
     ]
 
     if not seasons_to_process:
@@ -105,6 +110,87 @@ def get_seasons_to_process(tv_item):
     )
 
     return seasons_to_process
+
+
+def reopen_completed_tv_for_new_episodes(new_events, user=None):
+    """Reopen completed seasons when a refresh adds an unwatched episode."""
+    new_episode_numbers_by_item = {}
+    for event in new_events:
+        if (
+            event.item.media_type != MediaTypes.SEASON.value
+            or not event.item.season_number
+            or event.item.season_number <= 0
+            or event.content_number is None
+        ):
+            continue
+        new_episode_numbers_by_item.setdefault(event.item_id, set()).add(
+            event.content_number,
+        )
+
+    if not new_episode_numbers_by_item:
+        return 0, 0
+
+    eligible_seasons = Season.objects.filter(
+        item_id__in=new_episode_numbers_by_item,
+        status=Status.COMPLETED.value,
+        related_tv__status__in=(
+            Status.COMPLETED.value,
+            Status.IN_PROGRESS.value,
+        ),
+    ).select_related("item", "related_tv", "user")
+    if user is not None:
+        eligible_seasons = eligible_seasons.filter(user=user)
+
+    reopened_season_count = 0
+    reopened_tvs = {}
+
+    with transaction.atomic():
+        eligible_seasons = list(
+            eligible_seasons.select_for_update().prefetch_related(
+                Prefetch(
+                    "episodes",
+                    queryset=Episode.objects.select_related("item"),
+                ),
+            ),
+        )
+
+        for season in eligible_seasons:
+            new_episode_numbers = new_episode_numbers_by_item[season.item_id]
+            watched_episode_numbers = {
+                episode.item.episode_number for episode in season.episodes.all()
+            }
+            if new_episode_numbers <= watched_episode_numbers:
+                continue
+
+            season.status = Status.IN_PROGRESS.value
+            bulk_update_with_history(
+                [season],
+                Season,
+                ["status"],
+                default_user=season.user,
+            )
+            reopened_season_count += 1
+
+            tv = season.related_tv
+            if tv.status == Status.COMPLETED.value and tv.pk not in reopened_tvs:
+                tv.status = Status.IN_PROGRESS.value
+                bulk_update_with_history(
+                    [tv],
+                    TV,
+                    ["status"],
+                    default_user=season.user,
+                )
+                reopened_tvs[tv.pk] = tv
+
+            logger.info(
+                "%s - Reopened completed season for user %s after discovering "
+                "episodes %s",
+                season.item,
+                season.user,
+                sorted(new_episode_numbers - watched_episode_numbers),
+            )
+
+    return reopened_season_count, len(reopened_tvs)
 
 
 def process_tv_seasons(tv_item, seasons_to_process, events_bulk):

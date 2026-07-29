@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from app.models import TV, Item, MediaTypes, Season, Sources, Status
+from app.models import TV, Episode, Item, MediaTypes, Season, Sources, Status
 from events.calendar.main import cleanup_invalid_events, fetch_releases, save_events
 from events.models import Event
 from events.tests.calendar.utils import CalendarFixturesMixin
@@ -178,7 +178,7 @@ class CalendarMainTests(CalendarFixturesMixin, TestCase):
             datetime=original_datetime,
         )
 
-        save_events(
+        _items_updated, created_events = save_events(
             [
                 Event(
                     item=self.movie_item,
@@ -188,6 +188,8 @@ class CalendarMainTests(CalendarFixturesMixin, TestCase):
             ],
         )
 
+        self.assertEqual(created_events, [])
+
         self.assertEqual(
             Event.objects.filter(item=self.movie_item).count(),
             1,
@@ -196,6 +198,97 @@ class CalendarMainTests(CalendarFixturesMixin, TestCase):
             Event.objects.get(item=self.movie_item).datetime,
             updated_datetime,
         )
+
+    @patch("events.calendar.main.process_tv")
+    def test_new_episode_reopens_completed_existing_season_once(
+        self,
+        mock_process_tv,
+    ):
+        """Only a newly inserted episode should reopen completed TV tracking."""
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        season = Season.objects.get(item=self.season_item, user=self.user)
+        TV.objects.filter(pk=tv.pk).update(status=Status.COMPLETED.value)
+        Season.objects.filter(pk=season.pk).update(status=Status.COMPLETED.value)
+        Event.objects.create(
+            item=self.season_item,
+            content_number=1,
+            datetime=timezone.now() - timezone.timedelta(days=7),
+        )
+        tv_history_count = tv.history.count()
+        season_history_count = season.history.count()
+
+        def add_second_episode(_item, events_bulk):
+            events_bulk.extend(
+                [
+                    Event(
+                        item=self.season_item,
+                        content_number=1,
+                        datetime=timezone.now() - timezone.timedelta(days=7),
+                    ),
+                    Event(
+                        item=self.season_item,
+                        content_number=2,
+                        datetime=timezone.now() + timezone.timedelta(days=1),
+                    ),
+                ],
+            )
+
+        mock_process_tv.side_effect = add_second_episode
+
+        fetch_releases(self.user, items_to_process=[self.tv_item])
+
+        tv.refresh_from_db()
+        season.refresh_from_db()
+        self.assertEqual(tv.status, Status.IN_PROGRESS.value)
+        self.assertEqual(season.status, Status.IN_PROGRESS.value)
+        self.assertEqual(tv.history.count(), tv_history_count + 1)
+        self.assertEqual(season.history.count(), season_history_count + 1)
+
+        TV.objects.filter(pk=tv.pk).update(status=Status.COMPLETED.value)
+        Season.objects.filter(pk=season.pk).update(status=Status.COMPLETED.value)
+        fetch_releases(self.user, items_to_process=[self.tv_item])
+
+        tv.refresh_from_db()
+        season.refresh_from_db()
+        self.assertEqual(tv.status, Status.COMPLETED.value)
+        self.assertEqual(season.status, Status.COMPLETED.value)
+
+    @patch("events.calendar.main.process_tv")
+    def test_new_already_watched_episode_does_not_reopen_completed_tv(
+        self,
+        mock_process_tv,
+    ):
+        """A delayed calendar event must not reopen an episode already watched."""
+        tv = TV.objects.get(item=self.tv_item, user=self.user)
+        season = Season.objects.get(item=self.season_item, user=self.user)
+        episode_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.EPISODE.value,
+            title=self.tv_item.title,
+            image=self.tv_item.image,
+            season_number=self.season_item.season_number,
+            episode_number=2,
+        )
+        Episode.objects.bulk_create(
+            [Episode(item=episode_item, related_season=season)],
+        )
+        TV.objects.filter(pk=tv.pk).update(status=Status.COMPLETED.value)
+        Season.objects.filter(pk=season.pk).update(status=Status.COMPLETED.value)
+        mock_process_tv.side_effect = lambda _item, events_bulk: events_bulk.append(
+            Event(
+                item=self.season_item,
+                content_number=2,
+                datetime=timezone.now() - timezone.timedelta(days=1),
+            ),
+        )
+
+        fetch_releases(self.user, items_to_process=[self.tv_item])
+
+        tv.refresh_from_db()
+        season.refresh_from_db()
+        self.assertEqual(tv.status, Status.COMPLETED.value)
+        self.assertEqual(season.status, Status.COMPLETED.value)
 
     def test_cleanup_invalid_events_removes_missing_numbered_events(self):
         """Stale numbered events should be removed after a refresh."""

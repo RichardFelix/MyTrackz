@@ -7,7 +7,11 @@ from .anime import process_anime_bulk
 from .comic import process_comic
 from .other import process_other
 from .selectors import get_items_to_process
-from .tv import process_tv, reconcile_completed_tv_seasons
+from .tv import (
+    process_tv,
+    reconcile_completed_tv_seasons,
+    reopen_completed_tv_for_new_episodes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +26,14 @@ def fetch_releases(user=None, items_to_process=None):
 
     if items_to_process:
         events_bulk = process_items(items_to_process)
-        items_updated = save_events(events_bulk)
+        items_updated, created_events = save_events(events_bulk)
         cleanup_invalid_events(events_bulk)
     else:
         items_updated = set()
+        created_events = []
 
     tv_items = items_to_process if explicit_items else None
+    reopen_completed_tv_for_new_episodes(created_events, user=user)
     reconcile_completed_tv_seasons(user=user, tv_items=tv_items)
 
     if not items_to_process:
@@ -56,7 +62,7 @@ def process_items(items_to_process):
 
 
 def save_events(events_bulk):
-    """Save events in bulk with proper conflict handling."""
+    """Save events and return the updated items and newly created events."""
     items_updated = set()
 
     existing_events = Event.objects.filter(
@@ -108,7 +114,7 @@ def save_events(events_bulk):
         len(to_update),
     )
 
-    return items_updated
+    return items_updated, to_create
 
 
 def generate_final_message(items_to_process, items_updated):
