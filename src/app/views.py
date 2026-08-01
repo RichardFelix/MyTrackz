@@ -536,6 +536,7 @@ def media_list(request, username, media_type):
         "sort_choices": MediaSortChoices.choices,
         "status_choices": get_status_choices(target_user, include_all=True),
         "target_user": target_user,
+        "is_htmx": bool(request.headers.get("HX-Request")),
     }
 
     # Handle HTMX requests for partial updates

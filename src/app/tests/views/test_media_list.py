@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -18,6 +20,11 @@ class MediaListViewTests(TestCase):
 
     def setUp(self):
         """Create a user and log in."""
+        metadata_patcher = patch("app.providers.services.get_media_metadata")
+        self.mock_get_media_metadata = metadata_patcher.start()
+        self.mock_get_media_metadata.return_value = {"max_progress": 1}
+        self.addCleanup(metadata_patcher.stop)
+
         self.credentials = {"username": "test", "password": "12345"}
         self.external_credentials = {
             "username": "test2",
@@ -64,6 +71,9 @@ class MediaListViewTests(TestCase):
 
         self.assertIn("media_list", response.context)
         self.assertEqual(response.context["media_list"].paginator.count, 5)
+        self.assertContains(response, 'id="media-item-count"')
+        self.assertContains(response, "5 items")
+        self.assertNotContains(response, 'hx-swap-oob="outerHTML"')
 
         self.assertIn("sort_choices", response.context)
         self.assertIn("status_choices", response.context)
@@ -90,6 +100,7 @@ class MediaListViewTests(TestCase):
         self.assertEqual(response.context["current_layout"], "table")
 
         self.assertEqual(response.context["media_list"].paginator.count, 2)
+        self.assertContains(response, "2 items")
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.movie_status, Status.COMPLETED.value)
@@ -105,6 +116,9 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_grid_items.html")
+        self.assertContains(response, 'id="media-item-count"')
+        self.assertContains(response, 'hx-swap-oob="outerHTML"')
+        self.assertContains(response, "5 items")
 
         response = self.client.get(
             reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
@@ -113,6 +127,21 @@ class MediaListViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "app/components/media_table_items.html")
+        self.assertContains(response, 'hx-swap-oob="outerHTML"')
+        self.assertContains(response, "5 items")
+
+    def test_media_list_htmx_count_reflects_filters(self):
+        """The out-of-band item count uses the filtered queryset total."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value]),
+            {"status": Status.COMPLETED.value, "layout": "grid"},
+            headers={"hx-request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["media_list"].paginator.count, 2)
+        self.assertContains(response, 'hx-swap-oob="outerHTML"')
+        self.assertContains(response, "2 items")
 
     def test_public_media_list_ignores_invalid_filters(self):
         """Test invalid public filters fall back to the target user's preferences."""

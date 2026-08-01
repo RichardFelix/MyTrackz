@@ -8,10 +8,13 @@
 {% endblock title %}
 
 {% block content %}
-  <h1 class="text-3xl font-bold mb-6">
-    {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
-    {{ media_type|media_type_readable_plural }}
-  </h1>
+  <div class="mb-6 flex items-center justify-between gap-4">
+    <h1 class="text-3xl font-bold">
+      {% if request.user != target_user %}{{ target_user.username }}'s{% endif %}
+      {{ media_type|media_type_readable_plural }}
+    </h1>
+    {% include "app/components/media_item_count.html" %}
+  </div>
 
   <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', genre: '{{ current_genre|escapejs }}', format: '{{ current_format|escapejs }}', statusLabels: {
     {% for value, label in status_choices %}

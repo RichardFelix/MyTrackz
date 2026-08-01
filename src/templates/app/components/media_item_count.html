@@ -1,0 +1,6 @@
+<span id="media-item-count"
+      {% if is_htmx %}hx-swap-oob="outerHTML"{% endif %}
+      class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-300">
+  {% include "app/icons/pulse.svg" with classes="h-3.5 w-3.5" %}
+  {{ media_list.paginator.count }} item{{ media_list.paginator.count|pluralize }}
+</span>
