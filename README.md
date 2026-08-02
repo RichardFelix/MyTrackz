@@ -7,7 +7,7 @@
 
 MyTrackz is a self-hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
-It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus a handful of features not available upstream: local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, a genre filter, and a compact home list with aired-only filtering.
+It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus fork-only features including local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, genre filtering, live library counts, and compact or fully expanded home layouts.
 
 Every fork-only addition (marked ⭐ below) was designed and implemented with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
 
@@ -46,6 +46,8 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🔐 Regenerate your personal webhook/ICS token any time, with granular controls for which Jellyfin events (play/stop, manual mark played/unplayed) and which Plex usernames are processed.
 - 📲 ⭐ **Improved PWA support** — Android installation and offline behavior are more reliable, with an offline fallback page.
 - 🛠️ ⭐ **Grouped preferences** — organize appearance, tracking, home recommendations, region and formats, and library navigation settings, with configurable Wishlist or Backlog terminology.
+- 🔢 ⭐ **Live library counts** — every media library shows the number of matching items, updating as you search, filter, or switch layouts.
+- 🏠 ⭐ **Show all home items** — load every item in each home row automatically, or keep the compact “Load all” control for larger libraries.
 - 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
 - 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control.
 - 🎨 ⭐ **Colored grid progress buttons** — optionally use clear red/green backgrounds for decrease/increase progress actions in the home card grid.
@@ -61,16 +63,17 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🖼️ ⭐ **Profile images** — set an avatar from any image URL, with a circular drag-and-zoom cropper; downloaded and cached locally like everything else.
 - ↕️ ⭐ **Home screen row order** — drag or use the arrows to choose which media type shows first on your home page and in the sidebar.
 - 🧹 ⭐ **Cache management in Settings → Advanced** — see exactly how much disk the local image cache and search cache are using, with one-click buttons to purge either.
+- ⚠️ ⭐ **Cache action confirmations** — confirm search-cache and image-cache purges before any cached data is removed.
 
 ## 📱 Screenshots
 
-| Homepage                                                         | Command Palette Search ⭐                                       |
+| Homepage with Aired-only Filter ⭐                               | Command Palette Search with Aired-only Filter ⭐                |
 | ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| ![Homepage](docs/assets/screenshots/homepage.webp)                 | ![Command Palette](docs/assets/screenshots/search_modal.webp) |
+| ![Homepage with Aired-only Filter](docs/assets/screenshots/homepage_aired_only.png) | ![Command Palette Search with Aired-only Filter](docs/assets/screenshots/search_modal_aired_only.png) |
 
-| Updated Grid Mobile Navigation ⭐                                     | Updated Mobile Grid Library Panel ⭐                         |
+| Updated Grid Mobile Navigation with Aired-only Filter ⭐             | Updated Mobile Grid Library Panel with Aired-only Filter ⭐  |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Updated Grid Mobile Navigation](docs/assets/screenshots/mobile_home.webp)     | ![Updated Mobile Grid Library Panel](docs/assets/screenshots/mobile_library_panel.webp) |
+| ![Updated Grid Mobile Navigation with Aired-only Filter](docs/assets/screenshots/mobile_home_aired_only.png) | ![Updated Mobile Grid Library Panel with Aired-only Filter](docs/assets/screenshots/mobile_library_panel_aired_only.png) |
 
 | Mobile Compact Home List ⭐                                           | Swipe to Mark the Next Unit Watched ⭐                         |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -134,6 +137,6 @@ See `docs/development.md` in this repo, or `CLAUDE.md` for the fork-specific arc
 
 MyTrackz is a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) by [FuzzyGrim](https://github.com/FuzzyGrim). All of the core tracking functionality and most of the codebase comes from that upstream project — go star it, and if you don't need any of the fork-only features above, you're probably better served running Yamtrack directly.
 
-All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filter, the redesigned UI, command palette, profile images, compact home lists, Aired-only filtering, colored progress controls, home row ordering, cache management, grouped preferences, and PWA improvements — were built with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
+All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filtering, live library counts, the redesigned UI, command palette, profile images, compact home lists, Aired-only filtering, colored progress controls, home row ordering, cache management and confirmations, grouped preferences, expanded home rows, and PWA improvements — were built with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
 
 <!-- --8<-- [end:docs-index-body] -->
