@@ -8,6 +8,7 @@ register_converter(converters.SourceChecker, "source")
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("home/in-progress", views.home_in_progress, name="home_in_progress"),
     path("manifest.webmanifest", views.webmanifest, name="webmanifest"),
     path("offline/", views.offline, name="offline"),
     path("serviceworker.js", views.service_worker, name="service_worker"),

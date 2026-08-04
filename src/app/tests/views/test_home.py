@@ -441,6 +441,71 @@ class HomeViewTests(TestCase):
         self.assertFalse(self.user.home_aired_only)
         self.assertContains(response, 'aria-pressed="false"')
 
+    def test_home_aired_only_schedules_refresh_for_hidden_next_episode(self):
+        """A caught-up title schedules a homepage refresh when its episode airs."""
+        next_air_datetime = timezone.now() + timezone.timedelta(hours=1)
+        Event.objects.create(
+            item=self.season.item,
+            content_number=6,
+            datetime=next_air_datetime,
+        )
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(
+            response.context["next_home_air_datetime"],
+            next_air_datetime,
+        )
+        self.assertContains(
+            response,
+            f'data-next-home-air-datetime="{next_air_datetime.isoformat()}"',
+        )
+        self.assertContains(response, "js/homeAiredRefresh.js")
+
+    def test_home_does_not_schedule_aired_refresh_when_preference_is_off(self):
+        """Upcoming episodes do not trigger refreshes without aired-only mode."""
+        Event.objects.create(
+            item=self.season.item,
+            content_number=6,
+            datetime=timezone.now() + timezone.timedelta(hours=1),
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertIsNone(response.context["next_home_air_datetime"])
+        self.assertNotContains(response, "data-next-home-air-datetime")
+
+    def test_home_in_progress_returns_refreshable_section_fragment(self):
+        """The aired timer can replace only the complete in-progress section."""
+        next_air_datetime = timezone.now() + timezone.timedelta(hours=1)
+        Event.objects.create(
+            item=self.season.item,
+            content_number=6,
+            datetime=next_air_datetime,
+        )
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+
+        response = self.client.get(
+            reverse("home_in_progress"),
+            headers={"HX-Request": "true"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/components/home_section.html")
+        self.assertNotContains(response, "<title>")
+        self.assertContains(response, 'id="in-progress"')
+        self.assertContains(
+            response,
+            f'data-next-home-air-datetime="{next_air_datetime.isoformat()}"',
+        )
+        self.assertContains(
+            response,
+            f'data-home-air-refresh-url="{reverse("home_in_progress")}"',
+        )
+
     @patch("app.providers.services.get_media_metadata")
     def test_home_view_htmx_load_more(self, mock_get_media_metadata):
         """Test the HTMX load more functionality."""

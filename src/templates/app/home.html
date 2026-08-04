@@ -7,6 +7,8 @@
 
 {% block extra_head %}
   <script src="{% static 'js/homeSwipe.js' %}{% get_static_file_mtime 'js/homeSwipe.js' %}"></script>
+  <script src="{% static 'js/homeAiredRefresh.js' %}{% get_static_file_mtime 'js/homeAiredRefresh.js' %}"
+          defer></script>
 {% endblock extra_head %}
 
 {% block content %}

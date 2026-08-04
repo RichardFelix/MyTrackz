@@ -600,6 +600,45 @@ class MediaManager(models.Manager):
 
         return list_by_type
 
+    def get_next_home_air_datetime(self, user):
+        """Return the next release that can reveal aired-only home media."""
+        next_air_datetimes = []
+        episodic_types = (MediaTypes.SEASON.value, MediaTypes.ANIME.value)
+        enabled_types = self._get_media_types_to_process(user, None)
+
+        for media_type in episodic_types:
+            if media_type not in enabled_types:
+                continue
+
+            media_list = list(
+                self.get_media_list(
+                    user=user,
+                    media_type=media_type,
+                    status_filter=Status.IN_PROGRESS.value,
+                    sort_filter=None,
+                ),
+            )
+            if media_type == MediaTypes.SEASON.value:
+                media_list = self._filter_home_to_earliest_seasons(media_list, user)
+
+            self.annotate_max_progress(media_list, media_type)
+            self._annotate_next_event(media_list)
+            visible_ids = {
+                media.id
+                for media in self._filter_home_to_aired(media_list, media_type)
+            }
+
+            next_air_datetimes.extend(
+                media.next_event.datetime
+                for media in media_list
+                if media.id not in visible_ids
+                and media.next_event is not None
+                and media.next_event.content_number is not None
+                and not media.next_event.is_max_datetime
+            )
+
+        return min(next_air_datetimes, default=None)
+
     def _filter_home_to_earliest_seasons(self, media_list, user):
         """Show only the earliest active regular season for each TV show."""
         active_seasons = (

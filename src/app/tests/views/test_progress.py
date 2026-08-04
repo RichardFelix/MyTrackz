@@ -286,8 +286,8 @@ class ProgressEditAnime(TestCase):
         self.assertContains(response, "data-home-list-item")
         self.assertContains(response, "Next episode 4")
 
-    def test_aired_only_removes_row_when_user_catches_up(self):
-        """Watching the last aired episode immediately removes the compact row."""
+    def test_aired_only_refreshes_section_when_user_catches_up(self):
+        """Catching up refreshes the section and schedules its next episode."""
         now = datetime.datetime.now(datetime.UTC)
         self.user.home_aired_only = True
         self.user.save(update_fields=["home_aired_only"])
@@ -314,7 +314,48 @@ class ProgressEditAnime(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content, b"")
+        self.assertTemplateUsed(response, "app/components/home_section_update.html")
+        self.assertEqual(response.headers["HX-Retarget"], "#in-progress")
+        self.assertEqual(response.headers["HX-Reswap"], "outerHTML")
+        self.assertNotContains(response, "data-home-list-item")
+        self.assertContains(
+            response,
+            'data-next-home-air-datetime="',
+        )
+
+    def test_aired_only_grid_refreshes_section_when_user_catches_up(self):
+        """Grid progress also refreshes and schedules the complete section."""
+        now = datetime.datetime.now(datetime.UTC)
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+        Event.objects.create(
+            item=self.item,
+            content_number=3,
+            datetime=now - datetime.timedelta(days=1),
+        )
+        Event.objects.create(
+            item=self.item,
+            content_number=4,
+            datetime=now + datetime.timedelta(days=1),
+        )
+
+        response = self.client.post(
+            reverse(
+                "progress_edit",
+                kwargs={
+                    "media_type": MediaTypes.ANIME.value,
+                    "instance_id": self.anime.id,
+                },
+            ),
+            {"operation": "increase", "home_section": "1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "app/components/home_section_update.html")
+        self.assertEqual(response.headers["HX-Retarget"], "#in-progress")
+        self.assertEqual(response.headers["HX-Reswap"], "outerHTML")
+        self.assertNotContains(response, "progress-anime")
+        self.assertContains(response, 'data-next-home-air-datetime="')
 
     def test_cannot_edit_another_users_progress(self):
         """Test users cannot edit another user's media progress by instance ID."""

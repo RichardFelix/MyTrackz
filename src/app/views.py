@@ -72,6 +72,39 @@ def _build_home_section(user, status, sort_by, items_limit):
     }
 
 
+def _build_home_in_progress_context(user):
+    """Build the complete context for an in-progress homepage section."""
+    items_limit = 14
+    effective_items_limit = None if user.show_all_home_items else items_limit
+    return {
+        "section": _build_home_section(
+            user,
+            Status.IN_PROGRESS.value,
+            user.home_sort,
+            effective_items_limit,
+        ),
+        "current_sort": user.home_sort,
+        "items_limit": items_limit,
+        "next_home_air_datetime": (
+            BasicMedia.objects.get_next_home_air_datetime(user)
+            if user.home_aired_only
+            else None
+        ),
+    }
+
+
+def _render_home_in_progress_update(request):
+    """Render and target a complete in-progress section HTMX update."""
+    response = render(
+        request,
+        "app/components/home_section_update.html",
+        _build_home_in_progress_context(request.user),
+    )
+    response["HX-Retarget"] = "#in-progress"
+    response["HX-Reswap"] = "outerHTML"
+    return response
+
+
 @require_GET
 def home(request):
     """Home page with media items in progress and planning."""
@@ -116,8 +149,23 @@ def home(request):
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
+        "next_home_air_datetime": (
+            BasicMedia.objects.get_next_home_air_datetime(request.user)
+            if request.user.home_aired_only
+            else None
+        ),
     }
     return render(request, "app/home.html", context)
+
+
+@require_GET
+def home_in_progress(request):
+    """Return the complete in-progress homepage section for an HTMX refresh."""
+    return render(
+        request,
+        "app/components/home_section.html",
+        _build_home_in_progress_context(request.user),
+    )
 
 
 def _queue_feed_build(pending_key, task, *task_args):
@@ -294,27 +342,25 @@ def progress_edit(request, media_type, instance_id):
         and previous_status == Status.IN_PROGRESS.value
         and media.status != Status.IN_PROGRESS.value
     ):
-        items_limit = 14
-        effective_items_limit = (
-            None if request.user.show_all_home_items else items_limit
+        return _render_home_in_progress_update(request)
+
+    if (
+        request.user.home_aired_only
+        and media_type in (MediaTypes.SEASON.value, MediaTypes.ANIME.value)
+        and (
+            request.POST.get("home_section")
+            or request.POST.get("home_layout") == "list"
         )
-        response = render(
-            request,
-            "app/components/home_section_update.html",
-            {
-                "section": _build_home_section(
-                    request.user,
-                    Status.IN_PROGRESS.value,
-                    request.user.home_sort,
-                    effective_items_limit,
-                ),
-                "current_sort": request.user.home_sort,
-                "items_limit": items_limit,
-            },
-        )
-        response["HX-Retarget"] = "#in-progress"
-        response["HX-Reswap"] = "outerHTML"
-        return response
+    ):
+        visible_media = BasicMedia.objects.get_home_status(
+            user=request.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=request.user.home_sort,
+            items_limit=0,
+            specific_media_type=media_type,
+        ).get(media_type, {"items": []})["items"]
+        if not any(item.id == media.id for item in visible_media):
+            return _render_home_in_progress_update(request)
 
     context = {
         "media": media,
@@ -322,19 +368,6 @@ def progress_edit(request, media_type, instance_id):
     if request.POST.get("home_layout") == "list":
         if media.status != Status.IN_PROGRESS.value:
             return HttpResponse()
-        if request.user.home_aired_only and media_type in (
-            MediaTypes.SEASON.value,
-            MediaTypes.ANIME.value,
-        ):
-            visible_media = BasicMedia.objects.get_home_status(
-                user=request.user,
-                status=Status.IN_PROGRESS.value,
-                sort_by=request.user.home_sort,
-                items_limit=0,
-                specific_media_type=media_type,
-            ).get(media_type, {"items": []})["items"]
-            if not any(item.id == media.id for item in visible_media):
-                return HttpResponse()
         context["home_status"] = Status.IN_PROGRESS.value
         return render(
             request,
