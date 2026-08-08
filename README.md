@@ -67,75 +67,21 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 
 ## 📱 Screenshots
 
-| Homepage with Aired-only Filter ⭐                               | Command Palette Search with Aired-only Filter ⭐                |
-| ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| ![Homepage with Aired-only Filter](docs/assets/screenshots/homepage_aired_only.png) | ![Command Palette Search with Aired-only Filter](docs/assets/screenshots/search_modal_aired_only.png) |
-
-| Updated Grid Mobile Navigation with Aired-only Filter ⭐             | Updated Mobile Grid Library Panel with Aired-only Filter ⭐  |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Updated Grid Mobile Navigation with Aired-only Filter](docs/assets/screenshots/mobile_home_aired_only.png) | ![Updated Mobile Grid Library Panel with Aired-only Filter](docs/assets/screenshots/mobile_library_panel_aired_only.png) |
-
-| Homepage Grid Mode with Aired-only Filter ⭐                         | Command Palette Search in Grid Mode ⭐                         |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| ![Homepage grid mode with Aired-only Filter](docs/assets/screenshots/homepage_grid_aired_only.png) | ![Command Palette Search in grid mode](docs/assets/screenshots/search_modal_grid_aired_only.png) |
-
-| Mobile Grid Navigation with Aired-only Filter ⭐                      | Mobile Grid Library Panel with Aired-only Filter ⭐              |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| ![Mobile grid navigation with Aired-only Filter](docs/assets/screenshots/mobile_home_grid_aired_only.png) | ![Mobile grid library panel with Aired-only Filter](docs/assets/screenshots/mobile_library_panel_grid_aired_only.png) |
-
 ### Feature Walkthroughs ⭐
 
-| Homepage workflow | Search workflow |
-| ----------------- | --------------- |
-| ![Homepage workflow](docs/assets/walkthroughs/homepage.gif) | ![Search workflow](docs/assets/walkthroughs/search.gif) |
+| Home workflow | Mobile workflow |
+| ------------- | --------------- |
+| ![Home workflow](docs/assets/walkthroughs/homepage.gif) | ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) |
 
-| Mobile workflow | Discovery workflow |
-| --------------- | ------------------ |
-| ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) | ![Discovery workflow](docs/assets/walkthroughs/discovery.gif) |
+Here are a few highlights from the redesigned interface:
 
-| Mobile Compact Home List ⭐                                           | Swipe to Mark the Next Unit Watched ⭐                         |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| ![Mobile compact home list](docs/assets/screenshots/mobile_home_list.png) | ![Swipe gesture revealing the mark-watched action](docs/assets/screenshots/mobile_home_list_swipe.png) |
+| Home dashboard ⭐ | Mobile navigation ⭐ |
+| ----------------- | ------------------- |
+| ![MyTrackz home dashboard](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile navigation](docs/assets/screenshots/mobile_home_aired_only.png) |
 
-| Compact Home List + Aired Only ⭐                                     | Grouped Preferences ⭐                                           |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| ![Compact home list with Aired only](docs/assets/screenshots/home_list_aired_only.png) | ![Grouped Preferences](docs/assets/screenshots/settings_preferences.png) |
-
-| Discover ⭐                                                          | Trending ⭐                                                     |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Discover](docs/assets/screenshots/discover.webp)                      | ![Trending](docs/assets/screenshots/trending.webp)            |
-
-| Profile Image ⭐                                                     | Home Screen Row Order ⭐                                        |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Profile Image](docs/assets/screenshots/settings_profile_image.webp)  | ![Home Screen Row Order](docs/assets/screenshots/settings_home_order.webp) |
-
-| Hover-Lift Card — Movies ⭐                                          | Hover-Lift Card — TV Shows ⭐                                    |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Movie Card Hover](docs/assets/screenshots/card_hover_movie.webp)      | ![TV Card Hover](docs/assets/screenshots/card_hover_tv.webp)   |
-
-| Media Details                                                       | Media List Table                                                |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| ![Media Details](docs/assets/screenshots/media_details.webp)        | ![List Table](docs/assets/screenshots/medialist_table.webp)     |
-
-| Calendar                                                            | Media List Grid                                                |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| ![Calendar](docs/assets/screenshots/calendar.webp)                  | ![List Grid](docs/assets/screenshots/medialist_grid.webp)        |
-
-| TV Show Tracking                                                     | Season Details                                                 |
-| -------------------------------------------------------------------- | ------------------------------------------------------------- |
-| ![Tracking](docs/assets/screenshots/tv_details.webp)                  | ![Season Details](docs/assets/screenshots/season_details.webp) |
-
-| Create Manual Entries                                                | Import Data                                                     |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ |
-| ![Create Manual Entries](docs/assets/screenshots/create_custom.webp)    | ![Import Data](docs/assets/screenshots/import_data.webp)      |
-
-| Advanced Settings — Cache Management ⭐                              |
-| ---------------------------------------------------------------------- |
-| ![Advanced Cache Settings](docs/assets/screenshots/settings_advanced_cache.webp) |
-
-| Statistics                                                            | Lists                                                          |
-| --------------------------------------------------------------------- | -------------------------------------------------------------- |
-| ![Statistics](docs/assets/screenshots/statistics.webp)                 | ![Lists](docs/assets/screenshots/lists.webp)                   |
+| Discover recommendations ⭐ | Trending media ⭐ |
+| --------------------------- | ---------------- |
+| ![Discover recommendations](docs/assets/screenshots/discover.webp) | ![Trending media](docs/assets/screenshots/trending.webp) |
 
 ## 🐳 Installing with Docker
 
