@@ -15,7 +15,7 @@ Every fork-only addition (marked ⭐ below) was designed and implemented with [C
 
 ## 📚 Documentation
 
-Since MyTrackz tracks the same core feature set as Yamtrack, the upstream docs mostly apply: [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/). This repo's own `docs/` folder covers setup, environment variables, and development.
+Since MyTrackz tracks the same core feature set as Yamtrack, the upstream documentation is useful for shared features: [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/). Fork-specific setup and development notes are kept in this repository; the Docker instructions below are the authoritative installation path for MyTrackz.
 
 <!-- --8<-- [start:docs-index-body] -->
 
@@ -34,7 +34,7 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🐳 Easy deployment with Docker via docker-compose with SQLite or PostgreSQL.
 - 👥 Multi-users functionality allowing individual accounts with personalized tracking.
 - 🔑 Flexible authentication options including OIDC and 100+ social providers (Google, GitHub, Discord, etc.) via django-allauth.
-- 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched.
+- 🦀 Integration with [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/) and [Emby](https://emby.media/) to automatically track new media watched, including metadata-poor Plex DVR episodes and safe title-based TV matching.
 - 📥 Import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), IMDb, Goodreads, HowLongToBeat, and Steam, with support for periodic automatic imports.
 - 📊 Export all your tracked media to a CSV file and import it back.
 - 🍿 See where to stream a movie or show (JustWatch/TMDB providers), scoped to a region you set in preferences.
@@ -42,14 +42,14 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🔔 A daily digest notification option (one bundled Apprise message instead of one per release), a one-click test-notification button, and per-item exclusion from release notifications.
 - 🔄 Re-sync any tracked item's metadata (title, image, episode list, etc.) from its provider with one click.
 - ⏱️ Fine-grained preferences: a "quick watch date" mode for one-tap episode/season tracking, plus independent date format, 12/24-hour time format, and first-day-of-week settings.
-- 🗓️ Calendar grid/list layout toggle and a manual "reload" to refresh upcoming release dates on demand.
+- 🗓️ Calendar grid/list layout toggle and a manual "reload" to refresh upcoming release dates on demand; TV season data is reconciled during refreshes so newly announced seasons and episodes appear in tracking and calendar views.
 - 🔐 Regenerate your personal webhook/ICS token any time, with granular controls for which Jellyfin events (play/stop, manual mark played/unplayed) and which Plex usernames are processed.
 - 📲 ⭐ **Improved PWA support** — Android installation and offline behavior are more reliable, with an offline fallback page.
 - 🛠️ ⭐ **Grouped preferences** — organize appearance, tracking, home recommendations, region and formats, and library navigation settings, with configurable Wishlist or Backlog terminology.
 - 🔢 ⭐ **Live library counts** — every media library shows the number of matching items, updating as you search, filter, or switch layouts.
 - 🏠 ⭐ **Show all home items** — load every item in each home row automatically, or keep the compact “Load all” control for larger libraries.
 - 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
-- 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control.
+- 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control. The in-progress row refreshes automatically when that episode becomes available or when you catch up.
 - 🎨 ⭐ **Colored grid progress buttons** — optionally use clear red/green backgrounds for decrease/increase progress actions in the home card grid.
 - 🖼️ ⭐ **Local image caching** — provider posters/covers are downloaded and served locally (WebP) instead of hotlinking, with size-capped eviction and a manual purge option in Settings → Advanced.
 - 🧭 ⭐ **Discover page** — personalized recommendations aggregated from everything you've completed or are currently tracking, ranked and interleaved across media types.
@@ -121,17 +121,19 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 
 ## 🐳 Installing with Docker
 
-Unlike upstream, this fork isn't published to a container registry — it builds from source. Clone the repo, update the environment values in `docker-compose.yml`/`docker-compose.override.yml`, and start it:
+Unlike upstream, this fork isn't published to a container registry — it builds from source. Clone this repository, update the environment values in `docker-compose.yml` (and an optional local `docker-compose.override.yml`), and start it:
 
 ```bash
+git clone https://bitbucket.org/RichardFelix/mytrackz.git
+cd mytrackz
 docker compose up -d --build
 ```
 
-The default Compose file uses SQLite, which is enough for most personal installs; a PostgreSQL variant is available in `docker-compose.postgres.yml`. See `docs/setup.md` and `docs/env-variables.md` in this repo for the full configuration reference.
+The default Compose file uses SQLite, which is enough for most personal installs. The PostgreSQL example is available in `docker-compose.postgres.yml`; change its `yamtrack` service from the upstream `image:` to `build: .` when running this fork so the fork's code is used. See `docs/env-variables.md` for the configuration reference.
 
 ## 💻 Development
 
-See `docs/development.md` in this repo, or `CLAUDE.md` for the fork-specific architecture notes, branch layout, and deployment workflow.
+See `docs/development.md` for the shared development workflow. `AGENTS.md` contains the current fork-specific architecture notes, branch policy, validation requirements, and deployment guidance.
 
 ## 🙏 Credit
 
