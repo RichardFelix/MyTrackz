@@ -75,6 +75,24 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
 | ![Updated Grid Mobile Navigation with Aired-only Filter](docs/assets/screenshots/mobile_home_aired_only.png) | ![Updated Mobile Grid Library Panel with Aired-only Filter](docs/assets/screenshots/mobile_library_panel_aired_only.png) |
 
+| Homepage Grid Mode with Aired-only Filter ⭐                         | Command Palette Search in Grid Mode ⭐                         |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![Homepage grid mode with Aired-only Filter](docs/assets/screenshots/homepage_grid_aired_only.png) | ![Command Palette Search in grid mode](docs/assets/screenshots/search_modal_grid_aired_only.png) |
+
+| Mobile Grid Navigation with Aired-only Filter ⭐                      | Mobile Grid Library Panel with Aired-only Filter ⭐              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![Mobile grid navigation with Aired-only Filter](docs/assets/screenshots/mobile_home_grid_aired_only.png) | ![Mobile grid library panel with Aired-only Filter](docs/assets/screenshots/mobile_library_panel_grid_aired_only.png) |
+
+### Feature Walkthroughs ⭐
+
+| Homepage workflow | Search workflow |
+| ----------------- | --------------- |
+| ![Homepage workflow](docs/assets/walkthroughs/homepage.gif) | ![Search workflow](docs/assets/walkthroughs/search.gif) |
+
+| Mobile workflow | Discovery workflow |
+| --------------- | ------------------ |
+| ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) | ![Discovery workflow](docs/assets/walkthroughs/discovery.gif) |
+
 | Mobile Compact Home List ⭐                                           | Swipe to Mark the Next Unit Watched ⭐                         |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | ![Mobile compact home list](docs/assets/screenshots/mobile_home_list.png) | ![Swipe gesture revealing the mark-watched action](docs/assets/screenshots/mobile_home_list_swipe.png) |
