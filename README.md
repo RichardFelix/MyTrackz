@@ -44,24 +44,24 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - ⏱️ Fine-grained preferences: a "quick watch date" mode for one-tap episode/season tracking, plus independent date format, 12/24-hour time format, and first-day-of-week settings.
 - 🗓️ Calendar grid/list layout toggle and a manual "reload" to refresh upcoming release dates on demand; TV season data is reconciled during refreshes so newly announced seasons and episodes appear in tracking and calendar views.
 - 🔐 Regenerate your personal webhook/ICS token any time, with granular controls for which Jellyfin events (play/stop, manual mark played/unplayed) and which Plex usernames are processed.
-- 📲 ⭐ **Improved PWA support** — Android installation and offline behavior are more reliable, with an offline fallback page.
-- 🛠️ ⭐ **Grouped preferences** — organize appearance, tracking, home recommendations, region and formats, and library navigation settings, with configurable Wishlist or Backlog terminology.
-- 🔢 ⭐ **Live library counts** — every media library shows the number of matching items, updating as you search, filter, or switch layouts.
-- 🏠 ⭐ **Show all home items** — load every item in each home row automatically, or keep the compact “Load all” control for larger libraries.
-- 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
-- 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control. The in-progress row refreshes automatically when that episode becomes available or when you catch up.
-- 🎨 ⭐ **Colored grid progress buttons** — optionally use clear red/green backgrounds for decrease/increase progress actions in the home card grid.
 - 🖼️ ⭐ **Local image caching** — provider posters/covers are downloaded and served locally (WebP) instead of hotlinking, with size-capped eviction and a manual purge option in Settings → Advanced.
+- 🖌️ ⭐ **Custom poster images** — replace any item's poster with your own image URL, with one click to revert to the original.
+- 🎨 ⭐ **Redesigned UI** — liquid-glass mobile bottom nav with an updated media-type grid and morphing library panel, plus a one-tap "Mark watched" control for movies.
+- 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
 - 🧭 ⭐ **Discover page** — personalized recommendations aggregated from everything you've completed or are currently tracking, ranked and interleaved across media types.
 - 🔥 ⭐ **Trending page** — what's popular right now per media type (TMDB, MyAnimeList, IGDB, BGG), hiding anything you already track.
-- 📚 ⭐ **"Continue the Story" home widget** — surfaces direct follow-ups (sequels, next volumes, expansions, remasters) for media you've recently finished or are still working through. Can be toggled on/off in Settings → Preferences.
-- 🖌️ ⭐ **Custom poster images** — replace any item's poster with your own image URL, with one click to revert to the original.
-- 🏷️ ⭐ **Genre filter** — filter your media lists by genre, sourced automatically from provider metadata.
-- 🎨 ⭐ **Redesigned UI** — liquid-glass mobile bottom nav with an updated media-type grid and morphing library panel, plus a one-tap "Mark watched" control for movies.
-- 🖱️ ⭐ **Hover-lift media cards** — cards scale up and lift with a soft shadow on hover, revealing unified quick-action icons (mark watched, add to lists, view history) right on the poster.
 - 🔎 ⭐ **Command palette search** — press <kbd>⌘K</kbd> (or <kbd>/</kbd>) anywhere to pull up a jump-to search modal, scoped to a media type, without leaving the page.
-- 🖼️ ⭐ **Profile images** — set an avatar from any image URL, with a circular drag-and-zoom cropper; downloaded and cached locally like everything else.
 - ↕️ ⭐ **Home screen row order** — drag or use the arrows to choose which media type shows first on your home page and in the sidebar.
+- 📡 ⭐ **Aired-only home filter** — hide caught-up episodic shows until their next episode airs, with a single toggle beside the home sort control. The in-progress row refreshes automatically when that episode becomes available or when you catch up.
+- 🏷️ ⭐ **Genre filter** — filter your media lists by genre, sourced automatically from provider metadata.
+- 🛠️ ⭐ **Grouped preferences** — organize appearance, tracking, home recommendations, region and formats, and library navigation settings, with configurable Wishlist or Backlog terminology.
+- 📲 ⭐ **Improved PWA support** — Android installation and offline behavior are more reliable, with an offline fallback page.
+- 🔢 ⭐ **Live library counts** — every media library shows the number of matching items, updating as you search, filter, or switch layouts.
+- 🏠 ⭐ **Show all home items** — load every item in each home row automatically, or keep the compact “Load all” control for larger libraries.
+- 🎨 ⭐ **Colored grid progress buttons** — optionally use clear red/green backgrounds for decrease/increase progress actions in the home card grid.
+- 📚 ⭐ **"Continue the Story" home widget** — surfaces direct follow-ups (sequels, next volumes, expansions, remasters) for media you've recently finished or are still working through. Can be toggled on/off in Settings → Preferences.
+- 🖱️ ⭐ **Hover-lift media cards** — cards scale up and lift with a soft shadow on hover, revealing unified quick-action icons (mark watched, add to lists, view history) right on the poster.
+- 🖼️ ⭐ **Profile images** — set an avatar from any image URL, with a circular drag-and-zoom cropper; downloaded and cached locally like everything else.
 - 🧹 ⭐ **Cache management in Settings → Advanced** — see exactly how much disk the local image cache and search cache are using, with one-click buttons to purge either.
 - ⚠️ ⭐ **Cache action confirmations** — confirm search-cache and image-cache purges before any cached data is removed.
 
