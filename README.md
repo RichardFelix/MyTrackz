@@ -69,13 +69,13 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 
 ### Feature Walkthroughs ⭐
 
-| Home workflow | Mobile workflow |
+| Grid Home workflow | Grid Mobile workflow |
 | ------------- | --------------- |
 | ![Home workflow](docs/assets/walkthroughs/homepage.gif) | ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) |
 
 Here are a few highlights from the redesigned interface:
 
-| Home dashboard ⭐ | Mobile navigation ⭐ |
+| List Home Dashboard | List Mobile Navigation |
 | ----------------- | ------------------- |
 | ![MyTrackz home dashboard](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile navigation](docs/assets/screenshots/mobile_home_aired_only.png) |
 
