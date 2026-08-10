@@ -88,7 +88,7 @@ Here are a few highlights from the redesigned interface:
 The default Compose file builds the fork from source. Clone this repository, update the environment values in `docker-compose.yml` (and an optional local `docker-compose.override.yml`), and start it:
 
 ```bash
-git clone https://bitbucket.org/RichardFelix/mytrackz.git
+git clone https://github.com/RichardFelix/MyTrackz.git
 cd mytrackz
 docker compose up -d --build
 ```
