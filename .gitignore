@@ -16,6 +16,31 @@ TODO.txt
 .cache
 node_modules
 
+# Local and private development files
+.agents/
+.claude/
+.codex/
+.github/
+.ruff_cache/
+.vscode/
+/.idea/
+/.direnv/
+/secrets/
+/private/
+.DS_Store
+*.local
+*.secret
+*.pem
+*.key
+/\.pytest_cache/
+/.mypy_cache/
+/.hypothesis/
+/android/
+/skills/
+/AGENTS.md
+/CLAUDE.md
+/scripts/stop-test-site.sh
+
 # Android wrapper local state and secrets
 /android/.gradle/
 /android/**/build/
