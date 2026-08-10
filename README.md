@@ -15,7 +15,7 @@ Every fork-only addition (marked ⭐ below) was designed and implemented with [C
 
 ## 📚 Documentation
 
-Since MyTrackz tracks the same core feature set as Yamtrack, the upstream documentation is useful for shared features: [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/). Fork-specific setup and development notes are kept in this repository; the Docker instructions below are the authoritative installation path for MyTrackz.
+Since MyTrackz shares its core feature set with Yamtrack, the upstream documentation is useful for shared features: [fuzzygrim.github.io/Yamtrack](https://fuzzygrim.github.io/Yamtrack/). Fork-specific setup and development notes are kept in this repository. The Docker instructions below are the authoritative installation path for MyTrackz; the upstream installation instructions refer to upstream images and do not apply to this fork.
 
 <!-- --8<-- [start:docs-index-body] -->
 
@@ -85,7 +85,7 @@ Here are a few highlights from the redesigned interface:
 
 ## 🐳 Installing with Docker
 
-Unlike upstream, this fork isn't published to a container registry — it builds from source. Clone this repository, update the environment values in `docker-compose.yml` (and an optional local `docker-compose.override.yml`), and start it:
+The default Compose file builds the fork from source. Clone this repository, update the environment values in `docker-compose.yml` (and an optional local `docker-compose.override.yml`), and start it:
 
 ```bash
 git clone https://bitbucket.org/RichardFelix/mytrackz.git
@@ -93,7 +93,7 @@ cd mytrackz
 docker compose up -d --build
 ```
 
-The default Compose file uses SQLite, which is enough for most personal installs. The PostgreSQL example is available in `docker-compose.postgres.yml`; change its `yamtrack` service from the upstream `image:` to `build: .` when running this fork so the fork's code is used. See `docs/env-variables.md` for the configuration reference.
+The default Compose file uses SQLite, which is enough for most personal installs. For PostgreSQL, use `docker-compose.postgres.yml` and change the `yamtrack` service from `image: ghcr.io/fuzzygrim/yamtrack` to `build: .` so the fork's code is used. See `docs/env-variables.md` for the configuration reference.
 
 ## 💻 Development
 
