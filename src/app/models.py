@@ -1025,6 +1025,8 @@ class GameLaunchers(models.TextChoices):
     UBISOFT = "Ubisoft", "Ubisoft"
     BLIZZARD = "Blizzard", "Blizzard"
     XBOX = "Xbox", "Xbox"
+    NINTENDO = "Nintendo", "Nintendo"
+    PLAYSTATION = "Playstation", "Playstation"
     EMULATION = "Emulation", "Emulation"
     ROCKSTAR = "Rockstar", "Rockstar"
     AMAZON = "Amazon", "Amazon"
@@ -2425,7 +2427,7 @@ class Game(Media):
     """Model for games."""
 
     launcher = models.CharField(
-        max_length=10,
+        max_length=11,
         choices=GameLaunchers,
         default=GameLaunchers.STEAM,
     )

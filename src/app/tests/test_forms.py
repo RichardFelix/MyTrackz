@@ -200,6 +200,8 @@ class BasicGameForm(TestCase):
                 ("Ubisoft", "Ubisoft"),
                 ("Blizzard", "Blizzard"),
                 ("Xbox", "Xbox"),
+                ("Nintendo", "Nintendo"),
+                ("Playstation", "Playstation"),
                 ("Emulation", "Emulation"),
                 ("Rockstar", "Rockstar"),
                 ("Amazon", "Amazon"),
