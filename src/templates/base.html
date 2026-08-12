@@ -358,13 +358,6 @@
 
               <div class="hidden flex-1 sm:block"></div>
 
-              {# Define search type from current media type (if it exists) or last search type #}
-              {% if media_type == MediaTypes.SEASON.value %}
-                {% firstof MediaTypes.TV.value as search_type %}
-              {% else %}
-                {% firstof media_type user.last_search_type as search_type %}
-              {% endif %}
-
               {# Search — command palette trigger #}
               {% block search_bar %}
                 <button type="button"
@@ -374,42 +367,6 @@
                   <span class="flex-1 truncate text-left">Search or jump to…</span>
                   <kbd class="hidden shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-400 sm:block">⌘K</kbd>
                 </button>
-
-                {# Command palette #}
-                <div x-show="paletteOpen"
-                     x-cloak
-                     @keydown.escape.window="paletteOpen = false"
-                     @click="paletteOpen = false"
-                     x-transition.opacity
-                     class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 pt-24 max-lg:visible">
-                  <div @click.stop
-                       class="w-full max-w-xl overflow-hidden rounded-xl border border-[#2c3136] bg-[#1b1c22] shadow-2xl"
-                       x-data="{ selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }} }">
-                    <form method="get" action="{% url 'search' %}">
-                      <div class="flex items-center gap-3 border-b border-[#2c3136] px-4">
-                        {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 shrink-0 text-gray-500" %}
-                        <input id="palette-input"
-                               type="search"
-                               name="q"
-                               autocomplete="off"
-                               placeholder="Search or jump to…"
-                               class="w-full bg-transparent py-4 text-sm text-gray-200 placeholder-gray-500 focus:outline-none">
-                        <kbd class="shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-500">esc</kbd>
-                      </div>
-                      <input type="hidden" name="media_type" :value="selectedType.value">
-                      <div class="flex flex-wrap items-center justify-center gap-2 p-3">
-                        <span class="mr-1 text-xs font-medium uppercase tracking-wide text-gray-500">Search in</span>
-                        <template x-for="type in mediaTypes" :key="type.value">
-                          <button type="button"
-                                  @click="selectedType = type"
-                                  class="rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer"
-                                  :class="selectedType.value === type.value ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'"
-                                  x-text="type.display"></button>
-                        </template>
-                      </div>
-                    </form>
-                  </div>
-                </div>
               {% endblock search_bar %}
 
               {# Quick actions #}
@@ -437,6 +394,48 @@
         </div>
 
         {% if user.is_authenticated %}
+          {# Keep the command palette outside page stacking contexts so it always stays on top. #}
+          {% if media_type == MediaTypes.SEASON.value %}
+            {% firstof MediaTypes.TV.value as search_type %}
+          {% else %}
+            {% firstof media_type user.last_search_type as search_type %}
+          {% endif %}
+          <div x-show="paletteOpen"
+               x-cloak
+               @keydown.escape.window="paletteOpen = false"
+               @click="paletteOpen = false"
+               x-transition.opacity
+               class="fixed inset-0 flex items-start justify-center bg-black/60 px-4 pt-24"
+               style="z-index: 2147483647;">
+            <div @click.stop
+                 class="w-full max-w-xl overflow-hidden rounded-xl border border-[#2c3136] bg-[#1b1c22] shadow-2xl"
+                 x-data="{ selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }} }">
+              <form method="get" action="{% url 'search' %}">
+                <div class="flex items-center gap-3 border-b border-[#2c3136] px-4">
+                  {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 shrink-0 text-gray-500" %}
+                  <input id="palette-input"
+                         type="search"
+                         name="q"
+                         autocomplete="off"
+                         placeholder="Search or jump to…"
+                         class="w-full bg-transparent py-4 text-sm text-gray-200 placeholder-gray-500 focus:outline-none">
+                  <kbd class="shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-500">esc</kbd>
+                </div>
+                <input type="hidden" name="media_type" :value="selectedType.value">
+                <div class="flex flex-wrap items-center justify-center gap-2 p-3">
+                  <span class="mr-1 text-xs font-medium uppercase tracking-wide text-gray-500">Search in</span>
+                  <template x-for="type in mediaTypes" :key="type.value">
+                    <button type="button"
+                            @click="selectedType = type"
+                            class="rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer"
+                            :class="selectedType.value === type.value ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'"
+                            x-text="type.display"></button>
+                  </template>
+                </div>
+              </form>
+            </div>
+          </div>
+
           {% include "app/components/mobile_bottom_nav.html" %}
         {% endif %}
       </div>
