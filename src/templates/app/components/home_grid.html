@@ -16,19 +16,25 @@
              data-src="{{ media.item.cached_image_url }}"
              src="{{ IMG_PLACEHOLDER }}">
       </a>
+      {% include "app/components/game_launcher_badge.html" with item=media.item media=media %}
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
-        <div class="absolute top-2 left-1/2 flex max-w-[98%] -translate-x-1/2 items-center gap-1.5 rounded-md bg-black/80 px-2 py-1.5 shadow-md whitespace-nowrap">
+        <div {% if media.item.media_type == MediaTypes.GAME.value %}data-game-release-date{% endif %}
+             class="absolute {% if media.item.media_type == MediaTypes.GAME.value %}top-10 left-2 sm:top-2{% else %}top-2 left-1/2 -translate-x-1/2{% endif %} flex max-w-[98%] items-center gap-1.5 rounded-md bg-black/80 {% if media.item.media_type == MediaTypes.GAME.value %}px-1.5{% else %}px-2{% endif %} py-1.5 shadow-md whitespace-nowrap">
           {% if home_status == Status.PLANNING.value %}
             {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-sky-400" %}
           {% else %}
             {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-indigo-400" %}
           {% endif %}
           <span class="text-xs font-medium text-white drop-shadow-sm truncate">
-            {% if media.next_event.content_number %}
-              {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
+            {% if media.item.media_type == MediaTypes.GAME.value %}
+              {{ media.next_event.datetime|date_format:user }}
+            {% else %}
+              {% if media.next_event.content_number %}
+                {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
+              {% endif %}
+              {{ media.next_event.datetime|natural_day:user }}
             {% endif %}
-            {{ media.next_event.datetime|natural_day:user }}
           </span>
         </div>
       {% endif %}

@@ -289,6 +289,13 @@
                   </span>
                 </div>
               {% endif %}
+
+              {% if media_type == MediaTypes.GAME.value %}
+                <div class="flex @max-[210px]:flex-col justify-between text-sm">
+                  <span class="text-gray-400">Launcher:</span>
+                  <span class="text-gray-200">{{ current_instance.get_launcher_display }}</span>
+                </div>
+              {% endif %}
             </div>
           </div>
 
@@ -349,6 +356,10 @@
                             {{ media_type|long_unit|lower }}{{ user_media.progress|pluralize }}
                           {% endif %}
                         </div>
+                      {% endif %}
+
+                      {% if media.media_type == MediaTypes.GAME.value %}
+                        <div class="text-xs text-gray-400">Launcher: {{ user_media.get_launcher_display }}</div>
                       {% endif %}
 
                       {% if user_media.start_date %}

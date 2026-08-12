@@ -321,6 +321,15 @@ class GameForm(MediaForm):
         """Bind form to model."""
 
         model = Game
+        fields = [
+            "score",
+            "progress",
+            "launcher",
+            "status",
+            "start_date",
+            "end_date",
+            "notes",
+        ]
 
 
 class BookForm(MediaForm):

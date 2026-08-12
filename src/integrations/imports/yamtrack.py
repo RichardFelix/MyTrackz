@@ -97,6 +97,10 @@ class YamtrackImporter:
         """Process a single row from the CSV file."""
         media_type = row["media_type"]
 
+        if media_type == MediaTypes.GAME.value and not row.get("launcher"):
+            # Exports created before launcher tracking do not have this column.
+            row["launcher"] = app.models.GameLaunchers.STEAM
+
         season_number = (
             int(row["season_number"]) if row["season_number"] != "" else None
         )

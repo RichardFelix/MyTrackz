@@ -1,10 +1,12 @@
 from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from app.models import (
     Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Sources,
@@ -19,6 +21,13 @@ class GameModel(TestCase):
 
     def setUp(self):
         """Set up test data for Game model tests."""
+        metadata_patcher = patch(
+            "app.providers.services.get_media_metadata",
+            return_value={"max_progress": None},
+        )
+        metadata_patcher.start()
+        self.addCleanup(metadata_patcher.stop)
+
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
 
@@ -30,12 +39,13 @@ class GameModel(TestCase):
             image="http://example.com/tlou.jpg",
         )
 
-        self.game = Game.objects.create(
+        self.game = Game(
             item=self.game_item,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=60,  # 60 minutes
         )
+        Game.save_base(self.game)
 
     def test_increase_progress(self):
         """Test increasing the progress of a game."""
@@ -43,6 +53,16 @@ class GameModel(TestCase):
         self.game.increase_progress()
 
         self.assertEqual(self.game.progress, initial_progress + 30)
+
+    def test_launcher_defaults_to_steam_and_is_historical(self):
+        """Games default to Steam and launcher edits are kept in history."""
+        self.assertEqual(self.game.launcher, GameLaunchers.STEAM)
+
+        self.game.launcher = GameLaunchers.GOG
+        self.game.save()
+
+        self.assertEqual(self.game.launcher, GameLaunchers.GOG)
+        self.assertEqual(self.game.history.first().launcher, GameLaunchers.GOG)
 
     def test_decrease_progress(self):
         """Test decreasing the progress of a game."""

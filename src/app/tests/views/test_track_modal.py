@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -29,12 +31,13 @@ class TrackModalViewTests(TestCase):
             title="Test Movie",
             image="http://example.com/image.jpg",
         )
-        self.movie = Movie.objects.create(
+        self.movie = Movie(
             item=self.item,
             user=self.user,
             status=Status.IN_PROGRESS.value,
             progress=0,
         )
+        Movie.save_base(self.movie)
 
     def test_track_modal_view_existing_media(self):
         """Test the track modal view for existing media."""
@@ -57,6 +60,38 @@ class TrackModalViewTests(TestCase):
         self.assertIn("media", response.context)
         self.assertEqual(response.context["media"], self.movie)
         self.assertEqual(response.context["return_url"], "/home")
+
+    def test_game_track_modal_renders_launcher_dropdown(self):
+        """Existing games expose their selected launcher in the edit modal."""
+        item = Item.objects.create(
+            media_id="game-1",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Test Game",
+            image="http://example.com/game.jpg",
+        )
+        game = Game(
+            item=item,
+            user=self.user,
+            launcher=GameLaunchers.GOG,
+            status=Status.PLANNING.value,
+        )
+        Game.save_base(game)
+
+        response = self.client.get(
+            reverse(
+                "track_modal",
+                kwargs={
+                    "source": Sources.IGDB.value,
+                    "media_type": MediaTypes.GAME.value,
+                    "media_id": "game-1",
+                },
+            )
+            + f"?return_url=/home&instance_id={game.id}",
+        )
+
+        self.assertContains(response, 'name="launcher"')
+        self.assertContains(response, '<option value="GOG" selected>GOG</option>')
 
     @patch("app.providers.services.get_media_metadata")
     def test_track_modal_view_new_media(self, mock_get_metadata):

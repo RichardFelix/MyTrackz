@@ -10,6 +10,7 @@
              data-src="{{ item|cached_image_url:media }}"
              src="{{ IMG_PLACEHOLDER }}">
       </a>
+      {% include "app/components/game_launcher_badge.html" with item=item media=media compact=True %}
     </div>
 
     <div class="flex-1 min-w-0">

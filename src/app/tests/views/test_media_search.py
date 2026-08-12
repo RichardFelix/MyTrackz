@@ -53,3 +53,28 @@ class MediaSearchViewTests(TestCase):
             1,
             Sources.TMDB.value,
         )
+
+    @patch("app.providers.services.search")
+    def test_untracked_game_search_has_no_launcher_badge(self, mock_search):
+        """Search results do not imply ownership or a launcher."""
+        for layout in ("grid", "list"):
+            with self.subTest(layout=layout):
+                mock_search.return_value = {
+                    "page": 1,
+                    "total_results": 1,
+                    "total_pages": 1,
+                    "results": [
+                        {
+                            "media_id": "game-1",
+                            "title": "Untracked Game",
+                            "media_type": MediaTypes.GAME.value,
+                            "source": Sources.IGDB.value,
+                            "image": "http://example.com/game.jpg",
+                        },
+                    ],
+                }
+                response = self.client.get(
+                    reverse("search")
+                    + f"?media_type=game&q=untracked&layout={layout}",
+                )
+                self.assertNotContains(response, "data-game-launcher-badge")

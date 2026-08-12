@@ -11,6 +11,7 @@
            data-src="{{ item|cached_image_url:media }}"
            src="{{ IMG_PLACEHOLDER }}">
     </a>
+    {% include "app/components/game_launcher_badge.html" with item=item media=media %}
     {% with user=target_user|default:user %}
       {% if media.status %}
         <div class="absolute top-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
@@ -50,7 +51,7 @@
       {% endif %}
 
       {% if media.score|show_media_score:user %}
-        <div class="absolute {% if from_grid %}sm:top-2 sm:right-2 sm:left-auto{% endif %} top-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+        <div class="absolute {% if item.media_type == MediaTypes.GAME.value and media %}right-2 top-10{% elif from_grid %}top-10 left-2 sm:top-2 sm:right-2 sm:left-auto{% else %}top-10 left-2{% endif %} bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
           {% include "app/icons/star.svg" with classes="w-4 h-4 text-yellow-400 mr-1 fill-current" %}
           <span class="text-sm text-white">{{ media.formatted_score }}</span>
         </div>

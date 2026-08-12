@@ -9,6 +9,8 @@ from app.models import (
     TV,
     Anime,
     Episode,
+    Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -89,6 +91,49 @@ class CreateMedia(TestCase):
             TV.objects.filter(item__media_id="5895", user=self.user).exists(),
             True,
         )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_create_and_update_game_launcher(self, mock_get_metadata):
+        """The tracking endpoint persists launcher selections per game entry."""
+        mock_get_metadata.return_value = {
+            "media_id": "game-1",
+            "source": Sources.IGDB.value,
+            "media_type": MediaTypes.GAME.value,
+            "title": "Test Game",
+            "image": "http://example.com/game.jpg",
+            "details": {},
+            "max_progress": None,
+        }
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "media_id": "game-1",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "launcher": GameLaunchers.GOG,
+                "status": Status.PLANNING.value,
+                "progress": "0",
+            },
+        )
+        game = Game.objects.get(item__media_id="game-1", user=self.user)
+        self.assertEqual(game.launcher, GameLaunchers.GOG)
+
+        self.client.post(
+            reverse("media_save"),
+            {
+                "instance_id": game.id,
+                "media_id": "game-1",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "launcher": GameLaunchers.EPIC,
+                "status": Status.PLANNING.value,
+                "progress": "0",
+            },
+        )
+
+        game.refresh_from_db()
+        self.assertEqual(game.launcher, GameLaunchers.EPIC)
 
     def test_create_season(self):
         """Test the creation of a Season through views."""

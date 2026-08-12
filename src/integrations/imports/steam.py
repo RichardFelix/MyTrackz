@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 
 import app
-from app.models import MediaTypes, Sources, Status
+from app.models import GameLaunchers, MediaTypes, Sources, Status
 from app.providers import services
 from app.providers.igdb import ExternalGameSource, external_game
 from integrations.imports import helpers
@@ -72,7 +72,7 @@ class SteamImporter:
         helpers.bulk_create_media(self.bulk_media, self.user)
         helpers.bulk_update_media(
             self.bulk_media_updates,
-            {MediaTypes.GAME.value: ["progress", "status"]},
+            {MediaTypes.GAME.value: ["progress", "status", "launcher"]},
             self.user,
         )
 
@@ -222,6 +222,7 @@ class SteamImporter:
             game = app.models.Game(
                 item=item,
                 user=self.user,
+                launcher=GameLaunchers.STEAM,
                 status=status,
                 score=None,
                 progress=playtime_forever,
@@ -256,6 +257,10 @@ class SteamImporter:
     def _queue_existing_game_update(self, game, playtime_forever, playtime_2weeks):
         """Queue updates for an existing game when Steam overwrite is used."""
         changed = False
+
+        if game.launcher != GameLaunchers.STEAM:
+            game.launcher = GameLaunchers.STEAM
+            changed = True
 
         if game.progress != playtime_forever:
             game.progress = playtime_forever

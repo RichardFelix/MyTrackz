@@ -10,6 +10,7 @@ from app.models import (
     BasicMedia,
     Episode,
     Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -17,6 +18,7 @@ from app.models import (
     Sources,
     Status,
 )
+from app.templatetags import app_tags
 from events.models import Event
 from users.models import HomeLayoutChoices, HomeSortChoices
 
@@ -211,6 +213,7 @@ class HomeViewTests(TestCase):
         game = Game(
             item=game_item,
             user=self.user,
+            launcher=GameLaunchers.GOG,
             status=Status.IN_PROGRESS.value,
             progress=90,
         )
@@ -227,6 +230,13 @@ class HomeViewTests(TestCase):
         self.assertContains(response, "Swipe either way or tap to mark progress")
         self.assertContains(response, 'aria-label="Mark watched"')
         self.assertContains(response, "Current progress · 1h 30min")
+        self.assertContains(response, "data-game-launcher-badge")
+        self.assertContains(response, "GOG")
+        self.assertContains(
+            response,
+            "px-1.5 py-1.5 text-xs font-medium whitespace-nowrap",
+        )
+        self.assertNotContains(response, "font-size: 0.625rem")
         self.assertContains(response, 'aria-label="Mark current episode unwatched"')
         self.assertContains(
             response,
@@ -256,6 +266,51 @@ class HomeViewTests(TestCase):
         self.assertContains(response, 'class="media-grid"')
         self.assertContains(response, 'title="Add to tracker"')
         self.assertContains(response, '"home_section": "1"')
+
+    def test_unreleased_game_grid_uses_top_left_date_without_time(self):
+        """Game release dates avoid the launcher badge and omit time."""
+        self.user.home_layout = HomeLayoutChoices.GRID
+        self.user.save(update_fields=["home_layout"])
+        game_item = Item.objects.create(
+            media_id="unreleased-game",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Unreleased Game",
+            image="http://example.com/game.jpg",
+        )
+        game = Game(
+            item=game_item,
+            user=self.user,
+            launcher=GameLaunchers.STEAM,
+            status=Status.PLANNING.value,
+        )
+        Game.save_base(game)
+        game_release = timezone.now() + timezone.timedelta(days=30, hours=7)
+        Event.objects.create(item=game_item, datetime=game_release)
+
+        planned_movie = Movie.objects.get(user=self.user)
+        movie_release = timezone.now() + timezone.timedelta(days=31, hours=8)
+        Event.objects.create(item=planned_movie.item, datetime=movie_release)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, "data-game-release-date", count=1)
+        self.assertContains(
+            response,
+            'class="absolute top-10 left-2 sm:top-2 flex',
+        )
+        self.assertContains(
+            response,
+            "items-center gap-1.5 rounded-md bg-black/80 px-1.5",
+        )
+        self.assertContains(response, 'class="w-3.5 h-3.5 text-sky-400"')
+        self.assertContains(response, app_tags.date_format(game_release, self.user))
+        self.assertNotContains(response, app_tags.natural_day(game_release, self.user))
+        self.assertContains(
+            response,
+            'class="absolute top-2 left-1/2 -translate-x-1/2 flex',
+        )
+        self.assertContains(response, app_tags.natural_day(movie_release, self.user))
 
     def test_home_list_does_not_invent_episode_after_provider_max(self):
         """A stuck finale row should not claim a nonexistent next episode."""

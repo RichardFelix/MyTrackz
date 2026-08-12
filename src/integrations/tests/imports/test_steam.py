@@ -9,6 +9,7 @@ from requests.exceptions import HTTPError
 
 from app.models import (
     Game,
+    GameLaunchers,
     MediaTypes,
     Sources,
     Status,
@@ -89,6 +90,7 @@ class ImportSteam(TestCase):
         self.assertEqual(games.count(), 3)
 
         cs2_game = games.get(item__title="Counter-Strike 2")
+        self.assertEqual(cs2_game.launcher, GameLaunchers.STEAM)
         self.assertEqual(cs2_game.status, Status.IN_PROGRESS.value)
         self.assertEqual(cs2_game.progress, 1250)
 

@@ -13,7 +13,7 @@ from app.forms import (
     SeasonForm,
     TvForm,
 )
-from app.models import TV, Item, MediaTypes, Season, Sources, Status
+from app.models import TV, GameLaunchers, Item, MediaTypes, Season, Sources, Status
 
 
 class ItemImageFormTest(TestCase):
@@ -176,6 +176,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "25:00",
@@ -185,12 +186,67 @@ class BasicGameForm(TestCase):
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data["progress"], 1500)
 
+    def test_launcher_choices_are_ordered_and_default_to_steam(self):
+        """The game form exposes launchers in the requested product order."""
+        form = GameForm()
+
+        self.assertEqual(
+            list(form.fields["launcher"].choices),
+            [
+                ("Steam", "Steam"),
+                ("GOG", "GOG"),
+                ("Epic", "Epic"),
+                ("EA", "EA"),
+                ("Ubisoft", "Ubisoft"),
+                ("Blizzard", "Blizzard"),
+                ("Xbox", "Xbox"),
+                ("Emulation", "Emulation"),
+                ("Rockstar", "Rockstar"),
+                ("Amazon", "Amazon"),
+                ("Other", "Other"),
+            ],
+        )
+        self.assertEqual(form.fields["launcher"].initial, GameLaunchers.STEAM)
+
+    def test_launcher_accepts_supported_value(self):
+        """A supported launcher is preserved by form validation."""
+        form = GameForm(
+            data={
+                "media_id": "1",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "launcher": GameLaunchers.GOG,
+                "status": Status.PLANNING.value,
+                "progress": "0",
+            },
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["launcher"], GameLaunchers.GOG)
+
+    def test_launcher_rejects_unknown_value(self):
+        """Launcher values outside the fixed choices are invalid."""
+        form = GameForm(
+            data={
+                "media_id": "1",
+                "source": Sources.IGDB.value,
+                "media_type": MediaTypes.GAME.value,
+                "launcher": "Unknown launcher",
+                "status": Status.PLANNING.value,
+                "progress": "0",
+            },
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("launcher", form.errors)
+
     def test_plain_number_progress(self):
         """Test the game form with a plain number for hours (e.g., '5')."""
         form_data = {
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "5",
@@ -206,6 +262,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "25h 00min",
@@ -221,6 +278,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "30min",
@@ -236,6 +294,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "9h",
@@ -251,6 +310,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "9h30min",
@@ -266,6 +326,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "1.5",
@@ -281,6 +342,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "0.5",
@@ -296,6 +358,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "-1.5",
@@ -310,6 +373,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "inf",
@@ -324,6 +388,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "nan",
@@ -338,6 +403,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "25:00m",
@@ -352,6 +418,7 @@ class BasicGameForm(TestCase):
             "media_id": "1",
             "source": Sources.IGDB.value,
             "media_type": MediaTypes.GAME.value,
+            "launcher": GameLaunchers.STEAM,
             "user": self.user.id,
             "status": Status.COMPLETED.value,
             "progress": "25h61m",

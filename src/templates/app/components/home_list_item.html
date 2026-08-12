@@ -21,11 +21,12 @@
   <div class="relative flex min-h-40 gap-4 bg-[#202228] p-3 transition-transform duration-200 ease-out sm:min-h-44 sm:gap-5 sm:p-4"
        :class="dragging ? '!duration-0' : ''"
        :style="`transform: translateX(${offset}px)`">
-    <a href="{{ media.item|media_url }}" class="w-24 shrink-0 self-stretch overflow-hidden rounded-lg sm:w-28">
+    <a href="{{ media.item|media_url }}" class="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg sm:w-28">
       <img alt="{{ media }}"
            class="lazyload h-full w-full {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
            data-src="{{ media.item.cached_image_url }}"
            src="{{ IMG_PLACEHOLDER }}">
+      {% include "app/components/game_launcher_badge.html" with item=media.item media=media compact=True %}
     </a>
 
     <div class="flex min-w-0 flex-1 flex-col py-0.5">

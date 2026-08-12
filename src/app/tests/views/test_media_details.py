@@ -7,6 +7,8 @@ from django.urls import reverse
 
 from app.models import (
     Episode,
+    Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -60,6 +62,58 @@ class MediaDetailsViewTests(TestCase):
             "238",
             Sources.TMDB.value,
         )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_game_details_show_current_and_repeat_launchers(self, mock_get_metadata):
+        """Game details identify the launcher for each tracked entry."""
+        mock_get_metadata.return_value = {
+            "media_id": "game-1",
+            "title": "Test Game",
+            "media_type": MediaTypes.GAME.value,
+            "source": Sources.IGDB.value,
+            "image": "http://example.com/game.jpg",
+            "synopsis": "Test game overview",
+            "genres": [],
+            "details": {},
+            "max_progress": None,
+        }
+        item = Item.objects.create(
+            media_id="game-1",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Test Game",
+            image="http://example.com/game.jpg",
+        )
+        first = Game(
+            item=item,
+            user=self.user,
+            launcher=GameLaunchers.GOG,
+            status=Status.COMPLETED.value,
+        )
+        Game.save_base(first)
+        current = Game(
+            item=item,
+            user=self.user,
+            launcher=GameLaunchers.EPIC,
+            status=Status.IN_PROGRESS.value,
+        )
+        Game.save_base(current)
+
+        response = self.client.get(
+            reverse(
+                "media_details",
+                kwargs={
+                    "source": Sources.IGDB.value,
+                    "media_type": MediaTypes.GAME.value,
+                    "media_id": "game-1",
+                    "title": "test-game",
+                },
+            ),
+        )
+
+        self.assertContains(response, "Launcher:", count=2)
+        self.assertContains(response, GameLaunchers.EPIC.label)
+        self.assertContains(response, GameLaunchers.GOG.label)
 
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")

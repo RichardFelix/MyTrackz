@@ -1,3 +1,4 @@
+import csv
 import io
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from app.models import (
     Anime,
     Episode,
     Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -22,7 +24,15 @@ from app.models import (
 from integrations.exports import generate_rows
 from integrations.imports import yamtrack
 
-TRACK_FIELDS = ("status", "score", "progress", "notes", "start_date", "end_date")
+TRACK_FIELDS = (
+    "status",
+    "score",
+    "progress",
+    "launcher",
+    "notes",
+    "start_date",
+    "end_date",
+)
 
 
 class ExportImportRoundTripTests(TestCase):
@@ -94,6 +104,7 @@ class ExportImportRoundTripTests(TestCase):
         Game.objects.create(
             item=game_item,
             user=self.exporter,
+            launcher=GameLaunchers.GOG,
             status=Status.IN_PROGRESS.value,
             progress=90,
         )
@@ -215,6 +226,29 @@ class ExportImportRoundTripTests(TestCase):
         self.assertEqual(counts, {})
         self.assertEqual(Movie.objects.filter(user=self.importer).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.importer).count(), 1)
+
+    def test_legacy_export_without_launcher_defaults_games_to_steam(self):
+        """CSV files created before launcher tracking remain importable."""
+        rows = list(csv.reader(io.StringIO(self._export_csv().decode())))
+        launcher_index = rows[0].index("launcher")
+        for row in rows:
+            row.pop(launcher_index)
+
+        legacy_export = io.StringIO()
+        csv.writer(legacy_export, quoting=csv.QUOTE_ALL).writerows(rows)
+
+        counts, warnings = yamtrack.importer(
+            io.BytesIO(legacy_export.getvalue().encode()),
+            self.importer,
+            "new",
+        )
+
+        self.assertEqual(warnings, "")
+        self.assertEqual(counts[MediaTypes.GAME.value], 1)
+        self.assertEqual(
+            Game.objects.get(user=self.importer).launcher,
+            GameLaunchers.STEAM,
+        )
 
     def test_reimport_in_overwrite_mode_replaces_cleanly(self):
         """Overwrite mode must replace rows without duplicating or losing data."""

@@ -1015,6 +1015,22 @@ class Status(models.TextChoices):
     DROPPED = "Dropped", "Dropped"
 
 
+class GameLaunchers(models.TextChoices):
+    """Supported launchers for tracked games."""
+
+    STEAM = "Steam", "Steam"
+    GOG = "GOG", "GOG"
+    EPIC = "Epic", "Epic"
+    EA = "EA", "EA"
+    UBISOFT = "Ubisoft", "Ubisoft"
+    BLIZZARD = "Blizzard", "Blizzard"
+    XBOX = "Xbox", "Xbox"
+    EMULATION = "Emulation", "Emulation"
+    ROCKSTAR = "Rockstar", "Rockstar"
+    AMAZON = "Amazon", "Amazon"
+    OTHER = "Other", "Other"
+
+
 def get_status_label(status, user=None):
     """Return a status label using the viewer's preferred planning term."""
     if status == Status.PLANNING.value:
@@ -2408,6 +2424,11 @@ class Movie(Media):
 class Game(Media):
     """Model for games."""
 
+    launcher = models.CharField(
+        max_length=10,
+        choices=GameLaunchers,
+        default=GameLaunchers.STEAM,
+    )
     tracker = FieldTracker()
 
     @property

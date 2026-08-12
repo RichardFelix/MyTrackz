@@ -3,7 +3,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from app.models import Game, Item, MediaTypes, Sources, Status
+from app.models import Game, GameLaunchers, Item, MediaTypes, Sources, Status
 from integrations.imports import steam
 
 
@@ -26,11 +26,17 @@ class ImportSteamUpdate(TestCase):
             image="http://example.com/cs2.jpg",
         )
 
-    def _create_game(self, status=Status.PLANNING.value, progress=0):
+    def _create_game(
+        self,
+        status=Status.PLANNING.value,
+        progress=0,
+        launcher=GameLaunchers.STEAM,
+    ):
         """Create a game with a specific status and progress."""
         return Game.objects.create(
             item=self.item,
             user=self.user,
+            launcher=launcher,
             status=status,
             progress=progress,
         )
@@ -72,7 +78,7 @@ class ImportSteamUpdate(TestCase):
     ):
         """Test overwrite mode updates an existing game instead of recreating it."""
         self._setup_mocks(mock_get_metadata, mock_external_game, mock_api_request)
-        game = self._create_game()
+        game = self._create_game(launcher=GameLaunchers.GOG)
 
         imported_counts, _ = steam.importer(
             "76561198000000000",
@@ -85,6 +91,7 @@ class ImportSteamUpdate(TestCase):
         self.assertEqual(Game.objects.filter(user=self.user).count(), 1)
         self.assertEqual(game.progress, 1300)
         self.assertEqual(game.status, Status.IN_PROGRESS.value)
+        self.assertEqual(game.launcher, GameLaunchers.STEAM)
         self.assertEqual(game.history.count(), 2)
 
     def test_overwrite_steam_game_completed_status(

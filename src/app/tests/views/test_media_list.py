@@ -5,6 +5,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from app.models import (
+    Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -82,6 +84,38 @@ class MediaListViewTests(TestCase):
             response.context["media_type_plural"],
             app_tags.media_type_readable_plural(MediaTypes.MOVIE.value).lower(),
         )
+        self.assertNotContains(response, "data-game-launcher-badge")
+
+    def test_game_grid_shows_launcher_badge_above_score(self):
+        """Tracked game cards badge the launcher without covering the score."""
+        item = Item.objects.create(
+            media_id="game-1",
+            source=Sources.IGDB.value,
+            media_type=MediaTypes.GAME.value,
+            title="Test Game",
+            image="http://example.com/game.jpg",
+        )
+        game = Game(
+            item=item,
+            user=self.user,
+            launcher=GameLaunchers.GOG,
+            status=Status.IN_PROGRESS.value,
+            score=8,
+        )
+        Game.save_base(game)
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.GAME.value])
+            + "?layout=grid",
+        )
+
+        self.assertContains(response, "data-game-launcher-badge", count=1)
+        self.assertContains(response, "GOG")
+        self.assertContains(
+            response,
+            "px-1.5 py-1.5 text-xs font-medium whitespace-nowrap",
+        )
+        self.assertContains(response, "right-2 top-10")
 
     def test_media_list_with_filters(self):
         """Test the media list view with filters."""
