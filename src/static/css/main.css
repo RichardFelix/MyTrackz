@@ -3732,7 +3732,8 @@
 }
 @media (width < 40rem) {
   .game-launcher-badge-responsive {
-    width: clamp(1.5rem, 13%, 1.75rem);
+    width: clamp(1.25rem, 11%, 1.5rem);
+    right: 0.25rem;
     padding-inline: 0.75rem;
     padding-block: 0;
     writing-mode: vertical-rl;
@@ -3746,7 +3747,8 @@
     white-space: normal;
   }
   .game-release-date-with-launcher {
-    max-width: calc(100% - clamp(1.5rem, 13%, 1.75rem) - 1.5rem);
+    left: 0.25rem;
+    max-width: calc(100% - clamp(1.25rem, 11%, 1.5rem) - 1.5rem);
   }
 }
 .liquid-glass {
