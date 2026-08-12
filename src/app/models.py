@@ -352,6 +352,7 @@ class MediaManager(models.Manager):
         search=None,
         genre_filter=None,
         format_filter=None,
+        launcher_filter=None,
     ):
         """Get media list based on filters, sorting and search."""
         model = apps.get_model(app_label="app", model_name=media_type)
@@ -368,6 +369,9 @@ class MediaManager(models.Manager):
 
         if format_filter:
             queryset = queryset.filter(item__media_format=format_filter)
+
+        if launcher_filter and media_type == MediaTypes.GAME.value:
+            queryset = queryset.filter(launcher=launcher_filter)
 
         queryset = queryset.annotate(
             repeats=Window(

@@ -28,6 +28,7 @@ from app.forms import EpisodeForm, ItemImageForm, ManualItemForm, get_form_class
 from app.models import (
     TV,
     BasicMedia,
+    GameLaunchers,
     Genre,
     Item,
     MediaTypes,
@@ -529,6 +530,10 @@ def media_list(request, username, media_type):
     search_query = request.GET.get("search", "")
     genre_filter = request.GET.get("genre", "")
     format_filter = request.GET.get("format", "")
+    launcher_filter = _get_launcher_filter(
+        media_type,
+        request.GET.get("launcher", ""),
+    )
     page = request.GET.get("page", 1)
 
     # Prepare status filter for database query
@@ -544,6 +549,7 @@ def media_list(request, username, media_type):
         search=search_query,
         genre_filter=genre_filter,
         format_filter=format_filter,
+        launcher_filter=launcher_filter,
     )
 
     # Paginate results
@@ -566,6 +572,10 @@ def media_list(request, username, media_type):
         "current_status": status_filter,
         "current_genre": genre_filter,
         "current_format": format_filter,
+        "current_launcher": launcher_filter,
+        "launcher_choices": (
+            GameLaunchers.choices if media_type == MediaTypes.GAME.value else []
+        ),
         "sort_choices": MediaSortChoices.choices,
         "status_choices": get_status_choices(target_user, include_all=True),
         "target_user": target_user,
@@ -624,6 +634,16 @@ def _get_format_choices(media_type, target_user):
         .distinct(),
     )
     return format_choices if len(format_choices) > 1 else []
+
+
+def _get_launcher_filter(media_type, requested_launcher):
+    """Return a supported launcher only for the games library."""
+    if (
+        media_type == MediaTypes.GAME.value
+        and requested_launcher in GameLaunchers.values
+    ):
+        return requested_launcher
+    return ""
 
 
 @require_GET

@@ -16,7 +16,7 @@
     {% include "app/components/media_item_count.html" %}
   </div>
 
-  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', genre: '{{ current_genre|escapejs }}', format: '{{ current_format|escapejs }}', statusLabels: {
+  <div x-data="{ sort: '{{ current_sort }}', status: '{{ current_status }}', layout: '{{ current_layout }}', search: '{{ request.GET.search|default:'' }}', genre: '{{ current_genre|escapejs }}', format: '{{ current_format|escapejs }}', launcher: '{{ current_launcher|escapejs }}', statusLabels: {
     {% for value, label in status_choices %}
       '{{ value }}': '{{ label }}'
       {% if not forloop.last %},{% endif %}
@@ -38,9 +38,11 @@
       <input type="hidden" name="layout" x-model="layout">
       <input type="hidden" name="genre" x-model="genre">
       <input type="hidden" name="format" x-model="format">
+      <input type="hidden" name="launcher" x-model="launcher">
     </form>
 
-    <div class="flex flex-col md:flex-row gap-4 mb-6">
+    <div data-library-toolbar
+         class="relative z-20 flex flex-col gap-4 mb-6 md:flex-row">
       <!-- Search -->
       <div class="relative grow">
         <input placeholder="Search {{ media_type_plural }} in {% if target_user != request.user %}{{ target_user.username }}'s {% else %}your {% endif %}list..."
@@ -125,6 +127,49 @@
             {% endfor %}
           </div>
         </div>
+
+        <!-- Filter by Launcher -->
+        {% if launcher_choices %}
+          <div data-launcher-filter class="relative w-full sm:w-auto" x-data="{ open: false }">
+            <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
+                    @click="open = !open"
+                    type="button">
+              {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
+              <span class="flex-1 text-left" x-text="launcher || 'All Launchers'"></span>
+              {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
+            </button>
+
+            <div class="absolute z-10 mt-2 max-h-80 w-48 overflow-y-auto rounded-lg border border-[#2c3136] bg-[#1b1c22] py-1 shadow-xl"
+                 x-cloak
+                 x-show="open"
+                 @click.outside="open = false"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="transform opacity-0 scale-95"
+                 x-transition:enter-end="transform opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="transform opacity-100 scale-100"
+                 x-transition:leave-end="transform opacity-0 scale-95">
+              <button hx-get="{% url 'medialist' target_user.username media_type %}"
+                      {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                      hx-include="#filter-form"
+                      hx-indicator="#loading-indicator"
+                      class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                      :class="launcher === '' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
+                      @click="launcher = ''; open = false"
+                      type="button">All Launchers</button>
+              {% for value, label in launcher_choices %}
+                <button hx-get="{% url 'medialist' target_user.username media_type %}"
+                        {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}
+                        hx-include="#filter-form"
+                        hx-indicator="#loading-indicator"
+                        class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
+                        :class="launcher === '{{ value|escapejs }}' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
+                        @click="launcher = '{{ value|escapejs }}'; open = false"
+                        type="button">{{ label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
 
         <!-- Filter by Genre -->
         {% if genre_choices %}
@@ -214,12 +259,12 @@
 
         <!-- Layout Toggle -->
         <div class="flex w-full overflow-hidden rounded-lg border border-[#2c3136] sm:w-auto">
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}layout=grid`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}${launcher ? 'launcher=' + encodeURIComponent(launcher) + '&' : ''}layout=grid`"
              class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
              :class="layout === 'grid' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Grid View"
              @click="layout = 'grid'">{% include "app/icons/four-square.svg" with classes="w-5 h-5" %}</a>
-          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}layout=table`"
+          <a :href="`{% url 'medialist' target_user.username media_type %}?${search ? 'search=' + search + '&' : ''}${status !== 'all' ? 'status=' + status + '&' : ''}${sort !== 'score' ? 'sort=' + sort + '&' : ''}${genre ? 'genre=' + encodeURIComponent(genre) + '&' : ''}${format ? 'format=' + encodeURIComponent(format) + '&' : ''}${launcher ? 'launcher=' + encodeURIComponent(launcher) + '&' : ''}layout=table`"
              class="flex flex-1 items-center justify-center p-2 cursor-pointer sm:flex-none"
              :class="layout === 'table' ? 'bg-indigo-600 text-white' : 'bg-[#17181d] text-gray-400 hover:bg-[#1d1e24] hover:text-white'"
              title="Table View"

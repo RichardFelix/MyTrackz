@@ -13,6 +13,7 @@ from app.models import (
     Book,
     Episode,
     Game,
+    GameLaunchers,
     Item,
     Manga,
     MediaManager,
@@ -529,6 +530,38 @@ class MediaManagerTests(TestCase):
 
         self.assertEqual(media_list.first(), self.anime)
         self.assertEqual(media_list.last(), anime2)
+
+    def test_get_game_list_filter_by_launcher(self):
+        """Games can be filtered to a selected launcher."""
+        games = []
+        for media_id, title, launcher in (
+            ("game-1", "Zeta", GameLaunchers.GOG),
+            ("game-2", "Bravo", GameLaunchers.EPIC),
+            ("game-3", "Alpha", GameLaunchers.GOG),
+        ):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.IGDB.value,
+                media_type=MediaTypes.GAME.value,
+                title=title,
+                image="http://example.com/game.jpg",
+            )
+            games.append(
+                Game.objects.create(
+                    item=item,
+                    user=self.user,
+                    launcher=launcher,
+                )
+            )
+
+        gog_games = MediaManager().get_media_list(
+            user=self.user,
+            media_type=MediaTypes.GAME.value,
+            status_filter=MediaStatusChoices.ALL,
+            sort_filter="title",
+            launcher_filter=GameLaunchers.GOG,
+        )
+        self.assertEqual(list(gog_games), [games[2], games[0]])
 
     def test_get_media_types_to_process(self):
         """Test the _get_media_types_to_process method."""

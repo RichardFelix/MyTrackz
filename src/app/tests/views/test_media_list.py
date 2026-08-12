@@ -15,6 +15,7 @@ from app.models import (
 )
 from app.templatetags import app_tags
 from users.forms import UserUpdateForm
+from users.models import MediaSortChoices
 
 
 class MediaListViewTests(TestCase):
@@ -113,9 +114,62 @@ class MediaListViewTests(TestCase):
         self.assertContains(response, "GOG")
         self.assertContains(
             response,
-            "px-1.5 py-1.5 text-xs font-medium whitespace-nowrap",
+            "absolute z-0 rounded-md",
         )
         self.assertContains(response, "right-2 top-10")
+
+    def test_game_library_offers_dedicated_launcher_filter(self):
+        """Launcher filtering is separate from the standard sort menu."""
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.GAME.value]),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["current_sort"], MediaSortChoices.SCORE)
+        self.assertEqual(response.context["sort_choices"], MediaSortChoices.choices)
+        self.assertNotContains(response, ">Launcher</button>")
+        self.assertContains(response, "data-launcher-filter")
+        self.assertContains(response, "All Launchers")
+        self.assertContains(response, 'name="launcher"')
+        self.assertContains(response, "data-library-toolbar")
+        self.assertContains(
+            response,
+            'class="relative z-20 flex flex-col gap-4 mb-6 md:flex-row"',
+        )
+        movie_response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.MOVIE.value])
+        )
+        self.assertEqual(
+            movie_response.context["sort_choices"],
+            MediaSortChoices.choices,
+        )
+        self.assertNotContains(movie_response, ">Launcher</button>")
+        self.assertNotContains(movie_response, "data-launcher-filter")
+
+    def test_game_library_filters_by_launcher(self):
+        """The dedicated launcher dropdown filters tracked games."""
+        for media_id, title, launcher in (
+            ("game-gog", "GOG Game", GameLaunchers.GOG),
+            ("game-steam", "Steam Game", GameLaunchers.STEAM),
+        ):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.IGDB.value,
+                media_type=MediaTypes.GAME.value,
+                title=title,
+                image="http://example.com/game.jpg",
+            )
+            Game.save_base(Game(item=item, user=self.user, launcher=launcher))
+
+        response = self.client.get(
+            reverse("medialist", args=[self.user.username, MediaTypes.GAME.value]),
+            {"launcher": GameLaunchers.GOG},
+        )
+
+        self.assertEqual(response.context["current_launcher"], GameLaunchers.GOG)
+        self.assertEqual(response.context["media_list"].paginator.count, 1)
+        self.assertContains(response, "GOG Game")
+        self.assertNotContains(response, "Steam Game")
 
     def test_media_list_with_filters(self):
         """Test the media list view with filters."""
