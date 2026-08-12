@@ -48,6 +48,30 @@
   @apply grid grid-cols-2 xs:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4;
 }
 
+/* On mobile game-cover cards, stack launcher letters in a responsive badge.
+   Desktop cards retain the compact horizontal badge. */
+@media (width < 40rem) {
+  .game-launcher-badge-responsive {
+    width: clamp(1.5rem, 13%, 1.75rem);
+    padding-inline: 0.75rem;
+    padding-block: 0;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: normal;
+  }
+
+  /* Leave one half-rem visual gap between the home date and launcher. */
+  .game-release-date-with-launcher {
+    max-width: calc(100% - clamp(1.5rem, 13%, 1.75rem) - 1.5rem);
+  }
+}
+
 /* Mobile bottom nav (modern-ui): iOS-style translucent glass capsule.
    Layered gradient fakes the specular/lensing look on top of the blur. */
 .liquid-glass {

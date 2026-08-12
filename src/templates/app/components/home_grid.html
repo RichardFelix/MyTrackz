@@ -20,7 +20,7 @@
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
         <div {% if media.item.media_type == MediaTypes.GAME.value %}data-game-release-date{% endif %}
-             class="absolute {% if media.item.media_type == MediaTypes.GAME.value %}top-10 left-2 sm:top-2{% else %}top-2 left-1/2 -translate-x-1/2{% endif %} flex max-w-[98%] items-center gap-1.5 rounded-md bg-black/80 {% if media.item.media_type == MediaTypes.GAME.value %}px-1.5{% else %}px-2{% endif %} py-1.5 shadow-md whitespace-nowrap">
+             class="absolute {% if media.item.media_type == MediaTypes.GAME.value %}game-release-date-with-launcher top-2 left-2{% else %}top-2 left-1/2 -translate-x-1/2{% endif %} flex {% if media.item.media_type != MediaTypes.GAME.value %}max-w-[98%] {% endif %}items-center gap-1.5 rounded-md bg-black/80 {% if media.item.media_type == MediaTypes.GAME.value %}px-1.5{% else %}px-2{% endif %} py-1.5 shadow-md whitespace-nowrap">
           {% if home_status == Status.PLANNING.value %}
             {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-sky-400" %}
           {% else %}

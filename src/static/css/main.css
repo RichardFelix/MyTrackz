@@ -1624,6 +1624,12 @@
       background-color: color-mix(in oklab, var(--color-red-400) 10%, transparent);
     }
   }
+  .bg-red-500\/15 {
+    background-color: color-mix(in srgb, oklch(63.7% 0.237 25.331) 15%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-red-500) 15%, transparent);
+    }
+  }
   .bg-red-600 {
     background-color: var(--color-red-600);
   }
@@ -2000,6 +2006,10 @@
   }
   .text-\[25px\] {
     font-size: 25px;
+  }
+  .leading-6 {
+    --tw-leading: calc(var(--spacing) * 6);
+    line-height: calc(var(--spacing) * 6);
   }
   .leading-relaxed {
     --tw-leading: var(--leading-relaxed);
@@ -3129,11 +3139,6 @@
       visibility: hidden;
     }
   }
-  .max-lg\:visible {
-    @media (width < 64rem) {
-      visibility: visible;
-    }
-  }
   .max-lg\:h-0 {
     @media (width < 64rem) {
       height: calc(var(--spacing) * 0);
@@ -3723,6 +3728,25 @@
   gap: calc(var(--spacing) * 4);
   @media (width >= 30rem) {
     grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+  }
+}
+@media (width < 40rem) {
+  .game-launcher-badge-responsive {
+    width: clamp(1.5rem, 13%, 1.75rem);
+    padding-inline: 0.75rem;
+    padding-block: 0;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: normal;
+  }
+  .game-release-date-with-launcher {
+    max-width: calc(100% - clamp(1.5rem, 13%, 1.75rem) - 1.5rem);
   }
 }
 .liquid-glass {

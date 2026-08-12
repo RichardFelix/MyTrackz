@@ -114,7 +114,7 @@ class MediaListViewTests(TestCase):
         self.assertContains(response, "GOG")
         self.assertContains(
             response,
-            "absolute z-0 rounded-md",
+            "game-launcher-badge-responsive right-2 top-2",
         )
         self.assertContains(response, "right-2 top-10")
 

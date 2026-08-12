@@ -297,7 +297,7 @@ class HomeViewTests(TestCase):
         self.assertContains(response, "data-game-release-date", count=1)
         self.assertContains(
             response,
-            'class="absolute top-10 left-2 sm:top-2 flex',
+            'class="absolute game-release-date-with-launcher top-2 left-2 flex',
         )
         self.assertContains(
             response,
