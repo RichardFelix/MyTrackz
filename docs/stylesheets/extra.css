@@ -32,3 +32,19 @@
   --color-background-subtle: 39 43 53;
   --color-backdrop: 22 24 30;
 }
+
+.mytrackz-feature-comparison {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.mytrackz-feature-comparison > div {
+  min-width: 0;
+}
+
+@media screen and (max-width: 600px) {
+  .mytrackz-feature-comparison {
+    grid-template-columns: 1fr;
+  }
+}

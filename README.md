@@ -31,23 +31,16 @@ MyTrackz is a self-hosted media tracker for movies, TV shows, anime, manga, vide
 
 MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opinionated experience for people who want richer discovery, greater visual control, and a highly adaptable home screen.
 
-<style>
-  @media (max-width: 600px) {
-    .mytrackz-feature-comparison {
-      flex-direction: column;
-    }
-  }
-</style>
-<div class="mytrackz-feature-comparison" style="display: flex; gap: 1rem;">
-  <div style="flex: 1 1 0;">
+<div class="mytrackz-feature-comparison">
+  <div>
     <strong>🎨 A more adaptable interface</strong>
     <p>Choose grid or compact home layouts, reorder media rows, expand them automatically, use quick card actions, and navigate from a redesigned mobile interface.</p>
   </div>
-  <div style="flex: 1 1 0;">
+  <div>
     <strong>🛠️ Greater library control</strong>
     <p>Cache artwork locally, set custom posters and profile images, filter by genre or game launcher, and fine-tune tracking and display preferences.</p>
   </div>
-  <div style="flex: 1 1 0;">
+  <div>
     <strong>🧭 More ways to discover</strong>
     <p>Explore personalized recommendations, current trends, and direct story continuations from a responsive, mobile-friendly interface without resurfacing media you already track.</p>
   </div>
