@@ -7,11 +7,29 @@
 
 MyTrackz is a self-hosted media tracker for movies, tv shows, anime, manga, video games, books, comics, and board games.
 
-It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus fork-only features including local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, genre filtering, live library counts, and compact or fully expanded home layouts.
+It's a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), rebranded and extended with a redesigned UI plus fork-only features including local image caching, personalized recommendations ("Discover"), a global "Trending" page, a "Continue the Story" home widget, custom poster images, genre filtering, live library counts, per-game launcher tracking and filtering, and compact or fully expanded home layouts.
 
 Every fork-only addition (marked ⭐ below) was designed and implemented with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
 
 <!-- --8<-- [end:docs-index-intro] -->
+
+## 📱 Screenshots
+
+### Feature Walkthroughs ⭐
+
+| Grid Home workflow | Grid Mobile workflow |
+| ------------- | --------------- |
+| ![Home workflow](docs/assets/walkthroughs/homepage.gif) | ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) |
+
+Here are a few highlights from the redesigned interface:
+
+| List Home Dashboard | List Mobile Navigation |
+| ----------------- | ------------------- |
+| ![MyTrackz home dashboard](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile navigation](docs/assets/screenshots/mobile_home_aired_only.png) |
+
+| Discover recommendations ⭐ | Trending media ⭐ |
+| --------------------------- | ---------------- |
+| ![Discover recommendations](docs/assets/screenshots/discover.webp) | ![Trending media](docs/assets/screenshots/trending.webp) |
 
 ## 📚 Documentation
 
@@ -46,6 +64,8 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🔐 Regenerate your personal webhook/ICS token any time, with granular controls for which Jellyfin events (play/stop, manual mark played/unplayed) and which Plex usernames are processed.
 - 🖼️ ⭐ **Local image caching** — provider posters/covers are downloaded and served locally (WebP) instead of hotlinking, with size-capped eviction and a manual purge option in Settings → Advanced.
 - 🖌️ ⭐ **Custom poster images** — replace any item's poster with your own image URL, with one click to revert to the original.
+- 🎮 ⭐ **Per-game launcher tracking** — assign tracked games to Steam, GOG, Epic, EA, Ubisoft, Blizzard, Xbox, Nintendo, PlayStation, Emulation, Rockstar, Amazon, or Other; launcher badges appear across game cards, lists, home views, and details.
+- 🎯 ⭐ **Game launcher filtering** — filter game libraries by launcher while preserving the active search, status, genre, format, sort, pagination, and layout settings.
 - 🎨 ⭐ **Redesigned UI** — liquid-glass mobile bottom nav with an updated media-type grid and morphing library panel, plus a one-tap "Mark watched" control for movies.
 - 🏠 ⭐ **Compact home list** — switch the home screen from poster cards to a compact, swipeable list with episode details and one-tap progress controls.
 - 🧭 ⭐ **Discover page** — personalized recommendations aggregated from everything you've completed or are currently tracking, ranked and interleaved across media types.
@@ -64,24 +84,6 @@ Everything from upstream Yamtrack, plus this fork's own additions (marked ⭐).
 - 🖼️ ⭐ **Profile images** — set an avatar from any image URL, with a circular drag-and-zoom cropper; downloaded and cached locally like everything else.
 - 🧹 ⭐ **Cache management in Settings → Advanced** — see exactly how much disk the local image cache and search cache are using, with one-click buttons to purge either.
 - ⚠️ ⭐ **Cache action confirmations** — confirm search-cache and image-cache purges before any cached data is removed.
-
-## 📱 Screenshots
-
-### Feature Walkthroughs ⭐
-
-| Grid Home workflow | Grid Mobile workflow |
-| ------------- | --------------- |
-| ![Home workflow](docs/assets/walkthroughs/homepage.gif) | ![Mobile workflow](docs/assets/walkthroughs/mobile.gif) |
-
-Here are a few highlights from the redesigned interface:
-
-| List Home Dashboard | List Mobile Navigation |
-| ----------------- | ------------------- |
-| ![MyTrackz home dashboard](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile navigation](docs/assets/screenshots/mobile_home_aired_only.png) |
-
-| Discover recommendations ⭐ | Trending media ⭐ |
-| --------------------------- | ---------------- |
-| ![Discover recommendations](docs/assets/screenshots/discover.webp) | ![Trending media](docs/assets/screenshots/trending.webp) |
 
 ## 🐳 Installing with Docker
 
@@ -103,6 +105,6 @@ See `docs/development.md` for the shared development workflow. `AGENTS.md` conta
 
 MyTrackz is a personal fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) by [FuzzyGrim](https://github.com/FuzzyGrim). All of the core tracking functionality and most of the codebase comes from that upstream project — go star it, and if you don't need any of the fork-only features above, you're probably better served running Yamtrack directly.
 
-All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filtering, live library counts, the redesigned UI, command palette, profile images, compact home lists, Aired-only filtering, colored progress controls, home row ordering, cache management and confirmations, grouped preferences, expanded home rows, and PWA improvements — were built with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
+All of the ⭐ fork-only features — image caching, Discover, Trending, Continue the Story, custom poster images, genre filtering, live library counts, per-game launcher tracking and filtering, the redesigned UI, command palette, profile images, compact home lists, Aired-only filtering, colored progress controls, home row ordering, cache management and confirmations, grouped preferences, expanded home rows, and PWA improvements — were built with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
 
 <!-- --8<-- [end:docs-index-body] -->
