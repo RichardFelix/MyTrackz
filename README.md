@@ -31,9 +31,20 @@ MyTrackz is a self-hosted media tracker for movies, TV shows, anime, manga, vide
 
 MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opinionated experience for people who want richer discovery, greater visual control, and a highly adaptable home screen.
 
-| 🎨 A more adaptable interface | 🛠️ Greater library control | 🧭 More ways to discover |
-| :---------------------------- | :------------------------- | :----------------------- |
-| Choose grid or compact home layouts, reorder media rows, expand them automatically, use quick card actions, and navigate from a redesigned mobile interface. | Cache artwork locally, set custom posters and profile images, filter by genre or game launcher, and fine-tune tracking and display preferences. | Explore personalized recommendations, current trends, and direct story continuations from a responsive, mobile-friendly interface without resurfacing media you already track. |
+<div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+  <div style="flex: 1 1 280px;">
+    <strong>🎨 A more adaptable interface</strong>
+    <p>Choose grid or compact home layouts, reorder media rows, expand them automatically, use quick card actions, and navigate from a redesigned mobile interface.</p>
+  </div>
+  <div style="flex: 1 1 280px;">
+    <strong>🛠️ Greater library control</strong>
+    <p>Cache artwork locally, set custom posters and profile images, filter by genre or game launcher, and fine-tune tracking and display preferences.</p>
+  </div>
+  <div style="flex: 1 1 280px;">
+    <strong>🧭 More ways to discover</strong>
+    <p>Explore personalized recommendations, current trends, and direct story continuations from a responsive, mobile-friendly interface without resurfacing media you already track.</p>
+  </div>
+</div>
 
 If you prefer the upstream project's release path and do not need these ⭐ additions, [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) remains an excellent choice. MyTrackz is for users who specifically want the fork's expanded interface and discovery features.
 
