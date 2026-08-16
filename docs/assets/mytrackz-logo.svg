@@ -1,0 +1,23 @@
+<svg viewBox="0 0 130 130" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>MyTrackz logo</title>
+  <desc>A classic game controller on a black rounded-square background</desc>
+
+  <rect x="18" y="18" width="94" height="94" rx="20" fill="#000000"/>
+
+  <g transform="translate(31.4, 38.1) scale(0.671)">
+    <path d="M8 30 C8 12 18 4 34 4 L66 4 C82 4 92 12 92 30 L92 48 C92 62 82 70 70 70 L30 70 C18 70 8 62 8 48 Z" fill="white"/>
+    <path d="M8 48 C8 64 2 82 14 84 C24 86 28 72 30 70" fill="white"/>
+    <path d="M92 48 C92 64 98 82 86 84 C76 86 72 72 70 70" fill="white"/>
+
+    <rect x="22" y="26" width="9" height="24" rx="3" fill="#000000"/>
+    <rect x="15" y="33" width="23" height="9" rx="3" fill="#000000"/>
+
+    <circle cx="71" cy="30" r="5" fill="#000000"/>
+    <circle cx="62" cy="39" r="5" fill="#000000"/>
+    <circle cx="80" cy="39" r="5" fill="#000000"/>
+    <circle cx="71" cy="48" r="5" fill="#000000"/>
+
+    <rect x="40" y="28" width="10" height="3" rx="1.5" fill="#000000"/>
+    <rect x="40" y="34" width="10" height="3" rx="1.5" fill="#000000"/>
+  </g>
+</svg>

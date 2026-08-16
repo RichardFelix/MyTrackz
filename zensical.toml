@@ -22,8 +22,8 @@ nav = [
 [project.theme]
 variant = "modern"
 language = "en"
-logo = "assets/logo.png"
-favicon = "assets/logo.png"
+logo = "assets/mytrackz-logo.svg"
+favicon = "assets/mytrackz-logo.svg"
 features = [
   "content.action.edit",
   "content.action.view",
