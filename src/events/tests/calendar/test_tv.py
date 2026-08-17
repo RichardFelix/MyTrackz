@@ -18,6 +18,7 @@ from app.models import (
     Status,
 )
 from events.calendar.helpers import date_parser
+from events.calendar.main import cleanup_invalid_events, save_events
 from events.calendar.tv import (
     get_episode_datetime,
     get_seasons_to_process,
@@ -721,6 +722,140 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
         }
 
         self.assertEqual(get_seasons_to_process(self.tv_item), [2])
+
+    @patch("events.calendar.tv.tmdb.get_tv_episode_group_id")
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_get_seasons_to_process_revisits_all_episode_group_seasons(
+        self,
+        mock_tv,
+        mock_get_tv_episode_group_id,
+    ):
+        """Alternate orders must repair seasons that already have stale events."""
+        season_two_item = Item.objects.create(
+            media_id=self.tv_item.media_id,
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title=self.tv_item.title,
+            image=self.tv_item.image,
+            season_number=2,
+        )
+        for item in (self.season_item, season_two_item):
+            Event.objects.create(
+                item=item,
+                content_number=1,
+                datetime=date_parser("2026-08-03"),
+            )
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 1},
+                    {"season_number": 2},
+                ],
+            },
+            "next_episode_season": 2,
+        }
+        mock_get_tv_episode_group_id.return_value = "episode-group-id"
+
+        self.assertEqual(get_seasons_to_process(self.tv_item), [1, 2])
+
+    @patch("events.calendar.tv.get_tvmaze_episode_map", return_value={})
+    @patch("events.calendar.tv.tmdb.get_tv_episode_group_id")
+    @patch("events.calendar.tv.tmdb.tv_with_seasons")
+    @patch("events.calendar.tv.tmdb.tv")
+    def test_episode_group_refresh_repairs_stale_season_dates(
+        self,
+        mock_tv,
+        mock_tv_with_seasons,
+        mock_get_tv_episode_group_id,
+        _mock_get_tvmaze_episode_map,
+    ):
+        """Futurama-style ordering moves 2023 and 2026 dates to the right seasons."""
+        self.tv_item.media_id = "615"
+        self.tv_item.title = "Futurama"
+        self.tv_item.save(update_fields=["media_id", "title"])
+        self.season_item.media_id = "615"
+        self.season_item.title = "Futurama"
+        self.season_item.season_number = 11
+        self.season_item.save(
+            update_fields=["media_id", "title", "season_number"],
+        )
+        season_fourteen_item = Item.objects.create(
+            media_id="615",
+            source=self.tv_item.source,
+            media_type=MediaTypes.SEASON.value,
+            title="Futurama",
+            image=self.tv_item.image,
+            season_number=14,
+        )
+        stale_datetime = date_parser("2026-08-03")
+        Event.objects.create(
+            item=self.season_item,
+            content_number=1,
+            datetime=stale_datetime,
+        )
+        Event.objects.create(
+            item=self.season_item,
+            content_number=11,
+            datetime=stale_datetime,
+        )
+        Event.objects.create(
+            item=season_fourteen_item,
+            content_number=1,
+            datetime=stale_datetime,
+        )
+        season = Season.objects.get(item=self.season_item, user=self.user)
+        original_status = season.status
+        original_history_count = season.history.count()
+
+        mock_get_tv_episode_group_id.return_value = "episode-group-id"
+        mock_tv.return_value = {
+            "related": {
+                "seasons": [
+                    {"season_number": 11},
+                    {"season_number": 14},
+                ],
+            },
+            "next_episode_season": 14,
+        }
+        mock_tv_with_seasons.return_value = {
+            "season/11": {
+                "image": self.tv_item.image,
+                "season_number": 11,
+                "episodes": [
+                    {"episode_number": number, "air_date": "2023-07-24"}
+                    for number in range(1, 11)
+                ],
+            },
+            "season/14": {
+                "image": self.tv_item.image,
+                "season_number": 14,
+                "episodes": [
+                    {"episode_number": number, "air_date": "2026-08-03"}
+                    for number in range(1, 11)
+                ],
+            },
+        }
+
+        events_bulk = []
+        process_tv(self.tv_item, events_bulk)
+        save_events(events_bulk)
+        cleanup_invalid_events(events_bulk)
+
+        season_eleven_events = Event.objects.filter(item=self.season_item)
+        season_fourteen_events = Event.objects.filter(item=season_fourteen_item)
+        self.assertEqual(season_eleven_events.count(), 10)
+        self.assertEqual(season_fourteen_events.count(), 10)
+        self.assertEqual(
+            set(season_eleven_events.values_list("datetime", flat=True)),
+            {date_parser("2023-07-24")},
+        )
+        self.assertEqual(
+            set(season_fourteen_events.values_list("datetime", flat=True)),
+            {date_parser("2026-08-03")},
+        )
+        season.refresh_from_db()
+        self.assertEqual(season.status, original_status)
+        self.assertEqual(season.history.count(), original_history_count)
 
     @patch("events.calendar.tv.get_seasons_to_process")
     def test_process_tv_returns_when_no_seasons_need_processing(

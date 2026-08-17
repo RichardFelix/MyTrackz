@@ -78,6 +78,12 @@ def get_seasons_to_process(tv_item):
         logger.warning("No valid seasons found for TV show: %s", tv_item)
         return []
 
+    # An episode-order override can change the meaning of existing season
+    # numbers. Revisit every season so save_events updates stale dates and
+    # cleanup_invalid_events removes episodes left behind by the old order.
+    if tmdb.get_tv_episode_group_id(tv_item.media_id):
+        return season_numbers
+
     next_episode_season = tv_metadata.get("next_episode_season")
     regular_season_numbers = [number for number in season_numbers if number > 0]
     latest_regular_season = (
