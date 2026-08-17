@@ -907,9 +907,15 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
             headers={"HX-Redirect": request.POST.get("next", "/")},
         )
 
-    cache_key = f"{source}_{media_type}_{media_id}"
-    if media_type == MediaTypes.SEASON.value:
-        cache_key += f"_{season_number}"
+    if source == Sources.TMDB.value and media_type in {
+        MediaTypes.TV.value,
+        MediaTypes.SEASON.value,
+    }:
+        cache_key = tmdb.metadata_cache_key(media_type, media_id, season_number)
+    else:
+        cache_key = f"{source}_{media_type}_{media_id}"
+        if media_type == MediaTypes.SEASON.value:
+            cache_key += f"_{season_number}"
 
     ttl = cache.ttl(cache_key)
     logger.debug("%s - Cache TTL for: %s", cache_key, ttl)

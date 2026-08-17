@@ -17,6 +17,14 @@ base_params = {
     "language": settings.TMDB_LANG,
 }
 
+# TMDB's default Futurama record uses production-season numbering, while its
+# Digital Order matches the broadcast/streaming numbering used by Hulu and IMDb.
+# Keep this deliberately keyed by TMDB show ID so every other show continues to
+# use TMDB's default season endpoints.
+TV_EPISODE_GROUP_OVERRIDES = {
+    "615": "5ad25f9b0e0a266c3101674b",
+}
+
 
 def handle_error(error):
     """Handle TMDB API errors."""
@@ -319,8 +327,10 @@ def get_cached_seasons(media_id, season_numbers):
     uncached_seasons = []
 
     for season_number in season_numbers:
-        season_cache_key = (
-            f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}"
+        season_cache_key = metadata_cache_key(
+            MediaTypes.SEASON.value,
+            media_id,
+            season_number,
         )
         season_data = cache.get(season_cache_key)
         if season_data:
@@ -331,12 +341,157 @@ def get_cached_seasons(media_id, season_numbers):
     return cached_data, uncached_seasons
 
 
+def get_tv_episode_group_id(media_id):
+    """Return the configured TMDB episode-group ID for one TV show."""
+    return TV_EPISODE_GROUP_OVERRIDES.get(str(media_id))
+
+
+def metadata_cache_key(media_type, media_id, season_number=None):
+    """Return an ordering-aware cache key for TMDB TV metadata."""
+    cache_key = f"{Sources.TMDB.value}_{media_type}_{media_id}"
+    if season_number is not None:
+        cache_key += f"_{season_number}"
+    if episode_group_id := get_tv_episode_group_id(media_id):
+        cache_key += f"_episode_group_{episode_group_id}"
+    return cache_key
+
+
+def get_tv_episode_group(media_id, refresh=False):  # noqa: FBT002
+    """Return and cache a configured alternate episode order from TMDB."""
+    episode_group_id = get_tv_episode_group_id(media_id)
+    if episode_group_id is None:
+        return None
+
+    cache_key = f"{Sources.TMDB.value}_tv_episode_group_{episode_group_id}"
+    data = None if refresh else cache.get(cache_key)
+    if data is None:
+        try:
+            data = services.api_request(
+                Sources.TMDB.value,
+                "GET",
+                f"{base_url}/tv/episode_group/{episode_group_id}",
+                params={**base_params},
+            )
+        except requests.exceptions.HTTPError as error:
+            handle_error(error)
+        cache.set(cache_key, data)
+    return data
+
+
+def _episode_group_seasons(episode_group):
+    """Return numbered episode groups in display order."""
+    return sorted(
+        (
+            group
+            for group in episode_group.get("groups", [])
+            if isinstance(group.get("order"), int) and group["order"] > 0
+        ),
+        key=lambda group: group["order"],
+    )
+
+
+def _episode_group_coordinates(episode_group, episode_id):
+    """Return alternate season/episode coordinates for a TMDB episode ID."""
+    if episode_id is None:
+        return None
+    for group in _episode_group_seasons(episode_group):
+        for index, episode_data in enumerate(
+            sorted(group.get("episodes", []), key=lambda episode: episode["order"]),
+            start=1,
+        ):
+            if str(episode_data.get("id")) == str(episode_id):
+                return group["order"], index
+    return None
+
+
+def get_episode_group_coordinates(media_id, episode_id):
+    """Translate a TMDB episode ID when its show has an ordering override."""
+    episode_group = get_tv_episode_group(media_id)
+    if episode_group is None:
+        return None
+    return _episode_group_coordinates(episode_group, episode_id)
+
+
+def _normalize_episode_group_episodes(group):
+    """Convert zero-based episode-group positions to season coordinates."""
+    episodes = sorted(
+        group.get("episodes", []),
+        key=lambda episode: episode["order"],
+    )
+    return [
+        episode
+        | {
+            "season_number": group["order"],
+            "episode_number": index,
+        }
+        for index, episode in enumerate(episodes, start=1)
+    ]
+
+
+def _episode_group_related_seasons(response, episode_group):
+    """Format alternate groups like normal related-season metadata."""
+    related_seasons = []
+    for group in _episode_group_seasons(episode_group):
+        episodes = group.get("episodes", [])
+        first_episode = episodes[0] if episodes else {}
+        related_seasons.append(
+            {
+                "source": Sources.TMDB.value,
+                "media_type": MediaTypes.SEASON.value,
+                "image": get_image_url(response.get("poster_path")),
+                "media_id": response["id"],
+                "title": response["name"],
+                "season_number": group["order"],
+                "season_title": group.get("name") or f"Season {group['order']}",
+                "first_air_date": get_start_date(first_episode.get("air_date", "")),
+                "max_progress": len(episodes),
+            },
+        )
+    return related_seasons
+
+
+def _apply_episode_group_to_tv_data(data, response, episode_group):
+    """Replace default season counts and coordinates with an episode group."""
+    groups = _episode_group_seasons(episode_group)
+    episode_count = sum(len(group.get("episodes", [])) for group in groups)
+    data["max_progress"] = episode_count
+    data["details"]["seasons"] = len(groups)
+    data["details"]["episodes"] = episode_count
+    data["related"]["seasons"] = _episode_group_related_seasons(
+        response,
+        episode_group,
+    )
+
+    last_episode = response.get("last_episode_to_air")
+    next_episode = response.get("next_episode_to_air")
+    last_coordinates = _episode_group_coordinates(
+        episode_group,
+        last_episode.get("id") if last_episode else None,
+    )
+    next_coordinates = _episode_group_coordinates(
+        episode_group,
+        next_episode.get("id") if next_episode else None,
+    )
+    data["last_episode_season"] = (
+        last_coordinates[0] if last_coordinates is not None else None
+    )
+    data["next_episode_season"] = (
+        next_coordinates[0] if next_coordinates is not None else None
+    )
+    return data
+
+
 def enrich_season_with_tv_data(season_data, tv_data, media_id, season_number):
     """Add TV show metadata to season metadata."""
     season_data["media_id"] = media_id
-    season_data["source_url"] = (
-        f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
-    )
+    if get_tv_episode_group_id(media_id):
+        season_data["source_url"] = (
+            f"https://www.themoviedb.org/tv/{media_id}/episode_groups"
+        )
+    else:
+        season_data["source_url"] = (
+            f"https://www.themoviedb.org/tv/{media_id}/season/{season_number}"
+        )
     season_data["title"] = tv_data["title"]
     season_data["tvdb_id"] = tv_data["tvdb_id"]
     season_data["external_links"] = tv_data["external_links"]
@@ -381,7 +536,7 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
         # Cache TV metadata if we haven't fetched it yet
         if fetched_tv_data is None:
             fetched_tv_data = process_tv(response)
-            tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+            tv_cache_key = metadata_cache_key(MediaTypes.TV.value, media_id)
             cache.set(tv_cache_key, fetched_tv_data)
 
         # Process and cache each season
@@ -408,7 +563,11 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
             )
 
             cache.set(
-                f"{Sources.TMDB.value}_{MediaTypes.SEASON.value}_{media_id}_{season_number}",
+                metadata_cache_key(
+                    MediaTypes.SEASON.value,
+                    media_id,
+                    season_number,
+                ),
                 season_data,
             )
             result_data[season_key] = season_data
@@ -416,12 +575,125 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
     return result_data, fetched_tv_data
 
 
+def _episode_group_not_found(media_id, season_number):
+    """Raise the provider error used for a missing alternate-order season."""
+    msg = f"Season {season_number} not found in {Sources.TMDB.label} with ID {media_id}"
+    not_found_response = requests.Response()
+    not_found_response.status_code = 404
+    not_found_error = type("Error", (), {"response": not_found_response})
+    raise services.ProviderAPIError(msg, error=not_found_error, details=msg)
+
+
+def _episode_group_source_season(group):
+    """Return the default TMDB season supplying art for an episode group."""
+    source_seasons = {
+        episode.get("season_number")
+        for episode in group.get("episodes", [])
+        if isinstance(episode.get("season_number"), int)
+    }
+    return min(source_seasons) if source_seasons else None
+
+
+def _build_episode_group_season(group, source_season, providers_response):
+    """Build standard season metadata from an alternate TMDB episode group."""
+    episodes = _normalize_episode_group_episodes(group)
+    air_dates = [
+        episode.get("air_date") for episode in episodes if episode.get("air_date")
+    ]
+    response = {
+        "name": group.get("name") or f"Season {group['order']}",
+        "season_number": group["order"],
+        "overview": source_season.get("overview", ""),
+        "poster_path": source_season.get("poster_path"),
+        "vote_average": source_season.get("vote_average", 0),
+        "air_date": min(air_dates) if air_dates else "",
+        "episodes": episodes,
+    }
+    return process_season(response, providers_response)
+
+
+def fetch_and_cache_episode_group_seasons(media_id, season_numbers, tv_data):
+    """Fetch and cache seasons using one show's configured TMDB episode group."""
+    episode_group = get_tv_episode_group(media_id, refresh=True)
+    groups_by_number = {
+        group["order"]: group for group in _episode_group_seasons(episode_group)
+    }
+    requested_groups = []
+    for season_number in season_numbers:
+        group = groups_by_number.get(int(season_number))
+        if group is None:
+            _episode_group_not_found(media_id, season_number)
+        requested_groups.append(group)
+
+    source_season_numbers = sorted(
+        {
+            source_season
+            for group in requested_groups
+            if (source_season := _episode_group_source_season(group)) is not None
+        }
+    )
+    append_text = ",".join(
+        f"season/{season},season/{season}/watch/providers"
+        for season in source_season_numbers
+    )
+    appends = "recommendations,external_ids,watch/providers"
+    if append_text:
+        appends = f"{appends},{append_text}"
+
+    try:
+        response = services.api_request(
+            Sources.TMDB.value,
+            "GET",
+            f"{base_url}/tv/{media_id}",
+            params={**base_params, "append_to_response": appends},
+        )
+    except requests.exceptions.HTTPError as error:
+        handle_error(error)
+
+    if tv_data is None:
+        tv_data = process_tv(response, episode_group)
+        cache.set(
+            metadata_cache_key(MediaTypes.TV.value, media_id),
+            tv_data,
+        )
+
+    result_data = {}
+    for group in requested_groups:
+        season_number = group["order"]
+        source_season_number = _episode_group_source_season(group)
+        source_key = f"season/{source_season_number}"
+        source_season = response.get(source_key, {})
+        providers_response = response.get(f"{source_key}/watch/providers", {})
+        season_data = _build_episode_group_season(
+            group,
+            source_season,
+            providers_response,
+        )
+        season_data = enrich_season_with_tv_data(
+            season_data,
+            tv_data,
+            media_id,
+            season_number,
+        )
+        cache.set(
+            metadata_cache_key(
+                MediaTypes.SEASON.value,
+                media_id,
+                season_number,
+            ),
+            season_data,
+        )
+        result_data[f"season/{season_number}"] = season_data
+
+    return result_data, tv_data
+
+
 def tv_with_seasons(media_id, season_numbers):
     """Return the metadata for the tv show with seasons appended to the response."""
     if not season_numbers:
         return tv(media_id)
 
-    tv_cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    tv_cache_key = metadata_cache_key(MediaTypes.TV.value, media_id)
     tv_data = cache.get(tv_cache_key)
 
     cached_seasons, uncached_seasons = get_cached_seasons(media_id, season_numbers)
@@ -430,7 +702,12 @@ def tv_with_seasons(media_id, season_numbers):
         tv_data = tv(media_id)
 
     if uncached_seasons:
-        fetched_seasons, fetched_tv_data = fetch_and_cache_seasons(
+        fetcher = (
+            fetch_and_cache_episode_group_seasons
+            if get_tv_episode_group_id(media_id)
+            else fetch_and_cache_seasons
+        )
+        fetched_seasons, fetched_tv_data = fetcher(
             media_id,
             uncached_seasons,
             tv_data,
@@ -446,7 +723,7 @@ def tv_with_seasons(media_id, season_numbers):
 
 def tv(media_id):
     """Return the metadata for the selected tv show from The Movie Database."""
-    cache_key = f"{Sources.TMDB.value}_{MediaTypes.TV.value}_{media_id}"
+    cache_key = metadata_cache_key(MediaTypes.TV.value, media_id)
     data = cache.get(cache_key)
 
     if data is None:
@@ -466,18 +743,19 @@ def tv(media_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        data = process_tv(response)
+        episode_group = get_tv_episode_group(media_id, refresh=True)
+        data = process_tv(response, episode_group)
         cache.set(cache_key, data)
 
     return data
 
 
-def process_tv(response):
+def process_tv(response, episode_group=None):
     """Process the metadata for the selected tv show from The Movie Database."""
     num_episodes = response["number_of_episodes"]
     next_episode = response.get("next_episode_to_air")
     last_episode = response.get("last_episode_to_air")
-    return {
+    data = {
         "media_id": response["id"],
         "source": Sources.TMDB.value,
         "source_url": f"https://www.themoviedb.org/tv/{response['id']}",
@@ -518,6 +796,9 @@ def process_tv(response):
         "next_episode_season": next_episode["season_number"] if next_episode else None,
         "providers": response.get("watch/providers", {}).get("results", {}),
     }
+    if episode_group is not None:
+        return _apply_episode_group_to_tv_data(data, response, episode_group)
+    return data
 
 
 def get_season_progress_episodes(episodes):

@@ -669,6 +669,14 @@ class TVWebhookMixin:
                 return None, None, None
             if response.get("tv_episode_results"):
                 result = response["tv_episode_results"][0]
+                alternate_coordinates = (
+                    app.providers.tmdb.get_episode_group_coordinates(
+                        result.get("show_id"),
+                        result.get("id"),
+                    )
+                )
+                if alternate_coordinates is not None:
+                    return result.get("show_id"), *alternate_coordinates
                 return (
                     result.get("show_id"),
                     result.get("season_number"),
