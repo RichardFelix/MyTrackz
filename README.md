@@ -33,7 +33,7 @@ MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opiniona
 
 <p>
   <strong>🎨 A more adaptable interface</strong><br>
-  Choose grid or compact home layouts, reorder media rows, expand them automatically, use quick card actions, and navigate from a redesigned mobile interface.
+  Choose grid or compact home layouts, reorder and automatically expand media rows, use swipeable quick card actions, and navigate a redesigned mobile interface.
 </p>
 <p>
   <strong>🛠️ Greater library control</strong><br>
