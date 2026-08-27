@@ -101,15 +101,19 @@ class DeleteHistoryRecordViewTests(TestCase):
 
     def test_delete_history_record(self):
         """Test deleting a history record."""
-        response = self.client.delete(
-            reverse(
-                "delete_history_record",
-                kwargs={
-                    "media_type": MediaTypes.MOVIE.value,
-                    "history_id": self.history_id,
-                },
-            ),
+        delete_url = reverse(
+            "delete_history_record",
+            kwargs={
+                "media_type": MediaTypes.MOVIE.value,
+                "history_id": self.history_id,
+            },
         )
+        self.assertEqual(
+            delete_url,
+            f"/history/movie/{self.history_id}/delete/",
+        )
+
+        response = self.client.delete(delete_url)
 
         self.assertEqual(response.status_code, 200)
 

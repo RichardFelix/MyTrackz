@@ -122,7 +122,7 @@ urlpatterns = [
         name="history_modal",
     ),
     path(
-        "media/history/<str:media_type>/<int:history_id>/delete/",
+        "history/<str:media_type>/<int:history_id>/delete/",
         views.delete_history_record,
         name="delete_history_record",
     ),
