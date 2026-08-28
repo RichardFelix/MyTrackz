@@ -58,6 +58,7 @@ class HistoryModalViewTests(TestCase):
 
         self.assertIn("timeline", response.context)
         self.assertGreater(len(response.context["timeline"]), 0)
+        self.assertNotContains(response, "hx-delete=")
 
         first_entry = response.context["timeline"][0]
         self.assertIn("changes", first_entry)
