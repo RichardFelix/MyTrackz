@@ -3688,9 +3688,6 @@
 [x-cloak] {
   display: none !important;
 }
-html, body {
-  overflow-x: hidden;
-}
 .htmx-indicator {
   display: none;
 }

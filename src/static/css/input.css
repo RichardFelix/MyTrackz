@@ -26,14 +26,6 @@
   display: none !important;
 }
 
-/* Guards against a WebKit quirk where any incidental horizontal overflow
-   (long unwrapped titles, a stray wide element) drags position:fixed
-   descendants sideways with the scroll, cutting off the mobile bottom nav. */
-html,
-body {
-  overflow-x: hidden;
-}
-
 .htmx-indicator {
   display: none;
 }
