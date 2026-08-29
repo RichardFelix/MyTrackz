@@ -2713,16 +2713,6 @@
       }
     }
   }
-  .hover\:bg-red-400\/10 {
-    &:hover {
-      @media (hover: hover) {
-        background-color: color-mix(in srgb, oklch(70.4% 0.191 22.216) 10%, transparent);
-        @supports (color: color-mix(in lab, red, red)) {
-          background-color: color-mix(in oklab, var(--color-red-400) 10%, transparent);
-        }
-      }
-    }
-  }
   .hover\:bg-red-500 {
     &:hover {
       @media (hover: hover) {
@@ -2830,13 +2820,6 @@
     &:hover {
       @media (hover: hover) {
         color: var(--color-red-300);
-      }
-    }
-  }
-  .hover\:text-red-400 {
-    &:hover {
-      @media (hover: hover) {
-        color: var(--color-red-400);
       }
     }
   }
@@ -3008,11 +2991,6 @@
       @supports (color: color-mix(in lab, red, red)) {
         --tw-ring-color: color-mix(in oklab, var(--color-indigo-500) 30%, transparent);
       }
-    }
-  }
-  .focus\:ring-red-500 {
-    &:focus {
-      --tw-ring-color: var(--color-red-500);
     }
   }
   .focus\:ring-offset-0 {
@@ -3709,6 +3687,9 @@
 }
 [x-cloak] {
   display: none !important;
+}
+html, body {
+  overflow-x: hidden;
 }
 .htmx-indicator {
   display: none;

@@ -71,6 +71,7 @@
   {% else %}
     {# Track Modal #}
     <div x-show="trackOpen"
+         x-cloak
          @keydown.escape.window="trackOpen = false"
          class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
       <div class="w-152 max-h-[90vh] px-4 md:px-0 relative z-60"
@@ -82,6 +83,7 @@
 
   {# Lists Modal #}
   <div x-show="listsOpen"
+       x-cloak
        @keydown.escape.window="listsOpen = false"
        class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
@@ -92,6 +94,7 @@
 
   {# History Modal #}
   <div x-show="historyOpen"
+       x-cloak
        @keydown.escape.window="historyOpen = false"
        class="fixed inset-0 bg-black/50 flex items-start pt-2.5 sm:items-center sm:pt-0 justify-center z-50">
     <div class="w-96 max-h-[90vh] px-4 md:px-0 relative z-60"
