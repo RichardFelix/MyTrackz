@@ -52,3 +52,5 @@ node_modules
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+
+/.mcp.json

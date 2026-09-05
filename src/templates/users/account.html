@@ -72,7 +72,7 @@
               <div class="shrink-0">
                 <div class="relative h-64 w-64 select-none overflow-hidden rounded-full bg-[#17181d] ring-2 ring-white/15"
                      :class="ready ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : ''"
-                     style="touch-action: none;"
+                     style="touch-action: none"
                      @pointerdown="down($event)"
                      @pointermove="move($event)"
                      @pointerup="up()"
@@ -89,7 +89,7 @@
                        :style="`width:${w}px; height:${h}px; transform: translate(${x}px, ${y}px);`">
                   <div x-show="!src"
                        class="flex h-full w-full items-center justify-center text-6xl font-bold text-[#241505]"
-                       style="background: linear-gradient(140deg, #f0c070, #b06a2c);">
+                       style="background: linear-gradient(140deg, #f0c070, #b06a2c)">
                     {{ user.username|first|upper }}
                   </div>
                 </div>
@@ -115,9 +115,12 @@
                        placeholder="https://example.com/avatar.png"
                        value="{{ user_form.image.value|default:'' }}"
                        @input.debounce.400ms="changeUrl($event.target.value)">
-                <p class="mt-2 text-xs text-gray-400">Paste an image URL — it's downloaded and cached on your server. <span x-show="ready" x-cloak>Drag to move and zoom (slider or scroll) to frame it in the circle.</span> Leave blank to use your initial.</p>
-                {% if user_form.image.errors %}
-                  <p class="mt-1 text-sm text-red-400">{{ user_form.image.errors.0 }}</p>
+                <p class="mt-2 text-xs text-gray-400">
+                  Paste an image URL — it's downloaded and cached on your server. <span x-show="ready" x-cloak>Drag to move and zoom (slider or scroll) to frame it in the circle.</span> Leave blank to use your initial.
+                </p>
+                {% if user_form.image.errors %}<p class="mt-1 text-sm text-red-400">{{ user_form.image.errors.0 }}</p>{% endif %}
+                {% if user_form.image_crop.errors %}
+                  <p class="mt-1 text-sm text-red-400">{{ user_form.image_crop.errors.0 }}</p>
                 {% endif %}
               </div>
             </div>

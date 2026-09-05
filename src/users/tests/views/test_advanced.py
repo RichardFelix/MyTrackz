@@ -72,7 +72,7 @@ class AdvancedSettingsImageCacheTests(TestCase):
             )
         with (
             patch("app.tasks._is_safe_image_host", return_value=True),
-            patch("app.tasks.requests.get", return_value=_mock_response()),
+            patch("app.tasks.get_image", return_value=_mock_response()),
         ):
             cache_item_image(item.id, item.image)
 
@@ -93,7 +93,7 @@ class AdvancedSettingsImageCacheTests(TestCase):
             )
         with (
             patch("app.tasks._is_safe_image_host", return_value=True),
-            patch("app.tasks.requests.get", return_value=_mock_response()),
+            patch("app.tasks.get_image", return_value=_mock_response()),
         ):
             cache_item_image(item.id, item.image)
         item.refresh_from_db()

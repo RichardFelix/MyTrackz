@@ -15,6 +15,7 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
 
+from app.image_download import get_image
 from app.models import UserMessage
 
 logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ def _safe_image_get(url, *, timeout, headers=None, max_redirects=5):
     for _ in range(max_redirects + 1):
         if not _is_safe_image_host(url):
             return None
-        response = requests.get(
+        response = get_image(
             url,
             timeout=timeout,
             stream=True,

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Native pre-deploy test gate for the LXC. Mirrors .github/workflows/app-tests.yml,
-# run with the uv/Python toolchain installed directly on the LXC host so it doesn't
+# Native pre-deploy test gate for the working machine. Mirrors
+# .github/workflows/app-tests.yml and runs with the uv/Python toolchain installed
+# directly on the host so it doesn't
 # require a Docker image rebuild first. Run this after rsyncing new code and before
 # `docker compose up -d --build`.
 set -euo pipefail

@@ -1,4 +1,5 @@
 import json
+import math
 import zoneinfo
 from datetime import datetime
 
@@ -70,6 +71,17 @@ def _download_image_bytes(image_url):
     return None
 
 
+def parse_image_crop(crop):
+    """Parse finite crop fractions with a nonempty region inside the image."""
+    left, top, side = (float(value) for value in crop.split(","))
+    if not all(math.isfinite(value) for value in (left, top, side)) or not (
+        0 <= left < 1 and 0 <= top < 1 and 0 < side <= 1
+    ):
+        msg = "Enter a valid image crop."
+        raise ValueError(msg)
+    return left, top, side
+
+
 def _apply_circle_crop(image, crop):
     """Crop ``image`` to the square selected by a "left,top,side" fraction string.
 
@@ -80,19 +92,19 @@ def _apply_circle_crop(image, crop):
     if not crop:
         return image
     try:
-        left_f, top_f, side_f = (float(v) for v in crop.split(","))
+        left_f, top_f, side_f = parse_image_crop(crop)
     except (ValueError, AttributeError):
         return image
-    if side_f <= 0:
-        return image
-
     width, height = image.size
     side = side_f * width
     left = min(max(0.0, left_f * width), width)
     top = min(max(0.0, top_f * height), height)
     right = min(left + side, width)
     bottom = min(top + side, height)
-    image = image.crop((round(left), round(top), round(right), round(bottom)))
+    box = (round(left), round(top), round(right), round(bottom))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return image
+    image = image.crop(box)
 
     max_side = 512
     if image.width > max_side:

@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from django.test import TestCase
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from PIL import Image
 
 from users import helpers
 
@@ -214,3 +215,22 @@ class HelpersTest(TestCase):
 
         next_run_info = helpers.get_next_run_info(periodic_task)
         self.assertIsNone(next_run_info)
+
+
+class ImageCropTests(TestCase):
+    """Handle invalid persisted crops and preserve valid image selections."""
+
+    def test_invalid_or_empty_pixel_crop_keeps_original(self):
+        """Malformed and subpixel crops cannot crash image encoding."""
+        image = Image.new("RGB", (100, 100))
+        for crop in ["0,0,nan", "0,0,inf", "1,0,0.5", "0,1,0.5", "0,0,0.00001"]:
+            with self.subTest(crop=crop):
+                self.assertIs(helpers._apply_circle_crop(image, crop), image)
+
+    def test_valid_crop_selects_expected_pixels(self):
+        """Keep width-relative square crops on nonsquare images."""
+        image = Image.new("RGB", (100, 200))
+        image.putpixel((25, 50), (255, 0, 0))
+        result = helpers._apply_circle_crop(image, "0.25,0.25,0.5")
+        self.assertEqual(result.size, (50, 50))
+        self.assertEqual(result.getpixel((0, 0)), (255, 0, 0))

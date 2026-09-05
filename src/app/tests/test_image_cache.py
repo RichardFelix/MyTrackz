@@ -60,7 +60,7 @@ class CacheItemImageTaskTests(TestCase):
         )
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_successful_download_marks_item_cached(self, mock_get, _mock_safe):
         """A valid image response flips image_cached to True."""
         mock_get.return_value = _mock_response()
@@ -72,7 +72,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertTrue(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_disallowed_content_type(self, mock_get, _mock_safe):
         """A non-image Content-Type is refused."""
         mock_get.return_value = _mock_response(content_type="text/html")
@@ -84,7 +84,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_caches_octet_stream_with_valid_image_bytes(self, mock_get, _mock_safe):
         """A real image mislabeled application/octet-stream (ComicVine) still caches."""
         mock_get.return_value = _mock_response(content_type="application/octet-stream")
@@ -96,7 +96,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertTrue(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_sends_browser_headers(self, mock_get, _mock_safe):
         """Send browser headers to avoid hotlink blocks."""
         mock_get.return_value = _mock_response()
@@ -108,7 +108,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertEqual(headers.get("Referer"), "https://image.tmdb.org/")
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_response_exceeding_size_cap(self, mock_get, _mock_safe):
         """A response exceeding IMAGE_DOWNLOAD_MAX_BYTES is refused."""
         oversized_chunk = b"a" * (5 * 1024 * 1024 + 1)
@@ -121,7 +121,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_invalid_image_bytes(self, mock_get, _mock_safe):
         """Reject invalid image bytes even when the content type is spoofed."""
         mock_get.return_value = _mock_response(chunks=[b"not an image"])
@@ -133,7 +133,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_non_200_status(self, mock_get, _mock_safe):
         """A non-redirect error response is refused."""
         mock_get.return_value = _mock_response(status_code=404)
@@ -145,7 +145,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_follows_redirect_to_final_image(self, mock_get, _mock_safe):
         """Follow and cache a cover served through a safe redirect."""
         mock_get.side_effect = [
@@ -164,10 +164,12 @@ class CacheItemImageTaskTests(TestCase):
         for call in mock_get.call_args_list:
             self.assertFalse(call.kwargs.get("allow_redirects", True))
 
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_redirect_to_unsafe_host(self, mock_get):
         """A redirect pointing at a private/internal host is refused, not followed."""
-        mock_get.return_value = _mock_redirect("http://169.254.169.254/latest/meta-data")
+        mock_get.return_value = _mock_redirect(
+            "http://169.254.169.254/latest/meta-data"
+        )
 
         # Only the internal redirect target resolves unsafe; the original URL is fine.
         def is_safe(url):
@@ -181,7 +183,7 @@ class CacheItemImageTaskTests(TestCase):
         self.assertFalse(self.item.image_cached)
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_rejects_overlong_redirect_chain(self, mock_get, _mock_safe):
         """Reject redirect chains longer than the configured cap."""
         mock_get.return_value = _mock_redirect("https://example.com/again.jpg")
@@ -194,14 +196,14 @@ class CacheItemImageTaskTests(TestCase):
 
     def test_rejects_unsafe_host_without_making_a_request(self):
         """Reject private or loopback hosts before making a request."""
-        with patch("app.tasks.requests.get") as mock_get:
+        with patch("app.tasks.get_image") as mock_get:
             result = cache_item_image(self.item.id, "http://127.0.0.1/image.jpg")
 
         self.assertFalse(result)
         mock_get.assert_not_called()
 
     @patch("app.tasks._is_safe_image_host", return_value=True)
-    @patch("app.tasks.requests.get")
+    @patch("app.tasks.get_image")
     def test_stale_url_race_does_not_mark_cached(self, mock_get, _mock_safe):
         """Leave the cache flag unset when the Item URL changed after queuing."""
         mock_get.return_value = _mock_response()
@@ -270,7 +272,7 @@ class CleanupOrphanedItemImagesTaskTests(TestCase):
 
         with (
             patch("app.tasks._is_safe_image_host", return_value=True),
-            patch("app.tasks.requests.get") as mock_get,
+            patch("app.tasks.get_image") as mock_get,
         ):
             mock_get.side_effect = [_mock_response(), _mock_response()]
             cache_item_image(live_item.id, live_item.image)
@@ -317,7 +319,7 @@ class EvictOversizedImageCacheTaskTests(TestCase):
             )
         with (
             patch("app.tasks._is_safe_image_host", return_value=True),
-            patch("app.tasks.requests.get", return_value=_mock_response()),
+            patch("app.tasks.get_image", return_value=_mock_response()),
         ):
             cache_item_image(item.id, item.image)
         item.refresh_from_db()

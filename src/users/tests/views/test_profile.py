@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -49,3 +51,26 @@ class Profile(TestCase):
         )
         self.assertTrue(auth.get_user(self.client).check_password("12345"))
         self.assertContains(response, "Your old password was entered incorrectly")
+
+    def test_invalid_crop_does_not_save_account(self):
+        """Reject malformed crop values before saving or fetching an image."""
+        for crop in ["0,0,nan", "inf,0,0.5", "1,0,0.5", "0,1,0.5", "0,0,0", "bad"]:
+            with (
+                self.subTest(crop=crop),
+                patch("users.views.cache_profile_image") as fetch,
+            ):
+                response = self.client.post(
+                    reverse("account"),
+                    {
+                        "username": "changed",
+                        "image": "https://images.example/avatar.png",
+                        "image_crop": crop,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("image_crop", response.context["user_form"].errors)
+                self.assertContains(response, "Enter a valid image crop.")
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.username, "test")
+                self.assertEqual(self.user.image_crop, "")
+                fetch.assert_not_called()

@@ -6,6 +6,7 @@ from django.contrib.auth.forms import (
 )
 from django.core.exceptions import ValidationError
 
+from .helpers import parse_image_crop
 from .models import User
 
 
@@ -59,6 +60,17 @@ class UserUpdateForm(forms.ModelForm):
             msg = "Enter a valid http(s) image URL."
             raise forms.ValidationError(msg)
         return url
+
+    def clean_image_crop(self):
+        """Reject invalid crop coordinates before persisting account changes."""
+        crop = self.cleaned_data.get("image_crop", "")
+        if crop:
+            try:
+                parse_image_crop(crop)
+            except ValueError as exc:
+                msg = "Enter a valid image crop."
+                raise forms.ValidationError(msg) from exc
+        return crop
 
     class Meta:
         """Allow updating username, profile visibility and profile image."""
