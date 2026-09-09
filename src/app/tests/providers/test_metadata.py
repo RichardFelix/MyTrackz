@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import requests
 from defusedxml import ElementTree
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 
 from app.models import Episode, Item, MediaTypes, Sources
@@ -315,8 +316,7 @@ class Metadata(TestCase):
     def test_tmdb_season_progress_ignores_extreme_bonus_number(self):
         """A numbered casting special does not turn 23 episodes into 100."""
         episodes_metadata = [
-            {"episode_number": episode_number}
-            for episode_number in range(1, 24)
+            {"episode_number": episode_number} for episode_number in range(1, 24)
         ] + [{"episode_number": 100}]
 
         self.assertEqual(tmdb.get_season_max_progress(episodes_metadata), 23)
@@ -325,8 +325,7 @@ class Metadata(TestCase):
     def test_tmdb_season_progress_preserves_single_numbering_gap(self):
         """A genuine finale after one skipped number remains trackable."""
         episodes_metadata = [
-            {"episode_number": episode_number}
-            for episode_number in range(1, 24)
+            {"episode_number": episode_number} for episode_number in range(1, 24)
         ] + [{"episode_number": 25}]
 
         self.assertEqual(tmdb.get_season_max_progress(episodes_metadata), 25)
@@ -416,15 +415,39 @@ class Metadata(TestCase):
         response = comicvine.comic("155969")
         self.assertEqual(response["title"], "Ultimate Spider-Man")
 
-    def test_hardcover_book(self):
-        """Test the metadata method for books from Hardcover."""
+    @patch("app.providers.hardcover.services.api_request")
+    def test_hardcover_book(self, mock_api_request):
+        """Parse book metadata independently of changing community tags and ratings."""
+        cache.delete("hardcover_book_377193")
+        self.addCleanup(cache.delete, "hardcover_book_377193")
+        mock_api_request.return_value = {
+            "data": {
+                "books_by_pk": {
+                    "id": 377193,
+                    "title": "The Great Gatsby",
+                    "slug": "the-great-gatsby",
+                    "cached_contributors": "F. Scott Fitzgerald",
+                    "cached_tags": [
+                        {"tag": "Fiction"},
+                        {"tag": "Young Adult"},
+                        {"tag": "Classics"},
+                    ],
+                    "rating": 3.7,
+                    "ratings_count": 100,
+                },
+            },
+        }
         response = hardcover.book("377193")
+        mock_api_request.assert_called_once()
+        self.assertEqual(
+            mock_api_request.call_args.kwargs["params"]["variables"],
+            {"book_id": 377193},
+        )
         self.assertEqual(response["title"], "The Great Gatsby")
         self.assertEqual(response["details"]["author"], "F. Scott Fitzgerald")
-        self.assertIn("Fiction", response["genres"])
-        self.assertIn("Young Adult", response["genres"])
-        self.assertIn("Classics", response["genres"])
-        self.assertAlmostEqual(response["score"], 7.4, delta=0.1)
+        self.assertEqual(response["genres"], ["Fiction", "Young Adult", "Classics"])
+        self.assertEqual(response["score"], 7.4)
+        self.assertEqual(response["score_count"], 100)
 
     def test_hardcover_book_unknown(self):
         """Test the metadata method for books from Hardcover with minimal data."""
