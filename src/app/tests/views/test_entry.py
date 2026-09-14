@@ -34,6 +34,24 @@ class CreateEntryViewTests(TestCase):
         self.assertIn("media_types", response.context)
 
         self.assertEqual(response.context["media_types"], MediaTypes.values)
+        self.assertContains(
+            response,
+            '<option value="Planning" selected>Wishlist</option>',
+            html=True,
+        )
+
+    def test_create_entry_uses_backlog_preference_for_default_status(self):
+        """The custom-entry status defaults to the user's planning label."""
+        self.user.planning_term = "backlog"
+        self.user.save(update_fields=["planning_term"])
+
+        response = self.client.get(reverse("create_entry"))
+
+        self.assertContains(
+            response,
+            '<option value="Planning" selected>Backlog</option>',
+            html=True,
+        )
 
     def test_create_entry_post_movie(self):
         """Test creating a movie entry."""

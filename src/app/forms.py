@@ -18,6 +18,7 @@ from app.models import (
     Movie,
     Season,
     Sources,
+    Status,
     get_status_label,
 )
 
@@ -260,6 +261,7 @@ class MediaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Use the current user's preferred planning-status label."""
         user = kwargs.pop("user", None)
+        explicit_initial = kwargs.get("initial") or {}
         super().__init__(*args, **kwargs)
         if user is None and getattr(self.instance, "user_id", None):
             user = self.instance.user
@@ -267,6 +269,12 @@ class MediaForm(forms.ModelForm):
             (value, get_status_label(value, user) if value else label)
             for value, label in self.fields["status"].choices
         ]
+        if (
+            not self.is_bound
+            and not self.instance.pk
+            and "status" not in explicit_initial
+        ):
+            self.initial["status"] = Status.PLANNING.value
 
 
 class MangaForm(MediaForm):

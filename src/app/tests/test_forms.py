@@ -13,7 +13,16 @@ from app.forms import (
     SeasonForm,
     TvForm,
 )
-from app.models import TV, GameLaunchers, Item, MediaTypes, Season, Sources, Status
+from app.models import (
+    TV,
+    Anime,
+    GameLaunchers,
+    Item,
+    MediaTypes,
+    Season,
+    Sources,
+    Status,
+)
 
 
 class ItemImageFormTest(TestCase):
@@ -113,6 +122,7 @@ class BasicMediaForm(TestCase):
         form = AnimeForm()
 
         self.assertEqual(dict(form.fields["status"].choices)["Planning"], "Wishlist")
+        self.assertEqual(form["status"].value(), Status.PLANNING.value)
 
     def test_planning_value_uses_user_backlog_preference(self):
         """Tracking forms use Backlog when that user selected it."""
@@ -121,6 +131,25 @@ class BasicMediaForm(TestCase):
         form = AnimeForm(user=self.user)
 
         self.assertEqual(dict(form.fields["status"].choices)["Planning"], "Backlog")
+        self.assertEqual(form["status"].value(), Status.PLANNING.value)
+
+    def test_existing_media_keeps_its_status(self):
+        """Editing an existing item must not replace its saved status."""
+        anime = Anime.objects.create(
+            item=Item.objects.get(media_type=MediaTypes.ANIME.value),
+            user=self.user,
+            status=Status.PAUSED.value,
+        )
+
+        form = AnimeForm(instance=anime, user=self.user)
+
+        self.assertEqual(form["status"].value(), Status.PAUSED.value)
+
+    def test_explicit_initial_status_is_preserved(self):
+        """Callers can intentionally override the new-item planning default."""
+        form = AnimeForm(initial={"status": Status.PAUSED.value}, user=self.user)
+
+        self.assertEqual(form["status"].value(), Status.PAUSED.value)
 
     def test_valid_season_form(self):
         """Test the season form with valid data."""
