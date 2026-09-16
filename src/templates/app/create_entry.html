@@ -64,7 +64,12 @@
           return ['parentSeason', 'image', 'episodeNumber', 'endDate'].includes(field);
         }
     
-        // Movie, Anime, Manga, Game, Book fields
+        // Game fields
+        else if (this.mediaType === 'game') {
+          return ['title', 'image', 'score', 'progress', 'launcher', 'status', 'startDate', 'endDate', 'notes'].includes(field);
+        }
+
+        // Movie, Anime, Manga, Book fields
         else {
           return ['title', 'image', 'score', 'progress', 'status', 'startDate', 'endDate', 'notes'].includes(field);
         }
@@ -298,6 +303,23 @@
                       class="flex-1 px-2 hover:bg-gray-700 transition-colors rounded-br-md border-b border-r border-gray-600 group">
                 {% include "app/icons/chevron-down.svg" with classes="w-3.5 h-3.5" %}
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Launcher field (Game) -->
+        <div x-show="showField('launcher')">
+          <label class="block text-sm font-medium mb-2 text-gray-300">Launcher</label>
+          <div class="relative">
+            <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                    name="launcher">
+              {% for value, label in launcher_choices %}
+                <option value="{{ value }}"
+                        {% if value == default_launcher %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+              {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
             </div>
           </div>
         </div>

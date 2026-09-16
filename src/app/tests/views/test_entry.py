@@ -7,6 +7,8 @@ from django.utils import timezone
 from app.models import (
     TV,
     Episode,
+    Game,
+    GameLaunchers,
     Item,
     MediaTypes,
     Movie,
@@ -81,6 +83,35 @@ class CreateEntryViewTests(TestCase):
         self.assertEqual(movie.score, 8)
         self.assertEqual(movie.progress, 1)
         self.assertEqual(movie.user, self.user)
+
+    def test_create_entry_get_renders_launcher_select(self):
+        """The custom-entry form offers a launcher select defaulting to Steam."""
+        response = self.client.get(reverse("create_entry"))
+
+        self.assertContains(response, 'name="launcher"')
+        self.assertContains(
+            response,
+            '<option value="Steam" selected>Steam</option>',
+            html=True,
+        )
+
+    def test_create_entry_post_game_with_launcher(self):
+        """Test creating a game entry with a launcher."""
+        form_data = {
+            "title": "Test Game",
+            "media_type": MediaTypes.GAME.value,
+            "status": Status.PLANNING.value,
+            "progress": "1:30",
+            "launcher": GameLaunchers.GOG.value,
+        }
+
+        response = self.client.post(reverse("create_entry"), form_data, follow=True)
+
+        self.assertRedirects(response, reverse("create_entry"))
+        game = Game.objects.get(item__title="Test Game")
+        self.assertEqual(game.launcher, GameLaunchers.GOG.value)
+        self.assertEqual(game.progress, 90)
+        self.assertEqual(game.user, self.user)
 
     def test_create_entry_post_tv(self):
         """Test creating a TV show entry."""

@@ -1314,7 +1314,15 @@ def create_entry(request):
     """Return the form for manually adding media items."""
     if request.method == "GET":
         media_types = MediaTypes.values
-        return render(request, "app/create_entry.html", {"media_types": media_types})
+        return render(
+            request,
+            "app/create_entry.html",
+            {
+                "media_types": media_types,
+                "launcher_choices": GameLaunchers.choices,
+                "default_launcher": GameLaunchers.STEAM.value,
+            },
+        )
 
     # Process the form submission
     form = ManualItemForm(request.POST, user=request.user)
@@ -1574,11 +1582,15 @@ def statistics(request):
 
 def _deployment_path(request, path):
     """Ensure an app URL includes the configured reverse-proxy script prefix."""
-    script_name = request.META.get("SCRIPT_NAME") or getattr(
-        settings,
-        "FORCE_SCRIPT_NAME",
-        "",
-    ) or ""
+    script_name = (
+        request.META.get("SCRIPT_NAME")
+        or getattr(
+            settings,
+            "FORCE_SCRIPT_NAME",
+            "",
+        )
+        or ""
+    )
     script_name = script_name.rstrip("/")
     if script_name and path != script_name and not path.startswith(f"{script_name}/"):
         return f"{script_name}/{path.lstrip('/')}"
@@ -1589,6 +1601,7 @@ def _deployment_path(request, path):
 @require_GET
 def webmanifest(request):
     """Return install metadata using this deployment's URL prefix."""
+
     def manifest_url(name):
         return _deployment_path(request, reverse(name))
 
