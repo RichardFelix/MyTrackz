@@ -39,10 +39,31 @@ class RebrickableTests(SimpleTestCase):
         self.assertEqual(result["results"][0]["source"], "rebrickable")
         kwargs = request.call_args.kwargs
         self.assertEqual(kwargs["headers"], {"Authorization": "key test-key"})
-        self.assertEqual(kwargs["params"]["min_parts"], 1)
+        self.assertNotIn("min_parts", kwargs["params"])
         self.assertNotIn("key", kwargs["params"])
         self.assertEqual(services.search("lego", "75192", 2), result)
         request.assert_called_once()
+
+    @patch("app.providers.services.api_request")
+    def test_search_includes_sets_without_populated_inventories(self, request):
+        """Upcoming sets with zero catalog parts remain searchable by name or ID."""
+        joker = {
+            **SET,
+            "set_num": "67012-1",
+            "name": "The Joker Wall Art Comic Cover",
+            "num_parts": 0,
+            "year": 2027,
+        }
+        request.return_value = {"count": 1, "results": [joker]}
+        for query in ["The Joker", "67012"]:
+            with self.subTest(query=query):
+                # Old filtered search caches must not hide newly included sets.
+                cache.set(f"search_rebrickable_lego_{query}_1", {"results": []})
+                result = rebrickable.search(query, 1)
+                self.assertEqual(result["results"][0]["media_id"], "67012-1")
+                self.assertNotIn("min_parts", request.call_args.kwargs["params"])
+                self.assertEqual(rebrickable.search(query, 1), result)
+        self.assertEqual(request.call_count, 2)
 
     @patch("app.providers.services.api_request")
     def test_metadata_and_shared_theme_cache(self, request):

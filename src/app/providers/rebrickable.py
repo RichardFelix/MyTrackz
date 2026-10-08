@@ -49,8 +49,8 @@ def _set_summary(data):
 
 
 def search(query, page):
-    """Search official building sets by name or set number, with pagination."""
-    cache_key = f"search_rebrickable_lego_{query}_{page}"
+    """Search sets even when Rebrickable has not populated their inventory."""
+    cache_key = f"search_rebrickable_lego_v2_{query}_{page}"
     result = cache.get(cache_key)
     if result is None:
         data = _request(
@@ -59,7 +59,6 @@ def search(query, page):
                 "search": query,
                 "page": page,
                 "page_size": RESULTS_PER_PAGE,
-                "min_parts": 1,
             },
         )
         result = helpers.format_search_response(
