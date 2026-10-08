@@ -171,14 +171,14 @@
           </div>
         {% endif %}
 
-        <!-- Filter by Genre -->
+        <!-- Filter by genre or Lego theme -->
         {% if genre_choices %}
           <div class="relative w-full sm:w-auto" x-data="{ open: false }">
             <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
                     @click="open = !open"
                     type="button">
               {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
-              <span class="flex-1 text-left" x-text="genre || 'All Genres'"></span>
+              <span class="flex-1 text-left" x-text="genre || '{{ genre_filter_label|escapejs }}'"></span>
               {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
             </button>
 
@@ -199,7 +199,7 @@
                       class="block w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer"
                       :class="genre === '' ? 'bg-indigo-500/15 text-indigo-200 font-medium' : 'text-gray-300 hover:bg-white/5 hover:text-white'"
                       @click="genre = ''; open = false"
-                      type="button">All Genres</button>
+                      type="button">{{ genre_filter_label }}</button>
               {% for name in genre_choices %}
                 <button hx-get="{% url 'medialist' target_user.username media_type %}"
                         {% if media_list %} hx-target="{{ layout_class }}" {% else %} hx-target="#empty_list" {% endif %}

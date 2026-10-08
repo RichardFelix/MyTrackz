@@ -169,6 +169,49 @@ class LegoTrackingTests(TestCase):
         counts = get_user_media(self.user, None, None)[1]
         self.assertEqual(counts["lego"], 1)
 
+    def test_library_filters_by_item_themes(self):
+        """Theme choices and filtering use only this user's tracked Lego items."""
+        self.item.set_genres_from_metadata(METADATA)
+        self.create_build()
+        city = Item.objects.create(
+            media_id="60292-1",
+            source="rebrickable",
+            media_type="lego",
+            title="Town Centre",
+            image=METADATA["image"],
+        )
+        city.set_genres_from_metadata({"genres": ["City"]})
+        Lego.save_base(Lego(user=self.user, item=city, status=Status.PLANNING))
+        other = get_user_model().objects.create_user(username="other-theme-builder")
+        friends = Item.objects.create(
+            media_id="41704-1",
+            source="rebrickable",
+            media_type="lego",
+            title="Main Street Building",
+            image=METADATA["image"],
+        )
+        friends.set_genres_from_metadata({"genres": ["Friends"]})
+        Lego.save_base(Lego(user=other, item=friends, status=Status.PLANNING))
+        url = reverse("medialist", args=[self.user.username, "lego"])
+        response = self.client.get(url)
+        self.assertContains(response, "All Themes")
+        self.assertNotContains(response, "All Genres")
+        self.assertEqual(response.context["genre_choices"], ["City", "Star Wars"])
+        for layout in ["grid", "table"]:
+            for htmx in [False, True]:
+                with self.subTest(layout=layout, htmx=htmx):
+                    response = self.client.get(
+                        url,
+                        {"genre": "Star Wars", "layout": layout},
+                        headers={"HX-Request": "true"} if htmx else {},
+                    )
+                    self.assertContains(response, "Millennium Falcon")
+                    self.assertNotContains(response, "Town Centre")
+                    self.assertEqual(
+                        [media.item_id for media in response.context["media_list"]],
+                        [self.item.id],
+                    )
+
     def test_lego_has_no_fabricated_release_or_followup_feed(self):
         """Catalog years do not become calendar dates or invented recommendations."""
         self.create_build()

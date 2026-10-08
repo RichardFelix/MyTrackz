@@ -571,6 +571,9 @@ def media_list(request, username, media_type):
         "current_sort": sort_filter,
         "current_status": status_filter,
         "current_genre": genre_filter,
+        "genre_filter_label": (
+            "All Themes" if media_type == MediaTypes.LEGO.value else "All Genres"
+        ),
         "current_format": format_filter,
         "current_launcher": launcher_filter,
         "launcher_choices": (
