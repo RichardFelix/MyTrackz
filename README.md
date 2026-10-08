@@ -122,6 +122,8 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🎯 **Game launcher filtering** — narrow the games library by launcher without losing the active search, status, genre, format, sort, pagination, or layout.
 - 🎨 **Redesigned interface** — use a liquid-glass mobile navigation bar, updated media grid, morphing library panel, and one-tap movie completion control.
 - 🏠 **Compact home layout** — switch from poster grids to a swipeable list with episode details and one-tap progress controls.
+- 🧱 **LEGO set tracking** — search Rebrickable's official catalog by name or set number, including sets whose parts inventories are not yet recorded. Set pages show the set number, release year, piece count, theme, and locally cached artwork. Build progress is logged as elapsed time with 30-minute controls and appears in your normal history and statistics. Requires a free [Rebrickable API key](https://rebrickable.com/api/).
+- 🧩 **LEGO theme filtering** — narrow your LEGO library by the Rebrickable themes of the sets you track, in both grid and table layouts.
 - 🧭 **Discover** — get personalized recommendations ranked and interleaved across the media types you currently track or have completed.
 - 🔥 **Trending** — browse popular media from TMDB, MyAnimeList, IGDB, and BGG while hiding items already in your library.
 - 🔎 **Command palette** — press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to search within a media type and jump directly to a result.
@@ -156,7 +158,7 @@ cd mytrackz
 
 ### 2. Configure the service
 
-Open `docker-compose.yml` and replace the example `SECRET` with a long, random value. Review `TZ` and any provider API keys you want to use. If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
+Open `docker-compose.yml` and replace the example `SECRET` with a long, random value. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to enable LEGO set search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
 
 See [Environment variables](docs/env-variables.md) for every available setting.
 
