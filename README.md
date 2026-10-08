@@ -13,7 +13,7 @@
   <a href="https://github.com/FuzzyGrim/Yamtrack"><img src="https://img.shields.io/badge/fork%20of-Yamtrack-8b5cf6" alt="Fork of Yamtrack"></a>
 </p>
 
-MyTrackz is a self-hosted media tracker for movies, TV shows, anime, manga, video games, books, comics, and board games. Built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), this fork is tailored for people who want a more adaptable interface, richer discovery, and greater control over their library.
+MyTrackz is a self-hosted media tracker for movies, TV shows, anime, manga, video games, books, comics, board games, and LEGO sets. Built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), this fork is tailored for people who want a more adaptable interface, richer discovery, and greater control over their library.
 
 <!-- --8<-- [end:docs-index-intro] -->
 
@@ -91,7 +91,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 
 ### Track your media
 
-- **Eight media types** — movies, TV shows, anime, manga, video games, books, comics, and board games.
+- **Nine media types** — movies, TV shows, anime, manga, video games, books, comics, board games, and LEGO sets.
 - **Detailed progress** — record status, score, progress, repeats, start and finish dates, and personal notes.
 - **Episode and season tracking** — follow TV seasons individually and mark episodes as watched.
 - **Complete history** — keep a timeline of additions, progress updates, completions, rewatches, and rereads.

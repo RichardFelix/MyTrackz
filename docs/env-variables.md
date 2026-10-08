@@ -18,6 +18,12 @@ This page outlines the environment variables used in the YamTrack project.
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
 
+LEGO set search uses `REBRICKABLE`, an API key generated in your
+[Rebrickable account settings](https://rebrickable.com/api/). There is no bundled
+key. Official sets can be searched by name or set number; metadata includes the
+image, year, piece count, and theme. Build progress records time rather than pieces.
+Requests are cached and limited to one per second across workers.
+
 ## Media Import
 
 See [media-imports](media-imports.md).
@@ -95,6 +101,7 @@ YamTrack supports reading sensitive configuration values from Docker secrets fil
 | `IGDB_SECRET`             | `IGDB_SECRET_FILE`             |
 | `HARDCOVER_API`           | `HARDCOVER_API_FILE`           |
 | `COMICVINE_API`           | `COMICVINE_API_FILE`           |
+| `REBRICKABLE`             | `REBRICKABLE_FILE`             |
 | `TRAKT_API`               | `TRAKT_API_FILE`               |
 | `SIMKL_ID`                | `SIMKL_ID_FILE`                |
 | `SIMKL_SECRET`            | `SIMKL_SECRET_FILE`            |

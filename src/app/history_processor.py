@@ -227,7 +227,7 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
 
         if field_name == "progress" and media_type:
             verb = config.get_verb(media_type, past_tense=True).title()
-            if media_type == MediaTypes.GAME.value:
+            if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
                 return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
             unit = config.get_unit(media_type, short=False).lower()
             return f"{verb} up to {unit} {new_value}"
@@ -291,10 +291,14 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
         diff = new_value - old_value
         diff_abs = abs(diff)
 
-        if media_type == MediaTypes.GAME.value:
-            if diff > 0:
-                return f"Added {helpers.minutes_to_hhmm(diff_abs)} of playtime"
-            return f"Removed {helpers.minutes_to_hhmm(diff_abs)} of playtime"
+        if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
+            activity = (
+                "build time" if media_type == MediaTypes.LEGO.value else "playtime"
+            )
+            return (
+                f"{'Added' if diff > 0 else 'Removed'} "
+                f"{helpers.minutes_to_hhmm(diff_abs)} of {activity}"
+            )
 
         unit = (
             f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"

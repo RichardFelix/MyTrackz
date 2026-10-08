@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -62,6 +63,48 @@ class IntegrationTest(StaticLiveServerTestCase):
             'select[name="status"] option[value="Planning"]'
         )
         expect(planning_option).to_have_text("Wishlist")
+
+    @patch("app.providers.rebrickable._request")
+    def test_lego_build_tracking(self, request):
+        """Search, track and display build time through the real browser UI."""
+        catalog_set = {
+            "set_num": "75192-1",
+            "name": "Millennium Falcon",
+            "year": 2017,
+            "num_parts": 7541,
+            "set_img_url": None,
+        }
+        request.side_effect = lambda _path, params=None: (
+            {"count": 1, "results": [catalog_set]} if params else catalog_set
+        )
+        self.palette_search("75192", "Lego")
+        expect(self.page.locator("h2")).to_contain_text("Search Results")
+        self.page.get_by_title("Millennium Falcon", exact=True).click()
+        expect(self.page.get_by_role("main")).to_contain_text("7541")
+        expect(self.page.get_by_role("main")).to_contain_text("75192-1")
+        self.page.get_by_role("button", name="Add to tracker").click()
+        expect(self.page.locator("#track-lego-75192-1")).to_contain_text("Build time")
+        self.page.get_by_label("Build time (hours:minutes)").fill("1:30")
+        self.page.get_by_label("Status").select_option("In progress")
+        self.page.get_by_role("button", name="Add", exact=True).click()
+        self.page.get_by_role("link", name="Lego", exact=True).click()
+        self.page.get_by_role("link", name="Table View").click()
+        expect(self.page.locator("tbody")).to_contain_text("1h 30min")
+        expect(self.page.locator("tbody")).to_contain_text("In Progress")
+        self.page.get_by_role("link", name="Home", exact=True).click()
+        self.page.get_by_role("button", name="Increase progress", exact=True).click()
+        expect(self.page.get_by_role("main")).to_contain_text("2h 00min")
+        self.page.set_viewport_size({"width": 390, "height": 844})
+        try:
+            self.page.reload()
+            expect(self.page.get_by_role("main")).to_contain_text("Lego")
+            expect(self.page.get_by_role("main")).to_contain_text("2h 00min")
+            self.assertLessEqual(
+                self.page.evaluate("document.documentElement.scrollWidth"),
+                390,
+            )
+        finally:
+            self.page.set_viewport_size({"width": 1280, "height": 720})
 
     def test_season_progress_edit(self):
         """Test the progress edit of a season."""
@@ -126,6 +169,7 @@ class IntegrationTest(StaticLiveServerTestCase):
         expect(self.page.get_by_role("main")).to_contain_text("Season 1")
         self.page.get_by_role("button", name="Add to tracker").click()
         expect(self.page.locator("#track-season-1396-1")).to_contain_text("Score")
+        self.page.get_by_label("Status").select_option("Completed")
         self.page.get_by_role("button", name="Add", exact=True).click()
         self.page.get_by_role("link", name="TV Seasons").click()
         self.page.get_by_role("link", name="Table View").click()

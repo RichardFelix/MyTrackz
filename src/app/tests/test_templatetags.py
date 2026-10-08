@@ -175,8 +175,10 @@ class AppTagsTests(TestCase):
         for media_type, label in MediaTypes.choices:
             singular = label
 
-            # Special cases that don't change in plural form
-            if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
+            # Lego uses the same category label in singular and plural.
+            if media_type == MediaTypes.LEGO.value:
+                expected = "Lego"
+            elif singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:
                 expected = singular
             else:
                 expected = f"{singular}s"

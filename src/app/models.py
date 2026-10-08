@@ -51,6 +51,7 @@ class Sources(models.TextChoices):
     HARDCOVER = "hardcover", "Hardcover"
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
+    REBRICKABLE = "rebrickable", "Rebrickable"
     MANUAL = "manual", "Manual"
 
 
@@ -67,6 +68,7 @@ class MediaTypes(models.TextChoices):
     BOOK = "book", "Book"
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
+    LEGO = "lego", "Lego"
 
 
 class ImageCacheFormat(models.TextChoices):
@@ -2471,3 +2473,24 @@ class BoardGame(Media):
     """Model for board games."""
 
     tracker = FieldTracker()
+
+
+class Lego(Media):
+    """A user's LEGO build, with progress stored as minutes of build time."""
+
+    tracker = FieldTracker()
+
+    @property
+    def formatted_progress(self):
+        """Return build time in hours:minutes format."""
+        return app.helpers.minutes_to_hhmm(self.progress)
+
+    def increase_progress(self):
+        """Add thirty minutes of build time."""
+        self.progress += 30
+        self.save()
+
+    def decrease_progress(self):
+        """Remove thirty minutes of build time, clamping at zero."""
+        self.progress -= 30
+        self.save()

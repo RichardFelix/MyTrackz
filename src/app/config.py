@@ -201,6 +201,20 @@ MEDIA_TYPE_CONFIG = {
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
         "unit": ("#", "Issue"),
     },
+    MediaTypes.LEGO.value: {
+        "sources": [Sources.REBRICKABLE],
+        "default_source": Sources.REBRICKABLE,
+        "sample_query": "Millennium Falcon",
+        "unicode_icon": "🧱",
+        "verb": ("build", "built"),
+        "text_color": COLORS["orange"]["text"],
+        "stats_color": COLORS["orange"]["hex"],
+        "svg_icon": """
+            <rect x="3" y="8" width="18" height="13" rx="2"/>
+            <path d="M7 8V4h3v4M14 8V4h3v4M3 13h18"/>""",
+        "unit": ("h", "Hour"),
+        "date_key": "year",
+    },
     MediaTypes.BOARDGAME.value: {
         "sources": [Sources.BGG],
         "default_source": Sources.BGG,

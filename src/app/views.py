@@ -1115,7 +1115,7 @@ def track_modal(
 
     if media:
         title = media.item
-        if media_type == MediaTypes.GAME.value:
+        if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
             initial_data["progress"] = helpers.minutes_to_hhmm(media.progress)
     else:
         title = services.get_media_metadata(

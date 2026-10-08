@@ -21,6 +21,61 @@ class ImageTransportTests(SimpleTestCase):
 
     @patch("app.image_download.socket.socket")
     @patch("app.image_download.socket.getaddrinfo")
+    def test_temporary_dual_stack_dns_failure_uses_validated_ipv4(
+        self, resolve, make_socket
+    ):
+        """An AAAA resolver failure need not block a working public A record."""
+        public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        resolve.side_effect = [socket.gaierror(socket.EAI_AGAIN, "Try again"), [public]]
+        connection = PublicAddressHTTPSConnection("images.example", timeout=3)
+        connection._new_conn()
+        self.assertEqual(resolve.call_count, 2)
+        resolve.assert_called_with(
+            "images.example", 443, family=socket.AF_INET, type=socket.SOCK_STREAM
+        )
+        make_socket.return_value.connect.assert_called_once_with(public[4])
+        self.assertEqual(connection.host, "images.example")
+
+    @patch("app.image_download.socket.socket")
+    @patch("app.image_download.socket.getaddrinfo")
+    def test_ipv4_dns_fallback_still_rejects_private_addresses(
+        self, resolve, make_socket
+    ):
+        """Fallback must not bypass protection against private and mixed answers."""
+        public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))
+        private = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443))
+        for addresses in [[private], [public, private]]:
+            with self.subTest(addresses=addresses):
+                resolve.side_effect = [
+                    socket.gaierror(socket.EAI_AGAIN, "Try again"),
+                    addresses,
+                ]
+                with self.assertRaises(NewConnectionError):
+                    PublicAddressHTTPSConnection("images.example")._new_conn()
+        make_socket.assert_not_called()
+
+    @patch("app.image_download.socket.socket")
+    @patch("app.image_download.socket.getaddrinfo")
+    def test_missing_dns_name_does_not_trigger_fallback(self, resolve, make_socket):
+        """Permanent DNS errors retain the existing failure behavior."""
+        resolve.side_effect = socket.gaierror(socket.EAI_NONAME, "Name not known")
+        with self.assertRaises(NewConnectionError):
+            PublicAddressHTTPSConnection("images.example")._new_conn()
+        resolve.assert_called_once()
+        make_socket.assert_not_called()
+
+    @patch("app.image_download.socket.socket")
+    @patch("app.image_download.socket.getaddrinfo")
+    def test_both_dns_lookups_failing_does_not_connect(self, resolve, make_socket):
+        """DNS fallback failure is reported without creating a socket."""
+        resolve.side_effect = socket.gaierror(socket.EAI_AGAIN, "Try again")
+        with self.assertRaises(NewConnectionError):
+            PublicAddressHTTPSConnection("images.example")._new_conn()
+        self.assertEqual(resolve.call_count, 2)
+        make_socket.assert_not_called()
+
+    @patch("app.image_download.socket.socket")
+    @patch("app.image_download.socket.getaddrinfo")
     def test_connects_to_validated_address_once(self, resolve, make_socket):
         """A later DNS answer cannot replace the validated address."""
         public = (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))

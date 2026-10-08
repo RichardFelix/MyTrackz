@@ -42,6 +42,12 @@ def absolute_app_url(context, path):
 
 
 @register.filter
+def duration_progress(media_type):
+    """Whether progress represents elapsed time rather than numbered units."""
+    return media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}
+
+
+@register.filter
 def return_url(request):
     """Return the current page URL for use as an htmx return_url/next value."""
     return helpers.current_page_path(request)
@@ -187,6 +193,8 @@ def media_type_readable(media_type):
 def media_type_readable_plural(media_type):
     """Return the readable media type in plural form."""
     singular = MediaTypes(media_type).label
+    if media_type == MediaTypes.LEGO.value:
+        return "Lego"
 
     # Special cases that don't change in plural form
     if singular.lower() in [MediaTypes.ANIME.value, MediaTypes.MANGA.value]:

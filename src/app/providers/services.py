@@ -19,6 +19,7 @@ from app.providers import (
     mangaupdates,
     manual,
     openlibrary,
+    rebrickable,
     tmdb,
 )
 
@@ -77,6 +78,16 @@ session.mount(
 session.mount(
     "https://boardgamegeek.com/xmlapi2",
     LimiterAdapter(per_second=2),
+)
+
+
+session.mount(
+    "https://rebrickable.com/api/v3/",
+    LimiterAdapter(
+        per_second=1,
+        bucket_class=RedisBucket,
+        bucket_kwargs={"redis": redis_db, "bucket_key": f"{bucket_key}_rebrickable"},
+    ),
 )
 
 
@@ -244,6 +255,7 @@ def get_media_metadata(
         ),
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
         MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
+        MediaTypes.LEGO.value: lambda: rebrickable.lego(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -269,6 +281,7 @@ def search(media_type, query, page, source=None):
         ),
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
+        MediaTypes.LEGO.value: lambda: rebrickable.search(query, page),
     }
     return search_handlers[media_type]()
 

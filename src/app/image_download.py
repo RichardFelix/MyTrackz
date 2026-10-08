@@ -10,16 +10,29 @@ from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.exceptions import NewConnectionError
 
 
+def _resolve_image_addresses(host, port):
+    """Resolve both families, falling back to IPv4 for a temporary DNS failure."""
+    try:
+        return socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        if exc.errno != socket.EAI_AGAIN:
+            raise
+        # Some resolvers fail the combined A/AAAA lookup even when A succeeds.
+        # The caller still validates every address before connecting to it.
+        return socket.getaddrinfo(
+            host,
+            port,
+            family=socket.AF_INET,
+            type=socket.SOCK_STREAM,
+        )
+
+
 class PublicAddressConnection(HTTPConnection):
     """Connect directly to a validated address without a second DNS lookup."""
 
     def _new_conn(self):
         try:
-            addresses = socket.getaddrinfo(
-                self.host,
-                self.port,
-                type=socket.SOCK_STREAM,
-            )
+            addresses = _resolve_image_addresses(self.host, self.port)
         except OSError as exc:
             raise NewConnectionError(self, str(exc)) from exc
         if not addresses or any(

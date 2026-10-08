@@ -362,6 +362,24 @@ class User(AbstractUser):
         choices=MediaStatusChoices,
     )
 
+    # Media type preferences: LEGO
+    lego_enabled = models.BooleanField(default=True)
+    lego_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices,
+    )
+    lego_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.SCORE,
+        choices=MediaSortChoices,
+    )
+    lego_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
+    )
+
     # UI preferences
     theme = models.CharField(
         max_length=10,

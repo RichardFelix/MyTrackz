@@ -431,6 +431,9 @@ IGDB_SECRET = config(
 )
 IGDB_NSFW = config("IGDB_NSFW", default=False, cast=bool)
 
+# Rebrickable LEGO catalog API key (existing Compose variable).
+REBRICKABLE = config("REBRICKABLE", default=secret("REBRICKABLE_FILE", ""))
+
 # BoardGameGeek API Token - Register at https://boardgamegeek.com/using_the_xml_api
 BGG_API_TOKEN = config(
     "BGG_API_TOKEN",

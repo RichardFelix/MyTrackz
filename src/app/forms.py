@@ -13,6 +13,7 @@ from app.models import (
     Episode,
     Game,
     Item,
+    Lego,
     Manga,
     MediaTypes,
     Movie,
@@ -338,6 +339,21 @@ class GameForm(MediaForm):
             "end_date",
             "notes",
         ]
+
+
+class LegoForm(MediaForm):
+    """Track LEGO builds and time spent building."""
+
+    progress = CustomDurationField(
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "hh:mm"}),
+        label="Build time (hours:minutes)",
+    )
+
+    class Meta(MediaForm.Meta):
+        """Bind the standard tracking fields to LEGO builds."""
+
+        model = Lego
 
 
 class BookForm(MediaForm):
