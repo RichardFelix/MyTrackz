@@ -17,12 +17,12 @@ This page outlines the environment variables used in the YamTrack project.
 | `IGDB_NSFW`     | Default to `False`. Set to `True` to include adult content in game searches.                                                                                                                                                                          |
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
-| `REBRICKABLE`   | Rebrickable API key for LEGO sets. No default key is provided; LEGO search is unavailable until you set your own.                                                                                                                                     |
+| `REBRICKABLE`   | Rebrickable API key for LEGO sets. A default key is provided, but it's recommended to get your own as requests are limited to one per second.                                                                                                         |
 
-LEGO set search uses `REBRICKABLE`, an API key generated in your
-[Rebrickable account settings](https://rebrickable.com/api/). There is no bundled
-key. Official sets can be searched by name or set number; metadata includes the
-image, year, piece count, and theme. Build progress records time rather than pieces.
+LEGO set search uses `REBRICKABLE`. A default key is provided; to use your own,
+generate one in your [Rebrickable account settings](https://rebrickable.com/api/).
+Official sets can be searched by name or set number; metadata includes the image,
+year, piece count, and theme. Build progress records time rather than pieces.
 Requests are cached and limited to one per second across workers.
 
 ## Media Import
