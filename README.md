@@ -29,7 +29,7 @@ MyTrackz is a self-hosted media and collection tracker for movies, TV shows, ani
 
 ## Why choose MyTrackz over Yamtrack?
 
-MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opinionated experience for people who want richer discovery, greater visual control, and a highly adaptable home screen.
+MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opinionated experience for people who want richer discovery, greater visual control, a highly adaptable home screen, and collections that go beyond media.
 
 <p>
   <strong>🎨 A more adaptable interface</strong><br>
@@ -37,14 +37,18 @@ MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opiniona
 </p>
 <p>
   <strong>🛠️ Greater library control</strong><br>
-  Cache artwork locally, set custom posters and profile images, filter by genre or game launcher, and fine-tune tracking and display preferences.
+  Cache artwork locally, set custom posters and profile images, filter by genre, game launcher, or LEGO theme, mark which games you own, edit entries without a page reload, and fine-tune tracking and display preferences.
 </p>
 <p>
   <strong>🧭 More ways to discover</strong><br>
   Explore personalized recommendations, current trends, and direct story continuations from a responsive, mobile-friendly interface without resurfacing media you already track.
 </p>
+<p>
+  <strong>🧱 Collections beyond media</strong><br>
+  Track LEGO sets from Rebrickable with timed build progress, and build a sneaker collection from KicksDB whose saved details and photos stay available offline.
+</p>
 
-If you prefer the upstream project's release path and do not need these ⭐ additions, [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) remains an excellent choice. MyTrackz is for users who specifically want the fork's expanded interface and discovery features.
+If you prefer the upstream project's release path and do not need these ⭐ additions, [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) remains an excellent choice. MyTrackz is for users who specifically want the fork's expanded interface, discovery, and collection features.
 
 <a id="screenshots"></a>
 
