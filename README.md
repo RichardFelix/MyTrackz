@@ -13,7 +13,7 @@
   <a href="https://github.com/FuzzyGrim/Yamtrack"><img src="https://img.shields.io/badge/fork%20of-Yamtrack-8b5cf6" alt="Fork of Yamtrack"></a>
 </p>
 
-MyTrackz is a self-hosted media tracker for movies, TV shows, anime, manga, video games, books, comics, board games, and LEGO sets. Built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), this fork is tailored for people who want a more adaptable interface, richer discovery, and greater control over their library.
+MyTrackz is a self-hosted media and collection tracker for movies, TV shows, anime, manga, video games, books, comics, board games, LEGO sets, and sneakers. Built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), this fork is tailored for people who want a more adaptable interface, richer discovery, and greater control over their library.
 
 <!-- --8<-- [end:docs-index-intro] -->
 
@@ -91,7 +91,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 
 ### Track your media
 
-- **Nine media types** — movies, TV shows, anime, manga, video games, books, comics, board games, and LEGO sets.
+- **Ten tracking categories** — movies, TV shows, anime, manga, video games, books, comics, board games, LEGO sets, and sneakers.
 - **Detailed progress** — record status, score, progress, repeats, start and finish dates, and personal notes.
 - **Episode and season tracking** — follow TV seasons individually and mark episodes as watched.
 - **Complete history** — keep a timeline of additions, progress updates, completions, rewatches, and rereads.
@@ -123,7 +123,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🎨 **Redesigned interface** — use a liquid-glass mobile navigation bar, updated media grid, morphing library panel, and one-tap movie completion control.
 - 🏠 **Compact home layout** — switch from poster grids to a swipeable list with episode details and one-tap progress controls.
 - 🧱 **LEGO set tracking** — search Rebrickable's official catalog by name or set number, including sets whose parts inventories are not yet recorded. Set pages show the set number, release year, piece count, theme, and locally cached artwork. Build progress is logged as elapsed time with 30-minute controls and appears in your normal history and statistics. Works out of the box with a bundled [Rebrickable API key](https://rebrickable.com/api/); set your own with `REBRICKABLE`.
-- 👟 **Sneaker collection** — set `KICKSDB_API` to search KicksDB by sneaker name or style code. Selecting a sneaker saves its first catalog snapshot locally, including brand, style code, colorway, image and release date when available. Track owned pairs, wishlist status, notes and history; edit your personal details and original MSRP with an explicit currency. Missing API fields stay unknown. Any API-reported retail figure is shown separately because it may differ from the original launch price. Saved shoes do not refresh prices or releases and remain usable without the API. Custom entries and CSV import/export also work without a key.
+- 👟 **Sneaker collection** — search KicksDB by name or style code and save catalog details once. Track owned pairs, status, wishlist entries, notes, and history, with personal original MSRP and currency fields. Browse saved sneakers and cached photos without contacting KicksDB. See [Sneaker catalog](#sneaker-catalog) below for setup and behavior.
 - 🧩 **LEGO theme filtering** — narrow your LEGO library by the Rebrickable themes of the sets you track, in both grid and table layouts.
 - 🧭 **Discover** — get personalized recommendations ranked and interleaved across the media types you currently track or have completed.
 - 🔥 **Trending** — browse popular media from TMDB, MyAnimeList, IGDB, and BGG while hiding items already in your library.
@@ -140,6 +140,16 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🖱️ **Interactive media cards** — lift cards on hover and reveal quick actions for completion, lists, and history directly on the poster.
 - 👤 **Profile images** — set an avatar from an image URL with a drag-and-zoom cropper and local caching.
 - 🧹 **Cache management** — inspect image and search-cache usage, then clear either cache with a confirmation step from Settings → Advanced.
+
+### Sneaker catalog
+
+Set `KICKSDB_API` in the Docker service's environment to enable new sneaker searches. The [environment-variable guide](docs/env-variables.md) describes configuration. You can also create custom sneaker entries and browse your saved catalog without an API key.
+
+- **One-time catalog lookup** — opening a new KicksDB sneaker saves its available name, brand, style code, colorway, image, and release date locally. Later visits use those saved details, with no scheduled price or release refreshes. Missing fields stay unknown.
+- **Personal collection tracking** — record the number of owned pairs, choose a tracking status, keep wishlist entries, and edit personal details and notes. Status and pair-count changes appear in history. Notes can hold details such as condition or last-worn dates.
+- **Original release price** — enter a verified original MSRP and its currency yourself. An optional API-reported retail figure is displayed separately and never fills your original MSRP automatically; it may differ from the launch price.
+- **Locally cached photos** — sneaker artwork uses the same local image cache as the rest of your library. Saved catalog details and cached photos remain available when KicksDB is unavailable.
+- **Search recovery and portability** — failed API searches show retry and saved-catalog links. Saved entries can be exported to CSV and imported again, including personal sneaker fields.
 
 <a id="quick-start"></a>
 
@@ -159,7 +169,7 @@ cd mytrackz
 
 ### 2. Configure the service
 
-Open `docker-compose.yml` and replace the example `SECRET` with a long, random value. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to use your own key for LEGO set search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
+Open `docker-compose.yml` and replace the example `SECRET` with a long, random value. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to use your own key for LEGO set search, or `KICKSDB_API` for sneaker search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
 
 See [Environment variables](docs/env-variables.md) for every available setting.
 
