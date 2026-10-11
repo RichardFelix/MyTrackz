@@ -68,7 +68,7 @@ class GameModel(TestCase):
     def test_ownership_defaults_to_owned_and_is_historical(self):
         """Games default to owned and ownership edits are kept in history."""
         self.assertEqual(self.game.ownership, GameOwnership.OWNED)
-        self.assertEqual(self.game.ownership_emoji, "📦")
+        self.assertEqual(self.game.ownership_emoji, "🎮")
 
         self.game.ownership = GameOwnership.NOT_OWNED
         self.game.save()

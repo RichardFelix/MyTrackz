@@ -2453,7 +2453,7 @@ class Game(Media):
     @property
     def ownership_emoji(self):
         """Return the emoji shown on cover images for the ownership state."""
-        return "📦" if self.ownership == GameOwnership.OWNED else "🛒"
+        return "🎮" if self.ownership == GameOwnership.OWNED else "🛒"
 
     @property
     def formatted_progress(self):

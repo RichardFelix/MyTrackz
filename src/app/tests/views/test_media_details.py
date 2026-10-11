@@ -119,7 +119,7 @@ class MediaDetailsViewTests(TestCase):
         self.assertContains(response, "Ownership:", count=2)
         self.assertContains(response, "data-game-ownership-badge", count=1)
         self.assertContains(response, "🛒 Not owned")
-        self.assertContains(response, "📦 Owned")
+        self.assertContains(response, "🎮 Owned")
 
     @patch("app.providers.services.get_media_metadata")
     @patch("app.providers.tmdb.process_episodes")
