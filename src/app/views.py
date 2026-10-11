@@ -9,10 +9,16 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_not_required
 from django.core.cache import cache
-from django.core.paginator import Paginator
+from django.core.paginator import Page, Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import prefetch_related_objects
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    JsonResponse,
+    QueryDict,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
@@ -536,6 +542,7 @@ def media_list(request, username, media_type):
         request.GET.get("launcher", ""),
     )
     page = request.GET.get("page", 1)
+    removed = _get_removed_count(request)
 
     # Prepare status filter for database query
     if not status_filter:
@@ -553,10 +560,7 @@ def media_list(request, username, media_type):
         launcher_filter=launcher_filter,
     )
 
-    # Paginate results
-    items_per_page = 32
-    paginator = Paginator(media_queryset, items_per_page)
-    media_page = paginator.get_page(page)
+    media_page = _get_library_page(media_queryset, page, removed)
 
     BasicMedia.objects.annotate_max_progress(
         media_page.object_list,
@@ -588,6 +592,7 @@ def media_list(request, username, media_type):
         "status_choices": get_status_choices(target_user, include_all=True),
         "target_user": target_user,
         "is_htmx": bool(request.headers.get("HX-Request")),
+        "removed": removed,
     }
 
     # Handle HTMX requests for partial updates
@@ -620,6 +625,104 @@ def media_list(request, username, media_type):
         context["format_choices"] = _get_format_choices(media_type, target_user)
 
     return render(request, template_name, context)
+
+
+LIBRARY_PAGE_SIZE = 32
+
+
+class _OffsetPage(Page):
+    """A library page pulled back by the cards removed in place on the client.
+
+    Deleting a card, or editing it out of the active filter, drops it from the
+    already-loaded pages without a reload, so every later page would start
+    that many items too far and silently skip them.
+    """
+
+    def __init__(self, object_list, number, paginator, end):
+        super().__init__(object_list, number, paginator)
+        self._end = end
+
+    def has_next(self):
+        return self._end < self.paginator.count
+
+    def next_page_number(self):
+        return self.number + 1
+
+
+def _get_removed_count(request):
+    """Return how many cards the client removed from the loaded library pages."""
+    try:
+        return max(int(request.GET.get("removed", 0)), 0)
+    except ValueError:
+        return 0
+
+
+def _get_library_page(queryset, page, removed):
+    """Paginate the library, shifting later pages back by removed cards."""
+    paginator = Paginator(queryset, LIBRARY_PAGE_SIZE)
+    if not removed:
+        return paginator.get_page(page)
+
+    try:
+        number = max(int(page), 1)
+    except (TypeError, ValueError):
+        number = 1
+    start = max((number - 1) * LIBRARY_PAGE_SIZE - removed, 0)
+    end = start + LIBRARY_PAGE_SIZE
+    return _OffsetPage(queryset[start:end], number, paginator, end)
+
+
+def _render_library_item(request, media_type, item_id):
+    """Re-render one library card/row after an in-place edit or delete.
+
+    The library shows one entry per item, so the card is keyed by item: after
+    deleting a repeat the card shows the next-latest entry instead. When the
+    item no longer matches the active filters the card is removed.
+    """
+    user = request.user
+    filters = QueryDict(request.POST.get("library_filters", ""))
+    status_filter = user.get_valid_preference(
+        f"{media_type}_status",
+        filters.get("status"),
+    )
+    media_queryset = BasicMedia.objects.get_media_list(
+        user=user,
+        media_type=media_type,
+        status_filter=status_filter or MediaStatusChoices.ALL,
+        sort_filter=user.get_valid_preference(
+            f"{media_type}_sort",
+            filters.get("sort"),
+        ),
+        search=filters.get("search", ""),
+        genre_filter=filters.get("genre", ""),
+        format_filter=filters.get("format", ""),
+        launcher_filter=_get_launcher_filter(
+            media_type,
+            filters.get("launcher", ""),
+        ),
+    )
+    media = media_queryset.filter(item_id=item_id).first()
+    if media:
+        BasicMedia.objects.annotate_max_progress([media], media_type)
+
+    response = render(
+        request,
+        "app/components/library_item_update.html",
+        {
+            "media": media,
+            "media_type": media_type,
+            "media_list": {"paginator": {"count": media_queryset.count()}},
+            "layout": user.get_valid_preference(
+                f"{media_type}_layout",
+                filters.get("layout"),
+            ),
+            "target_user": user,
+            "is_htmx": True,
+        },
+    )
+    if not media:
+        response["HX-Reswap"] = "delete"
+    return response
 
 
 def _get_format_choices(media_type, target_user):
@@ -1161,6 +1264,7 @@ def track_modal(
             "form": form,
             "media": media,
             "return_url": request.GET["return_url"],
+            "library_item": bool(request.GET.get("library_item")),
         },
     )
 
@@ -1212,6 +1316,17 @@ def media_save(request):
                     f"{field.replace('_', ' ').title()}: {error}",
                 )
 
+    if request.POST.get("library_item"):
+        if not form.is_valid():
+            # keep the modal open so the entry can be corrected
+            response = render(
+                request,
+                "app/components/messages/messages_oob.html",
+            )
+            response["HX-Reswap"] = "none"
+            return response
+        return _render_library_item(request, media_type, instance.item_id)
+
     return helpers.redirect_back(request)
 
 
@@ -1223,6 +1338,9 @@ def media_delete(request):
     media = helpers.get_owned_media_or_404(request, media_type, instance_id)
     media.delete()
     logger.info("%s deleted successfully.", media)
+
+    if request.POST.get("library_item"):
+        return _render_library_item(request, media_type, media.item_id)
 
     return helpers.redirect_back(request)
 

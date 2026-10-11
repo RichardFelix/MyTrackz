@@ -1,0 +1,16 @@
+{# In-place library edit: the card/row swaps into #library-item-<item id>, the rest is out-of-band #}
+{% if media %}
+  {% if layout == "grid" %}
+    {% include "app/components/media_card.html" with item=media.item title=media.item from_grid=True library_item=True %}
+  {% else %}
+    {% include "app/components/media_table_row.html" %}
+  {% endif %}
+{% endif %}
+{% comment %}
+  Out-of-band parts go last and inside <template>: the HTML parser drops <td>
+  cells that follow a <span>/<div>, and htmx still swaps oob elements from templates.
+{% endcomment %}
+<template>
+  {% include "app/components/messages/messages_oob.html" %}
+  {% include "app/components/media_item_count.html" %}
+</template>

@@ -10,7 +10,7 @@ from django.test import override_settings
 from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
-from app.models import Sources
+from app.models import Item, MediaTypes, Movie, Sources, Status
 from app.providers import services
 from app.tests.test_sneakers import SHOE
 from users.models import HomeLayoutChoices
@@ -395,3 +395,99 @@ class IntegrationTest(StaticLiveServerTestCase):
                 'input[name="obfuscate_unseen_episodes"]'
             )
             expect(obfuscate_checkbox).not_to_be_checked()
+
+    def _create_library_movies(self, count):
+        """Track `count` planned movies titled "Movie 00".. for library tests."""
+        movies = []
+        for i in range(count):
+            item = Item.objects.create(
+                media_id=str(i),
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Movie {i:02d}",
+                image="http://example.com/image.jpg",
+            )
+            movies.append(
+                Movie.objects.create(
+                    item=item,
+                    user=self.user,
+                    status=Status.PLANNING.value,
+                ),
+            )
+        return movies
+
+    def _open_library(self, layout):
+        self.page.goto(
+            f"{self.live_server_url}/{self.user.username}/movie"
+            f"?layout={layout}&sort=title&status=All",
+        )
+        # survives only while the page is never reloaded
+        self.page.evaluate("window.__libraryNoReload = true")
+
+    def _edit_card(self, movie):
+        card = self.page.locator(f"#library-item-{movie.item_id}")
+        card.hover()
+        card.locator("[hx-get*='track_modal']").click()
+        return card
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_library_edit_updates_card_in_place(self, metadata):
+        """Editing from the library grid swaps the card without a reload."""
+        metadata.return_value = {"max_progress": 1}
+        movies = self._create_library_movies(3)
+        self._open_library("grid")
+
+        card = self._edit_card(movies[1])
+        self.page.get_by_label("Score").fill("8")
+        self.page.get_by_role("button", name="Update").click()
+
+        expect(card).to_contain_text("8")
+        expect(self.page.locator(".modal-glass:visible")).to_have_count(0)
+        self.assertTrue(self.page.evaluate("window.__libraryNoReload === true"))
+
+        # the swapped card can be edited again
+        card = self._edit_card(movies[1])
+        self.page.get_by_role("button", name="Delete").click()
+        expect(card).to_have_count(0)
+        expect(self.page.locator("#media-item-count")).to_contain_text("2 items")
+        self.assertTrue(self.page.evaluate("window.__libraryNoReload === true"))
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_library_table_edit_closes_modal(self, metadata):
+        """Table rows keep their Alpine state, so the modal must close itself."""
+        metadata.return_value = {"max_progress": 1}
+        movies = self._create_library_movies(2)
+        self._open_library("table")
+
+        row = self._edit_card(movies[0])
+        self.page.get_by_label("Score").fill("6")
+        self.page.get_by_role("button", name="Update").click()
+
+        expect(row.locator("td").nth(2)).to_contain_text("6")
+        expect(self.page.locator(".modal-glass:visible")).to_have_count(0)
+        self.assertTrue(self.page.evaluate("window.__libraryNoReload === true"))
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_library_delete_keeps_infinite_scroll_complete(self, metadata):
+        """Removing the next-page trigger card still loads every later item."""
+        metadata.return_value = {"max_progress": 1}
+        movies = self._create_library_movies(40)
+        self._open_library("grid")
+        cards = self.page.locator("[data-library-item]")
+        expect(cards).to_have_count(32)
+
+        # Movie 31 is the last card of page 1 and carries the page-2 trigger
+        card = self._edit_card(movies[31])
+        self.page.get_by_role("button", name="Delete").click()
+        expect(card).to_have_count(0)
+        # and a mid-page delete shifts page 2 back once more
+        card = self._edit_card(movies[5])
+        self.page.get_by_role("button", name="Delete").click()
+        expect(card).to_have_count(0)
+
+        self.page.mouse.wheel(0, 100000)
+        expect(cards).to_have_count(38)
+        titles = cards.locator("a[title]").all_inner_texts()
+        expected = [f"Movie {i:02d}" for i in range(40) if i not in (5, 31)]
+        self.assertEqual(titles, expected)
+        self.assertTrue(self.page.evaluate("window.__libraryNoReload === true"))

@@ -3,7 +3,9 @@
 {% if is_htmx %}{% include "app/components/media_item_count.html" %}{% endif %}
 
 {% for media in media_list %}
-  <div {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' target_user.username media_type %}?page={{ media_list.next_page_number }}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
-    {% include "app/components/media_card.html" with media=media item=media.item title=media.item from_grid=True %}
+  <div id="library-item-{{ media.item_id }}"
+       data-library-item
+       {% if forloop.last and media_list.has_next %} hx-get="{% url 'medialist' target_user.username media_type %}?page={{ media_list.next_page_number }}{% if removed %}&removed={{ removed }}{% endif %}" hx-trigger="revealed threshold:200px" hx-swap="afterend" hx-include="#filter-form" hx-indicator="#loading-indicator" {% endif %}>
+    {% include "app/components/media_card.html" with media=media item=media.item title=media.item from_grid=True library_item=True %}
   </div>
 {% endfor %}
