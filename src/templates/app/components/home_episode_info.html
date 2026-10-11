@@ -3,11 +3,10 @@
 <div x-data="{ synopsisExpanded: false }" class="relative">
   <button type="button"
           class="modal-x absolute z-10 cursor-pointer text-white"
-          style="top: -18px; right: -20px"
+          style="top: -18px;
+                 right: -20px"
           aria-label="Close episode information"
-          @click="episodeInfoOpen = false">
-    {% include "app/icons/x.svg" with classes="h-5 w-5" %}
-  </button>
+          @click="episodeInfoOpen = false">{% include "app/icons/x.svg" with classes="h-5 w-5" %}</button>
 
   {% if episode %}
     <img src="{{ IMG_PLACEHOLDER }}"
@@ -41,7 +40,9 @@
 
     <div class="mt-8">
       <p class="text-sm font-bold text-indigo-300">
+        {# djlint:off #}
         {% if media.item.media_type == MediaTypes.SEASON.value %}S{{ media.item.season_number|stringformat:"02d" }}{% endif %}E{{ episode.episode_number|stringformat:"02d" }}
+        {# djlint:on #}
       </p>
       <h2 class="mt-1 text-2xl font-bold text-white">{{ episode.title }}</h2>
       <p class="mt-3 text-base leading-relaxed text-gray-300"

@@ -334,11 +334,13 @@
           {% for mt in home_media_types %}
             '{{ mt|escapejs }}'
             {% if not forloop.last %},{% endif %}
+
           {% endfor %}
           ], labels: {
           {% for mt in home_media_types %}
             '{{ mt|escapejs }}': '{{ mt|media_type_readable_plural|escapejs }}'
             {% if not forloop.last %},{% endif %}
+
           {% endfor %}
           }, dragging: null, move(from, to) { if (to >= 0 && to < this.items.length) [this.items[from], this.items[to]] = [this.items[to], this.items[from]]; }, reorder(to) { if (this.dragging === null || this.dragging === to) return; const moved = this.items.splice(this.dragging, 1)[0]; this.items.splice(to, 0, moved); this.dragging = to; } }">
           <h4 class="text-sm font-semibold text-gray-200">Home and navigation order</h4>

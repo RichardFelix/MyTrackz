@@ -4,113 +4,115 @@
   {% if user.home_layout == "list" %}
     {% include "app/components/home_list_item.html" with media=media home_status=home_status %}
   {% else %}
-  {# no transition-all here: easing the transform out would keep this div the containing block for the fixed modals for the duration, flashing the modal inside the card #}
-  <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
-       x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
-       {# card-lift is dropped while a modal is open: a transform would make this div the containing block for the fixed-position modals below and clip them #}
-       :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
-    <div class="relative">
-      <a href="{{ media.item|media_url }}">
-        <img alt="{{ media }}"
-             class="lazyload w-full aspect-2/3 {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
-             data-src="{{ media.item.cached_image_url }}"
-             src="{{ IMG_PLACEHOLDER }}">
-      </a>
-      {% include "app/components/game_launcher_badge.html" with item=media.item media=media %}
-      {% include "app/components/game_ownership_badge.html" with item=media.item media=media %}
+    {# no transition-all here: easing the transform out would keep this div the containing block for the fixed modals for the duration, flashing the modal inside the card #}
+    <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
+      x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
+      {# card-lift is dropped while a modal is open: a transform would make this div the containing block for the fixed-position modals below and clip them #}
+      :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
+      <div class="relative">
+        <a href="{{ media.item|media_url }}">
+          <img alt="{{ media }}"
+               class="lazyload w-full aspect-2/3 {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
+               data-src="{{ media.item.cached_image_url }}"
+               src="{{ IMG_PLACEHOLDER }}">
+        </a>
+        {% include "app/components/game_launcher_badge.html" with item=media.item media=media %}
+        {% include "app/components/game_ownership_badge.html" with item=media.item media=media %}
 
-      {% if media.next_event and not media.next_event.is_max_datetime %}
-        <div {% if media.item.media_type == MediaTypes.GAME.value %}data-game-release-date{% endif %}
-             class="absolute {% if media.item.media_type == MediaTypes.GAME.value %}game-release-date-with-launcher top-2 left-2{% else %}top-2 left-1/2 -translate-x-1/2{% endif %} flex {% if media.item.media_type != MediaTypes.GAME.value %}max-w-[98%] {% endif %}items-center gap-1.5 rounded-md bg-black/80 {% if media.item.media_type == MediaTypes.GAME.value %}px-1.5{% else %}px-2{% endif %} py-1.5 shadow-md whitespace-nowrap">
-          {% if home_status == Status.PLANNING.value %}
-            {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-sky-400" %}
-          {% else %}
-            {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-indigo-400" %}
-          {% endif %}
-          <span class="text-xs font-medium text-white drop-shadow-sm truncate">
-            {% if media.item.media_type == MediaTypes.GAME.value %}
-              {{ media.next_event.datetime|date_format:user }}
+        {% if media.next_event and not media.next_event.is_max_datetime %}
+          <div {% if media.item.media_type == MediaTypes.GAME.value %}data-game-release-date{% endif %}
+               class="absolute {% if media.item.media_type == MediaTypes.GAME.value %}game-release-date-with-launcher top-2 left-2{% else %}top-2 left-1/2 -translate-x-1/2{% endif %} flex {% if media.item.media_type != MediaTypes.GAME.value %}max-w-[98%] {% endif %}items-center gap-1.5 rounded-md bg-black/80 {% if media.item.media_type == MediaTypes.GAME.value %}px-1.5{% else %}px-2{% endif %} py-1.5 shadow-md whitespace-nowrap">
+            {% if home_status == Status.PLANNING.value %}
+              {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-sky-400" %}
             {% else %}
-              {% if media.next_event.content_number %}
-                {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
-              {% endif %}
-              {{ media.next_event.datetime|natural_day:user }}
+              {% include "app/icons/clock.svg" with classes="w-3.5 h-3.5 text-indigo-400" %}
             {% endif %}
-          </span>
+            <span class="text-xs font-medium text-white drop-shadow-sm truncate">
+              {% if media.item.media_type == MediaTypes.GAME.value %}
+                {{ media.next_event.datetime|date_format:user }}
+              {% else %}
+                {% if media.next_event.content_number %}
+                  {{ media.item.media_type|short_unit }}{{ media.next_event.content_number }} •
+                {% endif %}
+                {{ media.next_event.datetime|natural_day:user }}
+              {% endif %}
+            </span>
+          </div>
+        {% endif %}
+
+        <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
+          <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
+
+          <div class="relative flex items-center justify-center space-x-2.5">
+            <button class="cursor-pointer rounded-full bg-indigo-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                    title="Add to tracker"
+                    hx-get="{% media_view_url 'track_modal' media.item %}"
+                    hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ media.id }}"}'
+                    hx-target="#{% component_id 'track' media.item media.id %}"
+                    hx-trigger="click once"
+                    @click="trackOpen = true">{% include "app/icons/pen.svg" with classes="w-4.5 h-4.5" %}</button>
+
+            <button class="cursor-pointer rounded-full bg-emerald-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                    title="Add to custom lists"
+                    hx-get="{% media_view_url 'lists_modal' media.item %}"
+                    hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
+                    hx-target="#{% component_id 'lists' media.item %}"
+                    hx-trigger="click once"
+                    @click="listsOpen = true">{% include "app/icons/plus.svg" with classes="w-4.5 h-4.5" %}</button>
+
+            {# djlint:off #}
+            <button class="cursor-pointer rounded-full bg-amber-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                    title="View your activity history"
+                    hx-get="{% media_view_url 'history_modal' media.item %}"
+                    hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
+                    hx-target="#{% component_id 'history' media.item %}"
+                    hx-trigger="click once"
+                    @click="historyOpen = true">{% include "app/icons/hourglass.svg" with classes="w-4.5 h-4.5" %}</button>
+            {# djlint:on #}
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3">
+        <a href="{{ media.item|media_url }}"
+           class="line-clamp-1 text-center text-sm font-semibold text-white transition duration-300 {% if home_status == Status.PLANNING.value %}hover:text-sky-400{% else %}hover:text-indigo-400{% endif %}"
+           title="{{ media }}">{{ media }}</a>
+      </div>
+
+      {% if home_status == Status.PLANNING.value %}
+        {% if user.progress_bar %}<div class="h-[5px] {{ Status.PLANNING.value|status_background_color }}"></div>{% endif %}
+      {% else %}
+        <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
+          {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes only %}
         </div>
       {% endif %}
 
-      <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover-tap:opacity-100{% if user.clickable_media_cards %} pointer-coarse:hidden{% endif %}">
-        <a href="{{ media.item|media_url }}" class="absolute inset-0"></a>
+      <div x-show="trackOpen"
+           @keydown.escape.window="trackOpen = false"
+           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="relative z-60 max-h-[90vh] w-152 px-4 md:px-0"
+             @click.outside="trackOpen = false">
+          <div id="{% component_id 'track' media.item media.id %}"></div>
+        </div>
+      </div>
 
-        <div class="relative flex items-center justify-center space-x-2.5">
-          <button class="cursor-pointer rounded-full bg-indigo-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                  title="Add to tracker"
-                  hx-get="{% media_view_url 'track_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}", "instance_id": "{{ media.id }}"}'
-                  hx-target="#{% component_id 'track' media.item media.id %}"
-                  hx-trigger="click once"
-                  @click="trackOpen = true">{% include "app/icons/pen.svg" with classes="w-4.5 h-4.5" %}</button>
+      <div x-show="listsOpen"
+           @keydown.escape.window="listsOpen = false"
+           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
+             @click.outside="listsOpen = false">
+          <div id="{% component_id 'lists' media.item %}"></div>
+        </div>
+      </div>
 
-          <button class="cursor-pointer rounded-full bg-emerald-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-                  title="Add to custom lists"
-                  hx-get="{% media_view_url 'lists_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
-                  hx-target="#{% component_id 'lists' media.item %}"
-                  hx-trigger="click once"
-                  @click="listsOpen = true">{% include "app/icons/plus.svg" with classes="w-4.5 h-4.5" %}</button>
-
-          <button class="cursor-pointer rounded-full bg-amber-600 p-3.25 text-white transition-all duration-200 hover:scale-110 hover:bg-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]"
-                  title="View your activity history"
-                  hx-get="{% media_view_url 'history_modal' media.item %}"
-                  hx-vals='{"return_url": "{{ request|return_url|urlencode }}"}'
-                  hx-target="#{% component_id 'history' media.item %}"
-                  hx-trigger="click once"
-                  @click="historyOpen = true">{% include "app/icons/hourglass.svg" with classes="w-4.5 h-4.5" %}</button>
+      <div x-show="historyOpen"
+           @keydown.escape.window="historyOpen = false"
+           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
+             @click.outside="historyOpen = false">
+          <div id="{% component_id 'history' media.item %}"></div>
         </div>
       </div>
     </div>
-
-    <div class="p-3">
-      <a href="{{ media.item|media_url }}"
-         class="line-clamp-1 text-center text-sm font-semibold text-white transition duration-300 {% if home_status == Status.PLANNING.value %}hover:text-sky-400{% else %}hover:text-indigo-400{% endif %}"
-         title="{{ media }}">{{ media }}</a>
-    </div>
-
-    {% if home_status == Status.PLANNING.value %}
-      {% if user.progress_bar %}<div class="h-[5px] {{ Status.PLANNING.value|status_background_color }}"></div>{% endif %}
-    {% else %}
-      <div id="progress-{{ media.item.media_type }}-{{ media.id }}">
-        {% include "app/components/progress_changer.html" with media=media user=user csrf_token=csrf_token MediaTypes=MediaTypes only %}
-      </div>
-    {% endif %}
-
-    <div x-show="trackOpen"
-         @keydown.escape.window="trackOpen = false"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-152 px-4 md:px-0"
-           @click.outside="trackOpen = false">
-        <div id="{% component_id 'track' media.item media.id %}"></div>
-      </div>
-    </div>
-
-    <div x-show="listsOpen"
-         @keydown.escape.window="listsOpen = false"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
-           @click.outside="listsOpen = false">
-        <div id="{% component_id 'lists' media.item %}"></div>
-      </div>
-    </div>
-
-    <div x-show="historyOpen"
-         @keydown.escape.window="historyOpen = false"
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div class="relative z-60 max-h-[90vh] w-96 px-4 md:px-0"
-           @click.outside="historyOpen = false">
-        <div id="{% component_id 'history' media.item %}"></div>
-      </div>
-    </div>
-  </div>
   {% endif %}
 {% endfor %}

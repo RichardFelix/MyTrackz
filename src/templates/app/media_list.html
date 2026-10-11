@@ -130,7 +130,9 @@
 
         <!-- Filter by Launcher -->
         {% if launcher_choices %}
-          <div data-launcher-filter class="relative w-full sm:w-auto" x-data="{ open: false }">
+          <div data-launcher-filter
+               class="relative w-full sm:w-auto"
+               x-data="{ open: false }">
             <button class="flex w-full items-center rounded-lg border border-[#2c3136] bg-[#17181d] px-3.5 py-2.5 text-sm text-gray-300 hover:bg-[#1d1e24] hover:text-white transition-colors cursor-pointer sm:w-auto"
                     @click="open = !open"
                     type="button">
@@ -178,7 +180,8 @@
                     @click="open = !open"
                     type="button">
               {% include "app/icons/funnel.svg" with classes="w-4 h-4 mr-2" %}
-              <span class="flex-1 text-left" x-text="genre || '{{ genre_filter_label|escapejs }}'"></span>
+              <span class="flex-1 text-left"
+                    x-text="genre || '{{ genre_filter_label|escapejs }}'"></span>
               {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 ml-2" %}
             </button>
 

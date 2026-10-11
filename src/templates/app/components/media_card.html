@@ -1,9 +1,9 @@
 {% load app_tags %}
 
 <div class="{% if secondary_color %}bg-[#39404b]{% else %}bg-[#2a2f35]{% endif %} rounded-lg overflow-hidden shadow-lg relative {% if active %}ring-[1.5px] ring-slate-400{% endif %}"
-     x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
-     {# card-lift is dropped while a modal is open: a transform would make this div the containing block for the fixed-position modals below and clip them #}
-     :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
+  x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
+  {# card-lift is dropped while a modal is open: a transform would make this div the containing block for the fixed-position modals below and clip them #}
+  :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
   <div class="relative">
     <a href="{{ item|media_url }}">
       <img alt="{{ title }}"
@@ -113,6 +113,7 @@
                     @click="listsOpen = true">{% include "app/icons/plus.svg" with classes="w-4.5 h-4.5" %}</button>
 
             {# History Button #}
+            {# djlint:off #}
             <button class="p-3.25 bg-amber-600 text-white rounded-full hover:bg-amber-500 hover:scale-110 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all duration-200 cursor-pointer"
                     title="View your activity history"
                     hx-get="{% media_view_url 'history_modal' item %}"
@@ -120,6 +121,7 @@
                     hx-target="#{% component_id 'history' item %}"
                     hx-trigger="click once"
                     @click="historyOpen = true">{% include "app/icons/hourglass.svg" with classes="w-4.5 h-4.5" %}</button>
+            {# djlint:on #}
           </div>
         {% endif %}
       </div>

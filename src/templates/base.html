@@ -7,7 +7,8 @@
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="keywords" content="MyTrackz, Media Tracker">
     <meta name="description" content="Search and track media on MyTrackz.">
 
@@ -97,7 +98,9 @@
                 <li>
                   <a href="{% url 'home' %}"
                      class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == "/" %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                    {% if request.path|str_equals:"/" %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                    {% if request.path|str_equals:"/" %}
+                      <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                    {% endif %}
                     {% if request.path|str_equals:"/" %}
                       {% include "app/icons/house.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -136,7 +139,9 @@
                     {% if target_user is None or target_user == request.user %}
                       <a href="{% url 'medialist' username=user.username media_type=item.media_type %}"
                          class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if media_type == item.media_type %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                        {% if media_type == item.media_type %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                        {% if media_type == item.media_type %}
+                          <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                        {% endif %}
                         {% icon item.media_type is_active=media_type|str_equals:item.media_type %}
                         <span>{{ item.display_name }}</span>
                       </a>
@@ -163,7 +168,9 @@
                   <li>
                     <a href="{{ discover_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == discover_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:discover_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:discover_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:discover_url %}
                         {% include "app/icons/globe.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -179,7 +186,9 @@
                   <li>
                     <a href="{{ trending_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == trending_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:trending_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:trending_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:trending_url %}
                         {% include "app/icons/flame.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -195,7 +204,9 @@
                   <li>
                     <a href="{{ calendar_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == calendar_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:calendar_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:calendar_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:calendar_url %}
                         {% include "app/icons/calendar.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -216,7 +227,9 @@
                   <li>
                     <a href="{{ create_entry_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == create_entry_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:create_entry_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:create_entry_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:create_entry_url %}
                         {% include "app/icons/circle-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -232,7 +245,9 @@
                   <li>
                     <a href="{{ lists_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == lists_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:lists_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:lists_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:lists_url %}
                         {% include "app/icons/folder-plus.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -248,7 +263,9 @@
                   <li>
                     <a href="{{ statistics_url }}"
                        class="group relative flex items-center space-x-3 px-4 py-2 rounded-md transition-colors duration-200 text-sm {% if request.path == statistics_url %}text-white bg-indigo-500/10{% else %}text-gray-400 hover:text-white hover:bg-[#23272b]{% endif %}">
-                      {% if request.path|str_equals:statistics_url %}<span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>{% endif %}
+                      {% if request.path|str_equals:statistics_url %}
+                        <span class="absolute left-0 inset-y-1.5 w-0.5 rounded-full bg-indigo-400"></span>
+                      {% endif %}
                       {% if request.path|str_equals:statistics_url %}
                         {% include "app/icons/bars-pyramid.svg" with classes="w-5 h-5 text-indigo-400 " %}
 
@@ -278,14 +295,16 @@
               <div class="p-3 border-t border-[#2c3136] mt-auto">
                 <div class="group relative flex cursor-pointer items-center gap-3 rounded-lg bg-[#2a2f35] p-2.5 ring-1 ring-white/5 transition-colors hover:bg-[#313842] {% if settings_active %}ring-indigo-400/40{% endif %}">
                   {# Whole chip is a link to Settings; interactive exceptions are raised above it #}
-                  <a href="{{ account_url }}" class="absolute inset-0 z-0" aria-label="Open settings"></a>
+                  <a href="{{ account_url }}"
+                     class="absolute inset-0 z-0"
+                     aria-label="Open settings"></a>
                   {% if user.cached_image_url %}
                     <img src="{{ user.cached_image_url }}"
                          alt="{{ user.username }}"
                          class="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/10">
                   {% else %}
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-[#241505]"
-                         style="background: linear-gradient(140deg, #f0c070, #b06a2c);">
+                         style="background: linear-gradient(140deg, #f0c070, #b06a2c)">
                       {{ user.username|first|upper }}
                     </div>
                   {% endif %}
@@ -294,9 +313,12 @@
                     <div class="flex items-center gap-2 text-xs text-gray-400">
                       <span class="transition-colors group-hover:text-white">Settings</span>
                       <span class="text-gray-600">·</span>
-                      <form method="post" action="{% url 'account_logout' %}" class="relative z-10 inline">
+                      <form method="post"
+                            action="{% url 'account_logout' %}"
+                            class="relative z-10 inline">
                         {% csrf_token %}
-                        <button type="submit" class="cursor-pointer transition-colors hover:text-white">Log out</button>
+                        <button type="submit"
+                                class="cursor-pointer transition-colors hover:text-white">Log out</button>
                       </form>
                     </div>
                   </div>
@@ -406,7 +428,7 @@
                @click="paletteOpen = false"
                x-transition.opacity
                class="fixed inset-0 flex items-start justify-center bg-black/60 px-4 pt-24"
-               style="z-index: 2147483647;">
+               style="z-index: 2147483647">
             <div @click.stop
                  class="w-full max-w-xl overflow-hidden rounded-xl border border-[#2c3136] bg-[#1b1c22] shadow-2xl"
                  x-data="{ selectedType: { display: '{{ search_type|media_type_readable_plural }}', value: '{{ search_type }}' }, mediaTypes: {% get_search_media_types user as search_types %}{{ search_types }} }">

@@ -3,13 +3,13 @@
 <div id="home-list-item-{{ media.item.media_type }}-{{ media.id }}"
      class="relative overflow-hidden rounded-xl bg-[#202228] shadow-lg"
      data-home-list-item
-     x-data="homeSwipe({ enabled: {% if home_status == Status.IN_PROGRESS.value %}true{% else %}false{% endif %} })"
+     x-data="homeSwipe({ enabled: {{ home_status|str_equals:Status.IN_PROGRESS.value|yesno:'true,false' }} })"
      @pointerdown="start($event)"
      @pointermove="move($event)"
      @pointerup="finish($event)"
      @pointercancel="cancel()"
      @click.capture="guardClick($event)"
-     style="touch-action: pan-y;">
+     style="touch-action: pan-y">
   {% if home_status == Status.IN_PROGRESS.value %}
     <div class="absolute inset-0 flex items-center justify-between bg-emerald-600 px-6 text-white"
          aria-hidden="true">
@@ -21,7 +21,8 @@
   <div class="relative flex min-h-40 gap-4 bg-[#202228] p-3 transition-transform duration-200 ease-out sm:min-h-44 sm:gap-5 sm:p-4"
        :class="dragging ? '!duration-0' : ''"
        :style="`transform: translateX(${offset}px)`">
-    <a href="{{ media.item|media_url }}" class="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg sm:w-28">
+    <a href="{{ media.item|media_url }}"
+       class="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg sm:w-28">
       <img alt="{{ media }}"
            class="lazyload h-full w-full {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
            data-src="{{ media.item.cached_image_url }}"
@@ -43,7 +44,11 @@
             S{{ media.item.season_number|stringformat:"02d" }}E{{ media.progress|add:"1"|stringformat:"02d" }} · Next episode
           {% endif %}
         {% elif media.item.media_type == MediaTypes.MOVIE.value or media.item.media_format == "Movie" %}
-          {% if media.progress %}Watched{% else %}Ready to watch{% endif %}
+          {% if media.progress %}
+            Watched
+          {% else %}
+            Ready to watch
+          {% endif %}
         {% elif media.item.media_type|duration_progress %}
           Current progress · {{ media.formatted_progress }}
         {% else %}
@@ -75,9 +80,11 @@
                 <div class="h-full w-full rounded-full bg-indigo-500"></div>
               {% endif %}
             </div>
+            {# djlint:off #}
             <span class="shrink-0 text-xs text-gray-500 tabular-nums sm:text-sm">
               {{ media.formatted_progress }}{% if media.max_progress %}/{{ media.max_progress }}{% endif %}
             </span>
+            {# djlint:on #}
           </div>
         {% endif %}
 
@@ -92,9 +99,7 @@
                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                       hx-vals='{"operation": "decrease", "home_layout": "list", "home_section": "1"}'
                       hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
-                      hx-swap="outerHTML">
-                {% include "app/icons/minus.svg" with classes="h-4.5 w-4.5" %}
-              </button>
+                      hx-swap="outerHTML">{% include "app/icons/minus.svg" with classes="h-4.5 w-4.5" %}</button>
             {% endif %}
             <button type="button"
                     class="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-[#303239] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#3a3d45]"
@@ -117,9 +122,7 @@
                     hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                     hx-vals='{"operation": "increase", "home_layout": "list", "home_section": "1"}'
                     hx-target="#home-list-item-{{ media.item.media_type }}-{{ media.id }}"
-                    hx-swap="outerHTML">
-              {% include "app/icons/checkmark.svg" with classes="h-4.5 w-4.5" %}
-            </button>
+                    hx-swap="outerHTML">{% include "app/icons/checkmark.svg" with classes="h-4.5 w-4.5" %}</button>
           {% endif %}
         </div>
       </div>
