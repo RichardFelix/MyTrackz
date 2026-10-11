@@ -109,6 +109,9 @@ class YamtrackImporter:
         if media_type == MediaTypes.GAME.value and not row.get("launcher"):
             # Exports created before launcher tracking do not have this column.
             row["launcher"] = app.models.GameLaunchers.STEAM
+        if media_type == MediaTypes.GAME.value and not row.get("ownership"):
+            # Exports created before ownership tracking do not have this column.
+            row["ownership"] = app.models.GameOwnership.OWNED
 
         season_number = (
             int(row["season_number"]) if row["season_number"] != "" else None

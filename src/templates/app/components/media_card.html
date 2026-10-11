@@ -58,14 +58,18 @@
       {% endif %}
     {% endwith %}
 
-    {% if media.progress and media_type != MediaTypes.MOVIE.value %}
-      <div class="absolute bottom-2 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
-        <span class="text-sm text-white">
-          {{ media.formatted_progress }}
-          {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
-        </span>
-      </div>
-    {% endif %}
+    {# Game ownership shares the bottom-left corner with progress, emoji first #}
+    <div class="absolute bottom-2 left-2 flex items-center gap-1.5">
+      {% include "app/components/game_ownership_badge.html" with item=item media=media inline=True %}
+      {% if media.progress and media_type != MediaTypes.MOVIE.value %}
+        <div class="bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">
+          <span class="text-sm text-white">
+            {{ media.formatted_progress }}
+            {% if media.max_progress %}/ {{ media.max_progress }}{% endif %}
+          </span>
+        </div>
+      {% endif %}
+    </div>
 
     {% if media.repeats > 1 %}
       <div class="absolute sm:bottom-2 sm:right-2 sm:left-auto bottom-10 left-2 bg-gray-900/90 text-white text-xs px-2 py-1 rounded-md flex items-center shadow-md">

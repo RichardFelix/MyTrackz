@@ -336,11 +336,21 @@ class GameForm(MediaForm):
             "score",
             "progress",
             "launcher",
+            "ownership",
             "status",
             "start_date",
             "end_date",
             "notes",
         ]
+
+    def __init__(self, *args, **kwargs):
+        """Let submissions without ownership keep the game's current value."""
+        super().__init__(*args, **kwargs)
+        self.fields["ownership"].required = False
+
+    def clean_ownership(self):
+        """Fall back to the existing (or default) ownership when omitted."""
+        return self.cleaned_data["ownership"] or self.instance.ownership
 
 
 class LegoForm(MediaForm):

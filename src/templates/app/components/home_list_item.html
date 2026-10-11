@@ -27,6 +27,7 @@
            data-src="{{ media.item.cached_image_url }}"
            src="{{ IMG_PLACEHOLDER }}">
       {% include "app/components/game_launcher_badge.html" with item=media.item media=media compact=True %}
+      {% include "app/components/game_ownership_badge.html" with item=media.item media=media compact=True %}
     </a>
 
     <div class="flex min-w-0 flex-1 flex-col py-0.5">

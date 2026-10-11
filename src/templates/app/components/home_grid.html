@@ -17,6 +17,7 @@
              src="{{ IMG_PLACEHOLDER }}">
       </a>
       {% include "app/components/game_launcher_badge.html" with item=media.item media=media %}
+      {% include "app/components/game_ownership_badge.html" with item=media.item media=media %}
 
       {% if media.next_event and not media.next_event.is_max_datetime %}
         <div {% if media.item.media_type == MediaTypes.GAME.value %}data-game-release-date{% endif %}

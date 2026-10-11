@@ -23,9 +23,12 @@
       {% endif %}
       <div class="relative flex flex-col gap-8 px-8 pt-10 md:flex-row md:gap-10 md:pt-24">
         <div class="w-full md:w-1/4 max-w-[250px] mx-auto md:mx-0">
-          <img alt="{{ media.title }}"
-               class="w-full rounded-xl object-cover shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-[#2a2f35]"
-               src="{{ backdrop_url }}">
+          <div class="relative">
+            <img alt="{{ media.title }}"
+                 class="w-full rounded-xl object-cover shadow-2xl shadow-black/50 ring-1 ring-white/10 bg-[#2a2f35]"
+                 src="{{ backdrop_url }}">
+            {% include "app/components/game_ownership_badge.html" with item=media media=current_instance %}
+          </div>
 
           <div x-data="{ trackOpen: false }">
             <button class="mt-4 p-3 rounded-lg w-full flex items-center text-white transition duration-300 cursor-pointer {% if user_medias %}bg-indigo-600 hover:bg-indigo-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %}"
@@ -303,6 +306,10 @@
                   <span class="text-gray-400">Launcher:</span>
                   <span class="text-gray-200">{{ current_instance.get_launcher_display }}</span>
                 </div>
+                <div class="flex @max-[210px]:flex-col justify-between text-sm">
+                  <span class="text-gray-400">Ownership:</span>
+                  <span class="text-gray-200">{{ current_instance.ownership_emoji }} {{ current_instance.get_ownership_display }}</span>
+                </div>
               {% endif %}
             </div>
           </div>
@@ -368,6 +375,9 @@
 
                       {% if media.media_type == MediaTypes.GAME.value %}
                         <div class="text-xs text-gray-400">Launcher: {{ user_media.get_launcher_display }}</div>
+                        <div class="text-xs text-gray-400">
+                          Ownership: {{ user_media.ownership_emoji }} {{ user_media.get_ownership_display }}
+                        </div>
                       {% endif %}
 
                       {% if user_media.start_date %}

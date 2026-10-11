@@ -66,7 +66,7 @@
     
         // Game fields
         else if (this.mediaType === 'game') {
-          return ['title', 'image', 'score', 'progress', 'launcher', 'status', 'startDate', 'endDate', 'notes'].includes(field);
+          return ['title', 'image', 'score', 'progress', 'launcher', 'ownership', 'status', 'startDate', 'endDate', 'notes'].includes(field);
         }
 
         // Movie, Anime, Manga, Book fields
@@ -376,6 +376,23 @@
               {% for value, label in launcher_choices %}
                 <option value="{{ value }}"
                         {% if value == default_launcher %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+              {% include "app/icons/chevron-down.svg" with classes="w-4 h-4" %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Ownership field (Game) -->
+        <div x-show="showField('ownership')">
+          <label class="block text-sm font-medium mb-2 text-gray-300">Ownership</label>
+          <div class="relative">
+            <select class="w-full p-2 bg-[#39404b] rounded-md text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#4a9eff] appearance-none"
+                    name="ownership">
+              {% for value, label in ownership_choices %}
+                <option value="{{ value }}"
+                        {% if value == default_ownership %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
             <div class="absolute inset-y-0 right-2 flex items-center pointer-events-none">

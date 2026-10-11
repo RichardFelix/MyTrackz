@@ -7,6 +7,7 @@ from django.test import TestCase
 from app.models import (
     Game,
     GameLaunchers,
+    GameOwnership,
     Item,
     MediaTypes,
     Sources,
@@ -63,6 +64,20 @@ class GameModel(TestCase):
 
         self.assertEqual(self.game.launcher, GameLaunchers.GOG)
         self.assertEqual(self.game.history.first().launcher, GameLaunchers.GOG)
+
+    def test_ownership_defaults_to_owned_and_is_historical(self):
+        """Games default to owned and ownership edits are kept in history."""
+        self.assertEqual(self.game.ownership, GameOwnership.OWNED)
+        self.assertEqual(self.game.ownership_emoji, "📦")
+
+        self.game.ownership = GameOwnership.NOT_OWNED
+        self.game.save()
+
+        self.assertEqual(self.game.ownership_emoji, "🛒")
+        self.assertEqual(
+            self.game.history.first().ownership,
+            GameOwnership.NOT_OWNED,
+        )
 
     def test_decrease_progress(self):
         """Test decreasing the progress of a game."""

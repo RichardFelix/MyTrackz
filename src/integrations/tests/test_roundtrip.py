@@ -14,6 +14,7 @@ from app.models import (
     Episode,
     Game,
     GameLaunchers,
+    GameOwnership,
     Item,
     MediaTypes,
     Movie,
@@ -29,6 +30,7 @@ TRACK_FIELDS = (
     "score",
     "progress",
     "launcher",
+    "ownership",
     "notes",
     "start_date",
     "end_date",
@@ -105,6 +107,7 @@ class ExportImportRoundTripTests(TestCase):
             item=game_item,
             user=self.exporter,
             launcher=GameLaunchers.GOG,
+            ownership=GameOwnership.NOT_OWNED,
             status=Status.IN_PROGRESS.value,
             progress=90,
         )
@@ -248,6 +251,29 @@ class ExportImportRoundTripTests(TestCase):
         self.assertEqual(
             Game.objects.get(user=self.importer).launcher,
             GameLaunchers.STEAM,
+        )
+
+    def test_legacy_export_without_ownership_defaults_games_to_owned(self):
+        """CSV files created before ownership tracking remain importable."""
+        rows = list(csv.reader(io.StringIO(self._export_csv().decode())))
+        ownership_index = rows[0].index("ownership")
+        for row in rows:
+            row.pop(ownership_index)
+
+        legacy_export = io.StringIO()
+        csv.writer(legacy_export, quoting=csv.QUOTE_ALL).writerows(rows)
+
+        counts, warnings = yamtrack.importer(
+            io.BytesIO(legacy_export.getvalue().encode()),
+            self.importer,
+            "new",
+        )
+
+        self.assertEqual(warnings, "")
+        self.assertEqual(counts[MediaTypes.GAME.value], 1)
+        self.assertEqual(
+            Game.objects.get(user=self.importer).ownership,
+            GameOwnership.OWNED,
         )
 
     def test_reimport_in_overwrite_mode_replaces_cleanly(self):

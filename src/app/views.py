@@ -29,6 +29,7 @@ from app.models import (
     TV,
     BasicMedia,
     GameLaunchers,
+    GameOwnership,
     Genre,
     Item,
     MediaTypes,
@@ -1340,6 +1341,8 @@ def create_entry(request):
                 "media_types": media_types,
                 "launcher_choices": GameLaunchers.choices,
                 "default_launcher": GameLaunchers.STEAM.value,
+                "ownership_choices": GameOwnership.choices,
+                "default_ownership": GameOwnership.OWNED.value,
             },
         )
 

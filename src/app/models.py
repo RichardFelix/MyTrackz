@@ -1036,6 +1036,13 @@ class GameLaunchers(models.TextChoices):
     OTHER = "Other", "Other"
 
 
+class GameOwnership(models.TextChoices):
+    """Whether the user owns a tracked game."""
+
+    OWNED = "Owned", "Owned"
+    NOT_OWNED = "Not owned", "Not owned"
+
+
 def get_status_label(status, user=None):
     """Return a status label using the viewer's preferred planning term."""
     if status == Status.PLANNING.value:
@@ -2436,7 +2443,17 @@ class Game(Media):
         choices=GameLaunchers,
         default=GameLaunchers.STEAM,
     )
+    ownership = models.CharField(
+        max_length=9,
+        choices=GameOwnership,
+        default=GameOwnership.OWNED,
+    )
     tracker = FieldTracker()
+
+    @property
+    def ownership_emoji(self):
+        """Return the emoji shown on cover images for the ownership state."""
+        return "📦" if self.ownership == GameOwnership.OWNED else "🛒"
 
     @property
     def formatted_progress(self):
