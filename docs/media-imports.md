@@ -104,6 +104,13 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | end_date       | No        | 2023-02-10 22:15:00+00:00                      | Same format as `start_date`.                                                                                                                                                    |
 | progress       | No        | 10                                             | Numeric progress (e.g., chapters, pages, minutes). Ignored for tv and season because progress is tracked with episode rows.                                                     |
 
+### Games
+
+- **`launcher`** is one of `Steam`, `GOG`, `Epic`, `EA`, `Ubisoft`, `Blizzard`, `Xbox`, `Nintendo`, `Playstation`, `Emulation`, `Rockstar`, `Amazon`, or `Other`, matched exactly. A blank cell, or a CSV without this column, imports as `Steam`.
+- **`ownership`** is `Owned` or `Not owned`. Case and surrounding spaces are ignored, so hand-edited values such as `not owned` work. A blank cell, or a CSV without this column, imports as `Owned`.
+- **`progress`** is playtime. Exports write it with explicit units, such as `1h 35min` or `45min`. On import, `5:30` and `5h30min` also work, but a plain number is read as **hours**: `5` is five hours and `1.5` is 1h 30min.
+- A row with an unrecognised `launcher` or `ownership` value is skipped and reported as an import warning; the rest of the file still imports.
+
 ### LEGO and sneaker collections
 
 - **LEGO** uses `media_type=lego` and `source=rebrickable` or `manual`. Set IDs include their suffix, such as `75192-1`. Build time exports with explicit duration units, such as `1h 35min`; older MyTrackz exports containing a plain integer are imported as minutes.
