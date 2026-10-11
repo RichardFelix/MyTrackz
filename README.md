@@ -120,6 +120,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🖌️ **Custom poster images** — replace any poster with an image URL and restore the provider artwork with one click.
 - 🎮 **Per-game launcher tracking** — assign games to Steam, GOG, Epic, EA, Ubisoft, Blizzard, Xbox, Nintendo, PlayStation, Emulation, Rockstar, Amazon, or Other. Launcher badges appear on cards, lists, home views, and detail pages.
 - 🎯 **Game launcher filtering** — narrow the games library by launcher without losing the active search, status, genre, format, sort, pagination, or layout.
+- 🛒 **Game ownership** — mark each game as Owned or Not owned from the tracking form or a custom entry. A 🎮 or 🛒 badge appears on game covers across cards, lists, home views, and detail pages, and the value is kept in CSV exports and imports.
 - 🎨 **Redesigned interface** — use a liquid-glass mobile navigation bar, updated media grid, morphing library panel, and one-tap movie completion control.
 - 🏠 **Compact home layout** — switch from poster grids to a swipeable list with episode details and one-tap progress controls.
 - 🧱 **LEGO set tracking** — search Rebrickable's official catalog by name or set number, including sets whose parts inventories are not yet recorded. Set pages show the set number, release year, piece count, theme, and locally cached artwork. Build progress is logged as elapsed time with 30-minute controls and appears in your normal history and statistics. Works out of the box with a bundled [Rebrickable API key](https://rebrickable.com/api/); set your own with `REBRICKABLE`.
@@ -134,6 +135,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🛠️ **Grouped preferences** — organize appearance, tracking, recommendations, regional formats, and library navigation settings, including your choice of Wishlist or Backlog terminology.
 - 📲 **Improved PWA support** — install more reliably on Android and retain a useful offline fallback page.
 - 🔢 **Live library counts** — see matching item totals update while searching, filtering, or changing layouts.
+- ✏️ **In-place library edits** — update or delete an entry from a library page without a reload, keeping your scroll position and every page already loaded.
 - 🏡 **Expanded home rows** — load every item automatically or retain the compact “Load all” control for larger libraries.
 - 🎨 **Colored progress controls** — optionally give grid decrease and increase actions distinct red and green backgrounds.
 - 📚 **Continue the Story** — surface sequels, next volumes, expansions, and remasters related to recently completed or in-progress media.
