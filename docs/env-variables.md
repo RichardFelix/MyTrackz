@@ -18,6 +18,7 @@ This page outlines the environment variables used in the YamTrack project.
 | `HARDCOVER_API` | Hardcover API key for books. A default key is provided, but it's recommended to get your own as it has a low rate limit. Custom values must include the `Bearer ` prefix.                                                                              |
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
 | `REBRICKABLE`   | Rebrickable API key for LEGO sets. A default key is provided, but it's recommended to get your own as requests are limited to one per second.                                                                                                         |
+| `KICKSDB_API`   | KicksDB API key for sneaker catalog search. No default key is provided; saved sneakers and custom entries work without one.                                                                                                                           |
 
 Sneaker catalog search uses `KICKSDB_API` (or `KICKSDB_API_FILE` for a Docker
 secret). No default key is provided. Catalog information is saved on first lookup
