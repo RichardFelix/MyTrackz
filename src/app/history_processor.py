@@ -196,7 +196,7 @@ def build_changes_list(changes, processed_entry):
     processed_entry["changes"].extend(changes["other_changes"])
 
 
-def format_description(field_name, old_value, new_value, media_type=None, user=None):  # noqa: C901, PLR0911, PLR0912
+def format_description(field_name, old_value, new_value, media_type=None, user=None):
     """Format change description in a human-readable way.
 
     Provides natural language descriptions for various types of changes,
@@ -208,118 +208,146 @@ def format_description(field_name, old_value, new_value, media_type=None, user=N
 
     # If old_value is None, treat it as an initial setting
     if old_value is None:
-        if field_name == "status":
-            verb = config.get_verb(media_type, past_tense=False)
-            action = "Marked as"
-            if new_value == Status.IN_PROGRESS.value:
-                return f"{action} currently {verb}ing"
-            if new_value == Status.COMPLETED.value:
-                return f"{action} finished {verb}ing"
-            if new_value == Status.PLANNING.value:
-                return f"Added to {get_status_label(new_value, user)}"
-            if new_value == Status.DROPPED.value:
-                return f"{action} dropped"
-            if new_value == Status.PAUSED.value:
-                return f"{action} paused {verb}ing"
+        return _describe_initial(field_name, new_value, media_type, user)
+    return _describe_change(field_name, old_value, new_value, media_type, user)
 
-        if field_name == "score":
-            return f"Rated {new_value}/10"
 
-        if field_name == "progress" and media_type:
-            verb = config.get_verb(media_type, past_tense=True).title()
-            if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
-                return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
-            unit = config.get_unit(media_type, short=False).lower()
-            return f"{verb} up to {unit} {new_value}"
-
-        if field_name in ["start_date", "end_date"]:
-            field_display = "Started" if field_name == "start_date" else "Finished"
-            if new_value:
-                return f"{field_display} on {new_value}"
-            return f"{field_display} without date"
-
-        if field_name == "notes":
-            return "Added notes"
-
-        return f"Set {field_name.replace('_', ' ').lower()} to {new_value}"
-
-    # Regular change (old_value to new_value)
+def _describe_initial(field_name, new_value, media_type, user):  # noqa: PLR0911
+    """Describe a field being set for the first time."""
     if field_name == "status":
-        verb = config.get_verb(media_type, past_tense=False)
-        # Status transitions
-        transitions = {
-            (
-                Status.PLANNING.value,
-                Status.IN_PROGRESS.value,
-            ): f"Currently {verb}ing",
-            (
-                Status.IN_PROGRESS.value,
-                Status.COMPLETED.value,
-            ): f"Finished {verb}ing",
-            (
-                Status.IN_PROGRESS.value,
-                Status.PAUSED.value,
-            ): f"Paused {verb}ing",
-            (
-                Status.PAUSED.value,
-                Status.IN_PROGRESS.value,
-            ): f"Resumed {verb}ing",
-            (
-                Status.IN_PROGRESS.value,
-                Status.DROPPED.value,
-            ): f"Stopped {verb}ing",
-        }
-        if (old_value, new_value) in transitions:
-            return transitions[(old_value, new_value)]
-
-        try:
-            old_label = get_status_label(old_value, user)
-        except ValueError:
-            old_label = old_value
-        try:
-            new_label = get_status_label(new_value, user)
-        except ValueError:
-            new_label = new_value
-        return f"Changed status from {old_label} to {new_label}"
+        description = _describe_initial_status(new_value, media_type, user)
+        if description:
+            return description
 
     if field_name == "score":
-        if old_value == 0:
-            return f"Rated {new_value}/10"
-        return f"Changed rating from {old_value} to {new_value}"
+        return f"Rated {new_value}/10"
 
-    if field_name == "progress":
-        diff = new_value - old_value
-        diff_abs = abs(diff)
-
+    if field_name == "progress" and media_type:
+        verb = config.get_verb(media_type, past_tense=True).title()
         if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
-            activity = (
-                "build time" if media_type == MediaTypes.LEGO.value else "playtime"
-            )
-            return (
-                f"{'Added' if diff > 0 else 'Removed'} "
-                f"{helpers.minutes_to_hhmm(diff_abs)} of {activity}"
-            )
-
-        unit = (
-            f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"
-        )
-
-        return f"Progress set to {new_value} {unit}"
+            return f"{verb} for {helpers.minutes_to_hhmm(new_value)}"
+        unit = config.get_unit(media_type, short=False).lower()
+        return f"{verb} up to {unit} {new_value}"
 
     if field_name in ["start_date", "end_date"]:
-        field_display = "Start" if field_name == "start_date" else "End"
-        if not new_value:
-            return f"Removed {field_display.lower()} date"
-        if not old_value:
-            return f"{field_display}ed on {new_value}"
-        return f"{field_display} date changed to {new_value}"
+        field_display = "Started" if field_name == "start_date" else "Finished"
+        if new_value:
+            return f"{field_display} on {new_value}"
+        return f"{field_display} without date"
 
     if field_name == "notes":
-        if not old_value:
-            return "Added notes"
-        if not new_value:
-            return "Removed notes"
-        return "Updated notes"
+        return "Added notes"
+
+    return f"Set {field_name.replace('_', ' ').lower()} to {new_value}"
+
+
+def _describe_initial_status(new_value, media_type, user):
+    """Describe a first status, or None for a status with no phrasing."""
+    verb = config.get_verb(media_type, past_tense=False)
+    action = "Marked as"
+    descriptions = {
+        Status.IN_PROGRESS.value: f"{action} currently {verb}ing",
+        Status.COMPLETED.value: f"{action} finished {verb}ing",
+        Status.DROPPED.value: f"{action} dropped",
+        Status.PAUSED.value: f"{action} paused {verb}ing",
+    }
+    if new_value == Status.PLANNING.value:
+        return f"Added to {get_status_label(new_value, user)}"
+    return descriptions.get(new_value)
+
+
+def _describe_change(field_name, old_value, new_value, media_type, user):
+    """Describe a field changing from one value to another."""
+    describers = {
+        "status": _describe_status_change,
+        "score": _describe_score_change,
+        "progress": _describe_progress_change,
+        "start_date": _describe_date_change,
+        "end_date": _describe_date_change,
+        "notes": _describe_notes_change,
+    }
+    describer = describers.get(field_name)
+    if describer:
+        return describer(field_name, old_value, new_value, media_type, user)
 
     field_label = field_name.replace("_", " ").lower()
     return f"Updated {field_label} from {old_value} to {new_value}"
+
+
+def _describe_status_change(_field_name, old_value, new_value, media_type, user):
+    """Describe a status transition."""
+    verb = config.get_verb(media_type, past_tense=False)
+    transitions = {
+        (
+            Status.PLANNING.value,
+            Status.IN_PROGRESS.value,
+        ): f"Currently {verb}ing",
+        (
+            Status.IN_PROGRESS.value,
+            Status.COMPLETED.value,
+        ): f"Finished {verb}ing",
+        (
+            Status.IN_PROGRESS.value,
+            Status.PAUSED.value,
+        ): f"Paused {verb}ing",
+        (
+            Status.PAUSED.value,
+            Status.IN_PROGRESS.value,
+        ): f"Resumed {verb}ing",
+        (
+            Status.IN_PROGRESS.value,
+            Status.DROPPED.value,
+        ): f"Stopped {verb}ing",
+    }
+    if (old_value, new_value) in transitions:
+        return transitions[(old_value, new_value)]
+
+    try:
+        old_label = get_status_label(old_value, user)
+    except ValueError:
+        old_label = old_value
+    try:
+        new_label = get_status_label(new_value, user)
+    except ValueError:
+        new_label = new_value
+    return f"Changed status from {old_label} to {new_label}"
+
+
+def _describe_score_change(_field_name, old_value, new_value, _media_type, _user):
+    """Describe a rating change."""
+    if old_value == 0:
+        return f"Rated {new_value}/10"
+    return f"Changed rating from {old_value} to {new_value}"
+
+
+def _describe_progress_change(_field_name, old_value, new_value, media_type, _user):
+    """Describe a progress change, as time for games and LEGO."""
+    if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
+        diff = new_value - old_value
+        activity = "build time" if media_type == MediaTypes.LEGO.value else "playtime"
+        return (
+            f"{'Added' if diff > 0 else 'Removed'} "
+            f"{helpers.minutes_to_hhmm(abs(diff))} of {activity}"
+        )
+
+    unit = f"{config.get_unit(media_type, short=False).lower()}{pluralize(new_value)}"
+    return f"Progress set to {new_value} {unit}"
+
+
+def _describe_date_change(field_name, old_value, new_value, _media_type, _user):
+    """Describe a start or end date change."""
+    field_display = "Start" if field_name == "start_date" else "End"
+    if not new_value:
+        return f"Removed {field_display.lower()} date"
+    if not old_value:
+        return f"{field_display}ed on {new_value}"
+    return f"{field_display} date changed to {new_value}"
+
+
+def _describe_notes_change(_field_name, old_value, new_value, _media_type, _user):
+    """Describe a notes change."""
+    if not old_value:
+        return "Added notes"
+    if not new_value:
+        return "Removed notes"
+    return "Updated notes"
