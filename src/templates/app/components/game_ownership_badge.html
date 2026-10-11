@@ -2,7 +2,7 @@
   <div data-game-ownership-badge
        title="{{ media.get_ownership_display }}"
        aria-label="{{ media.get_ownership_display }}"
-       class="pointer-events-none {% if not inline %}absolute z-0 {% if compact %}bottom-1 left-1{% else %}bottom-2 left-2{% endif %} {% endif %}flex items-center justify-center rounded-md bg-black/80 {% if compact %}px-1 py-0.5 text-xs{% else %}px-1.5 py-1 text-sm{% endif %} leading-none shadow-md ring-1 ring-white/15">
+       class="pointer-events-none {% if not inline %}absolute z-0 {% if compact %}bottom-1 left-1{% else %}bottom-2 left-2{% endif %} {% endif %}flex items-center justify-center rounded-md leading-none shadow-md {% if inline %}h-7 px-2 text-sm bg-gray-900/90{% else %}bg-black/80 ring-1 ring-white/15 {% if compact %}px-1 py-0.5 text-xs{% else %}px-1.5 py-1 text-sm{% endif %}{% endif %}">
     {{ media.ownership_emoji }}
   </div>
 {% endif %}
