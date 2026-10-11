@@ -948,11 +948,6 @@ def get_runtime_tv(runtime):
     return None
 
 
-def season_scores_count(response):
-    """Return the scores count for the season."""
-    return sum(episode["vote_count"] for episode in response["episodes"])
-
-
 def get_genres(genres):
     """Return the genres for the media."""
     # when unknown genres, value from response is empty list

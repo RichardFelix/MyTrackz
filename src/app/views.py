@@ -534,13 +534,7 @@ def media_list(request, username, media_type):
             request.GET.get("status"),
         )
 
-    search_query = request.GET.get("search", "")
-    genre_filter = request.GET.get("genre", "")
-    format_filter = request.GET.get("format", "")
-    launcher_filter = _get_launcher_filter(
-        media_type,
-        request.GET.get("launcher", ""),
-    )
+    filters = _get_library_filters(media_type, request.GET)
     page = request.GET.get("page", 1)
     removed = _get_removed_count(request)
 
@@ -554,10 +548,7 @@ def media_list(request, username, media_type):
         media_type=media_type,
         status_filter=status_filter,
         sort_filter=sort_filter,
-        search=search_query,
-        genre_filter=genre_filter,
-        format_filter=format_filter,
-        launcher_filter=launcher_filter,
+        **filters,
     )
 
     media_page = _get_library_page(media_queryset, page, removed)
@@ -575,7 +566,7 @@ def media_list(request, username, media_type):
         "layout_class": ".media-grid" if layout == "grid" else "tbody",
         "current_sort": sort_filter,
         "current_status": status_filter,
-        "current_genre": genre_filter,
+        "current_genre": filters["genre_filter"],
         "genre_filter_label": (
             "All Brands"
             if media_type == MediaTypes.SNEAKER.value
@@ -583,8 +574,8 @@ def media_list(request, username, media_type):
             if media_type == MediaTypes.LEGO.value
             else "All Genres"
         ),
-        "current_format": format_filter,
-        "current_launcher": launcher_filter,
+        "current_format": filters["format_filter"],
+        "current_launcher": filters["launcher_filter"],
         "launcher_choices": (
             GameLaunchers.choices if media_type == MediaTypes.GAME.value else []
         ),
@@ -628,6 +619,23 @@ def media_list(request, username, media_type):
 
 
 LIBRARY_PAGE_SIZE = 32
+
+
+def _get_library_filters(media_type, params):
+    """Return the get_media_list filters carried in a library request's params.
+
+    Shared by media_list and _render_library_item so an edited card is judged
+    against exactly the filters the library page applied.
+    """
+    return {
+        "search": params.get("search", ""),
+        "genre_filter": params.get("genre", ""),
+        "format_filter": params.get("format", ""),
+        "launcher_filter": _get_launcher_filter(
+            media_type,
+            params.get("launcher", ""),
+        ),
+    }
 
 
 class _OffsetPage(Page):
@@ -693,13 +701,7 @@ def _render_library_item(request, media_type, item_id):
             f"{media_type}_sort",
             filters.get("sort"),
         ),
-        search=filters.get("search", ""),
-        genre_filter=filters.get("genre", ""),
-        format_filter=filters.get("format", ""),
-        launcher_filter=_get_launcher_filter(
-            media_type,
-            filters.get("launcher", ""),
-        ),
+        **_get_library_filters(media_type, filters),
     )
     media = media_queryset.filter(item_id=item_id).first()
     if media:
@@ -1309,12 +1311,7 @@ def media_save(request):
         logger.info("%s saved successfully.", form.instance)
     else:
         logger.error(form.errors.as_json())
-        for field, errors in form.errors.items():
-            for error in errors:
-                messages.error(
-                    request,
-                    f"{field.replace('_', ' ').title()}: {error}",
-                )
+        helpers.form_error_messages(form, request)
 
     if request.POST.get("library_item"):
         if not form.is_valid():

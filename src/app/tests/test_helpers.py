@@ -256,9 +256,7 @@ class EnrichItemsWithUserDataTest(TestCase):
         self.assertEqual(enriched_items[0]["item"]["title"], "A Real Book")
 
     @patch("app.helpers.cache_item_image.delay")
-    def test_untracked_item_gets_a_backing_item_row_and_cached_image(
-        self, mock_delay
-    ):
+    def test_untracked_item_gets_a_backing_item_row_and_cached_image(self, mock_delay):
         """An untracked (e.g. recommended) item still gets its image cached locally."""
         raw_items = [
             {

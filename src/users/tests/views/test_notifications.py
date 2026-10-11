@@ -217,3 +217,21 @@ class NotificationTests(TestCase):
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
         self.assertIn("Failed", str(messages[0]))
+
+    @patch("apprise.Apprise")
+    def test_test_notification_exception(self, mock_apprise):
+        """An Apprise exception is reported instead of failing silently."""
+        self.user.notification_urls = "https://example.com/notify"
+        self.user.save()
+
+        mock_instance = MagicMock()
+        mock_apprise.return_value = mock_instance
+        mock_instance.notify.side_effect = RuntimeError("boom")
+
+        response = self.client.get(reverse("test_notification"))
+
+        self.assertRedirects(response, reverse("notifications"))
+
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Failed", str(messages[0]))

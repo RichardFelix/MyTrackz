@@ -129,8 +129,7 @@ class TVWebhookMixin:
 
         media_id, season_number, episode_number = matches[0]
         logger.info(
-            "Resolved TV episode by air-date fallback: %s on %s -> "
-            "TMDB %s S%02dE%02d",
+            "Resolved TV episode by air-date fallback: %s on %s -> TMDB %s S%02dE%02d",
             series_title,
             air_date,
             media_id,
@@ -600,8 +599,7 @@ class TVWebhookMixin:
         title_matches = [
             match
             for match in matches
-            if self._normalize_title(match[2].get("name"))
-            == normalized_episode_title
+            if self._normalize_title(match[2].get("name")) == normalized_episode_title
         ]
         return title_matches or matches
 

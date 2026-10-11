@@ -12,8 +12,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):  # noqa: ARG002
         """Queue cache_item_image for every Item missing a cached image."""
-        items = Item.objects.exclude(image="").exclude(image=settings.IMG_NONE).filter(
-            image_cached=False,
+        items = (
+            Item.objects.exclude(image="")
+            .exclude(image=settings.IMG_NONE)
+            .filter(
+                image_cached=False,
+            )
         )
 
         queued_count = 0

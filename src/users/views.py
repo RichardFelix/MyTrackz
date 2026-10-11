@@ -233,6 +233,10 @@ def test_notification(request):
             messages.error(request, "Failed to send test notification.")
     except Exception:
         logger.exception("Error sending notification")
+        messages.error(
+            request,
+            "Failed to send test notification. Check your notification URLs.",
+        )
 
     return redirect("notifications")
 

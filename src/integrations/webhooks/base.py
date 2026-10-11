@@ -83,9 +83,7 @@ class BaseWebhookProcessor(TVWebhookMixin, MovieWebhookMixin, AnimeWebhookMixin)
     def _format_tv_title(series_title, season_number, episode_number):
         """Format a TV episode label without failing on malformed coordinates."""
         try:
-            return (
-                f"{series_title} S{int(season_number):02d}E{int(episode_number):02d}"
-            )
+            return f"{series_title} S{int(season_number):02d}E{int(episode_number):02d}"
         except (TypeError, ValueError):
             return series_title
 

@@ -163,10 +163,8 @@ class TrendingViewTests(TestCase):
         self._get_feed()
 
         new_pick = dict(MOVIE_PICK, media_id="101", title="Fresh Trending Movie")
-        self.mock_trending.side_effect = (
-            lambda media_type: [new_pick]
-            if media_type == MediaTypes.MOVIE.value
-            else []
+        self.mock_trending.side_effect = lambda media_type: (
+            [new_pick] if media_type == MediaTypes.MOVIE.value else []
         )
         response = self.client.post(reverse("trending_refresh"))
 

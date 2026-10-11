@@ -74,7 +74,6 @@ class MediaSearchViewTests(TestCase):
                     ],
                 }
                 response = self.client.get(
-                    reverse("search")
-                    + f"?media_type=game&q=untracked&layout={layout}",
+                    reverse("search") + f"?media_type=game&q=untracked&layout={layout}",
                 )
                 self.assertNotContains(response, "data-game-launcher-badge")

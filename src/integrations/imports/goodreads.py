@@ -84,8 +84,6 @@ class GoodReadsImporter:
         helpers.cleanup_existing_media(self.to_delete, self.user)
         helpers.bulk_create_media(self.bulk_media, self.user)
 
-        logger.debug("processed %s", self.bulk_media)
-
         imported_counts = {
             media_type: len(media_list)
             for media_type, media_list in self.bulk_media.items()

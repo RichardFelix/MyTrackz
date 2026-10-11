@@ -448,8 +448,7 @@ def get_episode_datetime(episode, season_number, episode_number, tvmaze_map):
     if tmdb_datetime is not None:
         if tvmaze_air_date and not dates_agree:
             logger.warning(
-                "Conflicting air dates for S%sE%s: TMDB=%s, TVMaze=%s; "
-                "using TMDB",
+                "Conflicting air dates for S%sE%s: TMDB=%s, TVMaze=%s; using TMDB",
                 season_number,
                 episode_number,
                 tmdb_air_date,

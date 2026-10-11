@@ -198,9 +198,9 @@ class TVWebhookTitleFallbackTests(TestCase):
                 episode_id=999,
             ),
         }
-        mock_tv_with_seasons.side_effect = (
-            lambda media_id, _seasons: metadata_by_id[media_id]
-        )
+        mock_tv_with_seasons.side_effect = lambda media_id, _seasons: metadata_by_id[
+            media_id
+        ]
         mock_tv.return_value = {"related": {"seasons": []}}
 
         PlexWebhookProcessor().process_payload(plex_payload(), self.user)
