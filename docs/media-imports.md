@@ -102,7 +102,7 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | notes          | No        | Watched in cinema                              | Free-text.                                                                                                                                                                      |
 | start_date     | No        | 2023-01-16 03:56:13+00:00                      | Full ISO-8601 **timestamp with timezone** `YYYY-MM-DD HH:MM:SS±HH:MM`.                                                                                                          |
 | end_date       | No        | 2023-02-10 22:15:00+00:00                      | Same format as `start_date`.                                                                                                                                                    |
-| progress       | No        | 10                                             | Numeric progress (e.g., chapters, pages, minutes). Ignored for tv and season because progress is tracked with episode rows.                                                     |
+| progress       | No        | 10                                             | Numeric progress (e.g., episodes, chapters, pages). Games and LEGO take a duration instead; see [Games](#games) and [LEGO and sneaker collections](#lego-and-sneaker-collections). Ignored for tv and season because progress is tracked with episode rows. |
 
 ### Games
 
