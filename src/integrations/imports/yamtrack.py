@@ -109,9 +109,8 @@ class YamtrackImporter:
         if media_type == MediaTypes.GAME.value and not row.get("launcher"):
             # Exports created before launcher tracking do not have this column.
             row["launcher"] = app.models.GameLaunchers.STEAM
-        if media_type == MediaTypes.GAME.value and not row.get("ownership"):
-            # Exports created before ownership tracking do not have this column.
-            row["ownership"] = app.models.GameOwnership.OWNED
+        if media_type == MediaTypes.GAME.value:
+            row["ownership"] = self._normalize_ownership(row.get("ownership"))
 
         season_number = (
             int(row["season_number"]) if row["season_number"] != "" else None
@@ -182,6 +181,18 @@ class YamtrackImporter:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
             self.warnings.append(error_msg)
             logger.error(error_msg)
+
+    def _normalize_ownership(self, value):
+        """Match hand-edited ownership values regardless of case or spacing."""
+        value = (value or "").strip()
+        if not value:
+            # Exports created before ownership tracking do not have this column.
+            return app.models.GameOwnership.OWNED
+        for choice in app.models.GameOwnership.values:
+            if value.casefold() == choice.casefold():
+                return choice
+        # Unknown values are left as-is so the form reports them as a warning.
+        return value
 
     def _prepare_collection_row(self, row):
         """Normalize legacy build time and fill metadata from saved snapshots."""

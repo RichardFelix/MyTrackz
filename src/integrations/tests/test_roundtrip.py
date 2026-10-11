@@ -276,6 +276,48 @@ class ExportImportRoundTripTests(TestCase):
             GameOwnership.OWNED,
         )
 
+    def _import_with_ownership(self, value):
+        """Import the export with every game's ownership cell replaced."""
+        rows = list(csv.reader(io.StringIO(self._export_csv().decode())))
+        ownership_index = rows[0].index("ownership")
+        media_type_index = rows[0].index("media_type")
+        for row in rows[1:]:
+            if row[media_type_index] == MediaTypes.GAME.value:
+                row[ownership_index] = value
+
+        edited_export = io.StringIO()
+        csv.writer(edited_export, quoting=csv.QUOTE_ALL).writerows(rows)
+        return yamtrack.importer(
+            io.BytesIO(edited_export.getvalue().encode()),
+            self.importer,
+            "new",
+        )
+
+    def test_hand_edited_ownership_ignores_case_and_spacing(self):
+        """Spreadsheet edits like 'not owned' or ' OWNED ' still import."""
+        for value, expected in (
+            ("not owned", GameOwnership.NOT_OWNED),
+            (" OWNED ", GameOwnership.OWNED),
+        ):
+            with self.subTest(value=value):
+                Game.objects.filter(user=self.importer).delete()
+
+                counts, warnings = self._import_with_ownership(value)
+
+                self.assertEqual(warnings, "")
+                self.assertEqual(counts[MediaTypes.GAME.value], 1)
+                self.assertEqual(
+                    Game.objects.get(user=self.importer).ownership,
+                    expected,
+                )
+
+    def test_unknown_ownership_value_is_reported(self):
+        """Values that are neither ownership choice surface as a warning."""
+        counts, warnings = self._import_with_ownership("maybe")
+
+        self.assertIn("ownership", warnings)
+        self.assertEqual(counts.get(MediaTypes.GAME.value, 0), 0)
+
     def test_reimport_in_overwrite_mode_replaces_cleanly(self):
         """Overwrite mode must replace rows without duplicating or losing data."""
         csv_bytes = self._export_csv()
