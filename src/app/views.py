@@ -572,7 +572,11 @@ def media_list(request, username, media_type):
         "current_status": status_filter,
         "current_genre": genre_filter,
         "genre_filter_label": (
-            "All Themes" if media_type == MediaTypes.LEGO.value else "All Genres"
+            "All Brands"
+            if media_type == MediaTypes.SNEAKER.value
+            else "All Themes"
+            if media_type == MediaTypes.LEGO.value
+            else "All Genres"
         ),
         "current_format": format_filter,
         "current_launcher": launcher_filter,
@@ -716,6 +720,18 @@ def media_details(request, source, media_type, media_id, title):  # noqa: ARG001
                         request.user, related_items, section_name
                     )
                 )
+
+    if current_instance is not None and media_type == MediaTypes.SNEAKER.value:
+        media_metadata["details"] = {
+            "brand": current_instance.brand,
+            "style_code": current_instance.style_code,
+            "colorway": current_instance.colorway,
+            "release_date": (
+                current_instance.release_date.isoformat()
+                if current_instance.release_date
+                else None
+            ),
+        }
 
     if media_type in ["tv", "movie"]:
         watch_providers = tmdb.filter_providers(

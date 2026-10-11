@@ -18,6 +18,8 @@ from app.models import (
     MediaTypes,
     Movie,
     Season,
+    Sneaker,
+    SneakerProduct,
     Sources,
     Status,
     get_status_label,
@@ -354,6 +356,73 @@ class LegoForm(MediaForm):
         """Bind the standard tracking fields to LEGO builds."""
 
         model = Lego
+
+
+class SneakerForm(MediaForm):
+    """Edit the user's pair count and verified original retail price."""
+
+    class Meta(MediaForm.Meta):
+        """Keep personal MSRP separate from the provider's retail-price claim."""
+
+        model = Sneaker
+        fields = [
+            *MediaForm.Meta.fields,
+            "brand",
+            "style_code",
+            "colorway",
+            "release_date",
+            "original_msrp",
+            "msrp_currency",
+        ]
+        labels = {
+            "progress": "Owned pairs",
+            "original_msrp": "Original MSRP",
+            "msrp_currency": "MSRP currency",
+        }
+        widgets = {
+            **MediaForm.Meta.widgets,
+            "release_date": forms.DateInput(attrs={"type": "date"}),
+            "original_msrp": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
+            "msrp_currency": forms.TextInput(attrs={"placeholder": "USD"}),
+        }
+        help_texts = {
+            "original_msrp": "Enter the original launch retail price, if known.",
+            "msrp_currency": "Three-letter currency code, such as USD, GBP or EUR.",
+        }
+
+    def __init__(self, *args, **kwargs):
+        """Prefill the first catalog snapshot without another API request."""
+        super().__init__(*args, **kwargs)
+        product = None
+        if self.instance.item_id and self.instance.item.source == Sources.KICKSDB:
+            product = SneakerProduct.objects.filter(
+                pk=self.instance.item.media_id
+            ).first()
+        elif self.initial.get("source") == Sources.KICKSDB:
+            product = SneakerProduct.objects.filter(
+                pk=self.initial.get("media_id")
+            ).first()
+        if product:
+            self.instance.catalog_product = product
+            if not self.instance.pk:
+                for field in ["brand", "style_code", "colorway", "release_date"]:
+                    self.initial.setdefault(field, getattr(product, field))
+
+    def clean_msrp_currency(self):
+        """Require an explicit, consistently formatted currency for any MSRP."""
+        currency = self.cleaned_data["msrp_currency"].strip().upper()
+        if currency and (
+            len(currency)
+            != self._meta.model._meta.get_field("msrp_currency").max_length
+            or not currency.isascii()
+            or not currency.isalpha()
+        ):
+            msg = "Use a three-letter currency code."
+            raise forms.ValidationError(msg)
+        if self.cleaned_data.get("original_msrp") is not None and not currency:
+            msg = "Enter the currency for the original MSRP."
+            raise forms.ValidationError(msg)
+        return currency
 
 
 class BookForm(MediaForm):

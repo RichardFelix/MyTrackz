@@ -1,0 +1,28 @@
+<section class="mb-6 rounded-lg bg-[#2a2f35] p-4" aria-label="Sneaker catalog">
+  <h2 class="text-xl font-semibold mb-3">Your sneaker catalog</h2>
+  {% if current_instance %}
+    <p class="mb-2">Owned pairs: {{ current_instance.progress }}</p>
+    <p class="mb-2">
+      Original MSRP:
+      {% if current_instance.original_msrp is not None %}
+        {{ current_instance.msrp_currency }} {{ current_instance.original_msrp }}
+      {% else %}
+        Unknown — enter it through Edit collection.
+      {% endif %}
+    </p>
+  {% else %}
+    <p class="mb-2">Add this sneaker to your collection to record owned pairs, notes and original MSRP.</p>
+  {% endif %}
+  {% if media.catalog_product.reported_retail_price is not None and media.catalog_product %}
+    <p class="text-sm text-gray-400 mb-2">
+      API-reported retail price (US): {{ media.catalog_product.reported_currency }} {{ media.catalog_product.reported_retail_price }}.
+      Verify this against the original launch price before entering your MSRP.
+    </p>
+  {% endif %}
+  <p class="text-sm text-gray-400">
+    {% if media.catalog_product %}
+      Catalog details saved {{ media.catalog_product.captured_at|date:"M j, Y" }} from KicksDB.
+    {% endif %}
+    Your saved details stay available without further catalog requests.
+  </p>
+</section>

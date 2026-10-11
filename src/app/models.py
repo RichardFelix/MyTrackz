@@ -52,6 +52,7 @@ class Sources(models.TextChoices):
     COMICVINE = "comicvine", "Comic Vine"
     BGG = "bgg", "BoardGameGeek"
     REBRICKABLE = "rebrickable", "Rebrickable"
+    KICKSDB = "kicksdb", "KicksDB"
     MANUAL = "manual", "Manual"
 
 
@@ -69,6 +70,7 @@ class MediaTypes(models.TextChoices):
     COMIC = "comic", "Comic"
     BOARDGAME = "boardgame", "Boardgame"
     LEGO = "lego", "Lego"
+    SNEAKER = "sneaker", "Sneaker"
 
 
 class ImageCacheFormat(models.TextChoices):
@@ -119,7 +121,7 @@ class Item(CalendarTriggerMixin, models.Model):
         default=MediaTypes.MOVIE.value,
     )
     title = models.TextField()
-    image = models.URLField()  # if add default, custom media entry will show the value
+    image = models.URLField(max_length=2000)
     image_cached = models.BooleanField(default=False)
     # Cached images predating this field are JPEGs; new ones are saved as WebP.
     image_cache_format = models.CharField(
@@ -300,7 +302,7 @@ class Item(CalendarTriggerMixin, models.Model):
 
     def fetch_releases(self, delay):
         """Fetch releases for the item."""
-        if self._disable_calendar_triggers:
+        if self._disable_calendar_triggers or self.media_type == MediaTypes.SNEAKER:
             return
 
         if self.media_type == MediaTypes.SEASON.value:
@@ -630,8 +632,7 @@ class MediaManager(models.Manager):
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)
             visible_ids = {
-                media.id
-                for media in self._filter_home_to_aired(media_list, media_type)
+                media.id for media in self._filter_home_to_aired(media_list, media_type)
             }
 
             next_air_datetimes.extend(
@@ -678,14 +679,10 @@ class MediaManager(models.Manager):
             or (
                 media.max_progress is None
                 and (
-                    media.next_event is None
-                    or media.next_event.content_number is None
+                    media.next_event is None or media.next_event.content_number is None
                 )
             )
-            or (
-                media.max_progress is not None
-                and media.progress < media.max_progress
-            )
+            or (media.max_progress is not None and media.progress < media.max_progress)
         ]
 
     def _get_media_types_to_process(self, user, specific_media_type):
@@ -1794,9 +1791,11 @@ class Season(Media):
             else:
                 unreleased_remaining_exists = True
 
-        if not unreleased_remaining_exists and (
-            not undated_remaining_exists or released_episode_exists
-        ) and (not require_all_released or not released_remaining_exists):
+        if (
+            not unreleased_remaining_exists
+            and (not undated_remaining_exists or released_episode_exists)
+            and (not require_all_released or not released_remaining_exists)
+        ):
             return Status.COMPLETED.value
 
         if watched_episode_numbers or released_remaining_exists:
@@ -2494,3 +2493,82 @@ class Lego(Media):
         """Remove thirty minutes of build time, clamping at zero."""
         self.progress -= 30
         self.save()
+
+
+class SneakerProduct(models.Model):
+    """A permanent first-lookup catalog snapshot shared by collection entries."""
+
+    catalog_id = models.CharField(max_length=36, primary_key=True)
+    name = models.CharField(max_length=250)
+    brand = models.CharField(max_length=100, blank=True)
+    style_code = models.CharField(max_length=100, blank=True)
+    colorway = models.CharField(max_length=250, blank=True)
+    image = models.URLField(max_length=2000, blank=True)
+    source_url = models.URLField(max_length=2000)
+    release_date = models.DateField(null=True, blank=True)
+    reported_retail_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    reported_currency = models.CharField(max_length=3, blank=True)
+    captured_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        """Keep local catalog browsing stable."""
+
+        ordering = ["brand", "name", "catalog_id"]
+
+    def __str__(self):
+        """Display the saved catalog name."""
+        return self.name
+
+
+class Sneaker(Media):
+    """A personal sneaker collection with independently editable original MSRP."""
+
+    catalog_product = models.ForeignKey(
+        SneakerProduct,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    brand = models.CharField(max_length=100, blank=True)
+    style_code = models.CharField(max_length=100, blank=True)
+    colorway = models.CharField(max_length=250, blank=True)
+    release_date = models.DateField(null=True, blank=True)
+    original_msrp = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    msrp_currency = models.CharField(max_length=3, blank=True)
+    tracker = FieldTracker()
+
+    def save(self, *args, **kwargs):
+        """Protect the snapshot once referenced by a tracked collection entry."""
+        if not self.catalog_product_id and self.item.source == Sources.KICKSDB:
+            self.catalog_product_id = (
+                SneakerProduct.objects.filter(
+                    pk=self.item.media_id,
+                )
+                .values_list("pk", flat=True)
+                .first()
+            )
+        if self._state.adding and self.catalog_product_id:
+            for field in ["brand", "style_code", "colorway", "release_date"]:
+                if not getattr(self, field):
+                    setattr(self, field, getattr(self.catalog_product, field))
+        super().save(*args, **kwargs)
+
+    def process_progress(self):
+        """Count owned pairs without provider calls or episode-style limits."""
+        self.progress = max(0, self.progress)
+
+    def process_status(self):
+        """Keep collection status changes local without calendar refreshes."""

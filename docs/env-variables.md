@@ -19,6 +19,13 @@ This page outlines the environment variables used in the YamTrack project.
 | `COMICVINE_API` | ComicVine API key for comics. A default key is provided, but it's recommended to get your own as it has a low rate limit.                                                                                                                             |
 | `REBRICKABLE`   | Rebrickable API key for LEGO sets. A default key is provided, but it's recommended to get your own as requests are limited to one per second.                                                                                                         |
 
+Sneaker catalog search uses `KICKSDB_API` (or `KICKSDB_API_FILE` for a Docker
+secret). No default key is provided. Catalog information is saved on first lookup
+and does not refresh. Missing data stays unknown; original MSRP is entered by the
+collector, with a currency code. API-reported retail figures, when available,
+are displayed separately and are not assumed to be original launch MSRP.
+Saved sneakers and custom entries remain usable without a key.
+
 LEGO set search uses `REBRICKABLE`. A default key is provided; to use your own,
 generate one in your [Rebrickable account settings](https://rebrickable.com/api/).
 Official sets can be searched by name or set number; metadata includes the image,
@@ -103,6 +110,7 @@ YamTrack supports reading sensitive configuration values from Docker secrets fil
 | `HARDCOVER_API`           | `HARDCOVER_API_FILE`           |
 | `COMICVINE_API`           | `COMICVINE_API_FILE`           |
 | `REBRICKABLE`             | `REBRICKABLE_FILE`             |
+| `KICKSDB_API`             | `KICKSDB_API_FILE`             |
 | `TRAKT_API`               | `TRAKT_API_FILE`               |
 | `SIMKL_ID`                | `SIMKL_ID_FILE`                |
 | `SIMKL_SECRET`            | `SIMKL_SECRET_FILE`            |

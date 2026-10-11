@@ -201,6 +201,18 @@ MEDIA_TYPE_CONFIG = {
             5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>""",
         "unit": ("#", "Issue"),
     },
+    MediaTypes.SNEAKER.value: {
+        "sources": [Sources.KICKSDB],
+        "default_source": Sources.KICKSDB,
+        "sample_query": "Nike Dunk",
+        "unicode_icon": "👟",
+        "verb": ("collect", "collected"),
+        "text_color": COLORS["cyan"]["text"],
+        "stats_color": COLORS["cyan"]["hex"],
+        "svg_icon": '<path d="M3 14l3-8 5 5 4 2 5 1 1 5H3z"/>',
+        "unit": ("#", "Pair"),
+        "date_key": "release_date",
+    },
     MediaTypes.LEGO.value: {
         "sources": [Sources.REBRICKABLE],
         "default_source": Sources.REBRICKABLE,

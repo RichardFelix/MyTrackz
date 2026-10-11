@@ -29,7 +29,7 @@ def get_items_to_process(user=None):
         query |= media_query
 
     query &= ~Q(source=Sources.MANUAL.value)
-    query &= ~Q(media_type=MediaTypes.LEGO.value)
+    query &= ~Q(media_type__in=[MediaTypes.LEGO.value, MediaTypes.SNEAKER.value])
 
     items = Item.objects.filter(query).distinct()
 

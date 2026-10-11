@@ -440,6 +440,9 @@ REBRICKABLE = config(
     ),
 )
 
+# Optional sneaker catalog key; saved sneakers remain usable without it.
+KICKSDB_API = config("KICKSDB_API", default=secret("KICKSDB_API_FILE", "")).strip()
+
 # BoardGameGeek API Token - Register at https://boardgamegeek.com/using_the_xml_api
 BGG_API_TOKEN = config(
     "BGG_API_TOKEN",

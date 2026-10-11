@@ -380,6 +380,24 @@ class User(AbstractUser):
         choices=MediaStatusChoices,
     )
 
+    # Media type preferences: sneakers
+    sneaker_enabled = models.BooleanField(default=True)
+    sneaker_layout = models.CharField(
+        max_length=20,
+        default=LayoutChoices.GRID,
+        choices=LayoutChoices,
+    )
+    sneaker_sort = models.CharField(
+        max_length=20,
+        default=MediaSortChoices.TITLE,
+        choices=MediaSortChoices,
+    )
+    sneaker_status = models.CharField(
+        max_length=20,
+        default=MediaStatusChoices.ALL,
+        choices=MediaStatusChoices,
+    )
+
     # UI preferences
     theme = models.CharField(
         max_length=10,

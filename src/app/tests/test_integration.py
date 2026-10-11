@@ -2,11 +2,17 @@ import os
 from datetime import date
 from unittest.mock import patch
 
+import requests
 from django.contrib.auth import get_user_model
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+from django.core.cache import cache
+from django.test import override_settings
 from django.utils import timezone
 from playwright.sync_api import expect, sync_playwright
 
+from app.models import Sources
+from app.providers import services
+from app.tests.test_sneakers import SHOE
 from users.models import HomeLayoutChoices
 
 
@@ -63,6 +69,82 @@ class IntegrationTest(StaticLiveServerTestCase):
             'select[name="status"] option[value="Planning"]'
         )
         expect(planning_option).to_have_text("Wishlist")
+
+    @patch("app.providers.sneakers._request")
+    def test_sneaker_collection(self, request):
+        """Search, record MSRP, and edit saved shoes offline on mobile."""
+        request.side_effect = lambda path, *_args, **_kwargs: (
+            {"data": [SHOE], "meta": None} if path == "goat/products" else {"data": []}
+        )
+        # The adapter checks configuration before using the mocked HTTP client.
+        with override_settings(KICKSDB_API="test-key"):
+            self.palette_search("DD1391-100", "Sneakers")
+            self.page.get_by_title(SHOE["name"], exact=True).click()
+            expect(self.page.get_by_role("main")).to_contain_text("DD1391 100")
+            self.page.get_by_role("button", name="Add to tracker").click()
+            self.page.get_by_label("Owned pairs").fill("1")
+            self.page.get_by_label("Original MSRP", exact=True).fill("100")
+            self.page.get_by_label("MSRP currency").fill("USD")
+            self.page.get_by_label("Status").select_option("Completed")
+            self.page.get_by_role("button", name="Add", exact=True).click()
+            expect(self.page.get_by_role("main")).to_contain_text("USD 100.00")
+        request.reset_mock()
+        request.side_effect = AssertionError("Saved sneakers must work offline")
+        self.page.set_viewport_size({"width": 390, "height": 844})
+        try:
+            self.page.reload()
+            self.page.get_by_role("button", name="Edit collection").click()
+            expect(self.page.get_by_label("Original MSRP", exact=True)).to_have_value(
+                "100.00"
+            )
+            self.page.get_by_label("Owned pairs").fill("2")
+            self.page.get_by_role("button", name="Update", exact=True).click()
+            expect(self.page.get_by_role("main")).to_contain_text("Owned pairs: 2")
+            self.assertLessEqual(
+                self.page.evaluate("document.documentElement.scrollWidth"), 390
+            )
+        finally:
+            self.page.set_viewport_size({"width": 1280, "height": 720})
+        request.assert_not_called()
+
+    @override_settings(KICKSDB_API="test-key")
+    @patch("app.providers.sneakers._request")
+    def test_sneaker_page_two_outage_and_retry(self, request):
+        """An upstream outage keeps navigation usable and Retry loads page two."""
+        cache.clear()
+        second_page_calls = 0
+
+        def catalog_response(_path, params):
+            nonlocal second_page_calls
+            if params["page"] == 2:  # noqa: PLR2004
+                second_page_calls += 1
+                if second_page_calls <= 2:  # noqa: PLR2004
+                    response = requests.Response()
+                    response.status_code = 500
+                    raise services.ProviderAPIError(
+                        Sources.KICKSDB, requests.HTTPError(response=response)
+                    )
+                shoe = {**SHOE, "id": 2, "name": "Air Jordan 3 Second Page"}
+            else:
+                shoe = {**SHOE, "id": 1, "name": "Air Jordan 3 First Page"}
+            return {"data": [shoe], "meta": {"total": 40}}
+
+        request.side_effect = catalog_response
+        self.palette_search("Air Jordan 3", "Sneakers")
+        expect(
+            self.page.get_by_title("Air Jordan 3 First Page", exact=True)
+        ).to_be_visible()
+        self.page.locator('a[href*="page=2"]').first.click()
+        expect(self.page.get_by_role("alert")).to_contain_text(
+            "Page 2 could not be loaded"
+        )
+        expect(self.page.get_by_role("link", name="Back to page 1")).to_be_visible()
+        expect(self.page.get_by_text("No results found", exact=True)).to_have_count(0)
+        self.page.get_by_role("link", name="Try again", exact=True).click()
+        expect(
+            self.page.get_by_title("Air Jordan 3 Second Page", exact=True)
+        ).to_be_visible()
+        self.assertEqual(second_page_calls, 3)
 
     @patch("app.providers.rebrickable._request")
     def test_lego_build_tracking(self, request):

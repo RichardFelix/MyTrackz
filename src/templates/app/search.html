@@ -31,6 +31,33 @@
     </div>
   </div>
 
+  {% if media_type == MediaTypes.SNEAKER.value %}
+    <p class="text-sm text-gray-400 mb-4">
+      Find sneakers by name or style code. Details are saved on the first lookup and kept in your catalog.
+      <a class="text-indigo-400"
+         href="{% url 'search' %}?media_type=sneaker&amp;q=">Browse saved sneakers</a> ·
+      <a class="text-indigo-400" href="{% url 'create_entry' %}">Create a custom entry</a> if your sneaker is missing.
+    </p>
+  {% endif %}
+
+  {% if data.search_unavailable %}
+    <div role="alert" class="mb-6 rounded-lg bg-[#2a2f35] p-4">
+      <p class="mb-3">
+        KicksDB search is currently unavailable. Page {{ data.page }} could not be loaded.
+        {% if data.results %}Only previously saved matches are shown below.{% endif %}
+      </p>
+      <div class="flex flex-wrap gap-4">
+        <a class="text-indigo-400" href="{{ request.get_full_path }}">Try again</a>
+        {% if data.page > 1 %}
+          <a class="text-indigo-400"
+             href="{% url 'search' %}?q={{ request.GET.q|urlencode }}&amp;media_type=sneaker&amp;source=kicksdb&amp;page=1&amp;layout={{ layout }}">Back to page 1</a>
+        {% endif %}
+        <a class="text-indigo-400"
+           href="{% url 'search' %}?media_type=sneaker&amp;q=">Browse saved sneakers</a>
+      </div>
+    </div>
+  {% endif %}
+
   {% if data.results %}
     <div {% if layout == 'grid' %}
          class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
@@ -91,7 +118,7 @@
       Page {{ data.page }} of {{ data.total_pages }} ({{ data.total_results }} results)
     </div>
   {% endif %}
-{% else %}
+{% elif not data.search_unavailable %}
   <div class="flex flex-col items-center justify-center py-32 px-4 bg-[#2a2f35] rounded-lg">
     <div class="bg-[#39404b] rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
       {% include "app/icons/magnifying-glass.svg" with classes="w-8 h-8 text-gray-400" %}

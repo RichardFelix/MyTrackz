@@ -20,6 +20,7 @@ from app.providers import (
     manual,
     openlibrary,
     rebrickable,
+    sneakers,
     tmdb,
 )
 
@@ -152,6 +153,8 @@ def api_request(
     data=None,
     headers=None,
     response_format="json",
+    *,
+    retry_on_rate_limit=True,
 ):
     """Make a request to the API and return the response.
 
@@ -163,6 +166,7 @@ def api_request(
         data: Raw data for POST
         headers: Request headers
         response_format: "json" (default) or "xml" for XML parsing
+        retry_on_rate_limit: False for quota-limited catalogs that must fail promptly
 
     Returns:
         Parsed JSON dict or ElementTree for XML
@@ -194,7 +198,7 @@ def api_request(
         status_code = error_resp.status_code
 
         # handle rate limiting
-        if status_code == requests.codes.too_many_requests:
+        if status_code == requests.codes.too_many_requests and retry_on_rate_limit:
             seconds_to_wait = int(error_resp.headers.get("Retry-After", 5))
             logger.warning("Rate limited, waiting %s seconds", seconds_to_wait)
             time.sleep(seconds_to_wait + 3)
@@ -256,6 +260,7 @@ def get_media_metadata(
         MediaTypes.COMIC.value: lambda: comicvine.comic(media_id),
         MediaTypes.BOARDGAME.value: lambda: bgg.boardgame(media_id),
         MediaTypes.LEGO.value: lambda: rebrickable.lego(media_id),
+        MediaTypes.SNEAKER.value: lambda: sneakers.sneaker(media_id),
     }
     return metadata_retrievers[media_type]()
 
@@ -282,6 +287,7 @@ def search(media_type, query, page, source=None):
         MediaTypes.COMIC.value: lambda: comicvine.search(query, page),
         MediaTypes.BOARDGAME.value: lambda: bgg.search(query, page),
         MediaTypes.LEGO.value: lambda: rebrickable.search(query, page),
+        MediaTypes.SNEAKER.value: lambda: sneakers.search(query, page),
     }
     return search_handlers[media_type]()
 
