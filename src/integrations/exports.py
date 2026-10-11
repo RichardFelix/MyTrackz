@@ -1,11 +1,12 @@
 import csv
+import json
 import logging
 
 from django.apps import apps
 from django.db.models import Field, Prefetch
 
 from app import helpers
-from app.models import Episode, Item, MediaTypes, Season
+from app.models import Episode, Item, MediaTypes, Season, SneakerProduct
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def generate_rows(user):
     }
 
     # Yield header row
-    yield writer.writerow(fields["item"] + fields["track"])
+    yield writer.writerow(fields["item"] + fields["track"] + ["sneaker_catalog"])
 
     prefetch_config = {
         MediaTypes.TV.value: Prefetch(
@@ -59,6 +60,8 @@ def generate_rows(user):
         )
 
         queryset = model.objects.filter(**filter_kwargs).select_related("item")
+        if media_type == MediaTypes.SNEAKER.value:
+            queryset = queryset.select_related("catalog_product")
 
         if media_type in prefetch_config:
             queryset = queryset.prefetch_related(prefetch_config[media_type])
@@ -70,13 +73,23 @@ def generate_rows(user):
                 getattr(media, field, "") for field in fields["track"]
             ]
 
-            if media_type == MediaTypes.GAME.value:
+            if media_type in {MediaTypes.GAME.value, MediaTypes.LEGO.value}:
                 # calculate index of progress field
                 progress_index = fields["track"].index("progress")
                 row[progress_index + len(fields["item"])] = helpers.minutes_to_hhmm(
                     media.progress,
                 )
 
+            catalog = ""
+            if media_type == MediaTypes.SNEAKER.value and media.catalog_product_id:
+                catalog = json.dumps(
+                    {
+                        field: getattr(media.catalog_product, field)
+                        for field in get_model_fields(SneakerProduct)
+                    },
+                    default=str,
+                )
+            row.append(catalog)
             yield writer.writerow(row)
 
         logger.debug("Finished streaming %ss to CSV", media_type)

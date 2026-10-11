@@ -84,15 +84,15 @@ Steam import requires a Steam API key and your Steam ID 64.
 
 ## Yamtrack CSV format
 
-Use this format to bulk-import media into YamTrack. Every row represents a single media instance.
+Use this format to bulk-import media and collections into MyTrackz. Every row represents a single tracked instance.
 
 The order of rows matters for TV data: import `tv` rows first, then `season` rows, then `episode` rows. Episodes depend on their parent season, and seasons depend on their parent TV show.
 
 | Column Title   | Required? | Example Value                                  | Notes                                                                                                                                                                           |
 | -------------- | --------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | media_id       | No        | 12345                                          | ID of the item on the chosen provider. Must be unique per `(source, media_type)`. Leave blank to let YamTrack fetch the title from the provider automatically with the `title`. |
-| source         | **Yes**   | tmdb                                           | One of: `tmdb`, `mal`, `mangaupdates`, `igdb`, `openlibrary`, `hardcover`, `comicvine`, `manual`.                                                                               |
-| media_type     | **Yes**   | movie                                          | One of: `tv`, `season`, `episode`, `movie`, `anime`, `manga`, `game`, `book`, `comic`. For TV data, rows must be ordered as `tv`, then `season`, then `episode`.                |
+| source         | **Yes**   | tmdb                                           | One of: `tmdb`, `mal`, `mangaupdates`, `igdb`, `openlibrary`, `hardcover`, `comicvine`, `bgg`, `rebrickable`, `kicksdb`, `manual`.                                                                               |
+| media_type     | **Yes**   | movie                                          | One of: `tv`, `season`, `episode`, `movie`, `anime`, `manga`, `game`, `book`, `comic`, `boardgame`, `lego`, `sneaker`. For TV data, rows must be ordered as `tv`, then `season`, then `episode`.                |
 | title          | No        | Inception                                      | Leave blank to let YamTrack fetch the title from the provider automatically with the `media_id`.                                                                                |
 | image          | No        | <https://image.tmdb.org/t/p/w500/qmDpIH...jpg> | Public poster/cover URL. Leave blank to auto-fetch from the provider automatically with the `media_id` or `title`.                                                              |
 | season_number  | Cond.     | 2                                              | Required when `media_type = season`; also required (together with `episode_number`) when `media_type = episode`.                                                                |
@@ -103,3 +103,12 @@ The order of rows matters for TV data: import `tv` rows first, then `season` row
 | start_date     | No        | 2023-01-16 03:56:13+00:00                      | Full ISO-8601 **timestamp with timezone** `YYYY-MM-DD HH:MM:SS±HH:MM`.                                                                                                          |
 | end_date       | No        | 2023-02-10 22:15:00+00:00                      | Same format as `start_date`.                                                                                                                                                    |
 | progress       | No        | 10                                             | Numeric progress (e.g., chapters, pages, minutes). Ignored for tv and season because progress is tracked with episode rows.                                                     |
+
+### LEGO and sneaker collections
+
+- **LEGO** uses `media_type=lego` and `source=rebrickable` or `manual`. Set IDs include their suffix, such as `75192-1`. Build time exports with explicit duration units, such as `1h 35min`; older MyTrackz exports containing a plain integer are imported as minutes.
+- **Sneakers** use `media_type=sneaker` and `source=kicksdb` or `manual`. `progress` is the owned-pair count. Personal fields include `brand`, `style_code`, `colorway`, `release_date` (`YYYY-MM-DD`), `original_msrp`, and `msrp_currency` (for example, `USD`). A known MSRP requires its currency; unknown prices stay blank.
+- The **`sneaker_catalog`** column contains the saved KicksDB snapshot as JSON, including its original catalog metadata, optional reported retail price, and capture timestamp. Preserve this column when moving an export to another MyTrackz installation so saved sneaker details restore without KicksDB access. Imports do not overwrite an existing catalog snapshot. Older CSVs without this column remain importable, but cannot restore a missing snapshot offline.
+- CSV quoting preserves commas, quotation marks, and line breaks in notes. **New** mode skips already-tracked entries; **Overwrite** replaces matching tracking entries for the importing account.
+
+CSV exports contain current tracking data and sneaker catalog snapshots. They do not include cached image files or the complete history timeline; keep database and media backups when you need a full site backup.

@@ -1,9 +1,13 @@
+import io
+import json
 import logging
 from collections import defaultdict
 from csv import DictReader
 
 from django.apps import apps
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 # Explicitly import the submodules referenced as app.forms/app.models below --
@@ -12,7 +16,8 @@ from django.utils.dateparse import parse_datetime
 import app.forms
 import app.models
 from app import config
-from app.models import MediaTypes, Sources
+from app import helpers as app_helpers
+from app.models import MediaTypes, SneakerProduct, Sources
 from app.providers import services
 from app.templatetags import app_tags
 from integrations.imports import helpers
@@ -61,12 +66,12 @@ class YamtrackImporter:
     def import_data(self):
         """Import all user data from the CSV file."""
         try:
-            decoded_file = self.file.read().decode("utf-8").splitlines()
+            decoded_file = self.file.read().decode("utf-8-sig")
         except UnicodeDecodeError as e:
             msg = "Invalid file format. Please upload a CSV file."
             raise MediaImportError(msg) from e
 
-        reader = DictReader(decoded_file)
+        reader = DictReader(io.StringIO(decoded_file, newline=""))
 
         for row in reader:
             try:
@@ -77,6 +82,9 @@ class YamtrackImporter:
                     f"({app_tags.media_type_readable(row['media_type'])}): {error}"
                 )
                 self.warnings.append(error_msg)
+                continue
+            except MediaImportError as error:
+                self.warnings.append(str(error))
                 continue
             except Exception as error:
                 error_msg = f"Error processing entry: {row}"
@@ -96,6 +104,7 @@ class YamtrackImporter:
     def _process_row(self, row):
         """Process a single row from the CSV file."""
         media_type = row["media_type"]
+        catalog = self._prepare_collection_row(row)
 
         if media_type == MediaTypes.GAME.value and not row.get("launcher"):
             # Exports created before launcher tracking do not have this column.
@@ -160,6 +169,8 @@ class YamtrackImporter:
         )
 
         if form.is_valid():
+            if catalog:
+                self._attach_sneaker_catalog(form, catalog)
             progressed_at = row.get("progressed_at")
             if progressed_at:
                 form.instance._history_date = parse_datetime(progressed_at)
@@ -168,6 +179,68 @@ class YamtrackImporter:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
             self.warnings.append(error_msg)
             logger.error(error_msg)
+
+    def _prepare_collection_row(self, row):
+        """Normalize legacy build time and fill metadata from saved snapshots."""
+        catalog = self._sneaker_catalog(row)
+        if (
+            row["media_type"] == MediaTypes.LEGO.value
+            and row["progress"].strip().isdigit()
+        ):
+            # Older LEGO exports stored minutes; the duration form reads bare
+            # numbers as hours. Modern exports use explicit hour/minute units.
+            row["progress"] = app_helpers.minutes_to_hhmm(int(row["progress"]))
+        if catalog:
+            row["title"] = row["title"] or catalog.name
+            row["image"] = row["image"] or catalog.image or settings.IMG_NONE
+        return catalog
+
+    def _attach_sneaker_catalog(self, form, catalog):
+        """Create a missing snapshot only after tracking fields validate."""
+        fields = {
+            field.name: getattr(catalog, field.name)
+            for field in catalog._meta.fields
+            if field.name not in {"catalog_id", "captured_at"}
+        }
+        product, created = SneakerProduct.objects.get_or_create(
+            pk=catalog.pk, defaults=fields
+        )
+        if created:
+            SneakerProduct.objects.filter(pk=product.pk).update(
+                captured_at=catalog.captured_at
+            )
+        form.instance.catalog_product = product
+
+    def _sneaker_catalog(self, row):
+        """Validate an exported snapshot without changing an existing catalog."""
+        if (
+            row["media_type"] != MediaTypes.SNEAKER.value
+            or row["source"] != Sources.KICKSDB.value
+        ):
+            return None
+        raw = row.get("sneaker_catalog")
+        if not raw:
+            # CSVs written before snapshot export still work on the same site.
+            return SneakerProduct.objects.filter(pk=row["media_id"]).first()
+        try:
+            data = json.loads(raw)
+        except (ValueError, TypeError) as error:
+            msg = f"Invalid saved sneaker catalog for {row['title']}"
+            raise MediaImportError(msg) from error
+        if not isinstance(data, dict) or data.get("catalog_id") != row["media_id"]:
+            msg = f"Saved sneaker catalog identity does not match {row['media_id']}"
+            raise MediaImportError(msg)
+        try:
+            fields = {field.name for field in SneakerProduct._meta.fields}
+            product = SneakerProduct(
+                **{key: data[key] for key in data if key in fields}
+            )
+            product.full_clean(validate_unique=False)
+            product.captured_at = product.captured_at or timezone.now()
+        except (ValueError, TypeError, ValidationError) as error:
+            msg = f"Invalid saved sneaker catalog for {row['title']}: {error}"
+            raise MediaImportError(msg) from error
+        return product
 
     def _handle_missing_metadata(self, row, media_type, season_number, episode_number):
         """Handle missing metadata by fetching from provider."""
