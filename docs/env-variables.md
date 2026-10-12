@@ -21,7 +21,8 @@ This page outlines the environment variables used in the YamTrack project.
 | `KICKSDB_API`   | KicksDB API key for sneaker catalog search. No default key is provided; saved sneakers and custom entries work without one.                                                                                                                           |
 
 Sneaker catalog search uses `KICKSDB_API` (or `KICKSDB_API_FILE` for a Docker
-secret). No default key is provided. Catalog information is saved on first lookup
+secret). No default key is provided; create your own by signing up on the
+[KicksDB website](https://kicks.dev/). Catalog information is saved on first lookup
 and does not refresh. Missing data stays unknown; original MSRP is entered by the
 collector, with a currency code. API-reported retail figures, when available,
 are displayed separately and are not assumed to be original launch MSRP.
