@@ -62,9 +62,13 @@ If you prefer the upstream project's release path and do not need these ⭐ addi
 
 ### Interface highlights
 
-| List dashboard | Mobile navigation |
-| :------------: | :---------------: |
-| ![MyTrackz list dashboard with aired-only filtering](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile navigation](docs/assets/screenshots/mobile_home_aired_only.png) |
+| Grid dashboard | Mobile grid view |
+| :------------: | :--------------: |
+| ![MyTrackz grid dashboard with aired-only filtering](docs/assets/screenshots/homepage_grid_aired_only.png) | ![MyTrackz mobile grid view](docs/assets/screenshots/mobile_home_grid_aired_only.png) |
+
+| List dashboard | Mobile list view |
+| :------------: | :--------------: |
+| ![MyTrackz list dashboard with aired-only filtering](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile list view](docs/assets/screenshots/mobile_home_aired_only.png) |
 
 | Discover recommendations ⭐ | Trending media ⭐ |
 | :--------------------------: | :--------------: |
