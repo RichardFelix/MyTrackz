@@ -149,6 +149,8 @@ class ImageTransportTests(SimpleTestCase):
         resolve.return_value = [
             (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
         ]
+        # urllib3 returns a (socket, is_verified) NamedTuple; 2.8+ unpacks it.
+        wrap_tls.return_value = (MagicMock(), True)
         connection = PublicAddressHTTPSConnection("images.example", timeout=3)
         connection.connect()
         make_socket.return_value.connect.assert_called_once_with(("93.184.216.34", 443))
