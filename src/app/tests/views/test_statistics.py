@@ -1,3 +1,6 @@
+from datetime import date
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -66,3 +69,14 @@ class StatisticsViewTests(TestCase):
         )
 
         self.assertTrue(date_is_none)
+
+    def test_default_date_range_on_a_leap_day(self):
+        """29 February has no counterpart a year earlier; the page still loads."""
+        with patch(
+            "app.views.timezone.localdate",
+            return_value=date(2028, 2, 29),
+        ):
+            response = self.client.get(reverse("statistics"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["start_date"].date(), date(2027, 2, 28))

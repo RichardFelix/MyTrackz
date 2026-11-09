@@ -71,6 +71,35 @@ def _download_image_bytes(image_url):
     return None
 
 
+def profile_image_relpath(user_id, image_url):
+    """Return the media-relative path of a user's cached profile image.
+
+    Keyed per user so two users pasting the same URL don't share (and
+    clobber) one another's crop.
+    """
+    import hashlib  # noqa: PLC0415
+
+    from django.conf import settings  # noqa: PLC0415
+
+    digest = hashlib.sha256(f"{user_id}:{image_url}".encode()).hexdigest()
+    return f"{settings.PROFILE_IMAGE_DIR}/{digest[:2]}/{digest}.webp"
+
+
+def delete_profile_image(user_id, image_url):
+    """Remove the cached file for a profile image the user no longer uses."""
+    from django.core.files.storage import default_storage  # noqa: PLC0415
+
+    if not image_url:
+        return
+    relpath = profile_image_relpath(user_id, image_url)
+    try:
+        if default_storage.exists(relpath):
+            default_storage.delete(relpath)
+    except OSError:
+        # a leftover file is harmless; never fail a profile save over it
+        pass
+
+
 def parse_image_crop(crop):
     """Parse finite crop fractions with a nonempty region inside the image."""
     left, top, side = (float(value) for value in crop.split(","))
@@ -116,46 +145,34 @@ def cache_profile_image(user_id, image_url, crop=""):
     """Download a user's profile image and store it locally as WebP.
 
     ``crop`` is an optional "left,top,side" fraction string selecting a square
-    region. The stored file is keyed per user so two users pasting the same URL
-    don't share (and clobber) one another's crop. Returns True on success; on
-    any failure the caller should leave the image uncached so the raw URL is
-    used as a fallback.
+    region. Returns True on success; on any failure the caller should leave
+    the image uncached so the raw URL is used as a fallback.
     """
-    import hashlib  # noqa: PLC0415
     from io import BytesIO  # noqa: PLC0415
-    from pathlib import Path  # noqa: PLC0415
 
-    from django.conf import settings  # noqa: PLC0415
-    from django.core.files.base import ContentFile  # noqa: PLC0415
-    from django.core.files.storage import default_storage  # noqa: PLC0415
-    from PIL import Image, UnidentifiedImageError  # noqa: PLC0415
+    from app.tasks import (  # noqa: PLC0415
+        INVALID_IMAGE_ERRORS,
+        decode_image,
+        save_cached_file,
+    )
 
     data = _download_image_bytes(image_url)
     if data is None:
         return False
 
+    image = decode_image(data)
+    if image is None:
+        return False
+
     try:
-        buffer = BytesIO(data)
-        image = Image.open(buffer)
-        image.verify()
-        buffer.seek(0)
-        image = Image.open(buffer)
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-
         image = _apply_circle_crop(image, crop)
-
-        digest = hashlib.sha256(f"{user_id}:{image_url}".encode()).hexdigest()
-        relpath = str(Path(settings.PROFILE_IMAGE_DIR) / digest[:2] / f"{digest}.webp")
-
         out_buffer = BytesIO()
         image.save(out_buffer, format="WEBP", quality=85)
-        # Delete any stale file so the digest-based path stays exact (storage
-        # would otherwise append a random suffix to an existing name).
-        if default_storage.exists(relpath):
-            default_storage.delete(relpath)
-        default_storage.save(relpath, ContentFile(out_buffer.getvalue()))
-    except (OSError, UnidentifiedImageError):
+        save_cached_file(
+            profile_image_relpath(user_id, image_url),
+            out_buffer.getvalue(),
+        )
+    except INVALID_IMAGE_ERRORS:
         return False
 
     return True

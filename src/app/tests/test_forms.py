@@ -46,7 +46,7 @@ class ItemImageFormTest(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("image", form.errors)
 
-    @patch("app.tasks.socket.gethostbyname", return_value="93.184.216.34")
+    @patch("app.tasks.host_resolves_publicly", return_value=True)
     def test_accepts_public_host(self, _mock_dns):
         """A URL resolving to a public address passes validation."""
         form = ItemImageForm({"image": "https://example.com/poster.jpg"})

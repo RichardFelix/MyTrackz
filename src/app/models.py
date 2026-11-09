@@ -133,7 +133,8 @@ class Item(CalendarTriggerMixin, models.Model):
     image_locked = models.BooleanField(default=False)
     # The image URL the item had before the user's first custom image,
     # restored by "Revert to original"; empty when no custom image is set.
-    image_original = models.URLField(blank=True, default="")
+    # Same length as ``image``: it holds a copy of that field's value.
+    image_original = models.URLField(max_length=2000, blank=True, default="")
     genres = models.ManyToManyField(Genre, blank=True, related_name="items")
     # Provider release format (e.g. MAL: TV/Movie/OVA, IGDB: Main game/DLC),
     # captured from metadata like genres; empty until first details view/backfill.
@@ -559,8 +560,14 @@ class MediaManager(models.Manager):
         sort_by,
         items_limit,
         specific_media_type=None,
+        next_air_datetimes=None,
     ):
-        """Get a home media list for a specific status grouped by media type."""
+        """Get a home media list for a specific status grouped by media type.
+
+        Pass a list as ``next_air_datetimes`` to have it filled with the
+        release times of in-progress media the aired-only filter hid, so the
+        home page can schedule its refresh without querying everything twice.
+        """
         list_by_type = {}
         media_types = self._get_media_types_to_process(user, specific_media_type)
 
@@ -584,7 +591,12 @@ class MediaManager(models.Manager):
             self._annotate_next_event(media_list)
 
             if user.home_aired_only and status == Status.IN_PROGRESS.value:
-                media_list = self._filter_home_to_aired(media_list, media_type)
+                visible_media = self._filter_home_to_aired(media_list, media_type)
+                if next_air_datetimes is not None:
+                    next_air_datetimes.extend(
+                        self._hidden_air_datetimes(media_list, visible_media),
+                    )
+                media_list = visible_media
 
             if not media_list:
                 continue
@@ -631,20 +643,26 @@ class MediaManager(models.Manager):
 
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)
-            visible_ids = {
-                media.id for media in self._filter_home_to_aired(media_list, media_type)
-            }
-
             next_air_datetimes.extend(
-                media.next_event.datetime
-                for media in media_list
-                if media.id not in visible_ids
-                and media.next_event is not None
-                and media.next_event.content_number is not None
-                and not media.next_event.is_max_datetime
+                self._hidden_air_datetimes(
+                    media_list,
+                    self._filter_home_to_aired(media_list, media_type),
+                ),
             )
 
         return min(next_air_datetimes, default=None)
+
+    def _hidden_air_datetimes(self, media_list, visible_media):
+        """Return when each media the aired-only filter hid next releases."""
+        visible_ids = {media.id for media in visible_media}
+        return [
+            media.next_event.datetime
+            for media in media_list
+            if media.id not in visible_ids
+            and media.next_event is not None
+            and media.next_event.content_number is not None
+            and not media.next_event.is_max_datetime
+        ]
 
     def _filter_home_to_earliest_seasons(self, media_list, user):
         """Show only the earliest active regular season for each TV show."""

@@ -126,7 +126,7 @@ def _search_page(platform, query, page):
 
 def _catalog_page(query, page, digest):
     """Keep later pages on the same marketplace as the first page."""
-    first_page = cache.get(f"kicksdb_search_v1_{digest}_1")
+    first_page = cache.get(f"search_kicksdb_v1_{digest}_1")
     if page > 1:
         first_results = first_page.get("results", []) if first_page else []
         platform = (
@@ -149,7 +149,8 @@ def search(query, page):
             _request("goat/products")
         return _local_search(query, page)
     digest = hashlib.sha256(query.strip().casefold().encode()).hexdigest()
-    key = f"kicksdb_search_v1_{digest}_{page}"
+    # "search_" prefix so Settings -> Advanced -> Clear Search Cache covers it
+    key = f"search_kicksdb_v1_{digest}_{page}"
     result = cache.get(key)
     if result is not None:
         return result

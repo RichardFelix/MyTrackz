@@ -671,14 +671,32 @@ class User(AbstractUser):
         ]
 
     @property
+    def is_instance_admin(self):
+        """Return whether this account may run instance-wide maintenance.
+
+        Staff and superusers always can. There's no admin concept in the UI,
+        so on an install without any, the oldest active account (the one that
+        set the instance up) counts as its owner. Demo accounts never do.
+        """
+        if self.is_demo or not self.is_active:
+            return False
+        if self.is_staff or self.is_superuser:
+            return True
+        owner_id = (
+            User.objects.filter(is_active=True, is_demo=False)
+            .order_by("id")
+            .values_list("id", flat=True)
+            .first()
+        )
+        return owner_id == self.pk
+
+    @property
     def cached_image_url(self):
         """Return the locally cached profile image URL, or the raw URL as fallback."""
         if not self.image:
             return ""
         if self.image_cached:
-            key = f"{self.pk}:{self.image}".encode()
-            digest = hashlib.sha256(key).hexdigest()
-            relpath = f"{settings.PROFILE_IMAGE_DIR}/{digest[:2]}/{digest}.webp"
+            relpath = helpers.profile_image_relpath(self.pk, self.image)
             # The file is overwritten in place when only the crop changes (same
             # URL -> same path), so bust the browser cache with a crop-derived
             # version. nginx ignores the query string when serving the file.

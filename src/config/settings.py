@@ -354,6 +354,10 @@ IMAGE_ALLOWED_CONTENT_TYPES = {
 # Total on-disk budget for the image cache; oldest-cached files are evicted first
 # once this is exceeded. 0 or less disables eviction.
 IMAGE_CACHE_MAX_BYTES = 5 * 1024 * 1024 * 1024  # 5 GiB
+# Cached item images are shrunk to fit within (width, height) before encoding.
+# Sized for the largest place a poster renders (details page, 2x displays);
+# provider originals (IGDB 1080p, TMDB originals) are several times larger.
+IMAGE_CACHE_MAX_DIMENSIONS = (800, 1200)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
@@ -651,6 +655,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "backfill_item_formats": {
         "task": "Backfill item formats",
+        "schedule": 60 * 60 * 24 * 7,  # every 7 days
+    },
+    "prune_unreferenced_items": {
+        "task": "Prune unreferenced items",
         "schedule": 60 * 60 * 24 * 7,  # every 7 days
     },
 }

@@ -27,6 +27,30 @@ def _resolve_image_addresses(host, port):
         )
 
 
+def is_public_address(address):
+    """Return whether a resolved IP address is safe to fetch an image from."""
+    ip = ipaddress.ip_address(address)
+    return ip.is_global and not ip.is_multicast
+
+
+def host_resolves_publicly(host, port=None):
+    """Return whether every address a host resolves to is public.
+
+    Covers IPv4 and IPv6 alike; the connection re-checks at connect time, so
+    this is the early, user-facing version of the same policy.
+    """
+    try:
+        addresses = _resolve_image_addresses(host, port)
+    except OSError:
+        return False
+    try:
+        return bool(addresses) and all(
+            is_public_address(address[4][0]) for address in addresses
+        )
+    except ValueError:
+        return False
+
+
 class PublicAddressConnection(HTTPConnection):
     """Connect directly to a validated address without a second DNS lookup."""
 
@@ -36,9 +60,7 @@ class PublicAddressConnection(HTTPConnection):
         except OSError as exc:
             raise NewConnectionError(self, str(exc)) from exc
         if not addresses or any(
-            not ipaddress.ip_address(address[4][0]).is_global
-            or ipaddress.ip_address(address[4][0]).is_multicast
-            for address in addresses
+            not is_public_address(address[4][0]) for address in addresses
         ):
             msg = "Image host resolves to a non-public address"
             raise NewConnectionError(self, msg)

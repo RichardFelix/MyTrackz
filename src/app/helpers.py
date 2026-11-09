@@ -773,7 +773,10 @@ def _refresh_cached_feed_items(user, item_dicts):
     same-type title fallback: the same real-world item can be tracked under a
     different source than the feed suggests it from (a manually-added game vs
     its IGDB trending entry, a MangaUpdates manga vs MAL trending), and exact
-    keys can never match across sources.
+    keys can never match across sources. The fallback only looks at media
+    tracked under a *different* source than the suggestion's: within one
+    source the id already tells items apart, so a shared title there means
+    two different works (a remake, a reboot) and must not hide the suggestion.
     """
     by_type = {}
     for item_dict in item_dicts:
@@ -792,11 +795,18 @@ def _refresh_cached_feed_items(user, item_dicts):
                 item__media_id__in=media_ids,
             ).values_list("item__media_id", "item__source")
         )
+        feed_sources = {item_dict["source"] for item_dict in type_items}
+        other_source_media = model.objects.filter(user=user)
+        if len(feed_sources) == 1:
+            # the usual case: skips the bulk of the library in the database
+            other_source_media = other_source_media.exclude(
+                item__source__in=feed_sources,
+            )
         tracked_titles.update(
-            (media_type, title.casefold())
-            for title in model.objects.filter(user=user).values_list(
+            (media_type, title.casefold(), source)
+            for title, source in other_source_media.values_list(
                 "item__title",
-                flat=True,
+                "item__source",
             )
             if title
         )
@@ -806,6 +816,7 @@ def _refresh_cached_feed_items(user, item_dicts):
         ):
             images[(media_type, row.media_id, row.source)] = row.cached_image_url
 
+    tracked_sources = {source for _type, _title, source in tracked_titles}
     kept = []
     for item_dict in item_dicts:
         key = (
@@ -815,8 +826,12 @@ def _refresh_cached_feed_items(user, item_dicts):
         )
         if key in tracked:
             continue
-        title = item_dict.get("title") or ""
-        if (item_dict["media_type"], title.casefold()) in tracked_titles:
+        title = (item_dict.get("title") or "").casefold()
+        if any(
+            (item_dict["media_type"], title, source) in tracked_titles
+            for source in tracked_sources
+            if source != item_dict["source"]
+        ):
             continue
         if key in images:
             item_dict["image"] = images[key]

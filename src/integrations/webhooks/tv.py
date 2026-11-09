@@ -773,15 +773,20 @@ class TVWebhookMixin:
                     item=episode_item,
                     related_season=season_instance,
                 )
-                .order_by("-end_date")
+                .order_by("-created_at")
                 .first()
             )
 
             should_create = True
             # check for duplicate episode records,
             # sometimes webhooks are triggered multiple times #689
-            if latest_episode and latest_episode.end_date:
-                time_diff = abs((now - latest_episode.end_date).total_seconds())
+            if latest_episode:
+                # compare against when the record was written: end_date is
+                # truncated to the minute, so it can't tell a repeat fired a
+                # second later across a minute boundary from a rewatch
+                time_diff = abs(
+                    (timezone.now() - latest_episode.created_at).total_seconds(),
+                )
                 threshold = 5
                 if time_diff < threshold:
                     should_create = False

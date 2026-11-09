@@ -1,7 +1,5 @@
 import hashlib
-import ipaddress
 import logging
-import socket
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
@@ -15,7 +13,7 @@ from django.core.files.storage import default_storage
 from django.utils import timezone
 from PIL import Image, UnidentifiedImageError
 
-from app.image_download import get_image
+from app.image_download import get_image, host_resolves_publicly
 from app.models import UserMessage
 
 logger = logging.getLogger(__name__)
@@ -62,17 +60,70 @@ def _is_safe_image_host(url):
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         return False
     try:
-        addr = socket.gethostbyname(parsed.hostname)
-        ip = ipaddress.ip_address(addr)
-    except (OSError, ValueError):
+        port = parsed.port
+    except ValueError:
         return False
-    return not (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_reserved
-        or ip.is_multicast
-    )
+    return host_resolves_publicly(parsed.hostname, port)
+
+
+# Errors Pillow raises for bytes that aren't a usable image: unknown formats,
+# truncated/corrupt files (OSError, SyntaxError, ValueError) and images whose
+# pixel count trips the decompression-bomb guard. None of them is transient,
+# so callers treat them as "not an image" instead of retrying.
+INVALID_IMAGE_ERRORS = (
+    UnidentifiedImageError,
+    Image.DecompressionBombError,
+    OSError,
+    SyntaxError,
+    ValueError,
+)
+
+
+def decode_image(data):
+    """Decode downloaded bytes into an RGB image, or None when they're unusable.
+
+    ``verify()`` catches corruption cheaply but leaves the image unusable, so
+    the bytes are opened a second time for the real decode.
+    """
+    try:
+        Image.open(BytesIO(data)).verify()
+        image = Image.open(BytesIO(data))
+        image.load()
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+    except INVALID_IMAGE_ERRORS:
+        return None
+    return image
+
+
+def encode_cached_image(image):
+    """Shrink an item image to the cache's display size and encode it as WebP."""
+    image.thumbnail(settings.IMAGE_CACHE_MAX_DIMENSIONS)
+    out_buffer = BytesIO()
+    image.save(out_buffer, format="WEBP", quality=85)
+    return out_buffer.getvalue()
+
+
+def save_cached_file(relpath, data):
+    """Write a cache file at exactly ``relpath``, replacing any existing copy.
+
+    Storage would otherwise append a random suffix to an existing name,
+    leaving a duplicate that nothing references.
+    """
+    if default_storage.exists(relpath):
+        default_storage.delete(relpath)
+    default_storage.save(relpath, ContentFile(data))
+
+
+IMAGE_CACHE_STATS_KEY = "image_cache_stats_v1"
+IMAGE_CACHE_STATS_TTL = 60 * 10
+
+
+def _invalidate_image_cache_stats():
+    """Drop the cached size/count so Settings shows fresh numbers."""
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    cache.delete(IMAGE_CACHE_STATS_KEY)
 
 
 def _safe_image_get(url, *, timeout, headers=None, max_redirects=5):
@@ -154,16 +205,9 @@ def cache_item_image(self, item_id, image_url):
                 )
                 return False
             buffer.write(chunk)
-        buffer.seek(0)
 
-        try:
-            image = Image.open(buffer)
-            image.verify()
-            buffer.seek(0)
-            image = Image.open(buffer)
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-        except UnidentifiedImageError:
+        image = decode_image(buffer.getvalue())
+        if image is None:
             logger.warning(
                 "Refusing to cache image for item %s: not a valid image",
                 item_id,
@@ -172,10 +216,7 @@ def cache_item_image(self, item_id, image_url):
 
         digest = hashlib.sha256(image_url.encode()).hexdigest()
         relpath = Path(settings.IMAGE_CACHE_DIR) / digest[:2] / f"{digest}.webp"
-
-        out_buffer = BytesIO()
-        image.save(out_buffer, format="WEBP", quality=85)
-        default_storage.save(str(relpath), ContentFile(out_buffer.getvalue()))
+        save_cached_file(str(relpath), encode_cached_image(image))
 
     except (requests.exceptions.RequestException, OSError) as exc:
         logger.warning("Failed to cache image for item %s: %s", item_id, exc)
@@ -247,12 +288,23 @@ def _iter_cached_image_files():
 
 
 def get_image_cache_stats():
-    """Return (total_size_bytes, file_count) for the current image cache."""
+    """Return (total_size_bytes, file_count) for the current image cache.
+
+    Walking the cache stats every file, so the result is kept for a few
+    minutes; purge and eviction drop it so their effect shows immediately.
+    """
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    stats = cache.get(IMAGE_CACHE_STATS_KEY)
+    if stats is not None:
+        return tuple(stats)
+
     total_size = 0
     file_count = 0
     for relpath, _digest in _iter_cached_image_files():
         total_size += default_storage.size(relpath)
         file_count += 1
+    cache.set(IMAGE_CACHE_STATS_KEY, (total_size, file_count), IMAGE_CACHE_STATS_TTL)
     return total_size, file_count
 
 
@@ -267,6 +319,7 @@ def purge_cached_images():
         deleted_count += 1
 
     Item.objects.filter(image_cached=True).update(image_cached=False)
+    _invalidate_image_cache_stats()
 
     logger.info("Purged %s cached item images.", deleted_count)
 
@@ -338,6 +391,7 @@ def evict_oversized_image_cache():
         if stale_item_ids:
             Item.objects.filter(id__in=stale_item_ids).update(image_cached=False)
 
+    _invalidate_image_cache_stats()
     logger.info(
         "Evicted %s cached item images (%s bytes freed) to stay under the %s byte cap.",
         deleted_count,
@@ -475,6 +529,35 @@ def compute_trending_feed(build_id=None):
     return len(items)
 
 
+# A provider that has no genres/format for an item will keep having none, so
+# an empty-handed backfill lookup is remembered and not repeated every week.
+BACKFILL_RECHECK_SECONDS = 60 * 60 * 24 * 90
+
+
+def _backfill_checked_key(kind, item_id):
+    """Return the cache key marking an item's backfill lookup as come up empty."""
+    return f"backfill_checked_v1_{kind}_{item_id}"
+
+
+def _skip_recently_checked(kind, items):
+    """Drop items whose last backfill lookup found nothing to capture."""
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    checked = cache.get_many(
+        [_backfill_checked_key(kind, item.id) for item in items],
+    )
+    return [
+        item for item in items if _backfill_checked_key(kind, item.id) not in checked
+    ]
+
+
+def _mark_backfill_checked(kind, item):
+    """Remember that the provider had nothing to backfill for this item."""
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    cache.set(_backfill_checked_key(kind, item.id), 1, BACKFILL_RECHECK_SECONDS)
+
+
 @shared_task(name="Backfill item genres")
 def backfill_item_genres():
     """Populate genres for tracked items that don't have any yet.
@@ -503,7 +586,10 @@ def backfill_item_genres():
         query |= Q(**{f"{media_type}__isnull": False})
     query &= ~Q(source=Sources.MANUAL.value)
 
-    items = list(Item.objects.filter(query, genres__isnull=True).distinct())
+    items = _skip_recently_checked(
+        "genres",
+        list(Item.objects.filter(query, genres__isnull=True).distinct()),
+    )
 
     filled = 0
     failed = 0
@@ -522,6 +608,8 @@ def backfill_item_genres():
             continue
         if item.genres.exists():
             filled += 1
+        else:
+            _mark_backfill_checked("genres", item)
 
     msg = f"Genre backfill: {filled} filled, {failed} failed, {len(items)} candidates"
     logger.info(msg)
@@ -543,12 +631,15 @@ def backfill_item_formats():
     from app.models import Item, Sources  # noqa: PLC0415 avoid import cycle
     from app.providers import services  # noqa: PLC0415 avoid import cycle
 
-    items = list(
-        Item.objects.filter(
-            ~Q(source=Sources.MANUAL.value),
-            anime__isnull=False,
-            media_format="",
-        ).distinct(),
+    items = _skip_recently_checked(
+        "format",
+        list(
+            Item.objects.filter(
+                ~Q(source=Sources.MANUAL.value),
+                anime__isnull=False,
+                media_format="",
+            ).distinct(),
+        ),
     )
 
     filled = 0
@@ -568,7 +659,118 @@ def backfill_item_formats():
             continue
         if item.media_format:
             filled += 1
+        else:
+            _mark_backfill_checked("format", item)
 
     msg = f"Format backfill: {filled} filled, {failed} failed, {len(items)} candidates"
     logger.info(msg)
     return msg
+
+
+PRUNE_DELETE_BATCH_SIZE = 500
+
+
+def _feed_item_keys():
+    """Return (media_type, media_id, source) for every item in a cached feed.
+
+    Cached Discover/Trending/"Continue the Story" entries point at their Item
+    row's local image, so those rows have to outlive the feed that shows them.
+    """
+    from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    from app import helpers  # noqa: PLC0415 helpers imports app.tasks at module level
+
+    cache_keys = [helpers.trending_feed_cache_key()]
+    for user_id in get_user_model().objects.values_list("id", flat=True):
+        cache_keys.append(helpers.discover_feed_cache_key(user_id))
+        cache_keys.append(helpers.unfinished_collections_cache_key(user_id))
+
+    keys = set()
+    for item_dicts in cache.get_many(cache_keys).values():
+        for item_dict in item_dicts or []:
+            keys.add(
+                (
+                    item_dict.get("media_type"),
+                    str(item_dict.get("media_id")),
+                    item_dict.get("source"),
+                ),
+            )
+    return keys
+
+
+@shared_task(name="Prune unreferenced items")
+def prune_unreferenced_items():
+    """Delete Item rows that nothing uses any more.
+
+    Every search result, recommendation and details view creates an Item row
+    (and caches its image) whether or not anyone goes on to track it, so the
+    table only ever grows. A row is safe to drop when nothing references it:
+    no tracked media of any type, no episode, no calendar event, no custom
+    list, no notification exclusion. Rows with a user-set custom image and
+    rows shown in a currently cached feed are kept. Anything pruned is simply
+    recreated the next time it's searched for or viewed; its cached image file
+    is removed by the orphaned-image cleanup.
+    """
+    from django.db.models import Exists, OuterRef  # noqa: PLC0415 avoid import cycle
+
+    from app.models import Item  # noqa: PLC0415 avoid import cycle
+
+    candidates = Item.objects.filter(image_locked=False)
+    for relation in Item._meta.related_objects:
+        references = relation.related_model._default_manager.filter(
+            **{relation.field.name: OuterRef("pk")},
+        )
+        candidates = candidates.filter(~Exists(references))
+
+    feed_keys = _feed_item_keys()
+    prunable_ids = [
+        item_id
+        for item_id, media_type, media_id, source in candidates.order_by().values_list(
+            "id",
+            "media_type",
+            "media_id",
+            "source",
+        )
+        if (media_type, media_id, source) not in feed_keys
+    ]
+
+    deleted_count = 0
+    for start in range(0, len(prunable_ids), PRUNE_DELETE_BATCH_SIZE):
+        batch = prunable_ids[start : start + PRUNE_DELETE_BATCH_SIZE]
+        # re-apply the filter at delete time: a row may have been tracked
+        # since the candidate list was built
+        deleted_count += (
+            candidates.filter(id__in=batch)
+            .delete()[1]
+            .get(
+                Item._meta.label,
+                0,
+            )
+        )
+
+    logger.info("Pruned %s unreferenced items.", deleted_count)
+    return deleted_count
+
+
+@shared_task(name="Cache profile image")
+def cache_user_profile_image(user_id, image_url, crop=""):
+    """Download a user's profile image off the request path and mark it cached.
+
+    Until this lands (or if the fetch fails) the profile shows the raw URL.
+    """
+    from django.contrib.auth import get_user_model  # noqa: PLC0415 avoid import cycle
+
+    from users.helpers import cache_profile_image  # noqa: PLC0415 avoid import cycle
+
+    if not cache_profile_image(user_id, image_url, crop):
+        logger.warning("Could not cache profile image for user %s", user_id)
+        return False
+
+    # only flag it when the user hasn't changed the image again meanwhile
+    updated = (
+        get_user_model()
+        .objects.filter(id=user_id, image=image_url, image_crop=crop)
+        .update(image_cached=True)
+    )
+    return bool(updated)

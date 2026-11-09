@@ -91,3 +91,21 @@ class DeleteImportScheduleTests(TestCase):
         self.assertIn("Import schedule not found", str(messages[0]))
 
         self.assertTrue(PeriodicTask.objects.filter(id=self.other_task.id).exists())
+
+    def test_user_id_is_not_matched_as_a_prefix(self):
+        """A schedule whose owner id merely starts with ours is not ours."""
+        longer_id = int(f"{self.user.id}7")
+        prefixed_task = PeriodicTask.objects.create(
+            name="Import from Trakt for someone at daily",
+            task="Import from Trakt",
+            kwargs=f'{{"user_id": {longer_id}, "username": "someone"}}',
+            crontab=self.crontab,
+            enabled=True,
+        )
+
+        self.client.post(
+            reverse("delete_import_schedule"),
+            {"task_name": prefixed_task.name},
+        )
+
+        self.assertTrue(PeriodicTask.objects.filter(id=prefixed_task.id).exists())

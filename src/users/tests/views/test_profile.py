@@ -57,7 +57,7 @@ class Profile(TestCase):
         for crop in ["0,0,nan", "inf,0,0.5", "1,0,0.5", "0,1,0.5", "0,0,0", "bad"]:
             with (
                 self.subTest(crop=crop),
-                patch("users.views.cache_profile_image") as fetch,
+                patch("users.views.cache_user_profile_image") as fetch,
             ):
                 response = self.client.post(
                     reverse("account"),

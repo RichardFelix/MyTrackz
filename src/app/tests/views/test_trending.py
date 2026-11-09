@@ -158,8 +158,76 @@ class TrendingViewTests(TestCase):
         self.assertNotIn("Trending Movie", titles)
         self.assertIn("Trending TV Show", titles)
 
+    def test_same_source_title_twin_is_not_hidden(self):
+        """A different work with the same title and source stays suggested.
+
+        Within one source the id already identifies the item, so a tracked
+        remake must not hide the other film that shares its title.
+        """
+        self._get_feed()
+
+        other_film = Item.objects.create(
+            media_id="999",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.MOVIE.value,
+            title="Trending Movie",
+            image="http://example.com/other.jpg",
+        )
+        # bulk_create: no save hooks, so no provider lookup for the made-up id
+        Movie.objects.bulk_create(
+            [Movie(item=other_film, user=self.user, status=Status.COMPLETED.value)],
+        )
+
+        response = self.client.get(reverse("trending_feed"))
+
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertIn("Trending Movie", titles)
+
+    def test_refresh_keeps_serving_the_current_feed_while_rebuilding(self):
+        """A refresh in flight must not blank the shared feed for other users."""
+        self._get_feed()
+
+        with patch("app.views.compute_trending_feed.delay"):
+            response = self.client.post(reverse("trending_refresh"))
+        building = response.context["building"]
+
+        # anyone else loading the page still gets the current feed
+        response = self.client.get(reverse("trending_feed"))
+        self.assertTemplateUsed(
+            response, "app/components/discover_recommendations.html"
+        )
+        # while the user who refreshed keeps waiting for their build
+        response = self.client.get(reverse("trending_feed"), {"building": building})
+        self.assertTemplateUsed(response, "app/components/discover_loading.html")
+
+    def test_failed_refresh_falls_back_to_the_current_feed(self):
+        """If the rebuild dies, polling ends on the feed that was there before."""
+        self._get_feed()
+        self.mock_trending.side_effect = RuntimeError("provider exploded")
+
+        self.client.post(reverse("trending_refresh"))
+
+        response = self.client.get(reverse("trending_feed"), {"building": "gone"})
+        titles = [s["item"]["title"] for s in response.context["suggestions"]]
+        self.assertIn("Trending Movie", titles)
+
+    def test_demo_account_cannot_rebuild_the_shared_feed(self):
+        """Demo accounts get the feed back without queueing a rebuild."""
+        self._get_feed()
+        self.user.is_demo = True
+        self.user.save(update_fields=["is_demo"])
+
+        with patch("app.views.compute_trending_feed.delay") as mock_delay:
+            response = self.client.post(reverse("trending_refresh"))
+
+        mock_delay.assert_not_called()
+        self.assertTemplateUsed(
+            response, "app/components/discover_recommendations.html"
+        )
+        self.assertNotContains(response, f'hx-post="{reverse("trending_refresh")}"')
+
     def test_refresh_endpoint_invalidates_and_rebuilds(self):
-        """The refresh endpoint drops the cached feed and serves fresh data."""
+        """The refresh endpoint rebuilds the feed and serves fresh data."""
         self._get_feed()
 
         new_pick = dict(MOVIE_PICK, media_id="101", title="Fresh Trending Movie")

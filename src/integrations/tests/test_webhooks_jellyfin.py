@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -35,6 +36,54 @@ class JellyfinWebhookTests(TestCase):
         url = reverse("jellyfin_webhook", kwargs={"token": "invalid-token"})
         response = self.client.post(url, data={}, content_type="application/json")
         self.assertEqual(response.status_code, 401)
+
+    def _post_friends_pilot(self):
+        """Post a played event for Friends S01E01."""
+        payload = {
+            "Event": "Stop",
+            "Item": {
+                "Type": "Episode",
+                "Name": "The One Where Monica Gets a Roommate",
+                "ProviderIds": {
+                    "Tvdb": "303821",
+                    "Imdb": "tt0583459",
+                },
+                "SeriesName": "Friends",
+                "ParentIndexNumber": 1,
+                "IndexNumber": 1,
+                "UserData": {"Played": True},
+            },
+        }
+        return self.client.post(
+            self.url,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+    def test_repeated_webhook_across_a_minute_boundary_is_ignored(self):
+        """A repeat fired seconds later is a duplicate even in the next minute.
+
+        Watch dates are stored truncated to the minute, so two deliveries a
+        second apart can carry dates a full minute apart.
+        """
+        self._post_friends_pilot()
+        episode = Episode.objects.get()
+        Episode.objects.filter(pk=episode.pk).update(
+            end_date=episode.end_date - timedelta(minutes=1),
+        )
+
+        self._post_friends_pilot()
+
+        self.assertEqual(Episode.objects.count(), 1)
+
+    def test_later_rewatch_is_recorded(self):
+        """The same episode played again later is a rewatch, not a duplicate."""
+        self._post_friends_pilot()
+        Episode.objects.update(created_at=timezone.now() - timedelta(minutes=10))
+
+        self._post_friends_pilot()
+
+        self.assertEqual(Episode.objects.count(), 2)
 
     def test_tv_episode_mark_played(self):
         """Test webhook handles TV episode mark played event."""

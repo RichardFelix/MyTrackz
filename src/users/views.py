@@ -1,3 +1,4 @@
+import json
 import logging
 
 import apprise
@@ -14,9 +15,13 @@ from django_celery_beat.models import PeriodicTask
 
 from app.models import Item, MediaTypes
 from app.providers import tmdb
-from app.tasks import get_image_cache_stats, purge_cached_images
+from app.tasks import (
+    cache_user_profile_image,
+    get_image_cache_stats,
+    purge_cached_images,
+)
 from users.forms import NotificationSettingsForm, PasswordChangeForm, UserUpdateForm
-from users.helpers import cache_profile_image
+from users.helpers import delete_profile_image
 from users.models import (
     DateFormatChoices,
     HomeLayoutChoices,
@@ -48,19 +53,20 @@ def account(request):
                 image_changed = (
                     user.image != previous_image or user.image_crop != previous_crop
                 )
-                if user.image and image_changed:
-                    cached = cache_profile_image(user.id, user.image, user.image_crop)
-                    user.image_cached = cached
-                    user.save(update_fields=["image_cached"])
-                    if not cached:
-                        messages.warning(
-                            request,
-                            "Couldn't fetch that profile image; "
-                            "showing the link directly.",
-                        )
-                elif not user.image and user.image_cached:
+                if image_changed and user.image_cached:
+                    # the raw link is shown until the new download lands
                     user.image_cached = False
                     user.save(update_fields=["image_cached"])
+                if previous_image and previous_image != user.image:
+                    delete_profile_image(user.id, previous_image)
+                if user.image and image_changed:
+                    # fetched by a worker: a slow image host must not hold
+                    # the save request open
+                    cache_user_profile_image.delay(
+                        user.id,
+                        user.image,
+                        user.image_crop,
+                    )
                 messages.success(request, "Your profile has been updated!")
                 logger.info(
                     "Successful profile change for user: %s",
@@ -361,6 +367,7 @@ def advanced(request):
     """Render the advanced settings page."""
     image_cache_size_bytes, image_cache_file_count = get_image_cache_stats()
     context = {
+        "can_manage_instance": request.user.is_instance_admin,
         "image_cache_size_bytes": image_cache_size_bytes,
         "image_cache_file_count": image_cache_file_count,
         "image_cache_max_bytes": settings.IMAGE_CACHE_MAX_BYTES,
@@ -378,16 +385,34 @@ def about(request):
 def delete_import_schedule(request):
     """Delete an import schedule."""
     task_name = request.POST.get("task_name")
-    try:
-        task = PeriodicTask.objects.get(
-            name=task_name,
-            kwargs__contains=f'"user_id": {request.user.id}',
-        )
+    task = PeriodicTask.objects.filter(name=task_name).first()
+    if task is not None and _schedule_belongs_to(task, request.user):
         task.delete()
         messages.success(request, "Import schedule deleted.")
-    except PeriodicTask.DoesNotExist:
+    else:
         messages.error(request, "Import schedule not found.")
     return redirect("import_data")
+
+
+def _schedule_belongs_to(task, user):
+    """Return whether a periodic import task was scheduled by this user.
+
+    The owner is compared as a parsed value: a text match on the stored JSON
+    would let user 1 match the schedules of users 10, 11, 12...
+    """
+    try:
+        kwargs = json.loads(task.kwargs or "{}")
+    except json.JSONDecodeError:
+        return False
+    return isinstance(kwargs, dict) and kwargs.get("user_id") == user.id
+
+
+def _require_instance_admin(request):
+    """Return a redirect for accounts that may not run instance maintenance."""
+    if request.user.is_instance_admin:
+        return None
+    messages.error(request, "Only the instance owner can do that.")
+    return redirect("advanced")
 
 
 @require_POST
@@ -449,6 +474,9 @@ def update_jellyfin_webhook_events(request):
 @require_POST
 def clear_search_cache(request):
     """Clear all cached search entries."""
+    if denied := _require_instance_admin(request):
+        return denied
+
     deleted = cache.delete_pattern("search_*")
 
     messages.success(
@@ -465,13 +493,19 @@ def clear_search_cache(request):
 
 @require_POST
 def purge_image_cache(request):
-    """Purge every locally cached provider image."""
-    deleted = purge_cached_images()
+    """Queue a purge of every locally cached provider image.
 
+    Deleting a large cache takes long enough to time a request out, so the
+    work runs in a Celery worker.
+    """
+    if denied := _require_instance_admin(request):
+        return denied
+
+    purge_cached_images.delay()
     messages.success(
         request,
-        f"Successfully purged {deleted} cached image{pluralize(deleted)}",
+        "Image cache purge started. The numbers below update when it finishes.",
     )
-    logger.info("Successfully purged %s cached images", deleted)
+    logger.info("Queued image cache purge for %s", request.user.username)
 
     return redirect("advanced")

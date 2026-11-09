@@ -274,3 +274,29 @@ class ItemImage(TestCase):
 
         episode.refresh_from_db()
         self.assertEqual(episode.title, "Episode One")
+
+    def test_demo_account_cannot_change_images(self):
+        """Items are shared by every user, so demo accounts can't edit them."""
+        self.user.is_demo = True
+        self.user.save(update_fields=["is_demo"])
+
+        modal = self.client.get(
+            reverse("image_modal", kwargs=self.url_kwargs),
+            {"return_url": "/"},
+        )
+        self.client.post(
+            reverse("image_save", kwargs=self.url_kwargs) + "?next=/",
+            {"image": CUSTOM_IMAGE},
+        )
+
+        self.assertEqual(modal.status_code, 403)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.image, PROVIDER_IMAGE)
+        self.assertFalse(self.item.image_locked)
+
+    def test_original_image_field_fits_any_item_image(self):
+        """image_original holds a copy of image, so it must be as long."""
+        self.assertEqual(
+            Item._meta.get_field("image_original").max_length,
+            Item._meta.get_field("image").max_length,
+        )

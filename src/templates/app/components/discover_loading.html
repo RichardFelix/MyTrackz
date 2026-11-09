@@ -2,7 +2,7 @@
 {# point the swapped-in feed HTML carries no trigger and polling stops. Shared #}
 {# by Discover (default) and Trending (poll_url_name="trending_feed"). #}
 {% firstof poll_url_name "discover_recommendations" as poll_url %}
-<div hx-get="{% url poll_url %}"
+<div hx-get="{% url poll_url %}{% if building %}?building={{ building|urlencode }}{% endif %}"
      hx-trigger="load delay:2s"
      hx-swap="outerHTML">
   <div class="flex flex-col items-center justify-center py-16 space-y-4">

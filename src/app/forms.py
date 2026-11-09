@@ -101,6 +101,7 @@ class ItemImageForm(forms.Form):
 
     image = forms.URLField(
         label="Image URL",
+        max_length=Item._meta.get_field("image").max_length,
         widget=forms.URLInput(attrs={"placeholder": "https://example.com/poster.jpg"}),
     )
 

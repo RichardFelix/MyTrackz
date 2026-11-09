@@ -64,13 +64,20 @@ from users.models import (
 logger = logging.getLogger(__name__)
 
 
-def _build_home_section(user, status, sort_by, items_limit):
+def _build_home_section(
+    user,
+    status,
+    sort_by,
+    items_limit,
+    next_air_datetimes=None,
+):
     """Build one homepage status section with its grouped media and count."""
     media_types = BasicMedia.objects.get_home_status(
         user=user,
         status=status,
         sort_by=sort_by,
         items_limit=items_limit,
+        next_air_datetimes=next_air_datetimes,
     )
     return {
         "key": status,
@@ -84,20 +91,20 @@ def _build_home_in_progress_context(user):
     """Build the complete context for an in-progress homepage section."""
     items_limit = 14
     effective_items_limit = None if user.show_all_home_items else items_limit
+    # filled while the section is built, instead of a second pass over the
+    # same in-progress media just to find the next release
+    next_air_datetimes = [] if user.home_aired_only else None
     return {
         "section": _build_home_section(
             user,
             Status.IN_PROGRESS.value,
             user.home_sort,
             effective_items_limit,
+            next_air_datetimes,
         ),
         "current_sort": user.home_sort,
         "items_limit": items_limit,
-        "next_home_air_datetime": (
-            BasicMedia.objects.get_next_home_air_datetime(user)
-            if user.home_aired_only
-            else None
-        ),
+        "next_home_air_datetime": min(next_air_datetimes or [], default=None),
     }
 
 
@@ -142,12 +149,14 @@ def home(request):
         }
         return render(request, "app/components/home_grid.html", context)
 
+    next_air_datetimes = [] if request.user.home_aired_only else None
     home_sections = [
         _build_home_section(
             request.user,
             status,
             sort_by,
             None if request.user.show_all_home_items else items_limit,
+            next_air_datetimes,
         )
         for status in (Status.IN_PROGRESS.value, Status.PLANNING.value)
     ]
@@ -157,11 +166,7 @@ def home(request):
         "current_sort": sort_by,
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
-        "next_home_air_datetime": (
-            BasicMedia.objects.get_next_home_air_datetime(request.user)
-            if request.user.home_aired_only
-            else None
-        ),
+        "next_home_air_datetime": min(next_air_datetimes or [], default=None),
     }
     return render(request, "app/home.html", context)
 
@@ -190,13 +195,21 @@ def _queue_feed_build(pending_key, task, *task_args):
 
 
 def _force_feed_rebuild(feed_key, pending_key, task, *task_args):
-    """Invalidate a feed and queue a rebuild, taking over any pending marker."""
+    """Queue a feed rebuild, taking over any pending marker.
+
+    ``feed_key`` is deleted first when given. Pass ``None`` to keep serving
+    the current feed until the rebuild replaces it (a feed shared by every
+    user shouldn't go blank because one of them pressed Refresh). Returns the
+    build id that now owns the pending marker.
+    """
     build_id = str(uuid.uuid4())
-    cache.delete(feed_key)
+    if feed_key is not None:
+        cache.delete(feed_key)
     # set (not add): a refresh deliberately supersedes any in-flight build,
     # which loses ownership of the marker and won't clear it when it lands.
     cache.set(pending_key, build_id, helpers.DISCOVER_FEED_PENDING_TTL)
     task.delay(*task_args, build_id)
+    return build_id
 
 
 @require_GET
@@ -274,12 +287,17 @@ def trending(request):
     return render(request, "app/trending.html")
 
 
-def _render_trending_loading(request):
-    """Render the trending loading fragment (self-polls until the feed lands)."""
+def _render_trending_loading(request, building=None):
+    """Render the trending loading fragment (self-polls until the feed lands).
+
+    ``building`` is the id of a refresh this user started; the poll carries
+    it back so the fragment keeps waiting for that build rather than being
+    handed the feed it is replacing.
+    """
     return render(
         request,
         "app/components/discover_loading.html",
-        {"poll_url_name": "trending_feed"},
+        {"poll_url_name": "trending_feed", "building": building},
     )
 
 
@@ -290,6 +308,16 @@ def trending_feed(request):
     The feed itself is global (one "Compute trending feed" build shared by all
     users); only the tracked-item/disabled-type filtering is per user.
     """
+    building = request.GET.get("building")
+    if building and cache.get(helpers.trending_feed_pending_key()) == building:
+        # the refresh this user asked for is still running
+        return _render_trending_loading(request, building)
+
+    return _render_trending_feed(request)
+
+
+def _render_trending_feed(request):
+    """Render the cached trending feed, or the loading state on a cold cache."""
     suggestions = helpers.get_cached_trending_feed(request.user)
     if suggestions is None:
         _queue_feed_build(
@@ -309,6 +337,8 @@ def trending_feed(request):
         "media_type_counts": media_type_counts,
         "feed_id": "trending-feed",
         "refresh_url_name": "trending_refresh",
+        # the feed is shared by every user, so demo accounts can't rebuild it
+        "hide_refresh": request.user.is_demo,
         "empty_message": "Nothing trending right now. Try refreshing in a bit.",
     }
     return render(request, "app/components/discover_recommendations.html", context)
@@ -316,13 +346,20 @@ def trending_feed(request):
 
 @require_POST
 def trending_refresh(request):
-    """Invalidate the cached trending feed and queue a rebuild."""
-    _force_feed_rebuild(
-        helpers.trending_feed_cache_key(),
+    """Queue a rebuild of the trending feed.
+
+    The feed is global, so the current one keeps being served to everyone
+    (including this user, should the rebuild fail) until the new one lands.
+    """
+    if request.user.is_demo:
+        return _render_trending_feed(request)
+
+    build_id = _force_feed_rebuild(
+        None,
         helpers.trending_feed_pending_key(),
         compute_trending_feed,
     )
-    return _render_trending_loading(request)
+    return _render_trending_loading(request, build_id)
 
 
 @require_POST
@@ -1104,6 +1141,9 @@ def sync_metadata(request, source, media_type, media_id, season_number=None):
 @require_GET
 def image_modal(request, source, media_type, media_id, season_number=None):
     """Return the custom-image form for a media item."""
+    if request.user.is_demo:
+        return HttpResponse("Demo accounts cannot change images.", status=403)
+
     item = get_object_or_404(
         Item,
         media_id=media_id,
@@ -1165,6 +1205,10 @@ def image_save(request, source, media_type, media_id, season_number=None):
     against metadata-sync overwrites; reverting restores the remembered image
     and unlocks it.
     """
+    if request.user.is_demo:
+        messages.error(request, "Demo accounts cannot change images.")
+        return helpers.redirect_back(request)
+
     item = get_object_or_404(
         Item,
         media_id=media_id,
@@ -1656,7 +1700,11 @@ def statistics(request):
     # Set default date range to last year
     timeformat = "%Y-%m-%d"
     today = timezone.localdate()
-    one_year_ago = today.replace(year=today.year - 1)
+    try:
+        one_year_ago = today.replace(year=today.year - 1)
+    except ValueError:
+        # 29 February has no counterpart in the previous year
+        one_year_ago = today.replace(year=today.year - 1, day=28)
 
     # Get date parameters with defaults
     start_date_str = request.GET.get("start-date") or one_year_ago.strftime(timeformat)
@@ -1788,17 +1836,17 @@ def webmanifest(request):
         ],
         "screenshots": [
             {
-                "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/homepage.png?v2",
-                "sizes": "2305x1350",
+                "src": static("img/screenshots/home-mobile.png"),
+                "sizes": "390x844",
                 "type": "image/png",
-                "label": "MyTrackz library home screen",
+                "label": "MyTrackz home screen",
             },
             {
-                "src": "https://cdn.fuzzygrim.com/file/fuzzygrim/yamtrack/statistics.png",
-                "sizes": "2305x1350",
+                "src": static("img/screenshots/home-wide.png"),
+                "sizes": "1440x900",
                 "type": "image/png",
                 "form_factor": "wide",
-                "label": "MyTrackz media statistics",
+                "label": "MyTrackz home dashboard",
             },
         ],
         "shortcuts": [

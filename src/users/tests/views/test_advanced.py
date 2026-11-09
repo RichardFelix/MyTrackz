@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
+from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -36,6 +37,7 @@ class AdvancedSettingsImageCacheTests(TestCase):
     def setUp(self):
         """Create a user, log in, and use a fresh MEDIA_ROOT for this test."""
         self.enterContext(override_settings(MEDIA_ROOT=tempfile.mkdtemp()))
+        cache.clear()  # the page's size/count is cached between requests
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_user(**self.credentials)
         self.client.login(**self.credentials)
@@ -109,7 +111,7 @@ class AdvancedSettingsImageCacheTests(TestCase):
 
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(len(messages), 1)
-        self.assertIn("Successfully purged 1 cached image", str(messages[0]))
+        self.assertIn("Image cache purge started", str(messages[0]))
 
     def test_purge_image_cache_noop_when_empty(self):
         """Purging with nothing cached is a harmless no-op."""
@@ -117,4 +119,91 @@ class AdvancedSettingsImageCacheTests(TestCase):
 
         self.assertRedirects(response, reverse("advanced"))
         messages = list(get_messages(response.wsgi_request))
-        self.assertIn("Successfully purged 0 cached images", str(messages[0]))
+        self.assertIn("Image cache purge started", str(messages[0]))
+
+    def test_cache_stats_refresh_after_a_purge(self):
+        """The cached size/count is dropped by a purge instead of going stale."""
+        with patch("app.tasks.cache_item_image.delay"):
+            item = Item.objects.create(
+                media_id="1",
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title="Test Movie",
+                image="https://image.tmdb.org/t/p/w500/test.jpg",
+            )
+        with (
+            patch("app.tasks._is_safe_image_host", return_value=True),
+            patch("app.tasks.get_image", return_value=_mock_response()),
+        ):
+            cache_item_image(item.id, item.image)
+        response = self.client.get(reverse("advanced"))
+        self.assertEqual(response.context["image_cache_file_count"], 1)
+
+        self.client.post(reverse("purge_image_cache"))
+
+        response = self.client.get(reverse("advanced"))
+        self.assertEqual(response.context["image_cache_file_count"], 0)
+
+
+class AdvancedSettingsAccessTests(TestCase):
+    """Instance-wide cache actions are limited to the instance owner."""
+
+    def setUp(self):
+        """Create the owner account, then log in as a later, ordinary one."""
+        cache.clear()
+        user_model = get_user_model()
+        self.owner_credentials = {"username": "owner", "password": "12345"}
+        self.owner = user_model.objects.create_user(**self.owner_credentials)
+        self.credentials = {"username": "second", "password": "12345"}
+        self.user = user_model.objects.create_user(**self.credentials)
+        self.client.login(**self.credentials)
+
+    def test_page_hides_cache_actions(self):
+        """An ordinary account sees the stats but no destructive controls."""
+        response = self.client.get(reverse("advanced"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("purge_image_cache"))
+        self.assertNotContains(response, reverse("clear_search_cache"))
+        self.assertContains(response, "Only the instance owner")
+
+    def test_purge_is_refused(self):
+        """Posting the purge directly does not queue it."""
+        with patch("users.views.purge_cached_images.delay") as purge:
+            response = self.client.post(reverse("purge_image_cache"))
+
+        self.assertRedirects(response, reverse("advanced"))
+        purge.assert_not_called()
+        messages = list(get_messages(response.wsgi_request))
+        self.assertIn("Only the instance owner", str(messages[0]))
+
+    def test_clear_search_cache_is_refused(self):
+        """Posting the search-cache clear directly leaves the cache alone."""
+        cache.set("search_tmdb_movie_test_1", {"results": []})
+
+        response = self.client.post(reverse("clear_search_cache"))
+
+        self.assertRedirects(response, reverse("advanced"))
+        self.assertIsNotNone(cache.get("search_tmdb_movie_test_1"))
+
+    def test_staff_account_is_allowed(self):
+        """A staff flag grants access regardless of account age."""
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+
+        with patch("users.views.purge_cached_images.delay") as purge:
+            self.client.post(reverse("purge_image_cache"))
+
+        purge.assert_called_once()
+
+    def test_demo_owner_is_refused(self):
+        """A demo account never manages the instance, even as the oldest one."""
+        self.owner.is_demo = True
+        self.owner.save(update_fields=["is_demo"])
+        self.client.logout()
+        self.client.login(**self.owner_credentials)
+
+        with patch("users.views.purge_cached_images.delay") as purge:
+            self.client.post(reverse("purge_image_cache"))
+
+        purge.assert_not_called()
