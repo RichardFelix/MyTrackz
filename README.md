@@ -110,7 +110,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 
 ### Connect and automate
 
-- **Media-server sync** — automatically track playback from [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/), and [Emby](https://emby.media/), including metadata-poor Plex DVR episodes and safe title-based TV matching.
+- **Media-server sync** — automatically track playback from [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/), and [Emby](https://emby.media/), including metadata-poor Plex DVR episodes and safe title-based TV matching. Repeated webhook deliveries for the same episode are ignored, while a genuine rewatch is still recorded.
 - **Library imports** — import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), IMDb, Goodreads, HowLongToBeat, and Steam, with optional scheduled imports.
 - **Portable data** — export your tracked media to CSV and import it again later.
 - **Release notifications** — send alerts through [Apprise](https://github.com/caronc/apprise) to Discord, Telegram, ntfy, Slack, email, and many other services. Choose individual alerts or a daily digest and exclude items as needed.
@@ -124,7 +124,7 @@ Features marked with ⭐ are additions specific to MyTrackz.
 
 ### MyTrackz additions ⭐
 
-- 🖼️ **Local image caching** — download provider artwork as locally served WebP files, enforce a configurable size cap, and purge the cache from Settings → Advanced.
+- 🖼️ **Local image caching** — download provider artwork as locally served WebP files, resized to display size so the cache stays small, with a configurable size cap. Corrupt or oversized images are skipped and fall back to the provider's copy.
 - 🖌️ **Custom poster images** — replace any poster with an image URL and restore the provider artwork with one click.
 - 🎮 **Per-game launcher tracking** — assign games to Steam, GOG, Epic, EA, Ubisoft, Blizzard, Xbox, Nintendo, PlayStation, Emulation, Rockstar, Amazon, or Other. Launcher badges appear on cards, lists, home views, and detail pages.
 - 🎯 **Game launcher filtering** — narrow the games library by launcher without losing the active search, status, genre, format, sort, pagination, or layout.
@@ -134,8 +134,8 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 🧱 **LEGO set tracking** — search Rebrickable's official catalog by name or set number, including sets whose parts inventories are not yet recorded. Set pages show the set number, release year, piece count, theme, and locally cached artwork. Build progress is logged as elapsed time with 30-minute controls and appears in your normal history and statistics. Works out of the box with a bundled [Rebrickable API key](https://rebrickable.com/api/); set your own with `REBRICKABLE`.
 - 👟 **Sneaker collection** — search KicksDB by name or style code and save catalog details once. Track owned pairs, status, wishlist entries, notes, and history, with personal original MSRP and currency fields. Browse saved sneakers and cached photos without contacting KicksDB. See [Sneaker catalog](#sneaker-catalog) below for setup and behavior.
 - 🧩 **LEGO theme filtering** — narrow your LEGO library by the Rebrickable themes of the sets you track, in both grid and table layouts.
-- 🧭 **Discover** — get personalized recommendations ranked and interleaved across the media types you currently track or have completed.
-- 🔥 **Trending** — browse popular media from TMDB, MyAnimeList, IGDB, and BGG while hiding items already in your library.
+- 🧭 **Discover** — get personalized recommendations ranked and interleaved across the media types you currently track or have completed. A remake or reboot that shares a title with something you already track is still suggested.
+- 🔥 **Trending** — browse popular media from TMDB, MyAnimeList, IGDB, and BGG while hiding items already in your library. Refreshing rebuilds the list in the background, and the current one stays visible to everyone until the new one is ready.
 - 🔎 **Command palette** — press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to search within a media type and jump directly to a result.
 - ↕️ **Custom home order** — drag rows or use arrow controls to choose the order of media types on the home page and sidebar.
 - 📡 **Aired-only filtering** — hide caught-up episodic shows until the next episode airs; the home row refreshes when a new episode becomes available or you catch up.
@@ -149,7 +149,9 @@ Features marked with ⭐ are additions specific to MyTrackz.
 - 📚 **Continue the Story** — surface sequels, next volumes, expansions, and remasters related to recently completed or in-progress media.
 - 🖱️ **Interactive media cards** — lift cards on hover and reveal quick actions for completion, lists, and history directly on the poster.
 - 👤 **Profile images** — set an avatar from an image URL with a drag-and-zoom cropper and local caching.
-- 🧹 **Cache management** — inspect image and search-cache usage, then clear either cache with a confirmation step from Settings → Advanced.
+- 🧹 **Cache management** — inspect image-cache usage from Settings → Advanced, then clear the image or search cache with a confirmation step. The image purge runs in the background. Because both caches are shared by every account, clearing them is limited to the instance owner: a staff account, or the first account created when no one is staff.
+- ♻️ **Automatic housekeeping** — a weekly task removes catalog entries that nobody tracks, lists, or follows on the calendar, along with their cached artwork, so the database and image cache do not grow with every search. Anything removed is fetched again the next time you search for or open it.
+- 🔒 **Demo-safe shared data** — demo accounts cannot change posters, rebuild the Trending list, or clear caches, since those affect every user of the instance.
 
 ### Sneaker catalog
 
