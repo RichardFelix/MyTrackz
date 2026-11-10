@@ -699,18 +699,15 @@ def _feed_item_keys():
     return keys
 
 
-@shared_task(name="Prune unreferenced items")
-def prune_unreferenced_items():
-    """Delete Item rows that nothing uses any more.
+PRUNABLE_COUNT_KEY = "prunable_item_count_v1"
+PRUNABLE_COUNT_TTL = 60 * 10
 
-    Every search result, recommendation and details view creates an Item row
-    (and caches its image) whether or not anyone goes on to track it, so the
-    table only ever grows. A row is safe to drop when nothing references it:
-    no tracked media of any type, no episode, no calendar event, no custom
-    list, no notification exclusion. Rows with a user-set custom image and
-    rows shown in a currently cached feed are kept. Anything pruned is simply
-    recreated the next time it's searched for or viewed; its cached image file
-    is removed by the orphaned-image cleanup.
+
+def _prunable_items():
+    """Return (candidates, ids) for the Item rows that nothing uses any more.
+
+    ``candidates`` is the queryset of unreferenced rows; ``ids`` narrows it to
+    the ones that are not shown in a currently cached feed either.
     """
     from django.db.models import Exists, OuterRef  # noqa: PLC0415 avoid import cycle
 
@@ -734,6 +731,42 @@ def prune_unreferenced_items():
         )
         if (media_type, media_id, source) not in feed_keys
     ]
+    return candidates, prunable_ids
+
+
+def count_prunable_items():
+    """Return how many Item rows the next prune would delete.
+
+    Shown on the Admin page; the scan is kept for a few minutes and dropped
+    when a prune runs.
+    """
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    count = cache.get(PRUNABLE_COUNT_KEY)
+    if count is None:
+        count = len(_prunable_items()[1])
+        cache.set(PRUNABLE_COUNT_KEY, count, PRUNABLE_COUNT_TTL)
+    return count
+
+
+@shared_task(name="Prune unreferenced items")
+def prune_unreferenced_items():
+    """Delete Item rows that nothing uses any more.
+
+    Every search result, recommendation and details view creates an Item row
+    (and caches its image) whether or not anyone goes on to track it, so the
+    table only ever grows. A row is safe to drop when nothing references it:
+    no tracked media of any type, no episode, no calendar event, no custom
+    list, no notification exclusion. Rows with a user-set custom image and
+    rows shown in a currently cached feed are kept. Anything pruned is simply
+    recreated the next time it's searched for or viewed; its cached image file
+    is removed by the orphaned-image cleanup.
+    """
+    from django.core.cache import cache  # noqa: PLC0415 avoid import cycle
+
+    from app.models import Item  # noqa: PLC0415 avoid import cycle
+
+    candidates, prunable_ids = _prunable_items()
 
     deleted_count = 0
     for start in range(0, len(prunable_ids), PRUNE_DELETE_BATCH_SIZE):
@@ -749,6 +782,7 @@ def prune_unreferenced_items():
             )
         )
 
+    cache.delete(PRUNABLE_COUNT_KEY)
     logger.info("Pruned %s unreferenced items.", deleted_count)
     return deleted_count
 

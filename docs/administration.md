@@ -1,6 +1,41 @@
 # Administration
 
-To access the admin page of the application, follow these steps:
+## The Admin page
+
+The first account created on an instance is its **admin**. Admins get an extra **Settings → Admin** page with:
+
+- **Users** — every account with its last sign-in and item count. Deactivate or reactivate an account, make another account an admin (a useful spare key), or reset a password.
+- **Registration** — whether sign-up is open. This is controlled by the `REGISTRATION` environment variable, not from the page.
+- **Caches** — image cache usage against its cap, plus the purge-image-cache and clear-search-cache actions.
+- **Housekeeping** — how many unused catalog items the weekly prune would remove, with a button to run it now.
+- **Scheduled tasks** — last run, next run and last result of each background task, with "Run now".
+- **Health** — Redis, the background worker, database size and version.
+
+!!! tip "Close registration after creating your account"
+    Registration is open by default and the first account becomes the admin. Create your account straight after installing, then set `REGISTRATION=False` (see [env-variables](env-variables.md)) unless you want anyone who can reach the site to sign up.
+
+### Forgotten passwords
+
+MyTrackz does not send email, so there is no "forgot password" link.
+
+- **Another user is locked out**: on the Admin page choose **Reset password** next to their account. You are shown a temporary password once; pass it on. They are asked to choose a new password as soon as they sign in with it.
+- **The admin is locked out**: reset it from the server, where `<username>` is the admin's username:
+
+      ```bash
+      docker compose exec yamtrack python manage.py changepassword <username>
+      ```
+
+- If single sign-on is configured, that login path is unaffected by a forgotten local password.
+
+To make an account an admin from the server (for example if the only admin account was deactivated):
+
+```bash
+docker compose exec yamtrack python manage.py shell -c "from users.models import User; User.objects.filter(username='<username>').update(is_staff=True, is_active=True)"
+```
+
+## The Django admin interface
+
+The Django admin is a separate, lower-level tool for editing database records directly. It is off by default. To access it, follow these steps:
 
 ## Enabling the Admin Interface
 

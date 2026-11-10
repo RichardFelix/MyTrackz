@@ -60,6 +60,15 @@
               <span>Advanced</span>
             </a>
 
+            {% if request.user.is_instance_admin %}
+              {% url 'instance_admin' as instance_admin_url %}
+              <a href="{{ instance_admin_url }}"
+                 class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == instance_admin_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">
+                {% include "app/icons/shield.svg" with classes="w-5 h-5" %}
+                <span>Admin</span>
+              </a>
+            {% endif %}
+
             {% url 'about' as about_url %}
             <a href="{{ about_url }}"
                class="w-full flex items-center space-x-3 px-2 py-2 rounded-md transition-colors text-left border-l-2 cursor-pointer text-sm {% if request.path == about_url %}bg-[#39404b] text-white border-indigo-500{% else %}text-gray-400 border-transparent hover:bg-[#313842] hover:text-white{% endif %}">

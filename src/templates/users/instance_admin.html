@@ -1,0 +1,394 @@
+{% extends "users/base.html" %}
+
+{% block title %}
+  Admin - MyTrackz
+{% endblock title %}
+
+{% block settings_content %}
+
+  <div class="space-y-6"
+       x-data="{ open: false, title: '', body: '', form: null, ask(el) { this.title = el.dataset.confirmTitle; this.body = el.dataset.confirmBody; this.form = el.closest('form'); this.open = true; this.$nextTick(() => this.$refs.proceed.focus()); } }">
+
+    {% if temporary_password %}
+      <div class="bg-[#2a2f35] rounded-lg p-6 border border-amber-500/60"
+           x-data="{ copied: false, failed: false, done() { this.copied = true; setTimeout(() => this.copied = false, 2000); }, fallback(el) { const range = document.createRange(); range.selectNodeContents(el); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} if (ok) { sel.removeAllRanges(); this.done(); } else { this.failed = true; } }, copy() { const el = document.getElementById('temporary-password'); if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(el.textContent).then(() => this.done(), () => this.fallback(el)); } else { this.fallback(el); } } }">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/key.svg" with classes="w-6 h-6 text-amber-400 mr-3" %}
+          <h2 class="text-xl font-semibold">Temporary password for {{ temporary_password.username }}</h2>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          Pass this on to {{ temporary_password.username }}. They will be asked to choose a new password as soon as they sign in.
+          It is shown only this once.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <code id="temporary-password"
+                class="px-3 py-2 bg-[#39404b] rounded-md text-white text-base font-mono select-all break-all">{{ temporary_password.password }}</code>
+          <button type="button"
+                  @click="copy()"
+                  class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/copy.svg" with classes="w-4 h-4 mr-2" %}
+            <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
+          </button>
+        </div>
+        <p x-show="failed" x-cloak class="mt-3 text-sm text-amber-300">
+          Your browser blocked copying. The password is selected — press Ctrl+C (or long-press and choose Copy).
+        </p>
+      </div>
+    {% endif %}
+
+    {# Users #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-2">
+        {% include "app/icons/persons.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Users</h2>
+      </div>
+      <p class="text-gray-400 mb-5 text-sm">
+        {{ user_rows|length }} account{{ user_rows|length|pluralize }}. Registration is
+        {% if registration_open %}
+          <span class="text-amber-300 font-semibold">open</span>
+          — anyone who can reach this site can create an account.
+        {% else %}
+          <span class="text-emerald-300 font-semibold">closed</span>
+          — nobody new can sign up.
+        {% endif %}
+        This is set with the <code class="text-gray-300">REGISTRATION</code> environment variable.
+      </p>
+
+      <div class="space-y-3">
+        {% for account in user_rows %}
+          <div class="bg-[#39404b] p-4 rounded-lg">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span class="text-base font-medium text-white break-all">{{ account.username }}</span>
+              {% if account.id == request.user.id %}
+                <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-200">You</span>
+              {% endif %}
+              {% if account.is_instance_admin %}
+                <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-200">Admin</span>
+              {% endif %}
+              {% if account.is_demo %}
+                <span class="px-2 py-0.5 rounded-full text-xs bg-sky-500/20 text-sky-200">Demo</span>
+              {% endif %}
+              {% if not account.is_active %}
+                <span class="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-200">Deactivated</span>
+              {% endif %}
+              {% if account.must_change_password %}
+                <span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-200">Temporary password</span>
+              {% endif %}
+            </div>
+            <p class="mt-1 text-sm text-gray-400">
+              {{ account.item_count }} item{{ account.item_count|pluralize }}
+              · Last sign-in:
+              {% if account.last_login %}
+                {{ account.last_login|date:"Y-m-d H:i" }}
+              {% else %}
+                never
+              {% endif %}
+              · Joined {{ account.date_joined|date:"Y-m-d" }}
+            </p>
+
+            {% if account.id != request.user.id %}
+              <form method="post"
+                    action="{% url 'instance_admin_user_action' account.id %}"
+                    class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                {% csrf_token %}
+                <input type="hidden" name="user_action" value="">
+                {% if not account.is_demo %}
+                  <button type="button"
+                          data-action="reset_password"
+                          data-confirm-title="Reset {{ account.username }}'s password?"
+                          data-confirm-body="{{ account.username }} is signed out everywhere and gets a temporary password, which you pass on. They must choose a new one at their next sign-in."
+                          @click="$el.form.elements.user_action.value = $el.dataset.action; ask($el)"
+                          class="px-2 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap bg-white/10 text-gray-100 rounded-md hover:bg-white/20 transition-colors cursor-pointer">
+                    Reset password
+                  </button>
+                  {% if account.is_staff or account.is_superuser %}
+                    <button type="button"
+                            data-action="demote"
+                            data-confirm-title="Remove {{ account.username }} as admin?"
+                            data-confirm-body="{{ account.username }} keeps their account and library but loses access to this page."
+                            @click="$el.form.elements.user_action.value = $el.dataset.action; ask($el)"
+                            class="px-2 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap bg-white/10 text-gray-100 rounded-md hover:bg-white/20 transition-colors cursor-pointer">
+                      Remove admin
+                    </button>
+                  {% else %}
+                    <button type="button"
+                            data-action="promote"
+                            data-confirm-title="Make {{ account.username }} an admin?"
+                            data-confirm-body="{{ account.username }} will be able to do everything on this page, including managing your account."
+                            @click="$el.form.elements.user_action.value = $el.dataset.action; ask($el)"
+                            class="px-2 py-2 text-xs sm:px-3 sm:py-1.5 sm:text-sm whitespace-nowrap bg-white/10 text-gray-100 rounded-md hover:bg-white/20 transition-colors cursor-pointer">
+                      Make admin
+                    </button>
+                  {% endif %}
+                {% endif %}
+                {% if account.is_active %}
+                  <button type="button"
+                          data-action="deactivate"
+                          data-confirm-title="Deactivate {{ account.username }}?"
+                          data-confirm-body="{{ account.username }} is signed out and can no longer sign in. Their library is kept, and you can reactivate the account at any time."
+                          @click="$el.form.elements.user_action.value = $el.dataset.action; ask($el)"
+                          class="col-span-2 px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+                    Deactivate
+                  </button>
+                {% else %}
+                  <button type="button"
+                          data-action="activate"
+                          data-confirm-title="Reactivate {{ account.username }}?"
+                          data-confirm-body="{{ account.username }} will be able to sign in again with their existing password."
+                          @click="$el.form.elements.user_action.value = $el.dataset.action; ask($el)"
+                          class="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                    Reactivate
+                  </button>
+                {% endif %}
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Caches #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/database.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Caches</h2>
+      </div>
+
+      <div class="bg-[#39404b] p-5 rounded-lg mb-4">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/image.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-base font-medium">Image Cache</h3>
+        </div>
+        <p class="text-gray-400 mb-3 text-sm">
+          Using
+          <span class="text-white font-semibold">{{ image_cache_size_bytes|filesizeformat }}</span>
+          of
+          <span class="text-white font-semibold">{{ image_cache_max_bytes|filesizeformat }}</span>
+          across
+          <span class="text-white font-semibold">{{ image_cache_file_count }}</span>
+          cached image{{ image_cache_file_count|pluralize }}.
+          Purging deletes every locally cached image; each item re-downloads its image the next time it's viewed or updated.
+        </p>
+        <div class="h-2 w-full rounded-full bg-[#2a2f35] mb-4 overflow-hidden"
+             role="progressbar"
+             aria-label="Image cache usage"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="{{ image_cache_percent }}">
+          <div class="h-full rounded-full bg-indigo-500"
+               style="width: {{ image_cache_percent }}%"></div>
+        </div>
+        <form method="post" action="{% url 'purge_image_cache' %}">
+          {% csrf_token %}
+          <button type="button"
+                  data-confirm-title="Purge image cache?"
+                  data-confirm-body="This deletes every locally cached poster and cover. Images will be downloaded again as items are viewed or updated, which may temporarily make pages load more slowly."
+                  @click="ask($el)"
+                  class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+            Purge Image Cache
+          </button>
+        </form>
+      </div>
+
+      <div class="bg-[#39404b] p-5 rounded-lg">
+        <div class="flex items-center mb-3">
+          {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 text-indigo-400 mr-2" %}
+          <h3 class="text-base font-medium">Search Cache</h3>
+        </div>
+        <p class="text-gray-400 mb-4 text-sm">
+          Search results are cached to speed things up and reduce API calls, and expire on their own after 24 hours.
+          If results look outdated, clear them here; the next searches may be slightly slower.
+        </p>
+        <form method="post" action="{% url 'clear_search_cache' %}">
+          {% csrf_token %}
+          <button type="button"
+                  data-confirm-title="Clear search cache?"
+                  data-confirm-body="This deletes every cached search result. The next searches may be slower while MyTrackz retrieves fresh results from each provider."
+                  @click="ask($el)"
+                  class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+            Clear Search Cache
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Housekeeping #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/leaf.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Housekeeping</h2>
+      </div>
+      <div class="bg-[#39404b] p-5 rounded-lg">
+        <p class="text-gray-400 mb-4 text-sm">
+          The catalog holds
+          <span class="text-white font-semibold">{{ item_count }}</span>
+          item{{ item_count|pluralize }}.
+          <span class="text-white font-semibold">{{ prunable_item_count }}</span>
+          {{ prunable_item_count|pluralize:"is,are" }} no longer used by anyone — left over from searches and recommendations — and would be removed by the weekly prune.
+          Anything removed is recreated the next time it's searched for or viewed.
+        </p>
+        <form method="post" action="{% url 'instance_admin_run_task' %}">
+          {% csrf_token %}
+          <input type="hidden" name="task" value="prune_unreferenced_items">
+          <button type="button"
+                  data-confirm-title="Prune unused items now?"
+                  data-confirm-body="This removes the {{ prunable_item_count }} catalog item{{ prunable_item_count|pluralize }} nobody uses. It runs in the background."
+                  @click="ask($el)"
+                  class="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm cursor-pointer">
+            {% include "app/icons/trashcan.svg" with classes="w-4 h-4 mr-2" %}
+            Prune Now
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Scheduled tasks #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/clock.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Scheduled Tasks</h2>
+      </div>
+      <div class="space-y-3">
+        {% for task in scheduled_tasks %}
+          <div class="bg-[#39404b] p-4 rounded-lg">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span class="text-base font-medium text-white">{{ task.name }}</span>
+                  {% if task.status == "SUCCESS" %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-200">Succeeded</span>
+                  {% elif task.status == "FAILURE" %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-200">Failed</span>
+                  {% elif task.status == "STARTED" %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-sky-500/20 text-sky-200">Running</span>
+                  {% elif task.status %}
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-gray-500/20 text-gray-200">{{ task.status|title }}</span>
+                  {% endif %}
+                </div>
+                <p class="mt-1 text-sm text-gray-400">
+                  {{ task.frequency }}
+                  · Last run:
+                  {% if task.last_run %}
+                    {{ task.last_run|date:"Y-m-d H:i" }}
+                  {% else %}
+                    not yet
+                  {% endif %}
+                  · Next run:
+                  {% if task.next_run %}
+                    {{ task.next_run|date:"Y-m-d H:i" }}
+                  {% else %}
+                    unknown
+                  {% endif %}
+                </p>
+                {% if task.result %}<p class="mt-1 text-sm text-gray-500 break-words">{{ task.result }}</p>{% endif %}
+              </div>
+              {% if task.runnable %}
+                <form method="post"
+                      action="{% url 'instance_admin_run_task' %}"
+                      class="shrink-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="task" value="{{ task.key }}">
+                  <button type="button"
+                          data-confirm-title="Run “{{ task.name }}” now?"
+                          data-confirm-body="This starts the task in the background straight away, in addition to its normal schedule. Its result shows here when it finishes."
+                          @click="ask($el)"
+                          class="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                    Run now
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Health #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/pulse.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Health</h2>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <dt class="text-sm text-gray-400">Redis</dt>
+          <dd class="mt-1 text-base font-medium {% if health.redis_ok %}text-emerald-300{% else %}text-red-300{% endif %}">
+            {% if health.redis_ok %}
+              Connected
+            {% else %}
+              Not reachable
+            {% endif %}
+          </dd>
+        </div>
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <dt class="text-sm text-gray-400">Background worker</dt>
+          <dd class="mt-1 text-base font-medium {% if health.celery_ok %}text-emerald-300{% else %}text-red-300{% endif %}">
+            {% if health.celery_ok %}
+              Running
+            {% else %}
+              Not responding
+            {% endif %}
+          </dd>
+        </div>
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <dt class="text-sm text-gray-400">Database</dt>
+          <dd class="mt-1 text-base font-medium text-white">
+            {{ health.database_vendor }}
+            {% if health.database_size is not None %}· {{ health.database_size|filesizeformat }}{% endif %}
+          </dd>
+        </div>
+        <div class="bg-[#39404b] p-4 rounded-lg">
+          <dt class="text-sm text-gray-400">Version</dt>
+          <dd class="mt-1 text-base font-medium text-white">
+            {{ health.version }}
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <template x-teleport="body">
+      <div x-show="open"
+           x-cloak
+           x-transition.opacity
+           @keydown.escape.window="open = false"
+           @click.self="open = false"
+           class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-2.5 sm:items-center sm:p-4"
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="admin-confirm-title"
+           aria-describedby="admin-confirm-description">
+        <div class="modal-glass w-full max-w-md rounded-2xl p-6 shadow-2xl">
+          <div class="flex items-start gap-4">
+            <div class="shrink-0 rounded-full bg-red-500/15 p-3 text-red-300">
+              {% include "app/icons/warning.svg" with classes="w-10 h-10" %}
+            </div>
+            <div>
+              <h3 id="admin-confirm-title"
+                  class="text-lg font-semibold text-white"
+                  x-text="title"></h3>
+              <p id="admin-confirm-description"
+                 class="mt-2 text-sm leading-6 text-gray-300"
+                 x-text="body"></p>
+            </div>
+          </div>
+          <div class="mt-6 flex items-center justify-center gap-3">
+            <button type="button"
+                    @click="open = false"
+                    class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:bg-gray-700 cursor-pointer">
+              Cancel
+            </button>
+            <button type="button"
+                    x-ref="proceed"
+                    @click="form.submit()"
+                    class="rounded-md bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 cursor-pointer">
+              Proceed
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+{% endblock settings_content %}

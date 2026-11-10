@@ -370,6 +370,8 @@
                     <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Lists</span>
                   {% elif un == 'statistics' %}
                     <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Statistics</span>
+                  {% elif un == 'instance_admin' %}
+                    <span class="text-gray-500">Settings</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Admin</span>
                   {% elif un == 'account' or un == 'preferences' or un == 'notifications' or un == 'integrations' or un == 'import_data' or un == 'export_data' or un == 'advanced' or un == 'about' %}
                     <span class="text-gray-500">Settings</span><span class="text-gray-600">/</span><span class="font-semibold text-white capitalize">{{ un|no_underscore }}</span>
                   {% else %}

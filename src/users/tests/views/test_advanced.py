@@ -50,17 +50,13 @@ class AdvancedSettingsImageCacheTests(TestCase):
         self.assertEqual(response.context["image_cache_file_count"], 0)
         self.assertEqual(response.context["image_cache_size_bytes"], 0)
 
-    def test_advanced_page_confirms_destructive_cache_actions(self):
-        """Cache actions are submitted only from their confirmation dialogs."""
+    def test_advanced_page_points_admins_at_the_admin_page(self):
+        """The cache actions moved to the Admin page; Advanced only links there."""
         response = self.client.get(reverse("advanced"))
 
-        self.assertContains(response, 'role="dialog"', count=2)
-        self.assertContains(response, "Clear search cache?")
-        self.assertContains(response, "Purge image cache?")
-        self.assertContains(response, "Cancel", count=2)
-        self.assertContains(response, "Proceed", count=2)
-        self.assertContains(response, f'action="{reverse("clear_search_cache")}"')
-        self.assertContains(response, f'action="{reverse("purge_image_cache")}"')
+        self.assertContains(response, reverse("instance_admin"))
+        self.assertNotContains(response, reverse("clear_search_cache"))
+        self.assertNotContains(response, reverse("purge_image_cache"))
 
     def test_advanced_page_shows_cache_stats(self):
         """Cached images are reflected in the page's size/count context."""
@@ -104,7 +100,11 @@ class AdvancedSettingsImageCacheTests(TestCase):
 
         response = self.client.post(reverse("purge_image_cache"))
 
-        self.assertRedirects(response, reverse("advanced"))
+        self.assertRedirects(
+            response,
+            reverse("instance_admin"),
+            fetch_redirect_response=False,
+        )
         item.refresh_from_db()
         self.assertFalse(item.image_cached)
         self.assertFalse(default_storage.exists(cached_relpath))
@@ -117,7 +117,11 @@ class AdvancedSettingsImageCacheTests(TestCase):
         """Purging with nothing cached is a harmless no-op."""
         response = self.client.post(reverse("purge_image_cache"))
 
-        self.assertRedirects(response, reverse("advanced"))
+        self.assertRedirects(
+            response,
+            reverse("instance_admin"),
+            fetch_redirect_response=False,
+        )
         messages = list(get_messages(response.wsgi_request))
         self.assertIn("Image cache purge started", str(messages[0]))
 
@@ -146,7 +150,7 @@ class AdvancedSettingsImageCacheTests(TestCase):
 
 
 class AdvancedSettingsAccessTests(TestCase):
-    """Instance-wide cache actions are limited to the instance owner."""
+    """Instance-wide cache actions are limited to instance admins."""
 
     def setUp(self):
         """Create the owner account, then log in as a later, ordinary one."""
@@ -165,7 +169,8 @@ class AdvancedSettingsAccessTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, reverse("purge_image_cache"))
         self.assertNotContains(response, reverse("clear_search_cache"))
-        self.assertContains(response, "Only the instance owner")
+        self.assertNotContains(response, reverse("instance_admin"))
+        self.assertContains(response, "Only an instance admin")
 
     def test_purge_is_refused(self):
         """Posting the purge directly does not queue it."""
@@ -175,7 +180,7 @@ class AdvancedSettingsAccessTests(TestCase):
         self.assertRedirects(response, reverse("advanced"))
         purge.assert_not_called()
         messages = list(get_messages(response.wsgi_request))
-        self.assertIn("Only the instance owner", str(messages[0]))
+        self.assertIn("Only an instance admin", str(messages[0]))
 
     def test_clear_search_cache_is_refused(self):
         """Posting the search-cache clear directly leaves the cache alone."""
@@ -197,7 +202,7 @@ class AdvancedSettingsAccessTests(TestCase):
         purge.assert_called_once()
 
     def test_demo_owner_is_refused(self):
-        """A demo account never manages the instance, even as the oldest one."""
+        """A demo account never manages the instance, even with the staff flag."""
         self.owner.is_demo = True
         self.owner.save(update_fields=["is_demo"])
         self.client.logout()

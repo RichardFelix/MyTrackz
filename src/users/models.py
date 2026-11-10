@@ -141,6 +141,13 @@ class User(AbstractUser):
     """Custom user model."""
 
     is_demo = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(
+        default=False,
+        help_text=(
+            "Set when an admin issues a temporary password; the account is "
+            "held on the password change page until a new one is chosen."
+        ),
+    )
 
     profile_private = models.BooleanField(
         default=True, help_text="Toggle profile visibility to anonymous users"
@@ -670,25 +677,33 @@ class User(AbstractUser):
             ),
         ]
 
+    def save(self, *args, **kwargs):
+        """Make the first real account the instance admin.
+
+        Ownership is a stored flag (``is_staff``) rather than something worked
+        out from account age, so it survives the first account being
+        deactivated and can be handed to a second admin as a spare key.
+        """
+        if (
+            self._state.adding
+            and not self.is_demo
+            and not self.is_staff
+            and not User.objects.filter(is_demo=False).exists()
+        ):
+            self.is_staff = True
+        super().save(*args, **kwargs)
+
     @property
     def is_instance_admin(self):
-        """Return whether this account may run instance-wide maintenance.
+        """Return whether this account may manage the instance.
 
-        Staff and superusers always can. There's no admin concept in the UI,
-        so on an install without any, the oldest active account (the one that
-        set the instance up) counts as its owner. Demo accounts never do.
+        Staff and superusers can; the first account created is made staff when
+        it signs up, and admins can promote others from the Admin page. Demo
+        and deactivated accounts never can.
         """
         if self.is_demo or not self.is_active:
             return False
-        if self.is_staff or self.is_superuser:
-            return True
-        owner_id = (
-            User.objects.filter(is_active=True, is_demo=False)
-            .order_by("id")
-            .values_list("id", flat=True)
-            .first()
-        )
-        return owner_id == self.pk
+        return self.is_staff or self.is_superuser
 
     @property
     def cached_image_url(self):

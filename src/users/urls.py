@@ -1,6 +1,6 @@
 from django.urls import path
 
-from users import views
+from users import instance_admin, views
 
 urlpatterns = [
     path("settings/account", views.account, name="account"),
@@ -23,6 +23,22 @@ urlpatterns = [
     path("settings/export", views.export_data, name="export_data"),
     path("settings/advanced", views.advanced, name="advanced"),
     path("settings/about", views.about, name="about"),
+    path("settings/admin", instance_admin.instance_admin, name="instance_admin"),
+    path(
+        "settings/admin/users/<int:user_id>",
+        instance_admin.instance_admin_user_action,
+        name="instance_admin_user_action",
+    ),
+    path(
+        "settings/admin/run_task",
+        instance_admin.instance_admin_run_task,
+        name="instance_admin_run_task",
+    ),
+    path(
+        "change_temporary_password",
+        instance_admin.change_temporary_password,
+        name="change_temporary_password",
+    ),
     path(
         "delete_import_schedule",
         views.delete_import_schedule,

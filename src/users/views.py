@@ -367,7 +367,6 @@ def advanced(request):
     """Render the advanced settings page."""
     image_cache_size_bytes, image_cache_file_count = get_image_cache_stats()
     context = {
-        "can_manage_instance": request.user.is_instance_admin,
         "image_cache_size_bytes": image_cache_size_bytes,
         "image_cache_file_count": image_cache_file_count,
         "image_cache_max_bytes": settings.IMAGE_CACHE_MAX_BYTES,
@@ -411,7 +410,7 @@ def _require_instance_admin(request):
     """Return a redirect for accounts that may not run instance maintenance."""
     if request.user.is_instance_admin:
         return None
-    messages.error(request, "Only the instance owner can do that.")
+    messages.error(request, "Only an instance admin can do that.")
     return redirect("advanced")
 
 
@@ -488,7 +487,7 @@ def clear_search_cache(request):
         deleted,
     )
 
-    return redirect("advanced")
+    return redirect("instance_admin")
 
 
 @require_POST
@@ -504,8 +503,8 @@ def purge_image_cache(request):
     purge_cached_images.delay()
     messages.success(
         request,
-        "Image cache purge started. The numbers below update when it finishes.",
+        "Image cache purge started. The numbers here update when it finishes.",
     )
     logger.info("Queued image cache purge for %s", request.user.username)
 
-    return redirect("advanced")
+    return redirect("instance_admin")

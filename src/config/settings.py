@@ -145,6 +145,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "users.middleware.ForcePasswordChangeMiddleware",
     "app.middleware.ProviderAPIErrorMiddleware",
 ]
 
