@@ -27,6 +27,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
+from app import backups
 from app.models import Item, MediaTypes
 from app.tasks import count_prunable_items, get_image_cache_stats
 from users.models import User
@@ -254,6 +255,7 @@ def instance_admin(request):
         "item_count": Item.objects.count(),
         "prunable_item_count": count_prunable_items(),
         "scheduled_tasks": get_scheduled_tasks(),
+        "backups": backups.get_status(),
         "health": get_health(),
     }
     return render(request, "users/instance_admin.html", context)

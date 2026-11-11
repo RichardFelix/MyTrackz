@@ -70,6 +70,21 @@ See [media-imports](media-imports.md).
 | `REDIRECT_LOGIN_TO_SSO`         | Default to `False`. Set to `True` to automatically redirect (using JavaScript) to the SSO provider when there's only one available. Useful for single sign-on setups. |
 | `YAMTRACK_AUTO_LOGIN_USERNAME`  | Default to `None`, which disables this feature. Specify a username to automatically login with the selected user. The user needs to be existing and active.           |
 
+## Backups
+
+The SQLite database is backed up every day; see [Backups](administration.md#backups) for what is written and how to restore. PostgreSQL installs are not covered.
+
+| Name                       | Notes                                                                                                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BACKUP_ENABLED`           | Default to `True`. Set to `False` to turn the daily backup off.                                                                                                                                                   |
+| `BACKUP_DIR`               | Where backups are written inside the container. Default to `/yamtrack/backups`; mount a host folder there (the example `docker-compose.yml` mounts `./backups`), or the copies are lost with the container.       |
+| `BACKUP_HOUR`              | Hour of the day (0-23, in `TZ`) the backup runs. Default to `3`.                                                                                                                                                  |
+| `BACKUP_RETENTION_DAYS`    | Days a copy is kept. Default to `7`. `0` keeps every copy.                                                                                                                                                        |
+| `BACKUP_USER_EXPORTS`      | Default to `True`. Also writes each account's library as CSV next to the database copy. Set to `False` to back up the database only.                                                                              |
+| `BACKUP_NOTIFICATION_URLS` | Comma-separated [Apprise](https://github.com/caronc/apprise/wiki) URLs that get a message when a backup completes or fails, e.g. `discord://<webhook_id>/<webhook_token>`. Treat it as a secret.                  |
+| `BACKUP_NOTIFY_ON_SUCCESS` | Default to `True`. Set to `False` to be told about failed backups only.                                                                                                                                           |
+| `BACKUP_INSTANCE_NAME`     | Optional label added to notification titles (e.g. `prod`), to tell several instances apart.                                                                                                                       |
+
 ## Celery Health Check
 
 | Name                              | Notes                                                                                                           |
@@ -101,6 +116,7 @@ YamTrack supports reading sensitive configuration values from Docker secrets fil
 
 | Environment Variable      | Secret File Equivalent         |
 | ------------------------- | ------------------------------ |
+| `BACKUP_NOTIFICATION_URLS` | `BACKUP_NOTIFICATION_URLS_FILE` |
 | `SECRET`                  | `SECRET_FILE`                  |
 | `DB_NAME`                 | `DB_NAME_FILE`                 |
 | `DB_USER`                 | `DB_USER_FILE`                 |

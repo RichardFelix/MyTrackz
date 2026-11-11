@@ -13,6 +13,7 @@ services:
     volumes:
       - ./db:/yamtrack/db
       - ./media:/yamtrack/mediafiles
+      - ./backups:/yamtrack/backups
     ports:
       - "8000:8000"
 

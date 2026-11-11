@@ -1,3 +1,5 @@
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -387,6 +389,33 @@ class MaintenanceTests(InstanceAdminTestCase):
             keys[-2:],
             ["send_release_notifications", "send_daily_digest"],
         )
+
+    def test_backups_section(self):
+        """The page shows the backup status and can start a backup."""
+        with tempfile.TemporaryDirectory() as backup_dir:
+            Path(backup_dir, "mytrackz-20261101T030000Z.sqlite3.gz").write_bytes(b"x")
+            with override_settings(BACKUP_DIR=Path(backup_dir), BACKUP_ENABLED=True):
+                response = self.client.get(reverse("instance_admin"))
+
+        self.assertEqual(response.context["backups"]["copy_count"], 1)
+        self.assertContains(response, "Back Up Now")
+        tasks = {task["key"]: task for task in response.context["scheduled_tasks"]}
+        self.assertEqual(tasks["back_up_database"]["frequency"], "Daily at 03:00")
+
+        with patch("app.tasks.back_up_database.delay") as delay:
+            self.client.post(
+                reverse("instance_admin_run_task"),
+                {"task": "back_up_database"},
+            )
+        delay.assert_called_once_with()
+
+    def test_backups_section_on_other_databases(self):
+        """Without SQLite the section explains itself and offers no button."""
+        with patch("app.backups.supported", return_value=False):
+            response = self.client.get(reverse("instance_admin"))
+
+        self.assertContains(response, "own tools")
+        self.assertNotContains(response, "Back Up Now")
 
     def test_health(self):
         """Health reports the cache, the worker and the database."""

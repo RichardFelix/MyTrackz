@@ -11,11 +11,14 @@ groupmod -o -g "$PGID" abc
 usermod -o -u "$PUID" abc
 
 mkdir -p mediafiles
+mkdir -p backups
 
 chown abc:abc /yamtrack
 chown -R abc:abc db
 chown -R abc:abc staticfiles
 chown -R abc:abc mediafiles
+chown -R abc:abc backups
+chmod 700 backups
 chown -R abc:abc /var/log/nginx
 chown -R abc:abc /var/lib/nginx
 

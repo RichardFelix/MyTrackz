@@ -787,6 +787,29 @@ def prune_unreferenced_items():
     return deleted_count
 
 
+@shared_task(name="Back up database")
+def back_up_database():
+    """Take the scheduled backup: database copy, user exports, retention.
+
+    The work and its rules live in ``app.backups``. A run with a failed step
+    raises, so the task shows as failed on the Admin page; by then the report
+    is saved and the notification sent.
+    """
+    from app import backups  # noqa: PLC0415 avoid import cycle
+
+    if not settings.BACKUP_ENABLED:
+        return "Backups are turned off (BACKUP_ENABLED=False)."
+    if not backups.supported():
+        return "Backups only support SQLite; nothing was done."
+
+    report = backups.run_backup()
+    if report is None:
+        return "Skipped: another backup is already running."
+    if not report["ok"]:
+        raise backups.BackupError(backups.summarize(report))
+    return f"Backup completed: {backups.summarize(report)}"
+
+
 @shared_task(name="Cache profile image")
 def cache_user_profile_image(user_id, image_url, crop=""):
     """Download a user's profile image off the request path and mark it cached.

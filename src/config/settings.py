@@ -360,6 +360,29 @@ IMAGE_CACHE_MAX_BYTES = 5 * 1024 * 1024 * 1024  # 5 GiB
 # provider originals (IGDB 1080p, TMDB originals) are several times larger.
 IMAGE_CACHE_MAX_DIMENSIONS = (800, 1200)
 
+# Scheduled database backups (see app/backups.py)
+
+BACKUP_ENABLED = config("BACKUP_ENABLED", default=True, cast=bool)
+# Must sit on a volume outside the container, or copies die with the image.
+BACKUP_DIR = Path(config("BACKUP_DIR", default=str(BASE_DIR / "backups")))
+# Hour of the day (0-23, in TZ) the daily backup runs.
+BACKUP_HOUR = config("BACKUP_HOUR", default=3, cast=int)
+# Copies older than this are deleted after a successful backup; 0 keeps all.
+BACKUP_RETENTION_DAYS = config("BACKUP_RETENTION_DAYS", default=7, cast=int)
+# Also write each user's library as CSV, restorable without the whole database.
+BACKUP_USER_EXPORTS = config("BACKUP_USER_EXPORTS", default=True, cast=bool)
+# Apprise URLs told about backups, e.g. discord://<id>/<token>. These are
+# instance-level and secret: never log them or put them in a message.
+BACKUP_NOTIFICATION_URLS = config(
+    "BACKUP_NOTIFICATION_URLS",
+    default=secret("BACKUP_NOTIFICATION_URLS_FILE", ""),
+    cast=Csv(),
+)
+# False sends a message only when a backup fails.
+BACKUP_NOTIFY_ON_SUCCESS = config("BACKUP_NOTIFY_ON_SUCCESS", default=True, cast=bool)
+# Shown in notifications, to tell several instances apart.
+BACKUP_INSTANCE_NAME = config("BACKUP_INSTANCE_NAME", default="").strip()
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/stable/ref/settings/#default-auto-field
 
@@ -661,6 +684,10 @@ CELERY_BEAT_SCHEDULE = {
     "prune_unreferenced_items": {
         "task": "Prune unreferenced items",
         "schedule": 60 * 60 * 24 * 7,  # every 7 days
+    },
+    "back_up_database": {
+        "task": "Back up database",
+        "schedule": crontab(hour=BACKUP_HOUR, minute=0),
     },
 }
 

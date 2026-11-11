@@ -244,6 +244,102 @@
       </div>
     </div>
 
+    {# Backups #}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <div class="flex items-center mb-5">
+        {% include "app/icons/save.svg" with classes="w-6 h-6 text-indigo-400 mr-3" %}
+        <h2 class="text-xl font-semibold">Backups</h2>
+      </div>
+      <div class="bg-[#39404b] p-5 rounded-lg">
+        {% if not backups.supported %}
+          <p class="text-gray-400 text-sm">
+            Scheduled backups copy the built-in SQLite database. This instance uses {{ health.database_vendor }}, so back it up with that database's own tools.
+          </p>
+        {% else %}
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+            <span class="text-base font-medium text-white">Last backup</span>
+            {% if backups.running %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-sky-500/20 text-sky-200">Running</span>
+            {% elif not backups.last %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-gray-500/20 text-gray-200">None yet</span>
+            {% elif backups.last.ok %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-200">Succeeded</span>
+            {% else %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-red-500/20 text-red-200">Failed</span>
+            {% endif %}
+            {% if not backups.enabled %}
+              <span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-200">Turned off</span>
+            {% endif %}
+          </div>
+          {% if backups.last %}
+            <p class="text-sm text-gray-400">
+              {{ backups.last.started|date:"Y-m-d H:i" }}
+              · {{ backups.last.size|filesizeformat }}
+              · took {{ backups.last.duration }}s
+            </p>
+            <ul class="mt-3 space-y-1 text-sm">
+              {% for step in backups.last.steps %}
+                <li class="flex flex-wrap gap-x-2">
+                  <span class="{% if step.status == 'ok' %}text-emerald-300{% elif step.status == 'failed' %}text-red-300{% else %}text-gray-400{% endif %}">
+                    {% if step.status == "ok" %}
+                      ✓
+                    {% elif step.status == "failed" %}
+                      ✗
+                    {% else %}
+                      –
+                    {% endif %}
+                    {{ step.name }}
+                  </span>
+                  {% if step.detail %}<span class="text-gray-400 break-all">{{ step.detail }}</span>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          <p class="text-gray-400 mt-4 mb-4 text-sm">
+            {% if backups.enabled %}
+              The database is backed up every day at {{ backups.hour|stringformat:"02d" }}:00.
+            {% else %}
+              Scheduled backups are turned off with <code class="text-gray-300">BACKUP_ENABLED</code>.
+            {% endif %}
+            <span class="text-white font-semibold">{{ backups.copy_count }}</span>
+            cop{{ backups.copy_count|pluralize:"y is,ies are" }} on this server
+            {% if backups.copy_count %}
+              (<span class="text-white font-semibold">{{ backups.total_size|filesizeformat }}</span>, the oldest from {{ backups.oldest_copy|date:"Y-m-d" }}).
+            {% else %}
+              so far.
+            {% endif %}
+            {% if backups.retention_days > 0 %}
+              Copies are deleted after {{ backups.retention_days }} day{{ backups.retention_days|pluralize }}.
+            {% else %}
+              Copies are never deleted.
+            {% endif %}
+            They stay on this server's disk, so they are only as safe as the backups of the server itself.
+            {% if not backups.notifications_configured %}
+              <span class="text-amber-300">No notification is configured</span>, so a failed backup is only visible here.
+            {% elif backups.notify_on_success %}
+              A notification is sent after every run.
+            {% else %}
+              A notification is sent when a backup fails.
+            {% endif %}
+          </p>
+          {% if backups.enabled %}
+            <form method="post" action="{% url 'instance_admin_run_task' %}">
+              {% csrf_token %}
+              <input type="hidden" name="task" value="back_up_database">
+              <button type="button"
+                      data-confirm-title="Back up now?"
+                      data-confirm-body="This takes a backup in the background straight away, in addition to the daily one. Reload this page in a moment to see the result."
+                      @click="ask($el)"
+                      class="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm cursor-pointer">
+                {% include "app/icons/save.svg" with classes="w-4 h-4 mr-2" %}
+                Back Up Now
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
     {# Scheduled tasks #}
     <div class="bg-[#2a2f35] rounded-lg p-6">
       <div class="flex items-center mb-5">
