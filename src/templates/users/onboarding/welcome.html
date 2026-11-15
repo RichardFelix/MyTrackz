@@ -1,0 +1,59 @@
+{% extends "users/onboarding/base.html" %}
+
+{% block step_name %}
+  Welcome
+{% endblock step_name %}
+
+{% block step %}
+  <div class="bg-[#2a2f35] rounded-lg p-6 sm:p-8">
+    <h2 class="text-2xl font-semibold">Welcome, {{ user.username }}</h2>
+    <p class="mt-3 text-sm text-gray-300">
+      MyTrackz keeps track of what you watch, read and play: movies, TV, anime, manga, games, books, comics and more, with your progress, ratings and what is coming next.
+    </p>
+
+    <h3 class="mt-6 text-sm font-medium text-gray-200">Setup takes a couple of minutes</h3>
+    <ol class="mt-3 space-y-3 text-sm">
+      {% if asks_for_keys %}
+        <li class="flex gap-3 p-3 bg-[#39404b] rounded-md">
+          {% include "app/icons/key.svg" with classes="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" %}
+          <span>
+            <span class="block font-medium text-gray-200">API keys</span>
+            <span class="block text-xs text-gray-400 mt-1">Connect the services that supply titles, posters and release dates. Shared keys are built in, so this is optional.</span>
+          </span>
+        </li>
+      {% endif %}
+      <li class="flex gap-3 p-3 bg-[#39404b] rounded-md">
+        {% include "app/icons/vertical-sliders.svg" with classes="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" %}
+        <span>
+          <span class="block font-medium text-gray-200">{{ preference_count }} quick preferences</span>
+          <span class="block text-xs text-gray-400 mt-1">One question at a time, each with a sensible answer already picked.</span>
+        </span>
+      </li>
+      <li class="flex gap-3 p-3 bg-[#39404b] rounded-md">
+        {% include "app/icons/circle-check.svg" with classes="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" %}
+        <span>
+          <span class="block font-medium text-gray-200">Review</span>
+          <span class="block text-xs text-gray-400 mt-1">See everything you chose and change anything before you start.</span>
+        </span>
+      </li>
+    </ol>
+
+    <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <form method="post" action="{% url 'onboarding_skip' %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="w-full sm:w-auto px-4 py-2 rounded-md text-sm text-gray-300 border border-gray-600 hover:bg-[#39404b] hover:text-white transition-colors cursor-pointer">
+          Skip walkthrough
+        </button>
+      </form>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+                autofocus
+                class="w-full sm:w-auto px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium cursor-pointer">
+          Get started
+        </button>
+      </form>
+    </div>
+  </div>
+{% endblock step %}

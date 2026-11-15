@@ -9,7 +9,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -19,7 +19,7 @@ RESULTS_PER_PAGE = 20
 
 def _request(path, params=None):
     """Use the shared rate-limited client with header-only authentication."""
-    if not settings.REBRICKABLE:
+    if not provider_keys.get("REBRICKABLE"):
         raise services.ProviderAPIError(
             Sources.REBRICKABLE.value,
             ValueError("Rebrickable API key is not configured"),
@@ -31,7 +31,7 @@ def _request(path, params=None):
             "GET",
             f"{BASE_URL}/{path}",
             params=params,
-            headers={"Authorization": f"key {settings.REBRICKABLE}"},
+            headers={"Authorization": f"key {provider_keys.get('REBRICKABLE')}"},
         )
     except requests.exceptions.RequestException as error:
         raise services.ProviderAPIError(Sources.REBRICKABLE.value, error) from error

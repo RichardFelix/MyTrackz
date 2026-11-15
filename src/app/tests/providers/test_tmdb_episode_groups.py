@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from app.providers import tmdb
 
@@ -89,7 +89,7 @@ def _tv_response(media_id=615):
     }
 
 
-class TMDBEpisodeGroupTests(SimpleTestCase):
+class TMDBEpisodeGroupTests(TestCase):
     """Verify the Futurama override is isolated from normal TMDB shows."""
 
     def setUp(self):

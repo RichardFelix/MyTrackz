@@ -1,6 +1,6 @@
 from django.urls import path
 
-from users import instance_admin, views
+from users import instance_admin, onboarding, views
 
 urlpatterns = [
     path("settings/account", views.account, name="account"),
@@ -39,6 +39,14 @@ urlpatterns = [
         instance_admin.change_temporary_password,
         name="change_temporary_password",
     ),
+    path("welcome", onboarding.onboarding, name="onboarding"),
+    path("welcome/skip", onboarding.onboarding_skip, name="onboarding_skip"),
+    path(
+        "welcome/providers/test/<slug:slug>",
+        onboarding.onboarding_test_provider,
+        name="onboarding_test_provider",
+    ),
+    path("welcome/<slug:step>", onboarding.onboarding_step, name="onboarding_step"),
     path(
         "delete_import_schedule",
         views.delete_import_schedule,

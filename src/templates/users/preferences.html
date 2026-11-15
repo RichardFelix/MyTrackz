@@ -14,6 +14,12 @@
         <h2 class="text-xl font-semibold">Preferences</h2>
       </div>
       <p class="text-gray-400 text-sm">Settings are grouped by purpose. Any Save button applies all changes on this page.</p>
+      <p class="text-gray-400 text-sm mt-2">
+        New here?
+        <a href="{% url 'onboarding' %}"
+           class="text-indigo-400 hover:text-indigo-300">Run the setup walkthrough</a>
+        to go through the main ones step by step.
+      </p>
     </div>
 
     <form method="post" class="space-y-5">

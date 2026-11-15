@@ -5,7 +5,7 @@ from unittest.mock import patch
 import requests
 from django.conf import settings
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.test import TestCase, override_settings
 
 from app.providers import rebrickable, services
 
@@ -20,7 +20,7 @@ SET = {
 
 
 @override_settings(REBRICKABLE="test-key")
-class RebrickableTests(SimpleTestCase):
+class RebrickableTests(TestCase):
     """Search, caching, metadata and errors do not require real API credentials."""
 
     def setUp(self):

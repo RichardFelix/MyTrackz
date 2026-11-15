@@ -1,9 +1,9 @@
 import logging
 
 import requests
-from django.conf import settings
 from django.core.cache import cache
 
+from app import provider_keys
 from app.providers import services
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,13 @@ def handle_error(error):
 
 def get_access_token():
     """Return a cached TVDB access token."""
-    if not settings.TVDB_API:
+    if not provider_keys.get("TVDB_API"):
         logger.debug("Skipping TVDB lookup because TVDB_API is not configured")
         return None
 
     access_token = cache.get(ACCESS_TOKEN_CACHE_KEY)
     if access_token is None:
-        payload = {"apikey": settings.TVDB_API}
+        payload = {"apikey": provider_keys.get("TVDB_API")}
 
         try:
             response = services.api_request(

@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 import app
+from app import provider_keys
 from app.models import MediaTypes, Sources, Status
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
@@ -100,7 +101,7 @@ class MyAnimeListImporter:
 
     def _get_whole_response(self, url, params):
         """Fetch whole data from user."""
-        headers = {"X-MAL-CLIENT-ID": settings.MAL_API}
+        headers = {"X-MAL-CLIENT-ID": provider_keys.get("MAL_API")}
 
         data = app.providers.services.api_request(
             "MAL",

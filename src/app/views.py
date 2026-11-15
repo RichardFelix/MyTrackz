@@ -123,6 +123,9 @@ def _render_home_in_progress_update(request):
 @require_GET
 def home(request):
     """Home page with media items in progress and planning."""
+    if request.user.needs_onboarding and not request.headers.get("HX-Request"):
+        # a new account lands here after signing up; walk it through setup once
+        return redirect("onboarding")
     sort_by = request.user.update_preference("home_sort", request.GET.get("sort"))
     aired_only = request.GET.get("aired_only")
     if aired_only in ("0", "1"):

@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -61,7 +61,7 @@ def search(media_type, query, page):
                 "GET",
                 url,
                 params=params,
-                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+                headers={"X-MAL-CLIENT-ID": provider_keys.get("MAL_API")},
             )
         except requests.exceptions.HTTPError as error:
             response = handle_error(error)
@@ -118,7 +118,7 @@ def trending(media_type):
                 "GET",
                 url,
                 params=params,
-                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+                headers={"X-MAL-CLIENT-ID": provider_keys.get("MAL_API")},
             )
         except requests.exceptions.HTTPError as error:
             response = handle_error(error)
@@ -156,7 +156,7 @@ def anime(media_id):
                 "GET",
                 url,
                 params=params,
-                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+                headers={"X-MAL-CLIENT-ID": provider_keys.get("MAL_API")},
             )
         except requests.exceptions.HTTPError as error:
             handle_error(error)
@@ -221,7 +221,7 @@ def manga(media_id):
                 "GET",
                 url,
                 params=params,
-                headers={"X-MAL-CLIENT-ID": settings.MAL_API},
+                headers={"X-MAL-CLIENT-ID": provider_keys.get("MAL_API")},
             )
         except requests.exceptions.HTTPError as error:
             handle_error(error)

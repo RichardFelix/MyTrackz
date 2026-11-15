@@ -1,0 +1,63 @@
+{% extends "users/onboarding/base.html" %}
+
+{% block step_name %}
+  Review
+{% endblock step_name %}
+
+{% block step %}
+  <div class="bg-[#2a2f35] rounded-lg p-6">
+    <h2 class="text-xl font-semibold">Review your setup</h2>
+    <p class="mt-2 text-sm text-gray-400">Everything below is already saved. Change anything, then finish.</p>
+  </div>
+
+  {% if providers %}
+    <div class="mt-4 bg-[#2a2f35] rounded-lg p-5">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h3 class="text-base font-medium">API keys</h3>
+        <a href="{% url 'onboarding_step' 'providers' %}?from=summary"
+           class="text-sm text-indigo-400 hover:text-indigo-300">Edit</a>
+      </div>
+      <dl class="divide-y divide-gray-600/60 text-sm">
+        {% for row in providers %}
+          <div class="flex items-center justify-between gap-4 py-2">
+            <dt class="text-gray-200">{{ row.provider.name }}</dt>
+            <dd class="text-right {% if row.source == 'none' %}text-amber-300{% else %}text-gray-400{% endif %}">
+              {{ row.source_label }}
+            </dd>
+          </div>
+        {% endfor %}
+      </dl>
+    </div>
+  {% endif %}
+
+  <div class="mt-4 bg-[#2a2f35] rounded-lg p-5">
+    <h3 class="text-base font-medium mb-3">Preferences</h3>
+    <dl class="divide-y divide-gray-600/60 text-sm">
+      {% for row in preferences %}
+        <div class="flex items-start justify-between gap-4 py-2.5">
+          <div class="min-w-0">
+            <dt class="text-gray-400 text-xs">{{ row.step.title }}</dt>
+            <dd class="mt-0.5 text-gray-200">
+              {{ row.value }}
+            </dd>
+          </div>
+          <a href="{% url 'onboarding_step' row.step.slug %}?from=summary"
+             class="shrink-0 text-sm text-indigo-400 hover:text-indigo-300"
+             aria-label="Edit: {{ row.step.title }}">Edit</a>
+        </div>
+      {% endfor %}
+    </dl>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mt-6 flex items-center justify-between gap-3">
+      <a href="{{ back_url }}"
+         class="px-4 py-2 rounded-md text-sm text-gray-300 hover:bg-[#2a2f35] hover:text-white transition-colors">Back</a>
+      <button type="submit"
+              class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium cursor-pointer">
+        Finish setup
+      </button>
+    </div>
+  </form>
+{% endblock step %}

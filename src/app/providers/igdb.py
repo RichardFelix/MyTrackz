@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -83,8 +83,8 @@ def get_access_token():
     if access_token is None:
         url = "https://id.twitch.tv/oauth2/token"
         json = {
-            "client_id": settings.IGDB_ID,
-            "client_secret": settings.IGDB_SECRET,
+            "client_id": provider_keys.get("IGDB_ID"),
+            "client_secret": provider_keys.get("IGDB_SECRET"),
             "grant_type": "client_credentials",
         }
 
@@ -128,7 +128,7 @@ def external_game(external_id, source=ExternalGameSource.STEAM):
             f"external_game_source = {source};"
         )
         headers = {
-            "Client-ID": settings.IGDB_ID,
+            "Client-ID": provider_keys.get("IGDB_ID"),
             "Authorization": f"Bearer {access_token}",
         }
 
@@ -184,7 +184,7 @@ def search(query, page):
         access_token = get_access_token()
         url = f"{base_url}/multiquery"
         headers = {
-            "Client-ID": settings.IGDB_ID,
+            "Client-ID": provider_keys.get("IGDB_ID"),
             "Authorization": f"Bearer {access_token}",
         }
 
@@ -278,7 +278,7 @@ def trending():
         access_token = get_access_token()
         url = f"{base_url}/games"
         headers = {
-            "Client-ID": settings.IGDB_ID,
+            "Client-ID": provider_keys.get("IGDB_ID"),
             "Authorization": f"Bearer {access_token}",
         }
 
@@ -362,7 +362,7 @@ def game(media_id):
             "};"
         )
         headers = {
-            "Client-ID": settings.IGDB_ID,
+            "Client-ID": provider_keys.get("IGDB_ID"),
             "Authorization": f"Bearer {access_token}",
         }
 

@@ -149,6 +149,14 @@ class User(AbstractUser):
         ),
     )
 
+    needs_onboarding = models.BooleanField(
+        default=False,
+        help_text=(
+            "Set when an account signs up; Home sends it to the setup "
+            "walkthrough until that is finished or skipped."
+        ),
+    )
+
     profile_private = models.BooleanField(
         default=True, help_text="Toggle profile visibility to anonymous users"
     )

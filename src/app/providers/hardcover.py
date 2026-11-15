@@ -4,7 +4,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -84,7 +84,7 @@ def search(query, page):
                 "POST",
                 base_url,
                 params={"query": search_query, "variables": variables},
-                headers={"Authorization": settings.HARDCOVER_API},
+                headers={"Authorization": provider_keys.get("HARDCOVER_API")},
             )
         except requests.exceptions.HTTPError as error:
             response = handle_error(error)
@@ -169,7 +169,7 @@ def book(media_id):
                 "POST",
                 base_url,
                 params={"query": book_query, "variables": variables},
-                headers={"Authorization": settings.HARDCOVER_API},
+                headers={"Authorization": provider_keys.get("HARDCOVER_API")},
             )
         except requests.exceptions.HTTPError as error:
             handle_error(error)

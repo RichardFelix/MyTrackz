@@ -4,6 +4,8 @@ This page outlines the environment variables used in the YamTrack project.
 
 ## Media Sources
 
+The keys for TMDB, MyAnimeList, IGDB, Hardcover, Comic Vine, BoardGameGeek, Rebrickable, KicksDB, TVDB and Steam can also be entered in the app: the setup walkthrough asks the instance admin for them, and Settings → Admin → API keys opens the same page later. A key saved there is stored encrypted in the database and takes precedence over the environment variable; removing it goes back to the variable. Saved keys are encrypted with `SECRET`, so changing `SECRET` means entering them again.
+
 | Name            | Notes                                                                                                                                                                                                                                                 |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TMDB_API`      | The Movie Database API key for movies and TV shows. A default key is provided.                                                                                                                                                                        |

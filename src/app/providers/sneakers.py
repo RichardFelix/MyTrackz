@@ -14,6 +14,7 @@ from django.core.validators import URLValidator
 from django.db.models import Q
 from django.http import Http404
 
+from app import provider_keys
 from app.models import MediaTypes, SneakerProduct, Sources
 from app.providers import services
 
@@ -34,7 +35,7 @@ def _results(page, total, results):
 
 def _request(path, params=None):
     """Send the secret only in the shared provider client's Authorization header."""
-    if not settings.KICKSDB_API:
+    if not provider_keys.get("KICKSDB_API"):
         raise services.ProviderAPIError(
             Sources.KICKSDB,
             ValueError("Missing catalog key"),
@@ -46,7 +47,7 @@ def _request(path, params=None):
             "GET",
             f"{BASE_URL}/{path}",
             params=params,
-            headers={"Authorization": f"Bearer {settings.KICKSDB_API}"},
+            headers={"Authorization": f"Bearer {provider_keys.get('KICKSDB_API')}"},
             retry_on_rate_limit=False,
         )
     except requests.RequestException as error:
@@ -144,7 +145,7 @@ def _catalog_page(query, page, digest):
 def search(query, page):
     """Search GOAT first; cache discovery without changing saved snapshots."""
     page = max(1, int(page))
-    if not query.strip() or not settings.KICKSDB_API:
+    if not query.strip() or not provider_keys.get("KICKSDB_API"):
         if query.strip() and not SneakerProduct.objects.exists():
             _request("goat/products")
         return _local_search(query, page)

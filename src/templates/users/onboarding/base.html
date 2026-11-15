@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Setup - MyTrackz
+{% endblock title %}
+
+{% block body %}
+  <div class="min-h-screen bg-[#000] text-gray-100">
+    <div class="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
+      <div class="mb-6 flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-semibold">
+          <span style="color: #E8E4DC;">My</span><span style="color: #F0C070;">Trackz</span>
+        </h1>
+        <form method="post" action="{% url 'onboarding_skip' %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">
+            {% if user.needs_onboarding %}
+              Skip walkthrough
+            {% else %}
+              Exit setup
+            {% endif %}
+          </button>
+        </form>
+      </div>
+
+      <div class="mb-6">
+        <div class="mb-2 flex items-center justify-between text-xs text-gray-400">
+          <span>Step {{ step_number }} of {{ step_count }}</span>
+          <span>
+            {% block step_name %}
+            {% endblock step_name %}
+          </span>
+        </div>
+        <div class="h-1.5 overflow-hidden rounded-full bg-[#2a2f35]"
+             role="progressbar"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="{{ progress_percent }}"
+             aria-label="Setup progress">
+          <div class="h-full rounded-full bg-indigo-500 transition-all"
+               style="width: {{ progress_percent }}%"></div>
+        </div>
+      </div>
+
+      {% block step %}
+      {% endblock step %}
+    </div>
+  </div>
+{% endblock body %}
+
+{% block messages_sidebar_offset %}
+{% endblock messages_sidebar_offset %}

@@ -10,7 +10,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -53,7 +53,9 @@ def search(query, page):
                     "GET",
                     f"{base_url}/search",
                     params={"query": query, "type": "boardgame"},
-                    headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+                    headers={
+                        "Authorization": f"Bearer {provider_keys.get('BGG_API_TOKEN')}"
+                    },
                     response_format="xml",
                 )
             except requests.exceptions.HTTPError as error:
@@ -118,7 +120,9 @@ def hot():
                 "GET",
                 f"{base_url}/hot",
                 params={"type": "boardgame"},
-                headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+                headers={
+                    "Authorization": f"Bearer {provider_keys.get('BGG_API_TOKEN')}"
+                },
                 response_format="xml",
             )
         except requests.exceptions.HTTPError as error:
@@ -160,7 +164,7 @@ def _fetch_thumbnails(game_ids):
             "GET",
             f"{base_url}/thing",
             params={"id": ",".join(game_ids)},
-            headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+            headers={"Authorization": f"Bearer {provider_keys.get('BGG_API_TOKEN')}"},
             response_format="xml",
         )
 
@@ -193,7 +197,9 @@ def boardgame(media_id):
                 "GET",
                 f"{base_url}/thing",
                 params={"id": media_id, "stats": "1"},
-                headers={"Authorization": f"Bearer {settings.BGG_API_TOKEN}"},
+                headers={
+                    "Authorization": f"Bearer {provider_keys.get('BGG_API_TOKEN')}"
+                },
                 response_format="xml",
             )
         except requests.exceptions.HTTPError as error:

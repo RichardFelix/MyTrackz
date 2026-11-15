@@ -106,6 +106,27 @@ class Genre(models.Model):
         return self.name
 
 
+class ProviderKey(models.Model):
+    """An API key saved from the app, overriding the environment value.
+
+    Read and written through ``app.provider_keys`` only: ``value`` holds the
+    encrypted text, never the key itself.
+    """
+
+    name = models.CharField(max_length=40, unique=True)
+    value = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Meta options for the model."""
+
+        ordering = ["name"]
+
+    def __str__(self):
+        """Return the setting name the key stands in for."""
+        return self.name
+
+
 class Item(CalendarTriggerMixin, models.Model):
     """Model to store basic information about media items."""
 

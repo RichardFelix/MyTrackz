@@ -1,0 +1,96 @@
+{% extends "users/onboarding/base.html" %}
+
+{% block step_name %}
+  API keys
+{% endblock step_name %}
+
+{% block step %}
+  <form method="post"
+        autocomplete="off"
+        {% if origin %}action="?from={{ origin }}"{% endif %}>
+    {% csrf_token %}
+    <div class="bg-[#2a2f35] rounded-lg p-6">
+      <h2 class="text-xl font-semibold">API keys</h2>
+      <p class="mt-2 text-sm text-gray-400">
+        These services supply the titles, posters and release dates. The required ones come with a built-in key shared by every MyTrackz install, so you can continue without entering anything; your own keys avoid the shared rate limits.
+      </p>
+      <p class="mt-2 text-xs text-gray-500">
+        Keys are saved encrypted on the server for the whole instance and are never sent back to the browser. Leave a field blank to keep what is in use now.
+      </p>
+    </div>
+
+    <div class="mt-4 space-y-4">
+      {% for row in providers %}
+        {% with provider=row.provider %}
+          <div class="bg-[#2a2f35] rounded-lg p-5">
+            <div class="flex items-start gap-3">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-sm font-semibold text-white"
+                    style="background-color: {{ provider.color }}"
+                    aria-hidden="true">{{ provider.initials }}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="text-base font-medium">{{ provider.name }}</h3>
+                  {% if provider.required %}
+                    <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300">Required</span>
+                  {% else %}
+                    <span class="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-gray-300">Optional</span>
+                  {% endif %}
+                </div>
+                <p class="mt-1 text-sm text-gray-400">{{ provider.used_for }}</p>
+                <p class="mt-1 text-xs {% if row.source == 'none' %}text-amber-300{% else %}text-gray-500{% endif %}">
+                  In use now: {{ row.source_label }}
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4 space-y-3">
+              {% for field in row.fields %}
+                <div>
+                  <label for="key-{{ field.name }}"
+                         class="block text-xs font-medium text-gray-300 mb-1">{{ field.label }}</label>
+                  <input id="key-{{ field.name }}"
+                         name="{{ field.name }}"
+                         type="password"
+                         autocomplete="new-password"
+                         spellcheck="false"
+                         placeholder="{% if field.source == 'saved' %}Saved{% if field.hint %}, ends in {{ field.hint }}{% endif %}. Blank keeps it{% elif field.source == 'environment' %}Blank keeps the environment value{% elif field.source == 'built_in' %}Blank uses the built-in key{% else %}Paste your {{ field.label|lower }}{% endif %}"
+                         class="w-full py-2 px-3 bg-[#39404b] rounded-md text-white text-sm border border-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button type="button"
+                      hx-post="{% url 'onboarding_test_provider' provider.slug %}"
+                      hx-target="#test-result-{{ provider.slug }}"
+                      hx-swap="innerHTML"
+                      hx-disabled-elt="this"
+                      class="px-3 py-1.5 rounded-md text-sm text-gray-200 border border-gray-600 hover:bg-[#39404b] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait">
+                Test connection
+              </button>
+              <a href="{{ provider.signup_url }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="text-sm text-indigo-400 hover:text-indigo-300">Get a key</a>
+              {% if row.has_saved %}
+                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                  <input type="checkbox"
+                         name="clear"
+                         value="{{ provider.slug }}"
+                         class="rounded border-gray-600 bg-[#39404b]">
+                  Remove saved key
+                </label>
+              {% endif %}
+              <span id="test-result-{{ provider.slug }}"
+                    class="basis-full text-sm"
+                    role="status"
+                    aria-live="polite"></span>
+            </div>
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+
+    {% include "users/onboarding/actions.html" %}
+  </form>
+{% endblock step %}

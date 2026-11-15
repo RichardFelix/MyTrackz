@@ -1,0 +1,61 @@
+{% extends "users/onboarding/base.html" %}
+{% load app_tags %}
+
+{% block step_name %}
+  Preferences
+{% endblock step_name %}
+
+{% block step %}
+  <form method="post" {% if origin %}action="?from={{ origin }}"{% endif %}>
+    {% csrf_token %}
+    <div class="bg-[#2a2f35] rounded-lg p-6 sm:p-8">
+      <h2 class="text-xl font-semibold">{{ preference.title }}</h2>
+      <p class="mt-2 text-sm text-gray-400">{{ preference.explanation }}</p>
+
+      {% if media_types %}
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
+          {% for media_type in media_types %}
+            <label class="flex items-center justify-between gap-3 p-3 bg-[#39404b] rounded-md cursor-pointer">
+              <span class="flex items-center text-gray-400">
+                {% icon media_type.value is_active=False %}
+                <span class="text-gray-200 text-sm ml-2">{{ media_type.value|media_type_readable_plural }}</span>
+              </span>
+              <input class="sr-only peer"
+                     type="checkbox"
+                     name="media_types"
+                     value="{{ media_type.value }}"
+                     {% if media_type.enabled %}checked{% endif %}>
+              <span class="relative shrink-0 w-9 h-5 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-px after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-400"></span>
+            </label>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% for row in settings %}
+        <fieldset class="mt-6">
+          <legend class="{% if settings|length == 1 %}sr-only{% else %}mb-2 text-sm font-medium text-gray-200{% endif %}">
+            {{ row.setting.label }}
+          </legend>
+          <div class="space-y-2">
+            {% for option in row.setting.options %}
+              <label class="flex items-start gap-3 p-3 rounded-md border border-transparent bg-[#39404b] cursor-pointer has-checked:border-indigo-500 has-checked:bg-indigo-500/10 has-focus-visible:ring-2 has-focus-visible:ring-indigo-400">
+                <input type="radio"
+                       name="{{ row.setting.field }}"
+                       value="{{ option.value }}"
+                       class="mt-0.5 accent-indigo-500"
+                       {% if row.setting.field == "theme" %}onchange="document.documentElement.classList.toggle('theme-grey', this.value === 'grey')"{% endif %}
+                       {% if option.value == row.current %}checked{% endif %}>
+                <span>
+                  <span class="block text-sm font-medium text-gray-200">{{ option.label }}</span>
+                  {% if option.description %}<span class="block text-xs text-gray-400 mt-1">{{ option.description }}</span>{% endif %}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      {% endfor %}
+    </div>
+
+    {% include "users/onboarding/actions.html" %}
+  </form>
+{% endblock step %}

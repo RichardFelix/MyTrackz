@@ -1,0 +1,11 @@
+{% if ok %}
+  <span class="inline-flex items-center gap-1.5 text-emerald-300">
+    {% include "app/icons/circle-check.svg" with classes="w-4 h-4 shrink-0" %}
+    {{ message }}
+  </span>
+{% else %}
+  <span class="inline-flex items-center gap-1.5 text-red-300">
+    {% include "app/icons/circle-x.svg" with classes="w-4 h-4 shrink-0" %}
+    {{ message }}
+  </span>
+{% endif %}

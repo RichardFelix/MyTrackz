@@ -6,16 +6,21 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
 logger = logging.getLogger(__name__)
 base_url = "https://api.themoviedb.org/3"
-base_params = {
-    "api_key": settings.TMDB_API,
-    "language": settings.TMDB_LANG,
-}
+
+
+def base_params():
+    """Return the query parameters every TMDB request carries."""
+    return {
+        "api_key": provider_keys.get("TMDB_API"),
+        "language": settings.TMDB_LANG,
+    }
+
 
 # TMDB's default Futurama record uses production-season numbering, while its
 # Digital Order matches the broadcast/streaming numbering used by Hulu and IMDb.
@@ -87,7 +92,7 @@ def search(media_type, query, page):
         url = f"{base_url}/search/{media_type}"
 
         params = {
-            **base_params,
+            **base_params(),
             "query": query,
             "page": page,
         }
@@ -164,7 +169,7 @@ def trending(media_type):
                     Sources.TMDB.value,
                     "GET",
                     url,
-                    params={**base_params, "page": page},
+                    params={**base_params(), "page": page},
                 )
             except requests.exceptions.HTTPError as error:
                 handle_error(error)
@@ -202,7 +207,7 @@ def find(external_id, external_source):
         url = f"{base_url}/find/{external_id}"
 
         params = {
-            **base_params,
+            **base_params(),
             "external_source": external_source,
         }
 
@@ -231,7 +236,7 @@ def movie(media_id):
         url = f"{base_url}/movie/{media_id}"
         appends = ["recommendations", "external_ids", "credits", "watch/providers"]
         params = {
-            **base_params,
+            **base_params(),
             "append_to_response": ",".join(appends),
         }
 
@@ -251,7 +256,7 @@ def movie(media_id):
                         Sources.TMDB.value,
                         "GET",
                         f"{base_url}/collection/{collection_id}",
-                        params={**base_params},
+                        params={**base_params()},
                     )
                 except requests.exceptions.HTTPError as error:
                     logger.warning("Failed to get collection: %s", error)
@@ -370,7 +375,7 @@ def get_tv_episode_group(media_id, refresh=False):  # noqa: FBT002
                 Sources.TMDB.value,
                 "GET",
                 f"{base_url}/tv/episode_group/{episode_group_id}",
-                params={**base_params},
+                params={**base_params()},
             )
         except requests.exceptions.HTTPError as error:
             handle_error(error)
@@ -519,7 +524,7 @@ def fetch_and_cache_seasons(media_id, season_numbers, tv_data):
         )
 
         params = {
-            **base_params,
+            **base_params(),
             "append_to_response": f"{base_append},{append_text}",
         }
 
@@ -645,7 +650,7 @@ def fetch_and_cache_episode_group_seasons(media_id, season_numbers, tv_data):
             Sources.TMDB.value,
             "GET",
             f"{base_url}/tv/{media_id}",
-            params={**base_params, "append_to_response": appends},
+            params={**base_params(), "append_to_response": appends},
         )
     except requests.exceptions.HTTPError as error:
         handle_error(error)
@@ -729,7 +734,7 @@ def tv(media_id):
     if data is None:
         url = f"{base_url}/tv/{media_id}"
         params = {
-            **base_params,
+            **base_params(),
             "append_to_response": "recommendations,external_ids,watch/providers",
         }
 
@@ -1156,7 +1161,7 @@ def watch_provider_regions():
 
     if data is None:
         url = f"{base_url}/watch/providers/regions"
-        params = {**base_params}
+        params = {**base_params()}
 
         try:
             response = services.api_request(
@@ -1193,7 +1198,7 @@ def get_changed_ids(media_type):
 
     while True:
         params = {
-            **base_params,
+            **base_params(),
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
             "page": page,

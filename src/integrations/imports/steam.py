@@ -3,9 +3,9 @@ import time
 from collections import defaultdict
 
 import requests
-from django.conf import settings
 
 import app
+from app import provider_keys
 from app.models import GameLaunchers, MediaTypes, Sources, Status
 from app.providers import services
 from app.providers.igdb import ExternalGameSource, external_game
@@ -38,7 +38,7 @@ class SteamImporter:
         self.user = user
         self.mode = mode
         self.warnings = []
-        self.api_key = settings.STEAM_API_KEY
+        self.api_key = provider_keys.get("STEAM_API_KEY")
 
         if not self.api_key:
             msg = "Steam API key not configured in environment variables"

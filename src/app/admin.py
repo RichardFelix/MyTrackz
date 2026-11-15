@@ -8,6 +8,7 @@ from app.models import (
     Episode,
     Genre,
     Item,
+    ProviderKey,
     SneakerProduct,
     UserMessage,
 )
@@ -68,6 +69,19 @@ class SneakerProductAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):  # noqa: ARG002
         """Keep the first lookup immutable for every collector."""
+        return False
+
+
+@admin.register(ProviderKey)
+class ProviderKeyAdmin(admin.ModelAdmin):
+    """List which keys are saved; they are edited on the API keys page."""
+
+    list_display = ["name", "updated_at"]
+    fields = ["name", "updated_at"]
+    readonly_fields = ["name", "updated_at"]
+
+    def has_add_permission(self, request):  # noqa: ARG002
+        """Refuse: saving goes through app.provider_keys, which encrypts."""
         return False
 
 

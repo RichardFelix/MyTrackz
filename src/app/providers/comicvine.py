@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
 
-from app import helpers
+from app import helpers, provider_keys
 from app.models import MediaTypes, Sources
 from app.providers import services
 
@@ -44,7 +44,7 @@ def search(query, page):
 
     if data is None:
         params = {
-            "api_key": settings.COMICVINE_API,
+            "api_key": provider_keys.get("COMICVINE_API"),
             "format": "json",
             "query": query,
             "resources": "volume",
@@ -95,7 +95,7 @@ def comic(media_id):
 
     if data is None:
         params = {
-            "api_key": settings.COMICVINE_API,
+            "api_key": provider_keys.get("COMICVINE_API"),
             "format": "json",
             "field_list": (
                 "publisher,site_detail_url,name,last_issue,image,description,"
@@ -256,7 +256,7 @@ def get_publisher_comics(publisher_id, current_id, limit=15):
 
     if data is None:
         params = {
-            "api_key": settings.COMICVINE_API,
+            "api_key": provider_keys.get("COMICVINE_API"),
             "format": "json",
             "field_list": "id,name,image,start_year,publisher",
             "filter": f"publisher:{publisher_id}",
@@ -299,7 +299,7 @@ def issue(media_id):
 
     if data is None:
         params = {
-            "api_key": settings.COMICVINE_API,
+            "api_key": provider_keys.get("COMICVINE_API"),
             "format": "json",
             "field_list": ("cover_date,store_date"),
         }

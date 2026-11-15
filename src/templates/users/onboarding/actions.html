@@ -1,0 +1,10 @@
+<div class="mt-6 flex items-center {% if back_url %}justify-between{% else %}justify-end{% endif %} gap-3">
+  {% if back_url %}
+    <a href="{{ back_url }}"
+       class="px-4 py-2 rounded-md text-sm text-gray-300 hover:bg-[#2a2f35] hover:text-white transition-colors">Back</a>
+  {% endif %}
+  <button type="submit"
+          class="px-5 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium cursor-pointer">
+    {{ submit_label }}
+  </button>
+</div>
