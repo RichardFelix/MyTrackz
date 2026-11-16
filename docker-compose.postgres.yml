@@ -17,6 +17,7 @@ services:
       - DB_PORT=5432
     volumes:
       - ./media:/yamtrack/mediafiles
+      - ./backups:/yamtrack/backups
     ports:
       - "8000:8000"
 

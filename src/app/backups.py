@@ -2,9 +2,10 @@
 
 One run walks three steps and records each one:
 
-1. Database copy - the SQLite online backup API, which gives a consistent
-   snapshot while the app keeps reading and writing (safe with WAL). The copy
-   is integrity-checked before it is kept.
+1. Database copy - a consistent snapshot taken while the app keeps reading
+   and writing, checked before it is kept. SQLite goes through its online
+   backup API (safe with WAL) and ``quick_check``; PostgreSQL through
+   ``pg_dump`` in custom format, read back with ``pg_restore --list``.
 2. User exports - every account's library as CSV, zipped, so one user can be
    restored without the whole database.
 3. Retention cleanup - copies past their retention are deleted.
@@ -22,9 +23,11 @@ import contextlib
 import gzip
 import json
 import logging
+import os
 import re
 import shutil
 import sqlite3
+import subprocess
 import time
 import zipfile
 from datetime import UTC, datetime, timedelta
@@ -42,9 +45,15 @@ logger = logging.getLogger(__name__)
 
 TIMESTAMP_FORMAT = "%Y%m%dT%H%M%SZ"
 DATABASE_SUFFIX = ".sqlite3.gz"
+POSTGRES_SUFFIX = ".pgdump"
+# Database copies by ``connection.vendor``; other databases are not backed up.
+DATABASE_SUFFIXES = {"sqlite": DATABASE_SUFFIX, "postgresql": POSTGRES_SUFFIX}
+DATABASE_LABELS = {"sqlite": "SQLite", "postgresql": "PostgreSQL"}
 EXPORTS_SUFFIX = "-exports.zip"
 # Only files matching this are ever listed, counted or deleted.
-BACKUP_NAME_RE = re.compile(r"^mytrackz-(\d{8}T\d{6}Z)(\.sqlite3\.gz|-exports\.zip)$")
+BACKUP_NAME_RE = re.compile(
+    r"^mytrackz-(\d{8}T\d{6}Z)(\.sqlite3\.gz|\.pgdump|-exports\.zip)$",
+)
 # Unfinished files; anything left behind by a killed run is swept next time.
 TEMP_SUFFIXES = (".part", ".tmp", ".tmp-wal", ".tmp-shm")
 STATUS_FILE = "status.json"
@@ -61,6 +70,9 @@ LOCK_KEY = "backup_running"
 LOCK_TIMEOUT = 60 * 60 * 2
 ERROR_MAX_LENGTH = 300
 COPY_CHUNK_BYTES = 1024 * 1024
+# Under the lock timeout, so a hung dump is killed before the lock lapses.
+PG_DUMP_TIMEOUT = 60 * 60
+PG_VERIFY_TIMEOUT = 60 * 10
 
 
 class BackupError(Exception):
@@ -68,8 +80,13 @@ class BackupError(Exception):
 
 
 def supported():
-    """Return whether this database can be backed up (SQLite only)."""
-    return connection.vendor == "sqlite"
+    """Return whether this database can be backed up (SQLite or PostgreSQL)."""
+    return connection.vendor in DATABASE_SUFFIXES
+
+
+def database_label():
+    """Return the database's name as shown to people."""
+    return DATABASE_LABELS.get(connection.vendor, connection.vendor)
 
 
 def backup_name(timestamp, suffix):
@@ -144,13 +161,8 @@ def _integrity_verdict(path):
         database.close()
 
 
-def copy_database(directory, timestamp):
-    """Write a verified, compressed copy of the database; return its path."""
-    if not supported():
-        msg = f"{connection.vendor} databases are not supported"
-        raise BackupError(msg)
-
-    final = directory / backup_name(timestamp, DATABASE_SUFFIX)
+def _copy_sqlite(final):
+    """Write a verified, gzipped copy of the SQLite database to ``final``."""
     raw = final.with_name(final.name + ".tmp")
     part = final.with_name(final.name + ".part")
     try:
@@ -174,6 +186,102 @@ def copy_database(directory, timestamp):
     finally:
         for leftover in (raw, part, *(Path(f"{raw}{ext}") for ext in ("-wal", "-shm"))):
             leftover.unlink(missing_ok=True)
+
+
+def _postgres_environment():
+    """Return the environment that points the PostgreSQL tools at the database.
+
+    The connection, password included, travels in ``PG*`` variables and never
+    on a command line, where any user on the server could read it.
+    """
+    database = connection.settings_dict
+    options = database.get("OPTIONS") or {}
+    values = {
+        "PGHOST": database.get("HOST"),
+        "PGPORT": database.get("PORT"),
+        "PGDATABASE": database.get("NAME"),
+        "PGUSER": database.get("USER"),
+        "PGPASSWORD": database.get("PASSWORD"),
+        "PGSSLMODE": options.get("sslmode"),
+        "PGSSLCERTMODE": options.get("sslcertmode"),
+    }
+    environment = dict(os.environ)
+    environment.update({name: str(value) for name, value in values.items() if value})
+    return environment
+
+
+def _run_postgres_tool(arguments, timeout):
+    """Run ``pg_dump`` or ``pg_restore``; return its output or raise BackupError."""
+    tool = arguments[0]
+    try:
+        result = subprocess.run(  # noqa: S603 fixed tool names, our own arguments
+            arguments,
+            env=_postgres_environment(),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError:
+        msg = f"{tool} is not installed (the Docker image ships it)"
+        raise BackupError(msg) from None
+    except subprocess.TimeoutExpired:
+        msg = f"{tool} did not finish within {timeout // 60} minutes"
+        raise BackupError(msg) from None
+    if result.returncode != 0:
+        lines = result.stderr.strip().splitlines()
+        reason = lines[-1] if lines else f"exit code {result.returncode}"
+        msg = f"{tool} failed: {reason}"
+        raise BackupError(msg)
+    return result.stdout
+
+
+def _copy_postgresql(final):
+    """Write a verified ``pg_dump`` archive of the database to ``final``.
+
+    Custom format: compressed already, and restorable with ``pg_restore``.
+    ``pg_dump`` reads one snapshot, so the copy is consistent while the app
+    keeps writing. Ownership and grants are left out so the archive restores
+    under whichever database user the instance runs as.
+    """
+    part = final.with_name(final.name + ".part")
+    try:
+        _run_postgres_tool(
+            [
+                "pg_dump",
+                "--format=custom",
+                "--no-owner",
+                "--no-privileges",
+                "--no-password",
+                f"--file={part}",
+            ],
+            PG_DUMP_TIMEOUT,
+        )
+        # Reading the archive's table of contents back proves it is complete
+        # enough to restore from; an empty one means nothing was dumped.
+        listing = _run_postgres_tool(
+            ["pg_restore", "--list", str(part)],
+            PG_VERIFY_TIMEOUT,
+        )
+        if not any("TABLE DATA" in line for line in listing.splitlines()):
+            msg = "the copy holds no table data"
+            raise BackupError(msg)
+        _publish(part, final)
+    finally:
+        part.unlink(missing_ok=True)
+
+
+def copy_database(directory, timestamp):
+    """Write a verified, compressed copy of the database; return its path."""
+    if not supported():
+        msg = f"{connection.vendor} databases are not supported"
+        raise BackupError(msg)
+
+    final = directory / backup_name(timestamp, DATABASE_SUFFIXES[connection.vendor])
+    if connection.vendor == "postgresql":
+        _copy_postgresql(final)
+    else:
+        _copy_sqlite(final)
     return final
 
 
@@ -279,7 +387,9 @@ def _perform(directory, started):
     def run_retention():
         removed = prune(directory, started)
         kept = sum(
-            1 for path in list_backups(directory) if path.name.endswith(DATABASE_SUFFIX)
+            1
+            for path in list_backups(directory)
+            if path.name.endswith(tuple(DATABASE_SUFFIXES.values()))
         )
         return True, f"{removed} old removed, {kept} kept"
 
@@ -388,10 +498,13 @@ def get_status():
             for path in list_backups()
         ]
     database_copies = [
-        taken_at for (taken_at, suffix), _ in copies if suffix == DATABASE_SUFFIX
+        taken_at
+        for (taken_at, suffix), _ in copies
+        if suffix in DATABASE_SUFFIXES.values()
     ]
     return {
         "supported": supported(),
+        "database": database_label(),
         "enabled": settings.BACKUP_ENABLED,
         "hour": settings.BACKUP_HOUR,
         "retention_days": settings.BACKUP_RETENTION_DAYS,
@@ -415,7 +528,7 @@ def build_notification(report):
     by_name = {step["name"]: step for step in report["steps"]}
 
     if report["ok"]:
-        contents = "SQLite database"
+        contents = f"{database_label()} database"
         exports = by_name.get(STEP_EXPORTS)
         if exports and exports["status"] == OK:
             contents += f" + CSV exports for {exports['detail']}"

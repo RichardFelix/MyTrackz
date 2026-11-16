@@ -268,7 +268,7 @@
       <div class="bg-[#39404b] p-5 rounded-lg">
         {% if not backups.supported %}
           <p class="text-gray-400 text-sm">
-            Scheduled backups copy the built-in SQLite database. This instance uses {{ health.database_vendor }}, so back it up with that database's own tools.
+            Scheduled backups cover SQLite and PostgreSQL. This instance uses {{ health.database_vendor }}, so back it up with that database's own tools.
           </p>
         {% else %}
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
@@ -312,7 +312,7 @@
           {% endif %}
           <p class="text-gray-400 mt-4 mb-4 text-sm">
             {% if backups.enabled %}
-              The database is backed up every day at {{ backups.hour|stringformat:"02d" }}:00.
+              The {{ backups.database }} database is backed up every day at {{ backups.hour|stringformat:"02d" }}:00.
             {% else %}
               Scheduled backups are turned off with <code class="text-gray-300">BACKUP_ENABLED</code>.
             {% endif %}

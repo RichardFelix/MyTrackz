@@ -74,7 +74,7 @@ See [media-imports](media-imports.md).
 
 ## Backups
 
-The SQLite database is backed up every day; see [Backups](administration.md#backups) for what is written and how to restore. PostgreSQL installs are not covered.
+The database (SQLite or PostgreSQL) is backed up every day; see [Backups](administration.md#backups) for what is written and how to restore.
 
 | Name                       | Notes                                                                                                                                                                                                             |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -800,7 +800,7 @@ def back_up_database():
     if not settings.BACKUP_ENABLED:
         return "Backups are turned off (BACKUP_ENABLED=False)."
     if not backups.supported():
-        return "Backups only support SQLite; nothing was done."
+        return "Backups support SQLite and PostgreSQL only; nothing was done."
 
     report = backups.run_backup()
     if report is None:

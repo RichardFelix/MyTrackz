@@ -1,6 +1,7 @@
 import gzip
 import json
 import sqlite3
+import subprocess
 import tempfile
 import zipfile
 from datetime import UTC, datetime, timedelta
@@ -34,6 +35,10 @@ class NamingAndRetentionTests(SimpleTestCase):
 
         self.assertEqual(name, "mytrackz-20261111T030000Z.sqlite3.gz")
         self.assertEqual(
+            backups.parse_backup_name("mytrackz-20261111T030000Z.pgdump"),
+            (NOW, backups.POSTGRES_SUFFIX),
+        )
+        self.assertEqual(
             backups.parse_backup_name(name),
             (NOW, backups.DATABASE_SUFFIX),
         )
@@ -45,6 +50,7 @@ class NamingAndRetentionTests(SimpleTestCase):
             "status.json",
             "mytrackz-20261111T030000Z.sqlite3.gz.part",
             "mytrackz-20261111T030000Z.sqlite3.gz.tmp",
+            "mytrackz-20261111T030000Z.pgdump.part",
             "mytrackz-20269999T030000Z.sqlite3.gz",
             "../mytrackz-20261111T030000Z.sqlite3.gz",
         ):
@@ -243,8 +249,8 @@ class BackupRunTests(BackupTestCase):
         self.assertEqual(backups.list_backups(), [])
 
     def test_other_databases_are_refused(self):
-        """Anything but SQLite is reported as unsupported."""
-        with patch.object(connection, "vendor", "postgresql"):
+        """Anything but SQLite and PostgreSQL is reported as unsupported."""
+        with patch.object(connection, "vendor", "mysql"):
             report = backups.run_backup()
 
         self.assertFalse(report["ok"])
@@ -281,6 +287,152 @@ class BackupRunTests(BackupTestCase):
         self.assertFalse(status["running"])
         saved = json.loads((self.backup_dir / backups.STATUS_FILE).read_text())
         self.assertEqual(saved["steps"], report["steps"])
+
+
+PG_LISTING = """;
+; Archive created at 2026-11-11 03:00:00 UTC
+3410; 0 16412 TABLE DATA public app_item yamtrack
+"""
+
+
+class PostgresBackupTests(BackupTestCase):
+    """On PostgreSQL the copy is a pg_dump archive, read back before it is kept."""
+
+    def setUp(self):
+        """Pretend the connection is PostgreSQL and stand in for its tools."""
+        super().setUp()
+        # Database copy only: the exports read through the (SQLite) test ORM.
+        self.enterContext(override_settings(BACKUP_USER_EXPORTS=False))
+        self.enterContext(patch.object(connection, "vendor", "postgresql"))
+        self.enterContext(
+            patch.dict(
+                connection.settings_dict,
+                {
+                    "HOST": "db",
+                    "PORT": "5432",
+                    "NAME": "yamtrack",
+                    "USER": "tracker",
+                    "PASSWORD": "pg-secret",
+                    "OPTIONS": {"pool": True, "sslmode": "require"},
+                },
+            ),
+        )
+        self.calls = []
+        self.dump_error = ""
+        self.listing = PG_LISTING
+        self.enterContext(patch("app.backups.subprocess.run", self.fake_run))
+
+    def fake_run(self, arguments, **kwargs):
+        """Stand in for pg_dump (writes the archive) and pg_restore --list."""
+        self.calls.append((arguments, kwargs))
+        if arguments[0] == "pg_dump":
+            if self.dump_error:
+                return subprocess.CompletedProcess(arguments, 1, "", self.dump_error)
+            target = next(
+                argument.split("=", 1)[1]
+                for argument in arguments
+                if argument.startswith("--file=")
+            )
+            Path(target).write_bytes(b"PGDMP archive")
+            return subprocess.CompletedProcess(arguments, 0, "", "")
+        return subprocess.CompletedProcess(arguments, 0, self.listing, "")
+
+    def test_copy_is_a_verified_dump(self):
+        """A run publishes a private .pgdump that pg_restore could list."""
+        report = backups.run_backup()
+
+        self.assertTrue(report["ok"])
+        name = report["files"][0]["name"]
+        self.assertTrue(name.endswith(backups.POSTGRES_SUFFIX))
+        dump = self.backup_dir / name
+        self.assertEqual(dump.read_bytes(), b"PGDMP archive")
+        self.assertEqual(dump.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(
+            [arguments[0] for arguments, _ in self.calls],
+            ["pg_dump", "pg_restore"],
+        )
+        self.assertEqual(self.calls[1][0][1:], ["--list", f"{dump}.part"])
+        self.assertEqual(
+            sorted(path.name for path in self.backup_dir.iterdir()),
+            sorted([name, "status.json"]),
+        )
+
+    def test_connection_travels_in_the_environment(self):
+        """The password is passed by environment, never on the command line."""
+        backups.run_backup()
+
+        arguments, kwargs = self.calls[0]
+        self.assertNotIn("pg-secret", " ".join(arguments))
+        environment = kwargs["env"]
+        self.assertEqual(environment["PGHOST"], "db")
+        self.assertEqual(environment["PGPORT"], "5432")
+        self.assertEqual(environment["PGDATABASE"], "yamtrack")
+        self.assertEqual(environment["PGUSER"], "tracker")
+        self.assertEqual(environment["PGPASSWORD"], "pg-secret")
+        self.assertEqual(environment["PGSSLMODE"], "require")
+
+    def test_failed_dump_is_reported_and_deletes_nothing(self):
+        """pg_dump's error reaches the report; nothing is kept or pruned."""
+        expired = self.old_copy(30, backups.POSTGRES_SUFFIX)
+        self.dump_error = (
+            "pg_dump: error: connection to server failed\n"
+            "pg_dump: error: aborting because of server version mismatch"
+        )
+
+        report = backups.run_backup()
+
+        self.assertFalse(report["ok"])
+        self.assertIn("server version mismatch", report["steps"][0]["detail"])
+        self.assertNotIn("pg-secret", json.dumps(report))
+        self.assertEqual(backups.list_backups(), [expired])
+
+    def test_empty_dump_is_rejected(self):
+        """An archive without table data is not published."""
+        self.listing = "; Archive created at 2026-11-11 03:00:00 UTC\n"
+
+        report = backups.run_backup()
+
+        self.assertFalse(report["ok"])
+        self.assertIn("no table data", report["steps"][0]["detail"])
+        self.assertEqual(backups.list_backups(), [])
+
+    def test_missing_client_is_explained(self):
+        """Without pg_dump on the machine the step says so."""
+        with patch("app.backups.subprocess.run", side_effect=FileNotFoundError):
+            report = backups.run_backup()
+
+        self.assertIn("pg_dump is not installed", report["steps"][0]["detail"])
+
+    def test_hung_dump_is_stopped(self):
+        """A dump past its time limit fails instead of holding the lock."""
+        with patch(
+            "app.backups.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("pg_dump", 3600),
+        ):
+            report = backups.run_backup()
+
+        self.assertIn("did not finish within 60 minutes", report["steps"][0]["detail"])
+        self.assertEqual(backups.list_backups(), [])
+
+    def test_retention_and_status_cover_both_kinds(self):
+        """Old dumps expire and SQLite copies left from before still count."""
+        expired = self.old_copy(15, backups.POSTGRES_SUFFIX)
+        earlier_sqlite = self.old_copy(3)
+
+        report = backups.run_backup()
+
+        self.assertFalse(expired.exists())
+        self.assertTrue(earlier_sqlite.exists())
+        self.assertEqual(report["steps"][-1]["detail"], "1 old removed, 2 kept")
+        status = backups.get_status()
+        self.assertEqual(status["copy_count"], 2)
+        self.assertEqual(status["database"], "PostgreSQL")
+
+    def test_notification_names_the_database(self):
+        """The completed message says PostgreSQL was backed up."""
+        _, body = backups.build_notification(backups.run_backup())
+
+        self.assertIn("Backed up: PostgreSQL database", body)
 
 
 class NotificationTests(BackupTestCase):
@@ -394,9 +546,9 @@ class BackupTaskTests(BackupTestCase):
         self.assertFalse(self.backup_dir.exists())
 
     def test_other_databases_do_nothing(self):
-        """On PostgreSQL the task reports it and neither runs nor fails."""
-        with patch.object(connection, "vendor", "postgresql"):
-            self.assertIn("only support SQLite", back_up_database())
+        """On another database the task reports it and neither runs nor fails."""
+        with patch.object(connection, "vendor", "mysql"):
+            self.assertIn("SQLite and PostgreSQL only", back_up_database())
 
         self.assertFalse(self.backup_dir.exists())
 

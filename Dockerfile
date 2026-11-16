@@ -36,7 +36,10 @@ COPY ./nginx.conf /etc/nginx/nginx.conf
 # Generate a copy of the nginx config with IPv6 support.
 RUN sed 's/listen 8000;/listen 8000; listen [::]:8000;/' /etc/nginx/nginx.conf > /etc/nginx/nginx.ipv6.conf
 
-RUN apk add --no-cache nginx shadow \
+# postgresql18-client: pg_dump/pg_restore for the scheduled backup of
+# PostgreSQL installs. pg_dump refuses a server newer than itself, so bump
+# this when a newer PostgreSQL major is supported.
+RUN apk add --no-cache nginx shadow postgresql18-client \
     && chmod +x /entrypoint.sh \
     # create user abc for later PUID/PGID mapping
     && useradd -U -M -s /bin/sh abc \
