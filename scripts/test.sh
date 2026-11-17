@@ -16,8 +16,8 @@ mkdir -p "$UV_CACHE_DIR"
 
 uv sync --locked --group dev
 
-echo "== ruff (report only, not a hard gate) =="
-uv run ruff check src || echo "ruff found issues (non-fatal, see above)"
+echo "== ruff =="
+uv run ruff check src
 
 echo "== makemigrations --check =="
 (cd src && uv run manage.py makemigrations --check --dry-run)
