@@ -8,7 +8,6 @@ services:
       - redis
     environment:
       - TZ=Europe/Berlin
-      - SECRET=longstring
       - REDIS_URL=redis://redis:6379
       - DB_HOST=db
       - DB_NAME=yamtrack
@@ -16,6 +15,8 @@ services:
       - DB_PASSWORD=yamtrack
       - DB_PORT=5432
     volumes:
+      # Holds the generated secret key when SECRET is not set.
+      - ./config:/yamtrack/db
       - ./media:/yamtrack/mediafiles
       - ./backups:/yamtrack/backups
     ports:

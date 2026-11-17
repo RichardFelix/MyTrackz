@@ -21,6 +21,8 @@ from decouple import (
 from django.core.cache import CacheKeyWarning
 from django.core.exceptions import ImproperlyConfigured
 
+from config import secret_key
+
 BASE_URL = config("BASE_URL", default=None)
 if BASE_URL:
     FORCE_SCRIPT_NAME = BASE_URL
@@ -70,14 +72,22 @@ def secret(key, default=undefined, **kwargs):
         return secret_value
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config(
-    "SECRET",
-    default=secret("SECRET_FILE", default="ifx7bdUWo5EwC2NQNihjRjOrW00Cdv5Y"),
-)
+# There is deliberately no built-in default: a key in the source code is
+# public. Without SECRET or SECRET_FILE, a random key is generated on first
+# start and kept next to the database.
+SECRET_KEY = config("SECRET", default=secret("SECRET_FILE", default=""))
+if SECRET_KEY in secret_key.PLACEHOLDERS:
+    # The example value older Compose files shipped with is as public as a
+    # built-in default, so it is not accepted as a key.
+    warnings.warn(
+        "SECRET is set to the example value from the documentation and is "
+        "being ignored. Remove it, or set your own long random value.",
+        stacklevel=1,
+    )
+    SECRET_KEY = ""
+if not SECRET_KEY:
+    SECRET_KEY = secret_key.load_or_create(BASE_DIR / "db" / "secret_key")
 
 
 # SECURITY WARNING: don't run with debug turned on in production!

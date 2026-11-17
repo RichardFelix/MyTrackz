@@ -52,7 +52,9 @@ COPY --from=builder /yamtrack/.venv /yamtrack/.venv
 
 # Django app
 COPY src ./
-RUN python manage.py collectstatic --noinput
+# SECRET here only lets settings load for the build step. Without it a secret
+# key would be generated and baked into the image, shared by every install.
+RUN SECRET=build-only python manage.py collectstatic --noinput
 
 EXPOSE 8000
 

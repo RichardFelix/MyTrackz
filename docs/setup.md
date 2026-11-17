@@ -28,13 +28,13 @@ curl -LO https://raw.githubusercontent.com/FuzzyGrim/Yamtrack/release/docker-com
 
 ## 2) Update the environment values
 
-Open the Compose file and replace the example secret:
+A secret key is generated on first start and saved as `secret_key` in the mounted `db` folder (`config` in the PostgreSQL example), so there is nothing to set. To manage the key yourself, add a long random value:
 
 ```yaml
-SECRET=longstring
+SECRET=<long random value>
 ```
 
-Use a long random value for `SECRET`. If you are running Yamtrack behind a reverse proxy, also set `URLS` to the public origin:
+If you are running Yamtrack behind a reverse proxy, also set `URLS` to the public origin:
 
 ```yaml
 URLS=https://yamtrack.mydomain.com

@@ -23,6 +23,6 @@ echo "== makemigrations --check =="
 (cd src && uv run manage.py makemigrations --check --dry-run)
 
 echo "== test suite =="
-uv run coverage run src/manage.py test app users integrations lists events --parallel
+uv run coverage run src/manage.py test app users integrations lists events config --parallel
 uv run coverage combine
 uv run coverage report

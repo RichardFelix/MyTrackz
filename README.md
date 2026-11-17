@@ -183,7 +183,7 @@ cd mytrackz
 
 ### 2. Configure the service
 
-Open `docker-compose.yml` and replace the example `SECRET` with a long, random value. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to use your own key for LEGO set search, or `KICKSDB_API` for sneaker search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
+Open `docker-compose.yml`. A secret key is generated on first start and kept in the `db` folder; set `SECRET` to a long, random value if you would rather manage it yourself. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to use your own key for LEGO set search, or `KICKSDB_API` for sneaker search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
 
 See [Environment variables](docs/env-variables.md) for every available setting.
 
