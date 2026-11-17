@@ -1,0 +1,1 @@
+{"request":{"method":"GET","url":"https://api.myanimelist.net/v2/anime?fields=media_type&limit=24&q=q","body":""},"status":400,"headers":{"Content-Type":"application/json; charset=UTF-8"},"json":{"message":"invalid q","error":"bad_request"}}

@@ -1,0 +1,1 @@
+{"request":{"method":"GET","url":"https://api.myanimelist.net/v2/users/fhdsufdsu/animelist?fields=num_episodes%2Cnum_chapters%2Clist_status%7Bcomments%2Cnum_times_rewatched%2Cnum_times_reread%7D&limit=1000&nsfw=true","body":""},"status":404,"headers":{"Content-Type":"application/json; charset=UTF-8"},"json":{"message":"","error":"not_found"}}

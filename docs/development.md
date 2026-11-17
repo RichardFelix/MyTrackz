@@ -125,3 +125,17 @@ To run tests for a specific app or test module, pass the test label after `test`
 cd src
 uv run manage.py test app.tests --parallel
 ```
+
+### Tests and the network
+
+The tests do not call the provider APIs. Outgoing HTTP requests are answered from recorded responses in `src/config/tests/http_recordings`, so the suite gives the same result offline or during a provider outage.
+
+If a new test makes a request that has not been recorded, it fails with `No recorded response for ...`. Record it once against the real service:
+
+```bash
+HTTP_REPLAY=record uv run manage.py test app.tests.providers.test_metadata
+```
+
+Commit the new files under `http_recordings`. API keys are removed from recordings automatically, but look over a new file before committing it.
+
+To run against the real services instead of the recordings, set `HTTP_REPLAY=live`.

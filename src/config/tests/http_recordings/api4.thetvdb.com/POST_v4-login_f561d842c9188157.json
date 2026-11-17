@@ -1,0 +1,1 @@
+{"request":{"method":"POST","url":"https://api4.thetvdb.com/v4/login","body":"{}"},"status":200,"headers":{"Content-Type":"application/json; charset=UTF-8"},"json":{"status":"success","data":{"token":"recorded-token"}},"tokens_replaced":true}

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -130,8 +131,12 @@ class Trending(TestCase):
         results = mal.trending(MediaTypes.MANGA.value)
         self._assert_trending_shape(results, MediaTypes.MANGA.value)
 
-    def test_igdb_trending_games(self):
+    @patch("app.providers.igdb.timezone.now")
+    def test_igdb_trending_games(self, mock_now):
         """IGDB popular recent games return well-formed entries."""
+        # The query embeds "one year ago", so pin the clock to keep the
+        # request identical to the recorded one.
+        mock_now.return_value = datetime(2026, 11, 17, tzinfo=UTC)
         results = igdb.trending()
         self._assert_trending_shape(results, MediaTypes.GAME.value)
 

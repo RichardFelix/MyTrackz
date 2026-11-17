@@ -1,5 +1,6 @@
 from fakeredis import FakeRedisConnection
 
+from . import http_replay
 from .settings import *  # noqa: F403
 
 CACHES = {
@@ -19,3 +20,7 @@ TESTING = True
 
 # Steam API key for testing
 STEAM_API_KEY = "test_steam_api_key"
+
+# Answer outgoing HTTP requests from recordings instead of the network.
+# See config/http_replay.py for the record and live modes.
+http_replay.install()
