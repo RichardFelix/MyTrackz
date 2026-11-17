@@ -94,7 +94,8 @@ urlpatterns.append(path("accounts/", include(account_patterns)))
 if settings.ADMIN_ENABLED:
     urlpatterns.append(path("admin/", admin.site.urls))
 
-# Add debug toolbar if in DEBUG mode
-if settings.DEBUG:
+if settings.DEBUG_TOOLBAR_ENABLED:
     urlpatterns.append(path("__debug__/", include("debug_toolbar.urls")))
+
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

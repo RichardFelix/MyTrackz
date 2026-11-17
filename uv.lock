@@ -2765,7 +2765,6 @@ dependencies = [
     { name = "django-allauth", extra = ["socialaccount"] },
     { name = "django-celery-beat" },
     { name = "django-celery-results" },
-    { name = "django-debug-toolbar" },
     { name = "django-health-check", extra = ["celery", "redis"] },
     { name = "django-model-utils" },
     { name = "django-redis" },
@@ -2787,6 +2786,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "django-debug-toolbar" },
     { name = "django-upgrade" },
     { name = "djlint" },
     { name = "fakeredis", extra = ["lua"] },
@@ -2827,7 +2827,6 @@ requires-dist = [
     { name = "django-allauth", extras = ["socialaccount"], specifier = "~=65.21.1" },
     { name = "django-celery-beat", specifier = "~=2.9.0" },
     { name = "django-celery-results", specifier = "~=2.6.0" },
-    { name = "django-debug-toolbar", specifier = "~=6.3.0" },
     { name = "django-health-check", extras = ["celery", "redis"], specifier = "~=4.4.1" },
     { name = "django-model-utils", specifier = "~=5.0.0" },
     { name = "django-redis", specifier = "~=6.0.0" },
@@ -2849,6 +2848,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = "~=7.13.5" },
+    { name = "django-debug-toolbar", specifier = "~=6.3.0" },
     { name = "django-upgrade", specifier = "~=1.30.0" },
     { name = "djlint", specifier = "~=1.36.4" },
     { name = "fakeredis", extras = ["lua"], specifier = "~=2.35.1" },

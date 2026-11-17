@@ -1,5 +1,6 @@
 """Django settings for Yamtrack project."""
 
+import importlib.util
 import json
 import sys
 import warnings
@@ -120,7 +121,6 @@ INSTALLED_APPS = [
     "integrations",
     "lists",
     "users",
-    "debug_toolbar",
     "django_celery_beat",
     "django_celery_results",
     "django_select2",
@@ -134,7 +134,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -575,6 +574,14 @@ HEALTHCHECK_CELERY_PING_TIMEOUT = config(
 )
 
 # Third party settings
+
+# The debug toolbar is a development dependency: the production image does not
+# install it, so load it only in DEBUG mode and only when it is available.
+DEBUG_TOOLBAR_ENABLED = DEBUG and importlib.util.find_spec("debug_toolbar") is not None
+
+if DEBUG_TOOLBAR_ENABLED:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
 DEBUG_TOOLBAR_CONFIG = {
     "SKIP_TEMPLATE_PREFIXES": (
