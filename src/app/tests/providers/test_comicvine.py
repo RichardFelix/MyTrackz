@@ -251,3 +251,4 @@ class ComicVineTests(TestCase):
         self.assertEqual(comicvine.get_issue_number("463-464"), 464)
         self.assertIsNone(comicvine.get_issue_number("Annual"))
         self.assertIsNone(comicvine.get_issue_number("1.5-A"))
+        self.assertIsNone(comicvine.get_issue_number(None))

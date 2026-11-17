@@ -221,6 +221,9 @@ def get_issue_number(issue_number):
     For compound issue numbers (like "463-464"), returns the highest number.
     Returns None if no valid issue number can be extracted.
     """
+    if issue_number is None:
+        return None
+
     try:
         return int(issue_number)
 
