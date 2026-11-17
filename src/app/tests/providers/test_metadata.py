@@ -1,7 +1,7 @@
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import requests
 from defusedxml import ElementTree
@@ -399,11 +399,56 @@ class Metadata(TestCase):
         """A response with no cover falls back to the no-image placeholder."""
         self.assertEqual(igdb.get_image_url({}), settings.IMG_NONE)
 
-    def test_book(self):
+    @patch("app.providers.openlibrary.get_ratings", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_editions", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.get_authors", new_callable=AsyncMock)
+    @patch("app.providers.openlibrary.services.api_request")
+    def test_book(self, mock_api_request, mock_authors, mock_editions, mock_ratings):
         """Test the metadata method for books."""
+        cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_OL21733390M"
+        cache.delete(cache_key)
+        self.addCleanup(cache.delete, cache_key)
+        response_book = {
+            "key": "/books/OL21733390M",
+            "title": "Nineteen Eighty-Four",
+            "works": [{"key": "/works/OL1168083W"}],
+            "number_of_pages": 326,
+            "covers": [9267242],
+            "physical_format": "Paperback",
+            "publish_date": "July 1, 2008",
+            "publishers": ["Penguin Books"],
+            "isbn_13": ["9780141036144"],
+        }
+        response_work = {
+            "key": "/works/OL1168083W",
+            "description": {"type": "/type/text", "value": "A dystopian novel."},
+            "subjects": ["Dystopias", "Totalitarianism"],
+            "authors": [{"author": {"key": "/authors/OL118077A"}}],
+        }
+        mock_api_request.side_effect = [response_book, response_work]
+        mock_authors.return_value = ["George Orwell"]
+        mock_editions.return_value = []
+        mock_ratings.return_value = (4.3, 1200)
+
         response = openlibrary.book("OL21733390M")
+
         self.assertEqual(response["title"], "Nineteen Eighty-Four")
         self.assertEqual(response["details"]["author"], ["George Orwell"])
+        self.assertEqual(response["max_progress"], 326)
+        self.assertEqual(response["synopsis"], "A dystopian novel.")
+        self.assertEqual(response["genres"], ["Dystopias", "Totalitarianism"])
+        self.assertEqual(response["details"]["publish_date"], "2008-07-01")
+        self.assertEqual(response["score"], 4.3)
+        self.assertEqual(response["score_count"], 1200)
+        urls = [call.args[2] for call in mock_api_request.call_args_list]
+        self.assertEqual(
+            urls,
+            [
+                "https://openlibrary.org/books/OL21733390M.json",
+                "https://openlibrary.org/works/OL1168083W.json",
+            ],
+        )
+        mock_authors.assert_awaited_once_with(response_work)
 
     def test_openlibrary_publish_date_with_abbreviated_month(self):
         """Test Open Library publish dates with abbreviated month names."""

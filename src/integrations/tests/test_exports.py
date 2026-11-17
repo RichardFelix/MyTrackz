@@ -1,6 +1,7 @@
 import csv
 from datetime import UTC, datetime
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -30,6 +31,34 @@ class ExportCSVTest(TestCase):
         self.credentials = {"username": "test", "password": "12345"}
         self.user = get_user_model().objects.create_superuser(**self.credentials)
         self.client.login(**self.credentials)
+
+        # Saving tracked media looks up its length and upcoming releases from
+        # the providers. The export does not depend on either, so keep the
+        # test off the network.
+        for target, kwargs in (
+            (
+                "app.providers.services.get_media_metadata",
+                {
+                    "return_value": {
+                        "max_progress": None,
+                        "title": "Friends",
+                        "image": "https://image.url",
+                        "season/1": {
+                            "image": "https://image.url",
+                            "max_progress": 2,
+                            "episodes": [
+                                {"episode_number": 1, "air_date": "1994-09-22"},
+                                {"episode_number": 2, "air_date": "1994-09-29"},
+                            ],
+                        },
+                    },
+                },
+            ),
+            ("app.models.Item.fetch_releases", {}),
+        ):
+            patcher = patch(target, **kwargs)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
         item_movie = Item.objects.create(
             media_id="10494",

@@ -1,8 +1,9 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import requests
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -91,13 +92,28 @@ class ImportAniList(TestCase):
             datetime(2025, 6, 4, 10, 11, 17, tzinfo=UTC),
         )
 
-    def test_user_not_found(self):
+    @patch("app.providers.services.api_request")
+    def test_user_not_found(self, mock_api_request):
         """Test that an error is raised if the user is not found."""
-        self.assertRaises(
+        response = Mock(status_code=404)
+        response.json.return_value = {"errors": [{"message": "User not found"}]}
+        mock_api_request.side_effect = requests.exceptions.HTTPError(response=response)
+
+        with self.assertRaisesMessage(
             helpers.MediaImportError,
-            anilist.importer,
-            None,
-            self.user,
-            "new",
-            "fhdsufdsu",
-        )
+            "User fhdsufdsu not found.",
+        ):
+            anilist.importer(None, self.user, "new", "fhdsufdsu")
+
+    @patch("app.providers.services.api_request")
+    def test_private_user(self, mock_api_request):
+        """Test that a private profile is reported as such."""
+        response = Mock(status_code=403)
+        response.json.return_value = {"errors": [{"message": "Private User"}]}
+        mock_api_request.side_effect = requests.exceptions.HTTPError(response=response)
+
+        with self.assertRaisesMessage(
+            helpers.MediaImportError,
+            "User fhdsufdsu is private.",
+        ):
+            anilist.importer(None, self.user, "new", "fhdsufdsu")
