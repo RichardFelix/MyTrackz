@@ -9,7 +9,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from app.models import Anime, Item, MediaTypes, Movie, Sources, Status
 from app.providers import services
 from integrations.imports import helpers, simkl
-from integrations.imports.helpers import MediaImportUnexpectedError
+from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
 
 def provider_error(source, status_code):
@@ -93,6 +93,30 @@ class SimklOAuthTests(TestCase):
         self.assertTrue(params["redirect_uri"].endswith("/import/simkl_private"))
         self.assertEqual(user_call.args[2], "https://api.simkl.com/users/settings")
         self.assertEqual(user_call.kwargs["headers"]["Authorization"], "Bearer access")
+
+    @patch("app.providers.services.api_request")
+    def test_rejected_credentials_are_explained(self, mock_api_request):
+        """Test a 401 from SIMKL is reported as a bad secret key."""
+        response = Mock(status_code=401, text="error")
+        mock_api_request.side_effect = requests.exceptions.HTTPError(response=response)
+        request = RequestFactory().get("/import/simkl_private", {"code": "abc"})
+
+        with self.assertRaisesMessage(MediaImportError, "Invalid SIMKL secret key."):
+            simkl.get_token(request)
+        with self.assertRaisesMessage(MediaImportError, "Invalid SIMKL secret key."):
+            simkl.get_username("access")
+
+    @patch("app.providers.services.api_request")
+    def test_other_oauth_errors_propagate(self, mock_api_request):
+        """Test a SIMKL outage is not blamed on the secret key."""
+        response = Mock(status_code=503, text="error")
+        mock_api_request.side_effect = requests.exceptions.HTTPError(response=response)
+        request = RequestFactory().get("/import/simkl_private", {"code": "abc"})
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            simkl.get_token(request)
+        with self.assertRaises(requests.exceptions.HTTPError):
+            simkl.get_username("access")
 
 
 class SimklImporterTests(TestCase):

@@ -404,6 +404,97 @@ class OAuthCallbackViewTests(ImportViewTestCase):
         mock_delay.assert_not_called()
         self.assertFalse(PeriodicTask.objects.exists())
 
+    def test_callbacks_reject_missing_or_unknown_state(self):
+        """Test a callback without a state we issued never exchanges a token."""
+        cases = [
+            ("import_simkl_private", "simkl.get_token", "SIMKL"),
+            ("import_anilist_private", "anilist.get_token", "AniList"),
+            ("import_trakt_private", "trakt.handle_oauth_callback", "Trakt"),
+        ]
+        for url_name, exchange, label in cases:
+            for query in ({"code": "code"}, {"code": "code", "state": "unknown"}):
+                with (
+                    self.subTest(url_name=url_name, query=query),
+                    patch(f"integrations.views.{exchange}") as mock_exchange,
+                ):
+                    response = self.client.get(reverse(url_name), query)
+
+                    self.assertRedirects(response, reverse("import_data"))
+                    self.assert_message(
+                        response,
+                        f"Invalid or expired {label} authorization request.",
+                    )
+                    mock_exchange.assert_not_called()
+
+    def test_callbacks_require_code(self):
+        """Test a denied authorization (no code) never exchanges a token."""
+        cases = [
+            ("import_simkl_private", "simkl.get_token", "SIMKL"),
+            ("import_anilist_private", "anilist.get_token", "AniList"),
+        ]
+        self.set_oauth_state("state-token", "once")
+        for url_name, exchange, label in cases:
+            with (
+                self.subTest(url_name=url_name),
+                patch(f"integrations.views.{exchange}") as mock_exchange,
+            ):
+                response = self.client.get(
+                    reverse(url_name),
+                    {"state": "state-token", "error": "access_denied"},
+                )
+
+                self.assertRedirects(response, reverse("import_data"))
+                self.assert_message(response, f"{label} authorization failed.")
+                mock_exchange.assert_not_called()
+
+    def test_callbacks_explain_rejected_credentials(self):
+        """Test a bad secret key is shown to the user instead of a server error."""
+        cases = [
+            ("import_simkl_private", "simkl.get_token", "import_simkl"),
+            ("import_anilist_private", "anilist.get_token", "import_anilist"),
+            ("import_trakt_private", "trakt.handle_oauth_callback", "import_trakt"),
+        ]
+        self.set_oauth_state("state-token", "once")
+        for url_name, exchange, task_name in cases:
+            with (
+                self.subTest(url_name=url_name),
+                patch(f"integrations.views.{exchange}") as mock_exchange,
+                patch(f"integrations.views.tasks.{task_name}.delay") as mock_delay,
+            ):
+                mock_exchange.side_effect = helpers.MediaImportError(
+                    "Invalid secret key.",
+                )
+
+                response = self.client.get(
+                    reverse(url_name),
+                    {"code": "code", "state": "state-token"},
+                )
+
+                self.assertRedirects(response, reverse("import_data"))
+                self.assert_message(response, "Invalid secret key.")
+                mock_delay.assert_not_called()
+        self.assertFalse(PeriodicTask.objects.exists())
+
+    @patch("integrations.views.tasks.import_anilist.delay")
+    @patch("integrations.views.tasks.import_simkl.delay")
+    @patch("integrations.views.anilist.get_token")
+    @patch("integrations.views.simkl.get_token")
+    def test_state_is_single_use(self, mock_simkl, mock_anilist, *_):
+        """Test a used state cannot be replayed."""
+        token = {"access_token": "access", "username": "someone"}
+        mock_simkl.return_value = token
+        mock_anilist.return_value = token
+        for url_name in ("import_simkl_private", "import_anilist_private"):
+            with self.subTest(url_name=url_name):
+                self.set_oauth_state("state-token", "once")
+
+                self.client.get(
+                    reverse(url_name),
+                    {"code": "code", "state": "state-token"},
+                )
+
+                self.assertNotIn("state-token", self.client.session)
+
     @patch("integrations.views.trakt.handle_oauth_callback")
     def test_trakt_callback_requires_code(self, mock_oauth_callback):
         """Test a Trakt callback without a code never exchanges a token."""

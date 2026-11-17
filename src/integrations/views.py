@@ -72,7 +72,14 @@ def import_trakt_private(request):
         request,
         reverse("import_trakt_private"),
     )
-    oauth_callback = trakt.handle_oauth_callback(request, redirect_uri=redirect_uri)
+    try:
+        oauth_callback = trakt.handle_oauth_callback(
+            request,
+            redirect_uri=redirect_uri,
+        )
+    except helpers.MediaImportError as error:
+        messages.error(request, str(error))
+        return redirect("import_data")
     enc_token = helpers.encrypt(oauth_callback["refresh_token"])
 
     frequency = state["frequency"]
@@ -168,13 +175,26 @@ def simkl_oauth(request):
 @require_GET
 def import_simkl_private(request):
     """View for getting the SIMKL OAuth2 token."""
-    oauth_callback = simkl.get_token(request)
-    enc_token = helpers.encrypt(oauth_callback["access_token"])
-    state_token = request.GET["state"]
+    state_token = request.GET.get("state")
+    state = request.session.get(state_token)
+    if not state:
+        messages.error(request, "Invalid or expired SIMKL authorization request.")
+        return redirect("import_data")
 
-    frequency = request.session[state_token]["frequency"]
-    mode = request.session[state_token]["mode"]
-    import_time = request.session[state_token]["time"]
+    if not request.GET.get("code"):
+        messages.error(request, "SIMKL authorization failed.")
+        return redirect("import_data")
+
+    try:
+        oauth_callback = simkl.get_token(request)
+    except helpers.MediaImportError as error:
+        messages.error(request, str(error))
+        return redirect("import_data")
+    enc_token = helpers.encrypt(oauth_callback["access_token"])
+
+    frequency = state["frequency"]
+    mode = state["mode"]
+    import_time = state["time"]
 
     if frequency == "once":
         tasks.import_simkl.delay(token=enc_token, user_id=request.user.id, mode=mode)
@@ -190,6 +210,7 @@ def import_simkl_private(request):
             token=enc_token,
         )
 
+    request.session.pop(state_token, None)
     return redirect("import_data")
 
 
@@ -257,18 +278,31 @@ def anilist_oauth(request):
 @require_GET
 def import_anilist_private(request):
     """View for getting the AniList OAuth2 token."""
-    oauth_callback = anilist.get_token(request)
+    state_token = request.GET.get("state")
+    state = request.session.get(state_token)
+    if not state:
+        messages.error(request, "Invalid or expired AniList authorization request.")
+        return redirect("import_data")
+
+    if not request.GET.get("code"):
+        messages.error(request, "AniList authorization failed.")
+        return redirect("import_data")
+
+    try:
+        oauth_callback = anilist.get_token(request)
+    except helpers.MediaImportError as error:
+        messages.error(request, str(error))
+        return redirect("import_data")
     enc_token = helpers.encrypt(oauth_callback["access_token"])
-    state_token = request.GET["state"]
     username = oauth_callback["username"]
 
     if not username:
         messages.error(request, "AniList username is required.")
         return redirect("import_data")
 
-    frequency = request.session[state_token]["frequency"]
-    mode = request.session[state_token]["mode"]
-    import_time = request.session[state_token]["time"]
+    frequency = state["frequency"]
+    mode = state["mode"]
+    import_time = state["time"]
 
     if frequency == "once":
         tasks.import_anilist.delay(
@@ -288,6 +322,7 @@ def import_anilist_private(request):
             source="AniList",
             token=enc_token,
         )
+    request.session.pop(state_token, None)
     return redirect("import_data")
 
 

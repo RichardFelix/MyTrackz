@@ -333,13 +333,9 @@ class KitsuImporter:
 
     def _get_image_url(self, media):
         """Get the image URL for a media item."""
-        try:
-            return media["attributes"]["posterImage"]["medium"]
-        except KeyError:
-            try:
-                return media["attributes"]["posterImage"]["original"]
-            except KeyError:
-                return settings.IMG_NONE
+        # Kitsu sends a null posterImage for media without a poster.
+        poster = media["attributes"].get("posterImage") or {}
+        return poster.get("medium") or poster.get("original") or settings.IMG_NONE
 
     def _get_rating(self, rating):
         """Convert the rating from Kitsu to a 0-10 scale."""

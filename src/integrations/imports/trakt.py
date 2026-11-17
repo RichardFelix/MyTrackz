@@ -46,8 +46,8 @@ def handle_oauth_callback(request, redirect_uri=None):
             url,
             params=params,
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid Trakt secret key."
             raise MediaImportError(msg) from error
         raise
@@ -76,8 +76,8 @@ def get_username_from_oauth(access_token):
             url,
             headers=headers,
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid Trakt secret key."
             raise MediaImportError(msg) from error
         raise
@@ -111,8 +111,8 @@ def get_access_token(encrypted_refresh_token, redirect_uri=None):
             url,
             params=params,
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid Trakt secret key."
             raise MediaImportError(msg) from error
         raise

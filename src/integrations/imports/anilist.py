@@ -11,7 +11,6 @@ from django.utils import timezone
 import app
 from app import helpers as app_helpers
 from app.models import MediaTypes, Sources, Status
-from app.providers import services
 from integrations.imports import helpers
 from integrations.imports.helpers import MediaImportError, MediaImportUnexpectedError
 
@@ -42,8 +41,8 @@ def get_token(request):
             url,
             params=params,
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid Anilist secret key."
             raise MediaImportError(msg) from error
         raise
@@ -77,8 +76,8 @@ def get_username_from_oauth(access_token):
             headers=headers,
             params={"query": query},
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid AniList access token."
             raise MediaImportError(msg) from error
         raise

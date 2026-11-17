@@ -326,10 +326,13 @@ class KitsuEdgeCaseTests(TestCase):
             ),
             "o.jpg",
         )
-        self.assertEqual(
-            self.importer._get_image_url({"attributes": {"posterImage": {}}}),
-            settings.IMG_NONE,
-        )
+        # Kitsu sends null, an empty object or no key at all for a missing poster.
+        for attributes in ({"posterImage": None}, {"posterImage": {}}, {}):
+            with self.subTest(attributes=attributes):
+                self.assertEqual(
+                    self.importer._get_image_url({"attributes": attributes}),
+                    settings.IMG_NONE,
+                )
 
     def test_dates_drop_seconds(self):
         """Test imported dates are stored to the minute."""

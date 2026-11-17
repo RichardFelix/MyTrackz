@@ -144,6 +144,32 @@ class TraktOAuthTests(TestCase):
         other_task.refresh_from_db()
         self.assertEqual(json.loads(other_task.kwargs)["token"], "untouched")
 
+    @patch("app.providers.services.api_request")
+    def test_rejected_credentials_are_explained(self, mock_api_request):
+        """Test a 401 from Trakt is reported as a bad secret key."""
+        mock_api_request.side_effect = http_error(401)
+        request = RequestFactory().get("/import/trakt/private", {"code": "abc"})
+
+        with self.assertRaisesMessage(MediaImportError, "Invalid Trakt secret key."):
+            trakt.handle_oauth_callback(request, redirect_uri="https://x/cb")
+        with self.assertRaisesMessage(MediaImportError, "Invalid Trakt secret key."):
+            trakt.get_username_from_oauth("access")
+        with self.assertRaisesMessage(MediaImportError, "Invalid Trakt secret key."):
+            trakt.get_access_token(helpers.encrypt("refresh"), redirect_uri="https://x")
+
+    @patch("app.providers.services.api_request")
+    def test_other_oauth_errors_propagate(self, mock_api_request):
+        """Test a Trakt outage is not blamed on the secret key."""
+        mock_api_request.side_effect = http_error(503)
+        request = RequestFactory().get("/import/trakt/private", {"code": "abc"})
+
+        with self.assertRaises(requests.exceptions.HTTPError):
+            trakt.handle_oauth_callback(request, redirect_uri="https://x/cb")
+        with self.assertRaises(requests.exceptions.HTTPError):
+            trakt.get_username_from_oauth("access")
+        with self.assertRaises(requests.exceptions.HTTPError):
+            trakt.get_access_token(helpers.encrypt("refresh"), redirect_uri="https://x")
+
     def test_update_refresh_token_without_schedule(self):
         """Test a one-time import has no schedule to update."""
         trakt.update_refresh_token("missing", "new-refresh")

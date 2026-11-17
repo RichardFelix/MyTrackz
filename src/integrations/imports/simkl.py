@@ -45,8 +45,8 @@ def get_token(request):
             headers=headers,
             params=params,
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid SIMKL secret key."
             raise MediaImportError(msg) from error
         raise
@@ -70,8 +70,8 @@ def get_username(token):
                 "Content-Type": "application/json",
             },
         )
-    except services.ProviderAPIError as error:
-        if error.status_code == requests.codes.unauthorized:
+    except requests.exceptions.HTTPError as error:
+        if error.response.status_code == requests.codes.unauthorized:
             msg = "Invalid SIMKL secret key."
             raise MediaImportError(msg) from error
         raise
