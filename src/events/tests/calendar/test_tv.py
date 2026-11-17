@@ -210,7 +210,13 @@ class CalendarTVTests(CalendarFixturesMixin, TestCase):
                 "image": "http://example.com/season2.jpg",
                 "season_number": 2,
                 "episodes": [
-                    {"episode_number": 1, "air_date": "2027-01-20"},
+                    # Has to be in the future whenever the test runs.
+                    {
+                        "episode_number": 1,
+                        "air_date": (
+                            timezone.localdate() + datetime.timedelta(days=60)
+                        ).isoformat(),
+                    },
                 ],
                 "tvdb_id": "81189",
             },
