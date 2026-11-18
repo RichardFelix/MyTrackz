@@ -184,15 +184,10 @@
           cached image{{ image_cache_file_count|pluralize }}.
           Purging deletes every locally cached image; each item re-downloads its image the next time it's viewed or updated.
         </p>
-        <div class="h-2 w-full rounded-full bg-[#2a2f35] mb-4 overflow-hidden"
-             role="progressbar"
-             aria-label="Image cache usage"
-             aria-valuemin="0"
-             aria-valuemax="100"
-             aria-valuenow="{{ image_cache_percent }}">
-          <div class="h-full rounded-full bg-indigo-500"
-               style="width: {{ image_cache_percent }}%"></div>
-        </div>
+        <progress class="progress-bar h-2 mb-4"
+                  aria-label="Image cache usage"
+                  max="100"
+                  value="{{ image_cache_percent }}"></progress>
         <form method="post" action="{% url 'purge_image_cache' %}">
           {% csrf_token %}
           <button type="button"

@@ -355,10 +355,10 @@
                       <div class="flex items-start gap-4">
                         <div class="shrink-0 order-0">
                           <a href="{{ media.item|media_url }}">
-                            <img alt="{{ media.item }}"
-                                 class="lazyload w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %} hover:opacity-80 transition-opacity"
-                                 src="{{ IMG_PLACEHOLDER }}"
-                                 data-src="{{ media.item.cached_image_url }}">
+                            <img loading="lazy"
+                                 alt="{{ media.item }}"
+                                 class="w-16 h-24 rounded-md bg-[#3e454d] {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %} hover:opacity-80 transition-opacity"
+                                 src="{{ media.item.cached_image_url }}">
                           </a>
                         </div>
                         <div class="flex-1 min-w-0">

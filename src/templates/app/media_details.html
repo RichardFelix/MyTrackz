@@ -666,10 +666,10 @@
                         false
                       {% endif %}
                       }">
-                      <img src="{{ IMG_PLACEHOLDER }}"
+                      <img loading="lazy"
                            alt="E{{ episode.episode_number }}"
-                           data-src="{{ episode_image }}"
-                           class="lazyload md:w-64 md:h-40 shrink-0 {% if episode_image != IMG_PLACEHOLDER %}object-cover{% endif %} {% if user.obfuscate_unseen_episodes and not episode.history and episode_image != IMG_PLACEHOLDER %}blur cursor-pointer{% else %}cursor-default{% endif %}"
+                           src="{{ episode_image }}"
+                           class="md:w-64 md:h-40 shrink-0 {% if episode_image != IMG_PLACEHOLDER %}object-cover{% endif %} {% if user.obfuscate_unseen_episodes and not episode.history and episode_image != IMG_PLACEHOLDER %}blur cursor-pointer{% else %}cursor-default{% endif %}"
                            :class="{ 'blur': obfuscated && hasImage, 'cursor-pointer': obfuscated && hasImage, 'cursor-default': !obfuscated || !hasImage }"
                            @click="obfuscated = false">
                       <div class="py-3 flex-1 flex flex-col">

@@ -11,10 +11,13 @@
       :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
       <div class="relative">
         <a href="{{ media.item|media_url }}">
-          <img alt="{{ media }}"
-               class="lazyload w-full aspect-2/3 {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
-               data-src="{{ media.item.cached_image_url }}"
-               src="{{ IMG_PLACEHOLDER }}">
+          <img {% if above_fold and forloop.parentloop.first and forloop.counter <= 6 %}{% if forloop.first %}fetchpriority="high"{% endif %}
+               {% else %}
+               loading="lazy"
+               {% endif %}
+               alt="{{ media }}"
+               class="w-full aspect-2/3 {% if media.item.cached_image_url != IMG_PLACEHOLDER %}object-cover{% endif %}"
+               src="{{ media.item.cached_image_url }}">
         </a>
         {% include "app/components/game_launcher_badge.html" with item=media.item media=media %}
         {% include "app/components/game_ownership_badge.html" with item=media.item media=media %}

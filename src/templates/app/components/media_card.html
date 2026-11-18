@@ -6,10 +6,13 @@
   :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
   <div class="relative">
     <a href="{{ item|media_url }}">
-      <img alt="{{ title }}"
-           class="lazyload w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item|cached_image_url:media != IMG_PLACEHOLDER %}object-cover{% endif %}"
-           data-src="{{ item|cached_image_url:media }}"
-           src="{{ IMG_PLACEHOLDER }}">
+      <img {% if eager_first and not is_htmx and forloop.counter <= 6 %}{% if forloop.first %}fetchpriority="high"{% endif %}
+           {% else %}
+           loading="lazy"
+           {% endif %}
+           alt="{{ title }}"
+           class="w-full {% if from_grid %}aspect-2/3{% else %}h-48{% endif %} bg-[#3e454d] {% if item|cached_image_url:media != IMG_PLACEHOLDER %}object-cover{% endif %}"
+           src="{{ item|cached_image_url:media }}">
     </a>
     {% include "app/components/game_launcher_badge.html" with item=item media=media %}
     {% with user=target_user|default:user %}

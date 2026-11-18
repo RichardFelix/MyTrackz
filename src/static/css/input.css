@@ -34,11 +34,6 @@
   display: block;
 }
 
-.lazyload,
-.lazyloading {
-  object-fit: none;
-}
-
 .clip-half {
   clip-path: inset(0 50% 0 0);
 }
@@ -459,3 +454,41 @@ html.theme-grey {
 
 /* Focus ring */
 .focus\:ring-\[\#4a9eff\]:focus { --tw-ring-color: var(--focus) !important; }
+
+/* ==========================================================================
+   Native <progress> bars (Admin image-cache usage, setup walkthrough steps).
+   Setting a background or border-radius silently disables the UA styling, so
+   reset with appearance:none and style the fill per engine. The -webkit- and
+   -moz- pseudo-elements must stay in separate rules: grouped, the whole rule
+   is dropped as invalid.
+   ========================================================================== */
+progress.progress-bar {
+  appearance: none;
+  border: 0 solid;
+  overflow: clip;
+  display: block;
+  inline-size: 100%;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--color-indigo-500);
+}
+
+progress.progress-bar::-webkit-progress-bar {
+  background: transparent;
+}
+
+progress.progress-bar::-webkit-progress-value {
+  background: currentcolor;
+  border-radius: 9999px;
+}
+
+progress.progress-bar::-moz-progress-bar {
+  background: currentcolor;
+  border-radius: 9999px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  progress.progress-bar::-webkit-progress-value {
+    transition: inline-size 0.3s;
+  }
+}

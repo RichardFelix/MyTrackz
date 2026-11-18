@@ -2318,6 +2318,10 @@
   .opacity-100 {
     opacity: 100%;
   }
+  .shadow {
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-2xl {
     --tw-shadow: 0 25px 50px -12px var(--tw-shadow-color, rgb(0 0 0 / 0.25));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -2340,6 +2344,10 @@
   }
   .shadow-xl {
     --tw-shadow: 0 20px 25px -5px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .ring {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
   .ring-1 {
@@ -3869,9 +3877,6 @@
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator {
   display: block;
 }
-.lazyload, .lazyloading {
-  object-fit: none;
-}
 .clip-half {
   clip-path: inset(0 50% 0 0);
 }
@@ -4314,6 +4319,32 @@ html.theme-grey {
 }
 .focus\:ring-\[\#4a9eff\]:focus {
   --tw-ring-color: var(--focus) !important;
+}
+progress.progress-bar {
+  appearance: none;
+  border: 0 solid;
+  overflow: clip;
+  display: block;
+  inline-size: 100%;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--color-indigo-500);
+}
+progress.progress-bar::-webkit-progress-bar {
+  background: transparent;
+}
+progress.progress-bar::-webkit-progress-value {
+  background: currentcolor;
+  border-radius: 9999px;
+}
+progress.progress-bar::-moz-progress-bar {
+  background: currentcolor;
+  border-radius: 9999px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  progress.progress-bar::-webkit-progress-value {
+    transition: inline-size 0.3s;
+  }
 }
 @property --tw-translate-x {
   syntax: "*";

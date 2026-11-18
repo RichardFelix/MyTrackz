@@ -32,15 +32,10 @@
             {% endblock step_name %}
           </span>
         </div>
-        <div class="h-1.5 overflow-hidden rounded-full bg-[#2a2f35]"
-             role="progressbar"
-             aria-valuemin="0"
-             aria-valuemax="100"
-             aria-valuenow="{{ progress_percent }}"
-             aria-label="Setup progress">
-          <div class="h-full rounded-full bg-indigo-500 transition-all"
-               style="width: {{ progress_percent }}%"></div>
-        </div>
+        <progress class="progress-bar h-1.5"
+                  aria-label="Setup progress"
+                  max="100"
+                  value="{{ progress_percent }}"></progress>
       </div>
 
       {% block step %}

@@ -5,10 +5,10 @@
   <div class="flex items-center p-4 gap-4">
     <div class="shrink-0 relative">
       <a href="{{ item|media_url }}">
-        <img alt="{{ title }}"
-             class="lazyload w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
-             data-src="{{ item|cached_image_url:media }}"
-             src="{{ IMG_PLACEHOLDER }}">
+        <img loading="lazy"
+             alt="{{ title }}"
+             class="w-16 h-24 object-cover rounded shadow-md bg-[#3e454d]"
+             src="{{ item|cached_image_url:media }}">
       </a>
       {% include "app/components/game_launcher_badge.html" with item=item media=media compact=True %}
       {% include "app/components/game_ownership_badge.html" with item=item media=media compact=True %}
