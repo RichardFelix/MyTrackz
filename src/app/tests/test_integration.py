@@ -326,6 +326,39 @@ class IntegrationTest(StaticLiveServerTestCase):
             "Episode 1 • Unknown air date",
         )
 
+    def test_manual_parent_pick_with_apostrophe_title(self):
+        """Picking a parent show or season works when its title has a quote."""
+        title = 'Grey\'s "Anatomy"'
+        self.page.get_by_role("link", name="Create Custom", exact=True).click()
+        self.page.get_by_placeholder("Enter title").fill(title)
+        self.page.get_by_role("combobox").select_option("In progress")
+        self.page.get_by_role("button", name="Create Entry").click()
+        expect(self.page.locator(".scheme-dark")).to_contain_text(
+            f"{title} added successfully.",
+        )
+
+        self.page.get_by_role("button", name="Season").click()
+        self.page.get_by_placeholder("Search for a TV show...").click()
+        self.page.get_by_placeholder("Search for a TV show...").type("grey")
+        self.page.locator("#parent-tv-results button").first.click()
+        expect(self.page.locator("#parent-tv-input")).to_have_value(title)
+        expect(self.page.locator("#parent-tv-id")).not_to_have_value("")
+        expect(self.page.locator("#parent-tv-results")).to_be_empty()
+        self.page.get_by_role("button", name="Create Entry").click()
+        expect(self.page.locator("body")).to_contain_text(
+            f"{title} S1 added successfully.",
+        )
+
+        self.page.get_by_role("button", name="Episode").click()
+        self.page.get_by_placeholder("Search for a season...").click()
+        self.page.get_by_placeholder("Search for a season...").type("grey")
+        self.page.locator("#parent-season-results button").first.click()
+        expect(self.page.locator("#parent-season-input")).to_have_value(
+            f"Season 1 of {title}",
+        )
+        expect(self.page.locator("#parent-season-id")).not_to_have_value("")
+        expect(self.page.locator("#parent-season-results")).to_be_empty()
+
     def test_obfuscate_unseen_episodes_enabled(self):
         """Test that obfuscate_unseen_episodes setting is accessible and functional."""
         # Navigate to preferences
