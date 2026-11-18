@@ -1,7 +1,7 @@
 import json
 from datetime import date
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import requests
 from defusedxml import ElementTree
@@ -67,6 +67,18 @@ class Metadata(TestCase):
         self.assertEqual(response["title"], "Monster")
         self.assertEqual(response["details"]["year"], "1994")
         self.assertEqual(response["details"]["format"], "Manga")
+        self.assertEqual(len(response["related"]["related_manga"]), 1)
+        self.assertEqual(len(response["related"]["recommendations"]), 5)
+        self.assertEqual(
+            response["related"]["recommendations"][0],
+            {
+                "source": Sources.MANGAUPDATES.value,
+                "media_id": 45334600346,
+                "media_type": MediaTypes.MANGA.value,
+                "title": "20 Seiki Shounen",
+                "image": "https://cdn.mangaupdates.com/image/i508562.jpg",
+            },
+        )
 
     def test_tv(self):
         """Test the metadata method for TV shows."""
@@ -399,12 +411,9 @@ class Metadata(TestCase):
         """A response with no cover falls back to the no-image placeholder."""
         self.assertEqual(igdb.get_image_url({}), settings.IMG_NONE)
 
-    @patch("app.providers.openlibrary.get_ratings", new_callable=AsyncMock)
-    @patch("app.providers.openlibrary.get_editions", new_callable=AsyncMock)
-    @patch("app.providers.openlibrary.get_authors", new_callable=AsyncMock)
     @patch("app.providers.openlibrary.services.api_request")
-    def test_book(self, mock_api_request, mock_authors, mock_editions, mock_ratings):
-        """Test the metadata method for books."""
+    def test_book(self, mock_api_request):
+        """Test the metadata method for books, extras fetched in one batch."""
         cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_OL21733390M"
         cache.delete(cache_key)
         self.addCleanup(cache.delete, cache_key)
@@ -425,10 +434,30 @@ class Metadata(TestCase):
             "subjects": ["Dystopias", "Totalitarianism"],
             "authors": [{"author": {"key": "/authors/OL118077A"}}],
         }
-        mock_api_request.side_effect = [response_book, response_work]
-        mock_authors.return_value = ["George Orwell"]
-        mock_editions.return_value = []
-        mock_ratings.return_value = (4.3, 1200)
+        response_editions = {
+            "entries": [
+                {"key": "/books/OL21733390M", "title": "Nineteen Eighty-Four"},
+                {"key": "/books/OL7343202M", "title": "1984", "covers": [123]},
+            ],
+        }
+        responses = {
+            "https://openlibrary.org/books/OL21733390M.json": response_book,
+            "https://openlibrary.org/works/OL1168083W.json": response_work,
+            "https://openlibrary.org/works/OL1168083W/editions.json?limit=500": (
+                response_editions
+            ),
+            "https://openlibrary.org/authors/OL118077A.json": {
+                "name": "George Orwell",
+            },
+            "https://openlibrary.org/works/OL1168083W/ratings.json": {
+                "summary": {"average": 2.15, "count": 1200},
+            },
+        }
+
+        def fake_api_request(_provider, _method, url, **_kwargs):
+            return responses[url]
+
+        mock_api_request.side_effect = fake_api_request
 
         response = openlibrary.book("OL21733390M")
 
@@ -440,15 +469,45 @@ class Metadata(TestCase):
         self.assertEqual(response["details"]["publish_date"], "2008-07-01")
         self.assertEqual(response["score"], 4.3)
         self.assertEqual(response["score_count"], 1200)
-        urls = [call.args[2] for call in mock_api_request.call_args_list]
         self.assertEqual(
-            urls,
-            [
-                "https://openlibrary.org/books/OL21733390M.json",
-                "https://openlibrary.org/works/OL1168083W.json",
-            ],
+            [edition["media_id"] for edition in response["related"]["other_editions"]],
+            ["OL7343202M"],
         )
-        mock_authors.assert_awaited_once_with(response_work)
+        urls = sorted(call.args[2] for call in mock_api_request.call_args_list)
+        self.assertEqual(urls, sorted(responses))
+
+    @patch("app.providers.openlibrary.services.api_request")
+    def test_book_skips_failed_extras(self, mock_api_request):
+        """A failed editions, ratings or author lookup leaves that extra out."""
+        cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_OL1M"
+        cache.delete(cache_key)
+        self.addCleanup(cache.delete, cache_key)
+        response_book = {
+            "key": "/books/OL1M",
+            "title": "A Book",
+            "works": [{"key": "/works/OL1W"}],
+        }
+        response_work = {
+            "key": "/works/OL1W",
+            "authors": [{"author": {"key": "/authors/OL1A"}}],
+        }
+
+        def fake_api_request(_provider, _method, url, **_kwargs):
+            if url.endswith("/books/OL1M.json"):
+                return response_book
+            if url.endswith("/works/OL1W.json"):
+                return response_work
+            raise requests.exceptions.HTTPError(url)
+
+        mock_api_request.side_effect = fake_api_request
+
+        response = openlibrary.book("OL1M")
+
+        self.assertEqual(response["title"], "A Book")
+        self.assertIsNone(response["details"]["author"])
+        self.assertEqual(response["related"]["other_editions"], [])
+        self.assertIsNone(response["score"])
+        self.assertEqual(response["score_count"], 0)
 
     def test_openlibrary_publish_date_with_abbreviated_month(self):
         """Test Open Library publish dates with abbreviated month names."""

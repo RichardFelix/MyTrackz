@@ -28,7 +28,6 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-import aiohttp
 import requests
 from requests.adapters import HTTPAdapter
 from requests.structures import CaseInsensitiveDict
@@ -74,11 +73,9 @@ def mode():
 
 
 def install():
-    """Patch the HTTP clients according to the active mode."""
+    """Patch the HTTP client according to the active mode."""
     if mode() != "live":
         HTTPAdapter.send = _send
-        aiohttp.ClientSession.get = _aiohttp_get
-        aiohttp.ClientSession._request = _aiohttp_unsupported
 
 
 def _send(adapter, request, **kwargs):
@@ -267,53 +264,3 @@ def _build_response(recording, request):
         preload_content=False,
     )
     return response
-
-
-class _AiohttpResponse:
-    """The parts of an aiohttp response the application reads."""
-
-    def __init__(self, response):
-        self._response = response
-        self.status = response.status_code
-        self.headers = response.headers
-
-    async def json(self, **_kwargs):
-        return self._response.json()
-
-    async def text(self, **_kwargs):
-        return self._response.text
-
-    async def read(self):
-        return self._response.content
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *_exc_info):
-        return False
-
-    def __await__(self):
-        async def _self():
-            return self
-
-        return _self().__await__()
-
-
-def _aiohttp_get(session, url, *, params=None, headers=None, **_kwargs):
-    """Answer an aiohttp GET from the same recordings as requests."""
-    request = requests.Request(
-        "GET",
-        str(url),
-        params=params,
-        headers={**dict(session.headers), **dict(headers or {})},
-    ).prepare()
-    return _AiohttpResponse(_send(HTTPAdapter(), request))
-
-
-async def _aiohttp_unsupported(_session, method, url, **_kwargs):
-    """Refuse aiohttp requests the replay layer cannot answer."""
-    msg = (
-        f"aiohttp {method} {url} cannot be replayed: only GET is recorded. "
-        "Mock the request in the test."
-    )
-    raise aiohttp.ClientConnectionError(msg)

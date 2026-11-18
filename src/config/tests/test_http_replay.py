@@ -1,10 +1,8 @@
-import asyncio
 import json
 import tempfile
 from pathlib import Path
 from unittest import mock
 
-import aiohttp
 import requests
 from django.test import SimpleTestCase
 from requests.adapters import HTTPAdapter
@@ -266,46 +264,6 @@ class HTTPReplayTests(SimpleTestCase):
         )
         self.assertEqual(recording["status"], 200)
         self.assertEqual(recording["json"], {"title": "Example"})
-
-    def test_aiohttp_get_uses_the_same_recordings(self):
-        """Test an aiohttp GET is answered from a recording made with requests."""
-        self.real_send.return_value = live_response()
-        url = "https://api.example.com/series/1"
-        self.send(prepared("GET", url), "record")
-
-        async def fetch():
-            async with (
-                aiohttp.ClientSession(headers={"User-Agent": "test"}) as session,
-                session.get(url) as response,
-            ):
-                return response.status, await response.json()
-
-        with (
-            mock.patch.dict("os.environ", {"HTTP_REPLAY": "replay"}),
-            mock.patch.object(aiohttp.ClientSession, "get", http_replay._aiohttp_get),
-        ):
-            status, data = asyncio.run(fetch())
-
-        self.assertEqual(status, 200)
-        self.assertEqual(data, {"title": "Example"})
-        self.real_send.assert_called_once()
-
-    def test_other_aiohttp_requests_are_refused(self):
-        """Test an aiohttp request that cannot be replayed never reaches the network."""
-
-        async def post():
-            async with aiohttp.ClientSession() as session:
-                await http_replay._aiohttp_unsupported(
-                    session,
-                    "POST",
-                    "https://api.example.com/series",
-                )
-
-        with self.assertRaisesMessage(
-            aiohttp.ClientConnectionError,
-            "cannot be replayed",
-        ):
-            asyncio.run(post())
 
     def test_live_mode_leaves_the_transport_alone(self):
         """Test live mode does not patch requests."""

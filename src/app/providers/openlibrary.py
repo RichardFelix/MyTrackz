@@ -1,9 +1,7 @@
-import asyncio
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import aiohttp
 import requests
 from bs4 import BeautifulSoup
 from django.conf import settings
@@ -121,11 +119,6 @@ def get_image_url(doc):
 
 def book(media_id):
     """Get metadata for a book from Open Library."""
-    return asyncio.run(async_book(media_id))
-
-
-async def async_book(media_id):
-    """Asynchronous implementation of book metadata retrieval."""
     cache_key = f"{Sources.OPENLIBRARY.value}_{MediaTypes.BOOK.value}_{media_id}"
     data = cache.get(cache_key)
 
@@ -160,17 +153,36 @@ async def async_book(media_id):
         else:
             response_work = {}
 
-        # Run authors, editions, and ratings concurrently
-        authors_task = asyncio.create_task(
-            get_authors(response_work),
+        # Editions, ratings and author names are optional extras: fetch them
+        # in one batch, and leave out any that fail.
+        book_id = extract_openlibrary_id(response_book.get("key", ""))
+        work_id = extract_openlibrary_id(response_work.get("key", ""))
+        # limit to 500 editions, pagination is not supported
+        editions_url = (
+            f"https://openlibrary.org/works/{work_id or book_id}/editions.json"
+            "?limit=500"
         )
-        editions_task = asyncio.create_task(
-            get_editions(response_book, response_work),
+        ratings_url = f"https://openlibrary.org/works/{work_id}/ratings.json"
+        author_urls = get_author_urls(response_work)
+        urls = [editions_url, *author_urls]
+        if work_id:
+            urls.append(ratings_url)
+        extras = dict(
+            zip(
+                urls,
+                services.api_request_many(
+                    Sources.OPENLIBRARY.value,
+                    urls,
+                    headers=headers,
+                ),
+                strict=True,
+            ),
         )
-        ratings_task = asyncio.create_task(
-            get_ratings(response_work),
-        )
-        score, score_count = await ratings_task
+
+        if work_id:
+            score, score_count = get_ratings(extras[ratings_url])
+        else:
+            score, score_count = None, None
 
         data = {
             "media_id": media_id,
@@ -188,12 +200,12 @@ async def async_book(media_id):
                 "physical_format": get_physical_format(response_book),
                 "number_of_pages": response_book.get("number_of_pages"),
                 "publish_date": get_publish_date(response_book),
-                "author": await authors_task,
+                "author": get_authors([extras[url] for url in author_urls]),
                 "publishers": get_publishers(response_book),
                 "isbn": get_isbns(response_book),
             },
             "related": {
-                "other_editions": await editions_task,
+                "other_editions": get_editions(extras[editions_url], book_id),
             },
         }
 
@@ -263,34 +275,19 @@ def get_publish_date(response):
     return None
 
 
-async def get_authors(response):
-    """Get list of author names asynchronously."""
-    authors = []
-    author_entries = response.get("authors", [])
+def get_author_urls(response_work):
+    """Return the Open Library URLs of the work's authors."""
+    return [
+        f"https://openlibrary.org{author['author']['key']}.json"
+        for author in response_work.get("authors", [])
+        if isinstance(author, dict) and "author" in author
+    ]
 
-    async with aiohttp.ClientSession(headers=headers) as session:
-        tasks = []
-        for author in author_entries:
-            if isinstance(author, dict) and "author" in author:
-                author_key = author["author"]["key"]
-                author_url = f"https://openlibrary.org{author_key}.json"
-                tasks.append(fetch_author_data(session, author_url))
 
-        author_data_list = await asyncio.gather(*tasks)
-        authors = [
-            data.get("name", "Unknown Author") for data in author_data_list if data
-        ]
-
+def get_authors(author_data_list):
+    """Return the author names from their fetched records (None = failed)."""
+    authors = [data.get("name", "Unknown Author") for data in author_data_list if data]
     return authors or None
-
-
-async def fetch_author_data(session, url):
-    """Fetch author data asynchronously."""
-    async with session.get(url) as response:
-        if response.status == requests.codes.ok:
-            return await response.json()
-
-    return None
 
 
 def get_subjects(response):
@@ -317,62 +314,30 @@ def get_isbns(response):
     return None
 
 
-async def get_editions(response_book, response_work):
-    """Get list of editions asynchronously."""
-    book_id = extract_openlibrary_id(response_book.get("key", ""))
-    work_id = extract_openlibrary_id(response_work.get("key", ""))
-
-    if not work_id:
-        work_id = book_id
-
-    # limit to 500 editions, pagination is not supported
-    url = f"https://openlibrary.org/works/{work_id}/editions.json?limit=500"
-
-    async with (
-        aiohttp.ClientSession(headers=headers) as session,
-        session.get(url) as response,
-    ):
-        if response.status == requests.codes.ok:
-            data = await response.json()
-            return [
-                {
-                    "source": Sources.OPENLIBRARY.value,
-                    "source_url": f"https://openlibrary.org/books/{extract_openlibrary_id(edition['key'])}",
-                    "media_id": extract_openlibrary_id(edition["key"]),
-                    "media_type": MediaTypes.BOOK.value,
-                    "title": edition.get("title"),
-                    "image": get_cover_image_url(edition),
-                }
-                for edition in data["entries"]
-                if extract_openlibrary_id(edition["key"]) != book_id
-                and edition.get("title")
-            ]
-    return []
+def get_editions(data, book_id):
+    """Return the other editions of the book (data None = fetch failed)."""
+    if not data:
+        return []
+    return [
+        {
+            "source": Sources.OPENLIBRARY.value,
+            "source_url": f"https://openlibrary.org/books/{extract_openlibrary_id(edition['key'])}",
+            "media_id": extract_openlibrary_id(edition["key"]),
+            "media_type": MediaTypes.BOOK.value,
+            "title": edition.get("title"),
+            "image": get_cover_image_url(edition),
+        }
+        for edition in data["entries"]
+        if extract_openlibrary_id(edition["key"]) != book_id and edition.get("title")
+    ]
 
 
-async def get_ratings(response_work):
-    """Get ratings data for a book asynchronously."""
-    work_id = extract_openlibrary_id(response_work.get("key", ""))
-
-    if not work_id:
-        return None, None
-
-    url = f"https://openlibrary.org/works/{work_id}/ratings.json"
-
-    async with (
-        aiohttp.ClientSession(headers=headers) as session,
-        session.get(url) as response,
-    ):
-        if response.status == requests.codes.ok:
-            data = await response.json()
-            summary = data.get("summary", {})
-            average = summary.get("average")
-            count = summary.get("count")
-
-            if average and count:
-                # Convert to 10-point scale (multiply by 2) and round to 1 decimal place
-                score = round(summary["average"] * 2, 1)
-                score_count = summary["count"]
-                return score, score_count
-
+def get_ratings(data):
+    """Return (score out of 10, rating count) from the work's ratings."""
+    summary = (data or {}).get("summary", {})
+    average = summary.get("average")
+    count = summary.get("count")
+    if average and count:
+        # Convert to 10-point scale (multiply by 2) and round to 1 decimal place
+        return round(average * 2, 1), count
     return None, 0

@@ -1,8 +1,6 @@
-import asyncio
 import logging
 import re
 
-import aiohttp
 import requests
 from django.conf import settings
 from django.core.cache import cache
@@ -103,11 +101,6 @@ def search(query, page):
 
 def manga(media_id):
     """Get metadata for a manga from MangaUpdates."""
-    return asyncio.run(async_manga(media_id))
-
-
-async def async_manga(media_id):
-    """Asynchronous implementation of manga metadata retrieval."""
     cache_key = f"{Sources.MANGAUPDATES.value}_{MediaTypes.MANGA.value}_{media_id}"
     data = cache.get(cache_key)
 
@@ -119,12 +112,9 @@ async def async_manga(media_id):
         except requests.exceptions.HTTPError as error:
             handle_error(error)
 
-        # Run related_manga and recommendations concurrently
-        related_task = asyncio.create_task(
-            get_related_series(response["related_series"]),
-        )
-        recommendations_task = asyncio.create_task(
-            get_recommendations(response["recommendations"]),
+        related_manga, recommendations = get_related_and_recommendations(
+            response["related_series"],
+            response["recommendations"],
         )
 
         data = {
@@ -147,8 +137,8 @@ async def async_manga(media_id):
                 "latest_chapter_translated": response["latest_chapter"],
             },
             "related": {
-                "related_manga": await related_task,
-                "recommendations": await recommendations_task,
+                "related_manga": related_manga,
+                "recommendations": recommendations,
             },
         }
 
@@ -205,45 +195,37 @@ def get_score(score):
     return None
 
 
-async def get_related_series(related):
-    """Return list of related media for the selected media asynchronously."""
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            fetch_series_data(
-                session,
-                f"{base_url}/series/{item['related_series_id']}",
-                item,
-            )
-            for item in related
-            if item["related_series_name"]
-        ]
-        results = await asyncio.gather(*tasks)
-    return [item for item in results if item is not None]
+def get_related_and_recommendations(related, recommendations):
+    """Return the related and recommended series as media entries.
 
+    Each entry needs its own series lookup for the cover image; all of them
+    are fetched in one batch through the shared rate-limited session.
+    """
+    related = [item for item in related if item["related_series_name"]]
+    recommendations = [item for item in recommendations if item["series_name"]]
+    entries = [
+        (item["related_series_id"], item["related_series_name"]) for item in related
+    ] + [(item["series_id"], item["series_name"]) for item in recommendations]
 
-async def get_recommendations(recommendations):
-    """Return list of recommended media for the selected media asynchronously."""
-    async with aiohttp.ClientSession() as session:
-        tasks = [
-            fetch_series_data(session, f"{base_url}/series/{item['series_id']}", item)
-            for item in recommendations
-            if item["series_name"]
-        ]
-        results = await asyncio.gather(*tasks)
-    return [item for item in results if item is not None]
-
-
-async def fetch_series_data(session, url, item):
-    """Fetch series data asynchronously."""
-    async with session.get(url) as response:
-        if response.status == requests.codes.ok:
-            data = await response.json()
-            image = get_image_url(data)
-            return {
-                "source": Sources.MANGAUPDATES.value,
-                "media_id": item.get("related_series_id") or item.get("series_id"),
-                "media_type": MediaTypes.MANGA.value,
-                "title": item.get("related_series_name") or item.get("series_name"),
-                "image": image,
-            }
-    return None
+    responses = services.api_request_many(
+        Sources.MANGAUPDATES.value,
+        [f"{base_url}/series/{series_id}" for series_id, _ in entries],
+    )
+    series = [
+        {
+            "source": Sources.MANGAUPDATES.value,
+            "media_id": series_id,
+            "media_type": MediaTypes.MANGA.value,
+            "title": title,
+            "image": get_image_url(data),
+        }
+        if data
+        else None
+        for (series_id, title), data in zip(entries, responses, strict=True)
+    ]
+    related_series = series[: len(related)]
+    recommended_series = series[len(related) :]
+    return (
+        [entry for entry in related_series if entry],
+        [entry for entry in recommended_series if entry],
+    )

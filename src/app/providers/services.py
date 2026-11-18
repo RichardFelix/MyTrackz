@@ -1,5 +1,6 @@
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from defusedxml import ElementTree
@@ -214,6 +215,36 @@ def api_request(
             )
 
         raise error from None
+
+
+def api_request_many(provider, urls, headers=None, max_workers=4):
+    """GET several URLs at once through the shared rate-limited session.
+
+    For optional extras such as related titles or author names: a URL that
+    fails (error status, rate limit, timeout, bad JSON) yields None in its
+    slot instead of raising, so one missing extra never fails the page.
+
+    Returns:
+        A list of parsed JSON responses (or None), in the order of ``urls``
+    """
+    if not urls:
+        return []
+
+    def fetch(url):
+        try:
+            return api_request(
+                provider,
+                "GET",
+                url,
+                headers=headers,
+                retry_on_rate_limit=False,
+            )
+        except requests.RequestException as error:
+            logger.warning("%s: skipped %s (%s)", provider, url, error)
+            return None
+
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(urls))) as pool:
+        return list(pool.map(fetch, urls))
 
 
 def get_media_metadata(
