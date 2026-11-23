@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 from collections import Counter
@@ -70,6 +71,8 @@ def _build_home_section(
     sort_by,
     items_limit,
     next_air_datetimes=None,
+    *,
+    include_hidden=False,
 ):
     """Build one homepage status section with its grouped media and count."""
     media_types = BasicMedia.objects.get_home_status(
@@ -78,6 +81,7 @@ def _build_home_section(
         sort_by=sort_by,
         items_limit=items_limit,
         next_air_datetimes=next_air_datetimes,
+        include_hidden=include_hidden,
     )
     return {
         "key": status,
@@ -152,14 +156,18 @@ def home(request):
         }
         return render(request, "app/components/home_grid.html", context)
 
-    next_air_datetimes = [] if request.user.home_aired_only else None
+    # the Custom-order editor lists every title, aired-only hidden ones too,
+    # because saving a row replaces that row's whole order
+    reordering = sort_by == HomeSortChoices.CUSTOM and request.GET.get("reorder") == "1"
+    next_air_datetimes = [] if request.user.home_aired_only and not reordering else None
     home_sections = [
         _build_home_section(
             request.user,
             status,
             sort_by,
-            None if request.user.show_all_home_items else items_limit,
+            None if request.user.show_all_home_items or reordering else items_limit,
             next_air_datetimes,
+            include_hidden=reordering,
         )
         for status in (Status.IN_PROGRESS.value, Status.PLANNING.value)
     ]
@@ -170,8 +178,48 @@ def home(request):
         "sort_choices": HomeSortChoices.choices,
         "items_limit": items_limit,
         "next_home_air_datetime": min(next_air_datetimes or [], default=None),
+        "reordering": reordering,
     }
     return render(request, "app/home.html", context)
+
+
+HOME_ORDER_MAX_KEYS = 20000
+HOME_ORDER_MAX_KEY_LENGTH = 200
+
+
+@require_POST
+def home_order(request):
+    """Save one home row's Custom order, as arranged in the reorder editor.
+
+    The editor shows every title in the row, so the posted keys replace the
+    row's saved order outright; titles that have since left the row drop out.
+    The keys arrive as one JSON array in ``order``, not one form field per
+    title, so a big row stays under DATA_UPLOAD_MAX_NUMBER_FIELDS (1000).
+    """
+    status = request.POST.get("status")
+    media_type = request.POST.get("media_type")
+    try:
+        keys = json.loads(request.POST.get("order", ""))
+    except ValueError:
+        keys = None
+    if (
+        status not in (Status.IN_PROGRESS.value, Status.PLANNING.value)
+        or media_type not in MediaTypes.values
+        or not isinstance(keys, list)
+        or len(keys) > HOME_ORDER_MAX_KEYS
+        or any(
+            not isinstance(key, str) or not key or len(key) > HOME_ORDER_MAX_KEY_LENGTH
+            for key in keys
+        )
+    ):
+        return HttpResponseBadRequest("Invalid home order.")
+
+    # every row lives in one JSON field: lock the user row so two rows saved
+    # at once (two tabs) cannot each write back the other's stale copy
+    with transaction.atomic():
+        user = User.objects.select_for_update().get(pk=request.user.pk)
+        user.set_home_custom_order(status, media_type, list(dict.fromkeys(keys)))
+    return HttpResponse(status=204)
 
 
 @require_GET

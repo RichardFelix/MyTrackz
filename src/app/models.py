@@ -268,6 +268,15 @@ class Item(CalendarTriggerMixin, models.Model):
             cache_item_image.delay(self.id, self.image)
 
     @property
+    def home_order_key(self):
+        """Identify this title in the home screen's saved Custom order.
+
+        A season's item carries its show's ``media_id``, so the key stays the
+        same when the home row moves on to the next season.
+        """
+        return f"{self.source}:{self.media_id}"
+
+    @property
     def cached_image_url(self):
         """Return the cached image URL, or the original/fallback URL."""
         if self.image_cached:
@@ -582,12 +591,16 @@ class MediaManager(models.Manager):
         items_limit,
         specific_media_type=None,
         next_air_datetimes=None,
+        *,
+        include_hidden=False,
     ):
         """Get a home media list for a specific status grouped by media type.
 
         Pass a list as ``next_air_datetimes`` to have it filled with the
         release times of in-progress media the aired-only filter hid, so the
         home page can schedule its refresh without querying everything twice.
+        ``include_hidden`` skips the aired-only filter, so the Custom-order
+        editor can place every title, not just the ones on screen today.
         """
         list_by_type = {}
         media_types = self._get_media_types_to_process(user, specific_media_type)
@@ -611,7 +624,11 @@ class MediaManager(models.Manager):
             self.annotate_max_progress(media_list, media_type)
             self._annotate_next_event(media_list)
 
-            if user.home_aired_only and status == Status.IN_PROGRESS.value:
+            if (
+                user.home_aired_only
+                and status == Status.IN_PROGRESS.value
+                and not include_hidden
+            ):
                 visible_media = self._filter_home_to_aired(media_list, media_type)
                 if next_air_datetimes is not None:
                     next_air_datetimes.extend(
@@ -623,7 +640,12 @@ class MediaManager(models.Manager):
                 continue
 
             # Sort the media list
-            sorted_list = self._sort_home_media(media_list, sort_by)
+            custom_order = (
+                user.get_home_custom_order(status, media_type)
+                if sort_by == users.models.HomeSortChoices.CUSTOM
+                else None
+            )
+            sorted_list = self._sort_home_media(media_list, sort_by, custom_order)
 
             # Apply pagination
             total_count = len(sorted_list)
@@ -754,8 +776,15 @@ class MediaManager(models.Manager):
 
             media.next_event = future_events[0] if future_events else None
 
-    def _sort_home_media(self, media_list, sort_by):
-        """Sort home media based on the selected sort criteria."""
+    def _sort_home_media(self, media_list, sort_by, custom_order=None):
+        """Sort home media based on the selected sort criteria.
+
+        For the Custom sort, ``custom_order`` lists the saved
+        ``Item.home_order_key`` values. Titles not in it yet (just started,
+        or never arranged) come first, most recent first, so a new title
+        is never buried behind the "Load all" button.
+        """
+        custom_index = {key: index for index, key in enumerate(custom_order or [])}
         # Define primary sort functions based on sort_by
         primary_sort_functions = {
             users.models.HomeSortChoices.UPCOMING: lambda x: (
@@ -780,6 +809,10 @@ class MediaManager(models.Manager):
                 (x.max_progress - x.progress if x.max_progress else 0),
             ),
             users.models.HomeSortChoices.TITLE: lambda x: x.item.title.lower(),
+            users.models.HomeSortChoices.CUSTOM: lambda x: (
+                x.item.home_order_key in custom_index,
+                custom_index.get(x.item.home_order_key, 0),
+            ),
         }
 
         primary_sort_function = primary_sort_functions[sort_by]

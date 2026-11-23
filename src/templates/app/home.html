@@ -9,6 +9,10 @@
   <script src="{% static 'js/homeSwipe.js' %}{% get_static_file_mtime 'js/homeSwipe.js' %}"></script>
   <script src="{% static 'js/homeAiredRefresh.js' %}{% get_static_file_mtime 'js/homeAiredRefresh.js' %}"
           defer></script>
+  {% if reordering %}
+    <script src="{% static 'js/homeReorder.js' %}{% get_static_file_mtime 'js/homeReorder.js' %}"
+            defer></script>
+  {% endif %}
 {% endblock extra_head %}
 
 {% block content %}
@@ -24,44 +28,76 @@
         <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-400">Your library</p>
         <h1 class="mt-1 text-3xl font-bold">Home</h1>
       </div>
-      <div class="flex items-center justify-center gap-2 sm:col-start-3 sm:justify-self-end">
-        <a href="{% url 'home' %}?aired_only={% if user.home_aired_only %}0{% else %}1{% endif %}"
-           aria-pressed="{% if user.home_aired_only %}true{% else %}false{% endif %}"
-           title="Hide caught-up shows until their next episode airs"
-           class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors {% if user.home_aired_only %}border-indigo-400 bg-indigo-600 text-white{% else %}border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-          <span class="h-2 w-2 rounded-full {% if user.home_aired_only %}bg-white{% else %}bg-gray-500{% endif %}"></span>
-          <span>Aired only</span>
-        </a>
-        <div class="relative" x-data="{ open: false }">
-          <button @click="open = !open"
-                  @click.outside="open = false"
-                  class="flex items-center gap-2 rounded-md border border-gray-700 bg-[#39404b] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer">
-            {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}
-            <span>{{ current_sort|no_underscore|title }}</span>
-            {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 text-gray-400" %}
-          </button>
-          <div x-show="open"
-               x-transition:enter="transition ease-out duration-100"
-               x-transition:enter-start="transform opacity-0 scale-95"
-               x-transition:enter-end="transform opacity-100 scale-100"
-               x-transition:leave="transition ease-in duration-75"
-               x-transition:leave-start="transform opacity-100 scale-100"
-               x-transition:leave-end="transform opacity-0 scale-95"
-               class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
-            {% for value, label in sort_choices %}
-              <a href="{% url 'home' %}?sort={{ value }}"
-                 class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
-                {{ label }}
-              </a>
-            {% endfor %}
+      {% if reordering %}
+        <div class="flex items-center justify-center gap-2 sm:col-start-3 sm:justify-self-end">
+          <span data-reorder-status
+                role="status"
+                aria-live="polite"
+                class="text-sm text-gray-400"></span>
+          <a href="{% url 'home' %}"
+             data-reorder-done
+             class="flex items-center gap-2 rounded-md border border-indigo-400 bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700">
+            {% include "app/icons/checkmark.svg" with classes="w-4 h-4" %}
+            <span>Done</span>
+          </a>
+        </div>
+      {% else %}
+        {# phones: the buttons share the row evenly; from sm up they sit compact at the right #}
+        <div class="flex w-full items-center justify-center gap-2 sm:col-start-3 sm:w-auto sm:justify-self-end">
+          {% if current_sort == "custom" %}
+            <a href="{% url 'home' %}?reorder=1"
+               title="Arrange the home screen in your own order"
+               class="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-gray-700 bg-[#39404b] px-2.5 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-[#454d5a] hover:text-white sm:flex-none sm:px-3">
+              {% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4 shrink-0" %}
+              <span>Arrange</span>
+            </a>
+          {% endif %}
+          <a href="{% url 'home' %}?aired_only={% if user.home_aired_only %}0{% else %}1{% endif %}"
+             aria-pressed="{% if user.home_aired_only %}true{% else %}false{% endif %}"
+             title="Hide caught-up shows until their next episode airs"
+             class="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-3 {% if user.home_aired_only %}border-indigo-400 bg-indigo-600 text-white{% else %}border-gray-700 bg-[#39404b] text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+            <span class="h-2 w-2 shrink-0 rounded-full {% if user.home_aired_only %}bg-white{% else %}bg-gray-500{% endif %}"></span>
+            <span>Aired only</span>
+          </a>
+          <div class="relative flex-1 sm:flex-none" x-data="{ open: false }">
+            <button @click="open = !open"
+                    @click.outside="open = false"
+                    class="flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-md border border-gray-700 bg-[#39404b] px-2.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#454d5a] cursor-pointer sm:px-4">
+              {# the chevron already says "dropdown"; phones skip the sort icon to fit #}
+              <span class="hidden sm:block">{% include "app/icons/arrows-up-down.svg" with classes="w-4 h-4" %}</span>
+              <span>{{ current_sort|no_underscore|title }}</span>
+              {% include "app/icons/chevron-down.svg" with classes="w-4 h-4 shrink-0 text-gray-400" %}
+            </button>
+            <div x-show="open"
+                 x-transition:enter="transition ease-out duration-100"
+                 x-transition:enter-start="transform opacity-0 scale-95"
+                 x-transition:enter-end="transform opacity-100 scale-100"
+                 x-transition:leave="transition ease-in duration-75"
+                 x-transition:leave-start="transform opacity-100 scale-100"
+                 x-transition:leave-end="transform opacity-0 scale-95"
+                 class="absolute right-0 z-10 mt-2 w-52 overflow-hidden rounded-md border border-gray-700 bg-[#39404b] py-1 shadow-lg">
+              {% for value, label in sort_choices %}
+                <a href="{% url 'home' %}?sort={{ value }}"
+                   class="block w-full px-4 py-2 text-left text-sm transition-colors {% if current_sort == value %}bg-indigo-600 text-white font-medium{% else %}text-gray-300 hover:bg-[#454d5a] hover:text-white{% endif %}">
+                  {{ label }}
+                </a>
+              {% endfor %}
+            </div>
           </div>
         </div>
-      </div>
+      {% endif %}
     </div>
+
+    {% if reordering %}
+      <p class="rounded-lg border border-indigo-400/30 bg-indigo-500/10 px-4 py-3 text-center text-sm text-indigo-200">
+        Drag a title by its grip, or tap the arrows to move it. Each row saves as you go.
+        Titles you add later appear at the start of their row.
+      </p>
+    {% endif %}
 
     <div class="space-y-15">
       {% for section in home_sections %}
-        {% if section.key == Status.PLANNING.value and user.show_continue_story %}
+        {% if section.key == Status.PLANNING.value and user.show_continue_story and not reordering %}
           <div hx-get="{% url 'unfinished_collections' %}"
                hx-trigger="load"
                hx-swap="innerHTML"></div>

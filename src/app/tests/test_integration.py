@@ -524,3 +524,103 @@ class IntegrationTest(StaticLiveServerTestCase):
         expected = [f"Movie {i:02d}" for i in range(40) if i not in (5, 31)]
         self.assertEqual(titles, expected)
         self.assertTrue(self.page.evaluate("window.__libraryNoReload === true"))
+
+    def _arrange_movies(self, layout):
+        self.user.home_sort = "custom"
+        self.user.home_layout = layout
+        self.user.save(update_fields=["home_sort", "home_layout"])
+        for media_id in ("1", "2", "3"):
+            Movie.objects.create(
+                item=Item.objects.create(
+                    media_id=media_id,
+                    source=Sources.TMDB.value,
+                    media_type=MediaTypes.MOVIE.value,
+                    title=f"Movie {media_id}",
+                    image="http://example.com/image.jpg",
+                ),
+                user=self.user,
+                status=Status.PLANNING.value,
+            )
+        self.user.set_home_custom_order(
+            Status.PLANNING.value,
+            MediaTypes.MOVIE.value,
+            ["tmdb:1", "tmdb:2", "tmdb:3"],
+        )
+        self.page.goto(f"{self.live_server_url}/")
+        self.page.get_by_role("link", name="Arrange").click()
+        return self.page.locator("[data-reorder-row] > [data-reorder-key]")
+
+    def _clear_reorder_status(self):
+        # so the next "Saved" is the next save's, not the previous one's
+        self.page.locator("[data-reorder-status]").evaluate("el => el.textContent = ''")
+
+    def _assert_saved_order(self, keys):
+        expect(self.page.locator("[data-reorder-status]")).to_have_text("Saved")
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.get_home_custom_order(
+                Status.PLANNING.value,
+                MediaTypes.MOVIE.value,
+            ),
+            keys,
+        )
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_home_custom_order_arrows_and_drag(self, metadata):
+        """Arrange mode moves titles with the arrows and by dragging the grip."""
+        metadata.return_value = {"max_progress": 1}
+        tiles = self._arrange_movies(HomeLayoutChoices.GRID)
+        expect(
+            self.page.get_by_role("button", name="Move Movie 1 earlier")
+        ).to_be_disabled()
+
+        self._clear_reorder_status()
+        self.page.get_by_role("button", name="Move Movie 1 later").click()
+        expect(tiles.first).to_have_attribute("data-reorder-key", "tmdb:2")
+        self._assert_saved_order(["tmdb:2", "tmdb:1", "tmdb:3"])
+
+        grip = tiles.nth(2).locator("[data-reorder-grip]")
+        target = tiles.first.bounding_box()
+        self._clear_reorder_status()
+        grip.hover()
+        self.page.mouse.down()
+        self.page.mouse.move(target["x"] + 10, target["y"] + 10, steps=8)
+        # mid-drag: a copy follows the pointer and the row already shows the drop
+        expect(self.page.locator("[data-reorder-ghost]")).to_have_count(1)
+        expect(tiles.first).to_have_attribute("data-reorder-key", "tmdb:3")
+        self.page.mouse.up()
+        expect(self.page.locator("[data-reorder-ghost]")).to_have_count(0)
+        expect(tiles.first).to_have_attribute("data-reorder-key", "tmdb:3")
+        self._assert_saved_order(["tmdb:3", "tmdb:2", "tmdb:1"])
+
+        self.page.get_by_role("link", name="Done").click()
+        expect(
+            self.page.locator("#planning [data-reorder-key]").first,
+        ).to_have_attribute("data-reorder-key", "tmdb:3")
+        expect(self.page.locator("[data-reorder-grip]")).to_have_count(0)
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_home_custom_order_compact_list(self, metadata):
+        """The compact list arranges with up/down arrows instead of swiping."""
+        metadata.return_value = {"max_progress": 1}
+        self._arrange_movies(HomeLayoutChoices.LIST)
+
+        self._clear_reorder_status()
+        self.page.get_by_role("button", name="Move Movie 3 earlier").click()
+        self._assert_saved_order(["tmdb:1", "tmdb:3", "tmdb:2"])
+
+    @patch("app.providers.services.get_media_metadata")
+    def test_home_custom_order_done_waits_for_save(self, metadata):
+        """Tapping Done straight after a move still opens the new order."""
+        metadata.return_value = {"max_progress": 1}
+        self._arrange_movies(HomeLayoutChoices.GRID)
+
+        self.page.get_by_role("button", name="Move Movie 3 earlier").click()
+        self.page.get_by_role("link", name="Done").click()
+
+        first = self.page.locator("#planning [data-reorder-key]").first
+        expect(first).to_have_attribute("data-reorder-key", "tmdb:1")
+        expect(self.page.locator("[data-reorder-grip]")).to_have_count(0)
+        expect(
+            self.page.locator("#planning [data-reorder-key]").nth(1),
+        ).to_have_attribute("data-reorder-key", "tmdb:3")

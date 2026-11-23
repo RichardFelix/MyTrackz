@@ -3,6 +3,7 @@
 <div id="home-list-item-{{ media.item.media_type }}-{{ media.id }}"
      class="relative overflow-hidden rounded-xl bg-[#202228] shadow-lg"
      data-home-list-item
+     data-reorder-key="{{ media.item.home_order_key }}"
      x-data="homeSwipe({ enabled: {{ home_status|str_equals:Status.IN_PROGRESS.value|yesno:'true,false' }} })"
      @pointerdown="start($event)"
      @pointermove="move($event)"
@@ -147,5 +148,9 @@
         </div>
       </div>
     </template>
+  {% endif %}
+
+  {% if reordering %}
+    {% include "app/components/home_reorder_controls.html" with layout="list" %}
   {% endif %}
 </div>

@@ -12,7 +12,7 @@ function homeSwipe({ enabled }) {
 
     start(event) {
       if (!this.enabled || !event.isPrimary || event.button !== 0) return;
-      if (event.target.closest("a, button")) return;
+      if (event.target.closest("a, button, [data-reorder-overlay]")) return;
       this.dragging = true;
       this.horizontal = false;
       this.startX = event.clientX;

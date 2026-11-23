@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -707,3 +708,290 @@ class HomeMediaTypeOrderTests(TestCase):
         result = BasicMedia.objects._get_media_types_to_process(self.user, None)
         self.assertEqual(result[0], MediaTypes.GAME.value)
         self.assertNotIn(MediaTypes.TV.value, result)
+
+
+class HomeCustomOrderTests(TestCase):
+    """Test the Custom home sort and its arrange editor."""
+
+    def setUp(self):
+        """Create a user with three planned movies, newest first by creation."""
+        credentials = {"username": "customorder", "password": "12345"}
+        self.user = get_user_model().objects.create_user(**credentials)
+        self.user.home_sort = HomeSortChoices.CUSTOM
+        self.user.save(update_fields=["home_sort"])
+        self.client.login(**credentials)
+        patcher = patch(
+            "app.providers.services.get_media_metadata",
+            return_value={
+                "title": "Test",
+                "image": "http://example.com/image.jpg",
+                "max_progress": 1,
+                "details": {"seasons": 1},
+                "related": {"seasons": [{"season_number": 1, "image": ""}]},
+            },
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.movies = {}
+        for media_id in ("1", "2", "3"):
+            item = Item.objects.create(
+                media_id=media_id,
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Movie {media_id}",
+                image="http://example.com/image.jpg",
+            )
+            self.movies[media_id] = Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.PLANNING.value,
+            )
+
+    def _planning_titles(self, response):
+        section = next(
+            section
+            for section in response.context["home_sections"]
+            if section["key"] == Status.PLANNING.value
+        )
+        items = section["media_types"][MediaTypes.MOVIE.value]["items"]
+        return [media.item.title for media in items]
+
+    def test_custom_is_a_valid_home_sort(self):
+        """Choosing Custom from the dropdown saves it."""
+        self.user.home_sort = HomeSortChoices.UPCOMING
+        self.user.save(update_fields=["home_sort"])
+
+        response = self.client.get(reverse("home") + "?sort=custom")
+
+        self.assertEqual(response.context["current_sort"], "custom")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_sort, HomeSortChoices.CUSTOM)
+        self.assertContains(response, "?reorder=1")
+
+    def test_saved_order_is_followed_and_new_titles_lead(self):
+        """Arranged titles keep their order; unarranged ones come first."""
+        self.user.set_home_custom_order(
+            Status.PLANNING.value,
+            MediaTypes.MOVIE.value,
+            ["tmdb:1", "tmdb:2"],
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(
+            self._planning_titles(response),
+            ["Movie 3", "Movie 1", "Movie 2"],
+        )
+
+    def test_order_is_kept_per_status(self):
+        """An in-progress order does not rearrange the planning row."""
+        self.user.set_home_custom_order(
+            Status.IN_PROGRESS.value,
+            MediaTypes.MOVIE.value,
+            ["tmdb:1", "tmdb:2", "tmdb:3"],
+        )
+        self.user.set_home_custom_order(
+            Status.PLANNING.value,
+            MediaTypes.MOVIE.value,
+            ["tmdb:3", "tmdb:2", "tmdb:1"],
+        )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(
+            self._planning_titles(response),
+            ["Movie 3", "Movie 2", "Movie 1"],
+        )
+
+    def test_home_order_saves_a_row(self):
+        """The editor's save replaces one row and leaves the others alone."""
+        self.user.set_home_custom_order(
+            Status.IN_PROGRESS.value,
+            MediaTypes.ANIME.value,
+            ["mal:5"],
+        )
+
+        response = self.client.post(
+            reverse("home_order"),
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": json.dumps(["tmdb:2", "tmdb:3", "tmdb:1", "tmdb:2"]),
+            },
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.home_custom_order,
+            {
+                Status.IN_PROGRESS.value: {MediaTypes.ANIME.value: ["mal:5"]},
+                Status.PLANNING.value: {
+                    MediaTypes.MOVIE.value: ["tmdb:2", "tmdb:3", "tmdb:1"],
+                },
+            },
+        )
+        self.assertEqual(
+            self._planning_titles(self.client.get(reverse("home"))),
+            ["Movie 2", "Movie 3", "Movie 1"],
+        )
+
+    def test_home_order_rejects_bad_rows(self):
+        """Unknown statuses or media types are refused and nothing is saved."""
+        for data in (
+            {"status": "dropped", "media_type": MediaTypes.MOVIE.value},
+            {"status": Status.PLANNING.value, "media_type": "nope"},
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": json.dumps(["x" * 201]),
+            },
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": "not json",
+            },
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": json.dumps({"tmdb:1": 0}),
+            },
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": json.dumps([1, 2]),
+            },
+            {"status": Status.PLANNING.value, "media_type": MediaTypes.MOVIE.value},
+        ):
+            response = self.client.post(reverse("home_order"), data)
+            self.assertEqual(response.status_code, 400)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.home_custom_order, {})
+
+    def test_home_order_saves_a_row_over_django_field_limit(self):
+        """A row bigger than DATA_UPLOAD_MAX_NUMBER_FIELDS (1000) still saves."""
+        keys = [f"tmdb:{number}" for number in range(1500)]
+
+        response = self.client.post(
+            reverse("home_order"),
+            {
+                "status": Status.PLANNING.value,
+                "media_type": MediaTypes.MOVIE.value,
+                "order": json.dumps(keys),
+            },
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.user.refresh_from_db()
+        self.assertEqual(
+            self.user.get_home_custom_order(
+                Status.PLANNING.value,
+                MediaTypes.MOVIE.value,
+            ),
+            keys,
+        )
+
+    def test_home_order_needs_post(self):
+        """The save endpoint does not answer GET."""
+        response = self.client.get(reverse("home_order"))
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_arrange_mode_lists_every_title_with_controls(self):
+        """The editor shows every title, with controls, and no load button."""
+        for media_id in range(4, 20):
+            item = Item.objects.create(
+                media_id=str(media_id),
+                source=Sources.TMDB.value,
+                media_type=MediaTypes.MOVIE.value,
+                title=f"Movie {media_id}",
+                image="http://example.com/image.jpg",
+            )
+            Movie.objects.create(
+                item=item,
+                user=self.user,
+                status=Status.PLANNING.value,
+            )
+
+        response = self.client.get(reverse("home") + "?reorder=1")
+
+        self.assertTrue(response.context["reordering"])
+        self.assertEqual(len(self._planning_titles(response)), 19)
+        self.assertNotContains(response, "Load all")
+        self.assertContains(response, "data-reorder-row", count=1)
+        self.assertContains(response, 'data-reorder-key="tmdb:1"', count=1)
+        self.assertContains(response, "data-reorder-grip", count=19)
+        self.assertContains(response, "js/homeReorder.js")
+
+        normal = self.client.get(reverse("home"))
+        self.assertFalse(normal.context["reordering"])
+        self.assertContains(normal, "Load all (19)")
+        self.assertNotContains(normal, "data-reorder-grip")
+
+    def test_arrange_mode_needs_custom_sort(self):
+        """?reorder=1 under another sort just shows the normal home page."""
+        self.user.home_sort = HomeSortChoices.TITLE
+        self.user.save(update_fields=["home_sort"])
+
+        response = self.client.get(reverse("home") + "?reorder=1")
+
+        self.assertFalse(response.context["reordering"])
+        self.assertNotContains(response, "data-reorder-grip")
+        self.assertNotContains(response, "?reorder=1")
+
+    def test_arrange_mode_shows_titles_aired_only_hides(self):
+        """A caught-up show hidden by Aired only can still be arranged."""
+        season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Caught Up Show",
+            image="http://example.com/image.jpg",
+            season_number=1,
+        )
+        season = Season.objects.create(
+            item=season_item,
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+        )
+        Event.objects.create(
+            item=season_item,
+            content_number=1,
+            datetime=timezone.now() + timezone.timedelta(days=3),
+        )
+        self.user.home_aired_only = True
+        self.user.save(update_fields=["home_aired_only"])
+
+        normal = BasicMedia.objects.get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.CUSTOM,
+            items_limit=None,
+        )
+        arranging = BasicMedia.objects.get_home_status(
+            user=self.user,
+            status=Status.IN_PROGRESS.value,
+            sort_by=HomeSortChoices.CUSTOM,
+            items_limit=None,
+            include_hidden=True,
+        )
+
+        self.assertNotIn(MediaTypes.SEASON.value, normal)
+        self.assertEqual(
+            [media.id for media in arranging[MediaTypes.SEASON.value]["items"]],
+            [season.id],
+        )
+
+    def test_season_key_is_the_show(self):
+        """A season keys on its show, so the slot survives the next season."""
+        season_item = Item.objects.create(
+            media_id="1668",
+            source=Sources.TMDB.value,
+            media_type=MediaTypes.SEASON.value,
+            title="Show",
+            season_number=2,
+        )
+
+        self.assertEqual(season_item.home_order_key, "tmdb:1668")

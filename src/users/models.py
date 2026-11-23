@@ -30,6 +30,7 @@ class HomeSortChoices(models.TextChoices):
     COMPLETION = "completion", "Completion"
     EPISODES_LEFT = "episodes_left", "Episodes Left"
     TITLE = "title", "Title"
+    CUSTOM = "custom", "Custom"
 
 
 class HomeLayoutChoices(models.TextChoices):
@@ -213,6 +214,14 @@ class User(AbstractUser):
     home_media_order = models.TextField(
         default="",
         help_text="Comma-separated media type order for the home screen.",
+    )
+    home_custom_order = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Hand-arranged home screen order for the Custom sort, as "
+            "{status: {media_type: [Item.home_order_key, ...]}}."
+        ),
     )
 
     # Media type preferences: TV Shows
@@ -849,6 +858,36 @@ class User(AbstractUser):
             return index.get(lookup, len(index))
 
         return sorted(media_types, key=sort_key)
+
+    def get_home_custom_order(self, status, media_type):
+        """Return the saved Custom-sort keys for one home row, first to last."""
+        order = self.home_custom_order
+        if not isinstance(order, dict):
+            return []
+        row = order.get(status)
+        if not isinstance(row, dict):
+            return []
+        keys = row.get(media_type)
+        return keys if isinstance(keys, list) else []
+
+    def set_home_custom_order(self, status, media_type, keys):
+        """Replace the saved Custom-sort keys for one home row and save."""
+        order = self.home_custom_order
+        if not isinstance(order, dict):
+            order = {}
+        row = order.get(status)
+        if not isinstance(row, dict):
+            row = {}
+        if keys:
+            row[media_type] = keys
+        else:
+            row.pop(media_type, None)
+        if row:
+            order[status] = row
+        else:
+            order.pop(status, None)
+        self.home_custom_order = order
+        self.save(update_fields=["home_custom_order"])
 
     def get_import_tasks(self):
         """Return import tasks history and schedules for the user."""

@@ -6,6 +6,7 @@
   {% else %}
     {# no transition-all here: easing the transform out would keep this div the containing block for the fixed modals for the duration, flashing the modal inside the card #}
     <div class="bg-[#2a2f35] rounded-lg overflow-hidden shadow-lg relative"
+      data-reorder-key="{{ media.item.home_order_key }}"
       x-data="{ trackOpen: false, listsOpen: false, historyOpen: false }"
       {# card-lift is dropped while a modal is open: a transform would make this div the containing block for the fixed-position modals below and clip them #}
       :class="(trackOpen || listsOpen || historyOpen) ? '' : 'card-lift'">
@@ -116,6 +117,10 @@
           <div id="{% component_id 'history' media.item %}"></div>
         </div>
       </div>
+
+      {% if reordering %}
+        {% include "app/components/home_reorder_controls.html" with layout="grid" %}
+      {% endif %}
     </div>
   {% endif %}
 {% endfor %}

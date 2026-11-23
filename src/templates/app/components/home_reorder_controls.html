@@ -1,0 +1,39 @@
+{% comment %}
+  Covers a home tile while the Custom order is being arranged: a grip to drag
+  (mouse or touch, see static/js/homeReorder.js) and arrow buttons that move
+  the title one place. The cover also keeps the tile's links and buttons
+  from firing mid-arrange. `layout` is "grid" or "list".
+{% endcomment %}
+<div data-reorder-overlay
+     class="absolute inset-0 z-20 flex select-none items-center bg-black/60 {% if layout == 'list' %}justify-between gap-3 px-4{% else %}flex-col justify-center gap-2{% endif %}">
+  <div class="flex items-center {% if layout == 'list' %}gap-3{% else %}flex-col gap-1.5{% endif %}">
+    <span data-reorder-grip
+          title="Drag to reorder"
+          aria-hidden="true"
+          style="touch-action: none"
+          class="flex h-11 w-11 cursor-grab items-center justify-center rounded-full bg-indigo-600 text-xl font-bold text-white shadow-lg active:cursor-grabbing">⋮⋮</span>
+    <span data-reorder-position class="text-sm font-semibold text-white">{{ forloop.counter }}</span>
+  </div>
+  <div class="flex items-center gap-2 {% if layout == 'list' %}flex-col{% endif %}">
+    <button type="button"
+            data-reorder-move="-1"
+            aria-label="Move {{ media }} earlier"
+            class="cursor-pointer rounded-full bg-[#39404b] p-2.5 text-white transition-colors hover:bg-[#454d5a] disabled:cursor-not-allowed disabled:opacity-30">
+      {% if layout == "list" %}
+        {% include "app/icons/chevron-up.svg" with classes="w-5 h-5" %}
+      {% else %}
+        {% include "app/icons/chevron-left.svg" with classes="w-5 h-5" %}
+      {% endif %}
+    </button>
+    <button type="button"
+            data-reorder-move="1"
+            aria-label="Move {{ media }} later"
+            class="cursor-pointer rounded-full bg-[#39404b] p-2.5 text-white transition-colors hover:bg-[#454d5a] disabled:cursor-not-allowed disabled:opacity-30">
+      {% if layout == "list" %}
+        {% include "app/icons/chevron-down.svg" with classes="w-5 h-5" %}
+      {% else %}
+        {% include "app/icons/chevron-right.svg" with classes="w-5 h-5" %}
+      {% endif %}
+    </button>
+  </div>
+</div>
