@@ -10,57 +10,30 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0 license"></a>
-  <a href="https://github.com/FuzzyGrim/Yamtrack"><img src="https://img.shields.io/badge/fork%20of-Yamtrack-8b5cf6" alt="Fork of Yamtrack"></a>
 </p>
 
-MyTrackz is a self-hosted media and collection tracker for movies, TV shows, anime, manga, video games, books, comics, board games, LEGO sets, and sneakers. Built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack), this fork is tailored for people who want a more adaptable interface, richer discovery, and greater control over their library.
+MyTrackz is a self-hosted tracker for everything you watch, read, play, build, and collect. You get one place for your progress, history, and wishlist across ten categories:
+
+> 🎬 Movies · 📺 TV shows · 🌸 Anime · 📖 Manga · 🎮 Video games · 📚 Books · 💥 Comics · 🎲 Board games · 🧱 LEGO sets · 👟 Sneakers
+
+It syncs with your media server, imports from the services you already use, suggests what to try next, and runs on your own hardware with Docker.
 
 <!-- --8<-- [end:docs-index-intro] -->
 
 <p align="center">
-  <a href="#why-mytrackz">Why MyTrackz?</a> ·
   <a href="#screenshots">Screenshots</a> ·
+  <a href="#documentation">Documentation</a> ·
   <a href="#features">Features</a> ·
-  <a href="#quick-start">Install</a> ·
-  <a href="#documentation">Documentation</a>
+  <a href="#quick-start">Install</a>
 </p>
-
-<a id="why-mytrackz"></a>
-
-## Why choose MyTrackz over Yamtrack?
-
-MyTrackz keeps Yamtrack's excellent tracking foundation and adds a more opinionated experience for people who want richer discovery, greater visual control, a highly adaptable home screen, and collections that go beyond media.
-
-<p>
-  <strong>🎨 A more adaptable interface</strong><br>
-  Choose grid or compact home layouts, reorder and automatically expand media rows, use swipeable quick card actions, and navigate a redesigned mobile interface.
-</p>
-<p>
-  <strong>🛠️ Greater library control</strong><br>
-  Cache artwork locally, set custom posters and profile images, filter by genre, game launcher, or LEGO theme, mark which games you own, edit entries without a page reload, and fine-tune tracking and display preferences.
-</p>
-<p>
-  <strong>🧭 More ways to discover</strong><br>
-  Explore personalized recommendations, current trends, and direct story continuations from a responsive, mobile-friendly interface without resurfacing media you already track.
-</p>
-<p>
-  <strong>🧱 Collections beyond media</strong><br>
-  Track LEGO sets from Rebrickable with timed build progress, and build a sneaker collection from KicksDB whose saved details and photos stay available offline.
-</p>
-
-If you prefer the upstream project's release path and do not need these ⭐ additions, [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) remains an excellent choice. MyTrackz is for users who specifically want the fork's expanded interface, discovery, and collection features.
 
 <a id="screenshots"></a>
 
 ## 📱 Screenshots
 
-### Feature walkthroughs ⭐
-
 | Desktop home | Mobile home |
 | :-----------: | :---------: |
 | ![MyTrackz desktop home workflow](docs/assets/walkthroughs/homepage.gif) | ![MyTrackz mobile home workflow](docs/assets/walkthroughs/mobile.gif) |
-
-### Interface highlights
 
 | Grid dashboard | Mobile grid view |
 | :------------: | :--------------: |
@@ -70,24 +43,19 @@ If you prefer the upstream project's release path and do not need these ⭐ addi
 | :------------: | :--------------: |
 | ![MyTrackz list dashboard with aired-only filtering](docs/assets/screenshots/homepage_aired_only.png) | ![MyTrackz mobile list view](docs/assets/screenshots/mobile_home_aired_only.png) |
 
-| Discover recommendations ⭐ | Trending media ⭐ |
-| :--------------------------: | :--------------: |
+| Discover | Trending |
+| :------: | :------: |
 | ![Personalized recommendations on the Discover page](docs/assets/screenshots/discover.webp) | ![Popular media on the Trending page](docs/assets/screenshots/trending.webp) |
 
 <a id="documentation"></a>
 
 ## 📚 Documentation
 
-MyTrackz shares its foundation with Yamtrack, so the [upstream documentation](https://fuzzygrim.github.io/Yamtrack/) remains useful for common features. For this fork, start with the local guides:
-
-- [Environment variables](docs/env-variables.md) — API keys, authentication, storage, and runtime settings
-- [Administration](docs/administration.md) — maintenance and operational tasks
-- [Media imports](docs/media-imports.md) — supported services and import behavior
+- [Environment variables](docs/env-variables.md) — API keys, sign-in, storage, and runtime settings
+- [Administration](docs/administration.md) — backups, maintenance, and day-to-day operation
+- [Media imports](docs/media-imports.md) — supported services and how imports behave
 - [Social authentication](docs/social-auth.md) — OAuth and identity-provider setup
-- [Development](docs/development.md) — local setup, testing, and contribution workflow
-
-> [!IMPORTANT]
-> Use the Docker instructions below when installing MyTrackz. Upstream installation guides reference Yamtrack images and do not include this fork's changes.
+- [Development](docs/development.md) — local setup, testing, and contributing
 
 <!-- --8<-- [start:docs-index-body] -->
 
@@ -95,109 +63,118 @@ MyTrackz shares its foundation with Yamtrack, so the [upstream documentation](ht
 
 ## ✨ Features
 
-Features marked with ⭐ are additions specific to MyTrackz.
+### 📝 Track everything
 
-### Track your media
+- **Detailed progress** — status, score, progress, repeats, start and finish dates, and notes for every entry.
+- **Episodes and seasons** — follow each TV season on its own and mark episodes as watched.
+- **Full history** — a timeline of additions, progress, completions, rewatches, and rereads.
+- **Custom entries** — add anything a metadata provider doesn't have.
+- **Lists** — personal or shared lists, with other members invited to contribute.
+- **Release calendar** — grid or list view, plus a personal iCalendar link for your calendar app.
+- **Statistics** — activity heatmap, status and score breakdowns, and tracking history.
 
-- **Ten tracking categories** — movies, TV shows, anime, manga, video games, books, comics, board games, LEGO sets, and sneakers.
-- **Detailed progress** — record status, score, progress, repeats, start and finish dates, and personal notes.
-- **Episode and season tracking** — follow TV seasons individually and mark episodes as watched.
-- **Complete history** — keep a timeline of additions, progress updates, completions, rewatches, and rereads.
-- **Custom entries** — add niche or personal media that is missing from supported metadata providers.
-- **Personal and collaborative lists** — organize media for any purpose and invite other members to contribute.
-- **Release calendar** — browse upcoming releases and subscribe from another calendar app with a personal iCalendar URL.
-- **Statistics dashboard** — explore an activity heatmap, status and score distributions, media-type breakdowns, and tracking history.
+### 🏠 A home screen that fits you
 
-### Connect and automate
+- **Grid or compact layout** — poster grids, or a swipeable list with episode details and one-tap progress.
+- **Your order** — drag media rows into the order you want; the sidebar follows. A Custom sort lets you arrange items within a row too.
+- **Aired-only rows** — caught-up shows step aside until the next episode airs.
+- **Interactive cards** — quick actions for completion, lists, and history right on the poster.
+- **Expanded rows** — load everything automatically, or keep a "Load all" button for big libraries.
+- **Mobile-first design** — a liquid-glass navigation bar, installable PWA with an offline page, and themes to choose from.
+- **Command palette** — press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to jump straight to a title.
 
-- **Media-server sync** — automatically track playback from [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/), and [Emby](https://emby.media/), including metadata-poor Plex DVR episodes and safe title-based TV matching. Repeated webhook deliveries for the same episode are ignored, while a genuine rewatch is still recorded.
-- **Library imports** — import from [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), IMDb, Goodreads, HowLongToBeat, and Steam, with optional scheduled imports.
-- **Portable data** — export your tracked media to CSV and import it again later.
-- **Release notifications** — send alerts through [Apprise](https://github.com/caronc/apprise) to Discord, Telegram, ntfy, Slack, email, and many other services. Choose individual alerts or a daily digest and exclude items as needed.
-- **Streaming availability** — find regional movie and TV streaming providers through JustWatch/TMDB data.
-- **Flexible authentication** — support OIDC and more than 100 social providers through [django-allauth](https://allauth.org/).
-- **Metadata controls** — refresh a tracked item's title, artwork, episode list, and other provider data with one click.
-- **Regional preferences** — configure date and time formats, the first day of the week, streaming region, and quick watch-date behavior independently.
-- **Calendar maintenance** — switch between grid and list views, refresh release dates manually, and reconcile newly announced TV seasons and episodes.
-- **Granular integrations** — regenerate webhook and calendar tokens, choose which Jellyfin events are processed, and restrict Plex tracking by username.
-- **Docker deployment** — run with Redis and either SQLite or PostgreSQL through Docker Compose.
+### 🧭 Find what's next
 
-### MyTrackz additions ⭐
+- **Discover** — personalized recommendations drawn from what you track and finish, mixed across media types.
+- **Continue the Story** — sequels, next volumes, expansions, and remasters for things you've finished or are in the middle of.
+- **Trending** — popular titles from TMDB, MyAnimeList, IGDB, and BGG, minus anything already in your library.
+- **Streaming availability** — see where a movie or show is streaming in your region.
 
-- 🖼️ **Local image caching** — download provider artwork as locally served WebP files, resized to display size so the cache stays small, with a configurable size cap. Corrupt or oversized images are skipped and fall back to the provider's copy.
-- 🖌️ **Custom poster images** — replace any poster with an image URL and restore the provider artwork with one click.
-- 🎮 **Per-game launcher tracking** — assign games to Steam, GOG, Epic, EA, Ubisoft, Blizzard, Xbox, Nintendo, PlayStation, Emulation, Rockstar, Amazon, or Other. Launcher badges appear on cards, lists, home views, and detail pages.
-- 🎯 **Game launcher filtering** — narrow the games library by launcher without losing the active search, status, genre, format, sort, pagination, or layout.
-- 🛒 **Game ownership** — mark each game as Owned or Not owned from the tracking form or a custom entry. A 🎮 or 🛒 badge appears on game covers across cards, lists, home views, and detail pages, and the value is kept in CSV exports and imports.
-- 🎨 **Redesigned interface** — use a liquid-glass mobile navigation bar, updated media grid, morphing library panel, and one-tap movie completion control.
-- 🏠 **Compact home layout** — switch from poster grids to a swipeable list with episode details and one-tap progress controls.
-- 🧱 **LEGO set tracking** — search Rebrickable's official catalog by name or set number, including sets whose parts inventories are not yet recorded. Set pages show the set number, release year, piece count, theme, and locally cached artwork. Build progress is logged as elapsed time with 30-minute controls and appears in your normal history and statistics. Works out of the box with a bundled [Rebrickable API key](https://rebrickable.com/api/); set your own with `REBRICKABLE`.
-- 👟 **Sneaker collection** — search KicksDB by name or style code and save catalog details once. Track owned pairs, status, wishlist entries, notes, and history, with personal original MSRP and currency fields. Browse saved sneakers and cached photos without contacting KicksDB. See [Sneaker catalog](#sneaker-catalog) below for setup and behavior.
-- 🧩 **LEGO theme filtering** — narrow your LEGO library by the Rebrickable themes of the sets you track, in both grid and table layouts.
-- 🧭 **Discover** — get personalized recommendations ranked and interleaved across the media types you currently track or have completed. A remake or reboot that shares a title with something you already track is still suggested.
-- 🔥 **Trending** — browse popular media from TMDB, MyAnimeList, IGDB, and BGG while hiding items already in your library. Refreshing rebuilds the list in the background, and the current one stays visible to everyone until the new one is ready.
-- 🔎 **Command palette** — press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to search within a media type and jump directly to a result.
-- ↕️ **Custom home order** — drag rows or use arrow controls to choose the order of media types on the home page and sidebar.
-- 📡 **Aired-only filtering** — hide caught-up episodic shows until the next episode airs; the home row refreshes when a new episode becomes available or you catch up.
-- 🏷️ **Genre filtering** — filter libraries with genre data collected automatically from media providers.
-- 🛠️ **Grouped preferences** — organize appearance, tracking, recommendations, regional formats, and library navigation settings, including your choice of Wishlist or Backlog terminology.
-- 📲 **Improved PWA support** — install more reliably on Android and retain a useful offline fallback page.
-- 🔢 **Live library counts** — see matching item totals update while searching, filtering, or changing layouts.
-- ✏️ **In-place library edits** — update or delete an entry from a library page without a reload, keeping your scroll position and every page already loaded.
-- 🏡 **Expanded home rows** — load every item automatically or retain the compact “Load all” control for larger libraries.
-- 🎨 **Colored progress controls** — optionally give grid decrease and increase actions distinct red and green backgrounds.
-- 📚 **Continue the Story** — surface sequels, next volumes, expansions, and remasters related to recently completed or in-progress media.
-- 🖱️ **Interactive media cards** — lift cards on hover and reveal quick actions for completion, lists, and history directly on the poster.
-- 👤 **Profile images** — set an avatar from an image URL with a drag-and-zoom cropper and local caching.
-- 🛡️ **Admin page** — the first account created is the instance admin and gets Settings → Admin: see every account with its last sign-in and item count, deactivate or reactivate accounts, promote a second admin, and issue a temporary password that must be replaced at the next sign-in. It also shows whether registration is open, background-worker and Redis health, database size, and each scheduled task's last and next run with a "Run now" button. Once your own account exists, set `REGISTRATION=False` unless you want anyone who can reach the site to sign up.
-- 🧹 **Cache management** — see image-cache usage against its cap on the Admin page, then clear the image or search cache with a confirmation step. The image purge runs in the background. Because both caches are shared by every account, clearing them is limited to instance admins.
-- 💾 **Automatic backups** — the database (SQLite or PostgreSQL) is copied every day while the app keeps running, checked before it is kept, and held for a week, alongside a CSV export of every account's library. The outcome can be reported to Discord (or any Apprise target), and the Admin page shows the last run step by step with a "Back up now" button. The copies stay on the server, so include the `backups` folder in your server backups. See [Backups](docs/administration.md#backups) for setup and restoring.
-- ♻️ **Automatic housekeeping** — a weekly task removes catalog entries that nobody tracks, lists, or follows on the calendar, along with their cached artwork, so the database and image cache do not grow with every search. The Admin page shows how many entries the next run would remove and can run it on demand. Anything removed is fetched again the next time you search for or open it.
-- 🔒 **Demo-safe shared data** — demo accounts cannot change posters, rebuild the Trending list, or clear caches, since those affect every user of the instance.
+### 🗂️ Control your library
 
-### Sneaker catalog
+- **Filters that stick** — filter by genre, format, game launcher, or LEGO theme without losing your search, sort, or layout.
+- **Live counts** — totals update as you search and filter.
+- **Edit in place** — change or delete an entry without a page reload or losing your scroll position.
+- **Custom artwork** — swap any poster for your own image and restore the original with one click. Set a profile picture with a crop tool.
+- **Local image cache** — artwork is saved as small WebP files on your server, with a size cap you choose.
+- **Your words** — call your planning list a Wishlist or a Backlog, and set your own date, time, and week formats.
 
-Set `KICKSDB_API` in the Docker service's environment to enable new sneaker searches. The [environment-variable guide](docs/env-variables.md) describes configuration. You can also create custom sneaker entries and browse your saved catalog without an API key.
+### 🎮 Games
 
-- **One-time catalog lookup** — opening a new KicksDB sneaker saves its available name, brand, style code, colorway, image, and release date locally. Later visits use those saved details, with no scheduled price or release refreshes. Missing fields stay unknown.
-- **Personal collection tracking** — record the number of owned pairs, choose a tracking status, keep wishlist entries, and edit personal details and notes. Status and pair-count changes appear in history. Notes can hold details such as condition or last-worn dates.
-- **Original release price** — enter a verified original MSRP and its currency yourself. An optional API-reported retail figure is displayed separately and never fills your original MSRP automatically; it may differ from the launch price.
-- **Locally cached photos** — sneaker artwork uses the same local image cache as the rest of your library. Saved catalog details and cached photos remain available when KicksDB is unavailable.
-- **Search recovery and portability** — failed API searches show retry and saved-catalog links. Saved entries can be exported to CSV and imported again, including personal sneaker fields.
+- **Launchers** — tag each game with Steam, GOG, Epic, EA, Ubisoft, Blizzard, Xbox, Nintendo, PlayStation, Emulation, Rockstar, Amazon, or Other.
+- **Ownership** — mark games as owned (🎮) or not yet bought (🛒); the badge shows on every cover.
+
+### 🧱 LEGO
+
+- **Rebrickable catalog** — search by name or set number, including brand-new sets.
+- **Set details** — set number, year, piece count, theme, and cached artwork.
+- **Build time** — log build progress in 30-minute steps; it counts in your history and statistics.
+- Works out of the box with a bundled [Rebrickable](https://rebrickable.com/api/) key, or set your own with `REBRICKABLE`.
+
+<a id="sneaker-catalog"></a>
+
+### 👟 Sneakers
+
+- **KicksDB search** — find pairs by name or style code. Details and photos are saved once and stay available offline.
+- **Your collection** — pairs owned, status, wishlist, notes (condition, last worn), and history.
+- **Original MSRP** — enter the verified launch price and currency yourself; any retail figure from the API is shown separately.
+- Set `KICKSDB_API` to enable search. Saved sneakers and custom entries work without a key.
+
+### 🔌 Connect and import
+
+- **Media-server sync** — track playback automatically from [Jellyfin](https://jellyfin.org/), [Plex](https://plex.tv/), and [Emby](https://emby.media/), including Plex DVR recordings. Duplicate webhooks are ignored; real rewatches are kept.
+- **Imports** — [Trakt](https://trakt.tv/), [Simkl](https://simkl.com/), [MyAnimeList](https://myanimelist.net/), [AniList](https://anilist.co/), [Kitsu](https://kitsu.app/), IMDb, Goodreads, HowLongToBeat, and Steam, with optional scheduled imports.
+- **CSV export and import** — take your whole library with you, game and sneaker fields included.
+- **Notifications** — release alerts through [Apprise](https://github.com/caronc/apprise) to Discord, Telegram, ntfy, Slack, email, and more, one at a time or as a daily digest.
+- **Sign-in options** — OIDC and 100+ social providers through [django-allauth](https://allauth.org/).
+
+### 🛡️ Run your own instance
+
+- **Guided setup** — a walkthrough for new accounts, with API keys entered and saved in the app.
+- **Admin page** — the first account is the admin. Manage accounts, reset passwords, check worker, Redis, and database health, and run scheduled tasks on demand. Set `REGISTRATION=False` once your account exists unless you want open sign-ups.
+- **Automatic backups** — a daily, verified copy of the database (SQLite or PostgreSQL) plus a CSV of every library, kept for a week, with optional alerts. See [Backups](docs/administration.md#backups).
+- **Housekeeping** — a weekly cleanup removes catalog entries nobody uses, so the database and image cache stay lean.
+- **Cache controls** — see image-cache usage and clear the image or search cache from the Admin page.
+- **Demo-safe** — demo accounts can't change anything shared by every user.
 
 <a id="quick-start"></a>
 
-## 🐳 Quick start with Docker
+## 🐳 Quick start
 
-### Prerequisites
+You need Docker (with the Compose plugin) and Git.
 
-- Docker with the Compose plugin
-- Git
-
-### 1. Clone the fork
+**1. Clone the repository**
 
 ```bash
 git clone https://github.com/RichardFelix/MyTrackz.git
-cd mytrackz
+cd MyTrackz
 ```
 
-### 2. Configure the service
+**2. Configure**
 
-Open `docker-compose.yml`. A secret key is generated on first start and kept in the `db` folder; set `SECRET` to a long, random value if you would rather manage it yourself. Review `TZ` and any provider API keys you want to use (for example, set `REBRICKABLE` to use your own key for LEGO set search, or `KICKSDB_API` for sneaker search). If MyTrackz will run behind a reverse proxy, set `URLS` to its public origin.
+Open `docker-compose.yml` and review `TZ` and any API keys you want to use. Common ones:
 
-See [Environment variables](docs/env-variables.md) for every available setting.
+| Setting | What it does |
+| --- | --- |
+| `TZ` | Your time zone |
+| `URLS` | Public address, if you run behind a reverse proxy |
+| `REBRICKABLE` | Your own LEGO search key (optional) |
+| `KICKSDB_API` | Enables sneaker search |
+| `SECRET` | Optional; a secret key is generated on first start and kept in `db` |
 
-### 3. Build and start
+Every option is listed in [Environment variables](docs/env-variables.md).
+
+**3. Start**
 
 ```bash
 docker compose up -d --build
 ```
 
-MyTrackz will be available at [http://localhost:8000](http://localhost:8000). The default Compose stack stores its SQLite database in `./db`, media files in `./media`, and Redis data in a named Docker volume.
+Open [http://localhost:8000](http://localhost:8000). Your SQLite database lives in `./db`, media files in `./media`, and backups in `./backups`.
 
-### PostgreSQL
+### Using PostgreSQL
 
-SQLite is a good default for most personal installations. To use PostgreSQL, start from `docker-compose.postgres.yml` and replace the upstream image on the `yamtrack` service:
+SQLite works well for most personal setups. For PostgreSQL, start from `docker-compose.postgres.yml` and have it build MyTrackz locally:
 
 ```yaml
 services:
@@ -206,22 +183,18 @@ services:
     image: yamtrack:local
 ```
 
-Then update the example database credentials and start that stack:
+Change the example database passwords, then start it:
 
 ```bash
 docker compose -f docker-compose.postgres.yml up -d --build
 ```
 
-## 💻 Development
-
-See the [development guide](docs/development.md) for the local toolchain and workflow.
-
 ## 🙏 Credits
 
-MyTrackz is built on [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) by [FuzzyGrim](https://github.com/FuzzyGrim). Most of the core tracking functionality and codebase comes from that project—please consider giving it a star. If you do not need the ⭐ features above, upstream Yamtrack may be the better fit.
+MyTrackz began as a fork of [Yamtrack](https://github.com/FuzzyGrim/Yamtrack) by [FuzzyGrim](https://github.com/FuzzyGrim), whose tracking core it still builds on. Thank you.
 
-The fork-specific features marked ⭐ were designed and implemented with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
+MyTrackz's own features were designed and built with [Claude Code](https://claude.com/claude-code) and [Codex](https://openai.com/codex/).
 
-MyTrackz is distributed under the [GNU Affero General Public License v3.0](LICENSE).
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
 
 <!-- --8<-- [end:docs-index-body] -->
