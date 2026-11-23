@@ -7,6 +7,7 @@ from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 from django_celery_results.models import TaskResult
 
+from integrations import tasks
 from users.models import (
     HomeSortChoices,
     MediaTypes,
@@ -205,6 +206,39 @@ class UserGetImportTasksTests(TestCase):
             day_of_week="*",
             day_of_month="*",
             month_of_year="*",
+        )
+
+    @patch("users.helpers.process_task_result")
+    def test_get_import_tasks_finds_every_import_task(self, mock_process_task_result):
+        """History lookups must use each import task's real Celery name."""
+        mock_process_task_result.return_value = MagicMock(summary="", errors=[])
+        import_tasks = {
+            "trakt": tasks.import_trakt,
+            "simkl": tasks.import_simkl,
+            "myanimelist": tasks.import_mal,
+            "anilist": tasks.import_anilist,
+            "kitsu": tasks.import_kitsu,
+            "yamtrack": tasks.import_yamtrack,
+            "hltb": tasks.import_hltb,
+            "steam": tasks.import_steam,
+            "imdb": tasks.import_imdb,
+            "goodreads": tasks.import_goodreads,
+        }
+        for i, task in enumerate(import_tasks.values()):
+            TaskResult.objects.create(
+                task_id=f"task-{i}",
+                task_name=task.name,
+                task_kwargs=f"{{'user_id': {self.user.id}, 'mode': 'new'}}",
+                status="SUCCESS",
+                date_done=timezone.now() - timedelta(minutes=i),
+                result="{}",
+            )
+
+        results = self.user.get_import_tasks()["results"]
+
+        self.assertEqual(
+            sorted(result["source"] for result in results),
+            sorted(import_tasks),
         )
 
     @patch("users.helpers.process_task_result")
