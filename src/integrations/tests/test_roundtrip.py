@@ -195,10 +195,6 @@ class ExportImportRoundTripTests(TestCase):
                     for field in TRACK_FIELDS
                     if hasattr(media, field)
                 }
-                # Movies have no user-facing progress (MovieForm excludes it,
-                # completion is status-based), so it isn't round-tripped.
-                if media_type == MediaTypes.MOVIE.value:
-                    snapshot[key].pop("progress", None)
         return snapshot
 
     def test_export_reimports_losslessly(self):
@@ -229,6 +225,45 @@ class ExportImportRoundTripTests(TestCase):
         self.assertEqual(counts, {})
         self.assertEqual(Movie.objects.filter(user=self.importer).count(), 2)
         self.assertEqual(TV.objects.filter(user=self.importer).count(), 1)
+
+    def test_movie_progress_survives_reimport(self):
+        """MovieForm has no progress field, so the importer must set it."""
+        exported = {
+            movie.item.media_id: movie.progress
+            for movie in Movie.objects.filter(user=self.exporter)
+        }
+        self.assertIn(0, exported.values())
+        self.assertTrue(any(exported.values()))
+
+        yamtrack.importer(io.BytesIO(self._export_csv()), self.importer, "new")
+
+        imported = {
+            movie.item.media_id: movie.progress
+            for movie in Movie.objects.filter(user=self.importer)
+        }
+        self.assertEqual(imported, exported)
+
+    def test_completed_movie_without_progress_imports_as_watched(self):
+        """A hand-edited or older CSV with blank movie progress still completes."""
+        rows = list(csv.reader(io.StringIO(self._export_csv().decode())))
+        header = rows[0]
+        for row in rows[1:]:
+            if row[header.index("media_type")] == MediaTypes.MOVIE.value:
+                row[header.index("progress")] = ""
+
+        blank_progress = io.StringIO()
+        csv.writer(blank_progress, quoting=csv.QUOTE_ALL).writerows(rows)
+        yamtrack.importer(
+            io.BytesIO(blank_progress.getvalue().encode()), self.importer, "new"
+        )
+
+        progress_by_status = {
+            m.status: m.progress for m in Movie.objects.filter(user=self.importer)
+        }
+        self.assertEqual(
+            progress_by_status,
+            {Status.COMPLETED.value: 1, Status.PLANNING.value: 0},
+        )
 
     def test_legacy_export_without_launcher_defaults_games_to_steam(self):
         """CSV files created before launcher tracking remain importable."""

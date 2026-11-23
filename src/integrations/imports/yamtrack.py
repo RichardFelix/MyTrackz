@@ -173,6 +173,7 @@ class YamtrackImporter:
         if form.is_valid():
             if catalog:
                 self._attach_sneaker_catalog(form, catalog)
+            self._set_movie_progress(form.instance, row)
             progressed_at = row.get("progressed_at")
             if progressed_at:
                 form.instance._history_date = parse_datetime(progressed_at)
@@ -181,6 +182,21 @@ class YamtrackImporter:
             error_msg = f"{row['title']} ({media_type}): {form.errors.as_json()}"
             self.warnings.append(error_msg)
             logger.error(error_msg)
+
+    def _set_movie_progress(self, instance, row):
+        """Set a movie's progress, which MovieForm does not carry.
+
+        Bulk creation skips ``process_status()``, which is what sets a
+        completed movie to 1 when it is saved in the app, so take the
+        exported value and fall back to 1 for a completed movie without one.
+        """
+        if row["media_type"] != MediaTypes.MOVIE.value:
+            return
+        value = str(row["progress"]).strip()
+        progress = int(value) if value.isdigit() else 0
+        if row["status"] == app.models.Status.COMPLETED.value:
+            progress = max(progress, 1)
+        instance.progress = progress
 
     def _normalize_ownership(self, value):
         """Match hand-edited ownership values regardless of case or spacing."""
