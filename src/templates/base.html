@@ -3,10 +3,13 @@
 
 <!DOCTYPE html>
 <html lang="en"
-      class="scheme-dark scroll-smooth bg-[#000]{% if user.theme == 'grey' %} theme-grey{% elif user.theme == 'midnight' %} theme-midnight{% endif %}">
+      class="{{ user.theme_classes|default:'scheme-dark' }} scroll-smooth bg-[#000]">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
+    {# Before the stylesheet: tells the browser which canvas and form-control palette to paint first #}
+    <meta name="color-scheme"
+          content="{{ user.theme_color_scheme|default:'dark' }}">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="keywords" content="MyTrackz, Media Tracker">
@@ -55,7 +58,7 @@
     <meta name="msapplication-config"
           content="{% static "favicon/browserconfig.xml" %}">
     <meta name="theme-color"
-          content="{% if user.theme == 'midnight' %}#0b1020{% else %}#000000{% endif %}">
+          content="{{ user.theme_ground_color|default:'#000000' }}">
 
   </head>
 
@@ -77,7 +80,7 @@
           <div class="h-16 border-b border-[#2c3136] flex items-center justify-center px-6">
             <a href="{% url 'home' %}" class="hover:opacity-80 transition-opacity">
               <h1 class="text-2xl font-semibold">
-                <span style="color: #E8E4DC;">My</span><span style="color: #F0C070;">Trackz</span>
+                <span class="logo-my">My</span><span class="logo-trackz">Trackz</span>
               </h1>
             </a>
           </div>
@@ -88,7 +91,7 @@
                       class="mb-4 flex w-full cursor-pointer items-center space-x-3 rounded-md px-4 py-2 text-sm text-gray-400 transition-colors duration-200 hover:bg-[#23272b] hover:text-white">
                 {% include "app/icons/magnifying-glass.svg" with classes="w-5 h-5 shrink-0" %}
                 <span>Search</span>
-                <kbd class="ml-auto rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-500">⌘K</kbd>
+                <kbd class="ml-auto rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-sans text-[11px] font-medium text-gray-400">⌘K</kbd>
               </button>
             {% endif %}
 
@@ -312,7 +315,7 @@
                     <div class="truncate text-sm font-semibold text-white">{{ user.username }}</div>
                     <div class="flex items-center gap-2 text-xs text-gray-400">
                       <span class="transition-colors group-hover:text-white">Settings</span>
-                      <span class="text-gray-600">·</span>
+                      <span class="text-gray-500">·</span>
                       <form method="post"
                             action="{% url 'account_logout' %}"
                             class="relative z-10 inline">
@@ -351,29 +354,29 @@
                    aria-label="Breadcrumb">
                 {% with un=request.resolver_match.url_name %}
                   {% if un == 'medialist' %}
-                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="truncate font-semibold text-white">{{ media_type|media_type_readable_plural }}</span>
+                    <span class="text-gray-500">Library</span><span class="text-gray-500">/</span><span class="truncate font-semibold text-white">{{ media_type|media_type_readable_plural }}</span>
                   {% elif un == 'home' %}
-                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Home</span>
+                    <span class="text-gray-500">Library</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Home</span>
                   {% elif un == 'media_details' or un == 'season_details' %}
-                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="truncate font-semibold text-white">{{ media.title|default:"Details" }}</span>
+                    <span class="text-gray-500">Library</span><span class="text-gray-500">/</span><span class="truncate font-semibold text-white">{{ media.title|default:"Details" }}</span>
                   {% elif un == 'search' %}
-                    <span class="text-gray-500">Library</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Search</span>
+                    <span class="text-gray-500">Library</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Search</span>
                   {% elif un == 'discover' %}
-                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Discover</span>
+                    <span class="text-gray-500">Explore</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Discover</span>
                   {% elif un == 'trending' %}
-                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Trending</span>
+                    <span class="text-gray-500">Explore</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Trending</span>
                   {% elif un == 'calendar' %}
-                    <span class="text-gray-500">Explore</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Calendar</span>
+                    <span class="text-gray-500">Explore</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Calendar</span>
                   {% elif un == 'create_entry' %}
-                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Create Custom</span>
+                    <span class="text-gray-500">Manage</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Create Custom</span>
                   {% elif un == 'lists' %}
-                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Lists</span>
+                    <span class="text-gray-500">Manage</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Lists</span>
                   {% elif un == 'statistics' %}
-                    <span class="text-gray-500">Manage</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Statistics</span>
+                    <span class="text-gray-500">Manage</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Statistics</span>
                   {% elif un == 'instance_admin' %}
-                    <span class="text-gray-500">Settings</span><span class="text-gray-600">/</span><span class="font-semibold text-white">Admin</span>
+                    <span class="text-gray-500">Settings</span><span class="text-gray-500">/</span><span class="font-semibold text-white">Admin</span>
                   {% elif un == 'account' or un == 'preferences' or un == 'notifications' or un == 'integrations' or un == 'import_data' or un == 'export_data' or un == 'advanced' or un == 'about' %}
-                    <span class="text-gray-500">Settings</span><span class="text-gray-600">/</span><span class="font-semibold text-white capitalize">{{ un|no_underscore }}</span>
+                    <span class="text-gray-500">Settings</span><span class="text-gray-500">/</span><span class="font-semibold text-white capitalize">{{ un|no_underscore }}</span>
                   {% else %}
                     <span class="font-semibold text-white">MyTrackz</span>
                   {% endif %}

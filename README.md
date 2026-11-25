@@ -80,7 +80,8 @@ It syncs with your media server, imports from the services you already use, sugg
 - **Aired-only rows** — caught-up shows step aside until the next episode airs.
 - **Interactive cards** — quick actions for completion, lists, and history right on the poster.
 - **Expanded rows** — load everything automatically, or keep a "Load all" button for big libraries.
-- **Mobile-first design** — a liquid-glass navigation bar, installable PWA with an offline page, and themes to choose from.
+- **Mobile-first design** — a liquid-glass navigation bar and an installable PWA with an offline page.
+- **Ten themes** — Dark, Grey and Midnight, plus seven colour palettes: Beachfront, Pumpkin Spice, Tropical Punch, Watermelon Splash, Cotton Candy Skies, Pastel Garden and Lush Forest. Light palettes switch the whole app to dark text. A swatch strip under the Theme picker shows what each colour paints before you save, and every theme is checked for readable text contrast.
 - **Command palette** — press <kbd>⌘K</kbd> or <kbd>/</kbd> anywhere to jump straight to a title.
 
 ### 🧭 Find what's next

@@ -18,11 +18,15 @@ from app import provider_keys
 from app.models import MediaTypes
 from app.templatetags.app_tags import media_type_readable_plural
 from users.models import (
+    THEME_GROUND_COLORS,
+    THEME_SWATCHES,
     DateFormatChoices,
     HomeLayoutChoices,
     PlanningTermChoices,
     ThemeChoices,
     TimeFormatChoices,
+    theme_color_scheme,
+    theme_html_classes,
 )
 
 WELCOME = "welcome"
@@ -48,6 +52,10 @@ class Option:
     value: str
     label: str
     description: str = ""
+    html_classes: str = ""
+    swatches: tuple = ()
+    color_scheme: str = ""
+    ground_color: str = ""
 
 
 @dataclass(frozen=True)
@@ -85,10 +93,26 @@ class PreferenceStep:
     settings: tuple = ()
 
 
-def _options(choices, descriptions=None):
+def _options(
+    choices,
+    descriptions=None,
+    html_classes=None,
+    swatches=None,
+    color_scheme=None,
+    ground_colors=None,
+):
     descriptions = descriptions or {}
     return tuple(
-        Option(value, label, descriptions.get(value, "")) for value, label in choices
+        Option(
+            value,
+            label,
+            descriptions.get(value, ""),
+            html_classes(value) if html_classes else "",
+            (swatches or {}).get(value, ()),
+            color_scheme(value) if color_scheme else "",
+            (ground_colors or {}).get(value, ""),
+        )
+        for value, label in choices
     )
 
 
@@ -116,7 +140,32 @@ PREFERENCE_STEPS = (
                         ThemeChoices.MIDNIGHT: (
                             "Deep navy with an amber accent and its own fonts."
                         ),
+                        ThemeChoices.BEACHFRONT: (
+                            "Sand ground, lavender cards, olive accent."
+                        ),
+                        ThemeChoices.PUMPKIN_SPICE: (
+                            "Burnt orange ground with cinnamon and espresso."
+                        ),
+                        ThemeChoices.TROPICAL_PUNCH: (
+                            "Orange ground, pink cards, teal accent."
+                        ),
+                        ThemeChoices.WATERMELON: (
+                            "Watermelon pink ground, mint cards, charcoal accent."
+                        ),
+                        ThemeChoices.COTTON_CANDY: (
+                            "Lilac ground, sky-blue cards, candy-pink controls."
+                        ),
+                        ThemeChoices.PASTEL_GARDEN: (
+                            "Rose ground, blush cards, sage and cocoa."
+                        ),
+                        ThemeChoices.LUSH_FOREST: (
+                            "Forest green with mint highlights."
+                        ),
                     },
+                    html_classes=theme_html_classes,
+                    swatches=THEME_SWATCHES,
+                    color_scheme=theme_color_scheme,
+                    ground_colors=THEME_GROUND_COLORS,
                 ),
             ),
         ),

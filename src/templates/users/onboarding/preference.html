@@ -43,11 +43,20 @@
                        name="{{ row.setting.field }}"
                        value="{{ option.value }}"
                        class="mt-0.5 accent-indigo-500"
-                       {% if row.setting.field == "theme" %}onchange="document.documentElement.classList.toggle('theme-grey', this.value === 'grey');document.documentElement.classList.toggle('theme-midnight', this.value === 'midnight')"{% endif %}
+                       {% if row.setting.field == "theme" %}data-html-classes="{{ option.html_classes }}" data-color-scheme="{{ option.color_scheme }}" data-ground-color="{{ option.ground_color }}"{% endif %}
                        {% if option.value == row.current %}checked{% endif %}>
                 <span>
                   <span class="block text-sm font-medium text-gray-200">{{ option.label }}</span>
                   {% if option.description %}<span class="block text-xs text-gray-400 mt-1">{{ option.description }}</span>{% endif %}
+                  {% if option.swatches %}
+                    <span class="mt-2 flex gap-1.5" aria-hidden="true">
+                      {% for color, role in option.swatches %}
+                        <span class="h-4 w-7 rounded-sm ring-1 ring-inset ring-black/15"
+                              style="background-color: {{ color }}"
+                              title="{{ role }}"></span>
+                      {% endfor %}
+                    </span>
+                  {% endif %}
                 </span>
               </label>
             {% endfor %}
@@ -58,4 +67,18 @@
 
     {% include "users/onboarding/actions.html" %}
   </form>
+  {# Live theme preview: swap the <html> classes and the browser-chrome meta tags #}
+  <script>
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("input[data-html-classes]");
+      if (!input) return;
+      const classes = document.documentElement.classList;
+      [...classes]
+        .filter((name) => name.startsWith("theme-") || name.startsWith("scheme-"))
+        .forEach((name) => classes.remove(name));
+      classes.add(...input.dataset.htmlClasses.split(" "));
+      document.querySelector("meta[name=color-scheme]")?.setAttribute("content", input.dataset.colorScheme);
+      document.querySelector("meta[name=theme-color]")?.setAttribute("content", input.dataset.groundColor);
+    });
+  </script>
 {% endblock step %}

@@ -106,6 +106,50 @@ class PreferencesHomeOrderTests(TestCase):
         self.assertContains(response, "theme-midnight")
         self.assertContains(response, 'content="#0b1020"')
 
+    def test_light_palette_theme_flips_the_page_to_light(self):
+        """A light-ground palette tags the root as light and uses its ground colour."""
+        self.client.post(reverse("preferences"), {"theme": ThemeChoices.BEACHFRONT})
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, ThemeChoices.BEACHFRONT)
+        response = self.client.get(reverse("preferences"))
+        self.assertContains(
+            response,
+            'class="scheme-light theme-beachfront theme-palette theme-light',
+        )
+        self.assertContains(response, 'content="#ede8d0"')
+        self.assertRegex(
+            response.content.decode(),
+            r'<meta name="color-scheme"\s+content="light">',
+        )
+
+    def test_theme_swatches_are_listed_for_every_theme(self):
+        """The Theme picker ships each theme's colours for its swatch strip."""
+        response = self.client.get(reverse("preferences"))
+        swatches = response.context["theme_swatches"]
+        self.assertEqual(set(swatches), set(ThemeChoices.values))
+        self.assertEqual(
+            swatches[ThemeChoices.BEACHFRONT][0],
+            {"color": "#ede8d0", "role": "Background"},
+        )
+        self.assertContains(response, 'id="theme-swatches"')
+
+    def test_dark_palette_theme_stays_dark(self):
+        """A dark-ground palette gets the palette layer but not the light one."""
+        self.client.post(reverse("preferences"), {"theme": ThemeChoices.LUSH_FOREST})
+
+        response = self.client.get(reverse("preferences"))
+        self.assertContains(
+            response,
+            'class="scheme-dark theme-lush-forest theme-palette scroll-smooth',
+        )
+        self.assertNotContains(response, "theme-light")
+        self.assertContains(response, 'content="#2e6f40"')
+        self.assertRegex(
+            response.content.decode(),
+            r'<meta name="color-scheme"\s+content="dark">',
+        )
+
     def test_valid_order_persists(self):
         """A valid submitted order is saved verbatim."""
         order = f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"

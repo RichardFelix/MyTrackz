@@ -137,6 +137,140 @@ class ThemeChoices(models.TextChoices):
     DARK = "dark", "Dark"
     GREY = "grey", "Grey"
     MIDNIGHT = "midnight", "Midnight"
+    BEACHFRONT = "beachfront", "Beachfront"
+    PUMPKIN_SPICE = "pumpkin_spice", "Pumpkin Spice"
+    TROPICAL_PUNCH = "tropical_punch", "Tropical Punch"
+    WATERMELON = "watermelon", "Watermelon Splash"
+    COTTON_CANDY = "cotton_candy", "Cotton Candy Skies"
+    PASTEL_GARDEN = "pastel_garden", "Pastel Garden"
+    LUSH_FOREST = "lush_forest", "Lush Forest"
+
+
+# Themes on a light ground: base.html adds `theme-light`, which flips the ink.
+LIGHT_THEMES = frozenset(
+    {
+        ThemeChoices.BEACHFRONT,
+        ThemeChoices.TROPICAL_PUNCH,
+        ThemeChoices.WATERMELON,
+        ThemeChoices.COTTON_CANDY,
+        ThemeChoices.PASTEL_GARDEN,
+    },
+)
+
+# Page ground per theme, for the browser's theme-color meta tag.
+THEME_GROUND_COLORS = {
+    ThemeChoices.DARK: "#000000",
+    ThemeChoices.GREY: "#17181c",
+    ThemeChoices.MIDNIGHT: "#0b1020",
+    ThemeChoices.BEACHFRONT: "#ede8d0",
+    ThemeChoices.PUMPKIN_SPICE: "#be5103",
+    ThemeChoices.TROPICAL_PUNCH: "#ff8243",
+    ThemeChoices.WATERMELON: "#fc6c85",
+    ThemeChoices.COTTON_CANDY: "#b298e7",
+    ThemeChoices.PASTEL_GARDEN: "#c75f71",
+    ThemeChoices.LUSH_FOREST: "#2e6f40",
+}
+
+
+# What each theme paints, for the swatch strip under the Theme picker.
+# Palette themes list their four source colours in palette order.
+THEME_SWATCHES = {
+    ThemeChoices.DARK: (
+        ("#101013", "Background"),
+        ("#191a1f", "Cards"),
+        ("#23242d", "Controls"),
+        ("#4f46e5", "Accent"),
+    ),
+    ThemeChoices.GREY: (
+        ("#17181c", "Background"),
+        ("#202127", "Cards"),
+        ("#2b2c36", "Controls"),
+        ("#4f46e5", "Accent"),
+    ),
+    ThemeChoices.MIDNIGHT: (
+        ("#0b1020", "Background"),
+        ("#121a2e", "Cards"),
+        ("#1e2640", "Controls"),
+        ("#f5a524", "Accent"),
+    ),
+    ThemeChoices.BEACHFRONT: (
+        ("#ede8d0", "Background"),
+        ("#6e632e", "Accent"),
+        ("#dbd1ed", "Cards"),
+        ("#abbeed", "Controls"),
+    ),
+    ThemeChoices.PUMPKIN_SPICE: (
+        ("#be5103", "Background"),
+        ("#8c4c1f", "Cards"),
+        ("#544823", "Controls"),
+        ("#332216", "Buttons"),
+    ),
+    ThemeChoices.TROPICAL_PUNCH: (
+        ("#ff8243", "Background"),
+        ("#ffc0cb", "Cards"),
+        ("#fce883", "Controls"),
+        ("#069494", "Accent"),
+    ),
+    ThemeChoices.WATERMELON: (
+        ("#fc6c85", "Background"),
+        ("#89f336", "Controls"),
+        ("#4a4a4a", "Accent"),
+        ("#adebb3", "Cards"),
+    ),
+    ThemeChoices.COTTON_CANDY: (
+        ("#b298e7", "Background"),
+        ("#b8e3e9", "Cards"),
+        ("#f5b8d5", "Controls"),
+        ("#f9bedd", "Inputs"),
+    ),
+    ThemeChoices.PASTEL_GARDEN: (
+        ("#c75f71", "Background"),
+        ("#f0b8b8", "Cards"),
+        ("#a2ae9d", "Controls"),
+        ("#54463a", "Accent"),
+    ),
+    ThemeChoices.LUSH_FOREST: (
+        ("#2e6f40", "Background"),
+        ("#cfffdc", "Highlights"),
+        ("#68ba7f", "Accent"),
+        ("#253d2c", "Cards"),
+    ),
+}
+
+
+def theme_swatches_json():
+    """Return {theme: [{color, role}, ...]} for the preferences page script."""
+    return {
+        theme.value: [{"color": c, "role": r} for c, r in swatches]
+        for theme, swatches in THEME_SWATCHES.items()
+    }
+
+
+def theme_color_scheme(theme):
+    """Return "light" or "dark" for a theme's color-scheme meta tag."""
+    return "light" if theme in LIGHT_THEMES else "dark"
+
+
+# The original themes predate the palette layer in input.css.
+CLASSIC_THEMES = frozenset(
+    {ThemeChoices.DARK, ThemeChoices.GREY, ThemeChoices.MIDNIGHT},
+)
+
+
+def theme_html_classes(theme):
+    """Return the <html> classes that switch on a theme, colour scheme included.
+
+    Palette themes also get `theme-palette`, and light-ground ones
+    `theme-light`; input.css hangs the shared overrides off those two.
+    """
+    if theme == ThemeChoices.DARK:
+        return "scheme-dark"
+    name = f"theme-{theme.replace('_', '-')}"
+    if theme in CLASSIC_THEMES:
+        return f"scheme-dark {name}"
+    if theme in LIGHT_THEMES:
+        return f"scheme-light {name} theme-palette theme-light"
+    return f"scheme-dark {name} theme-palette"
 
 
 class User(AbstractUser):
@@ -425,7 +559,7 @@ class User(AbstractUser):
 
     # UI preferences
     theme = models.CharField(
-        max_length=10,
+        max_length=20,
         default=ThemeChoices.DARK,
         choices=ThemeChoices,
         help_text="UI color theme",
@@ -694,6 +828,21 @@ class User(AbstractUser):
                 condition=models.Q(theme__in=ThemeChoices.values),
             ),
         ]
+
+    @property
+    def theme_classes(self):
+        """Return the <html> classes that switch on this user's theme."""
+        return theme_html_classes(self.theme)
+
+    @property
+    def theme_color_scheme(self):
+        """Return "light" or "dark" for the color-scheme meta tag."""
+        return theme_color_scheme(self.theme)
+
+    @property
+    def theme_ground_color(self):
+        """Return the page ground colour for the theme-color meta tag."""
+        return THEME_GROUND_COLORS.get(self.theme, "#000000")
 
     def save(self, *args, **kwargs):
         """Make the first real account the instance admin.

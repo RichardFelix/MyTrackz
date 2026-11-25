@@ -130,7 +130,19 @@ class PreferenceStepTests(OnboardingTestCase):
         self.assertContains(response, 'value="dark"\n')
         self.assertRegex(
             response.content.decode(),
-            r'value="dark"\s+class="[^"]*"\s+onchange="[^"]*"\s+checked',
+            r'value="dark"\s+class="[^"]*"\s+data-html-classes="scheme-dark"'
+            r"[^>]*\s+checked",
+        )
+        # The live preview swaps in each option's full class set.
+        self.assertContains(
+            response,
+            'data-html-classes="scheme-light theme-beachfront theme-palette '
+            'theme-light"',
+        )
+        # ...and points the browser chrome at that theme's ground.
+        self.assertContains(
+            response,
+            'data-color-scheme="light" data-ground-color="#ede8d0"',
         )
 
     def test_choice_saved(self):

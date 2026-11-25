@@ -30,6 +30,7 @@ from users.models import (
     ThemeChoices,
     TimeFormatChoices,
     WeekStartDayChoices,
+    theme_swatches_json,
 )
 
 logger = logging.getLogger(__name__)
@@ -271,6 +272,7 @@ def preferences(request):
                 "time_format_choices": TimeFormatChoices.choices,
                 "week_start_day_choices": WeekStartDayChoices.choices,
                 "theme_choices": ThemeChoices.choices,
+                "theme_swatches": theme_swatches_json(),
                 "watch_provider_choices": watch_provider_regions,
             },
         )

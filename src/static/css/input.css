@@ -22,6 +22,15 @@
   src: url('../fonts/InterVariable-Italic.woff2') format('woff2');
 }
 
+/* Fonts load with font-display: swap. Pinning font-size-adjust to the web
+   font's own x-height ratio (as Chromium resolves it) leaves that font at its
+   natural size and scales the fallback to match, so text doesn't jump when
+   the swap lands. A fixed number, not from-font: from-font reads whichever
+   font is available first, i.e. the fallback during the swap period. */
+html { font-size-adjust: 0.515625; } /* Inter */
+/* System monospace stacks have no web font to match. */
+:is(code, pre, samp, .font-mono) { font-size-adjust: none; }
+
 [x-cloak] {
   display: none !important;
 }
@@ -112,7 +121,7 @@
   position: relative;
   color-scheme: dark;
   background-color: rgba(25, 26, 31, 0.72);
-  background-color: color-mix(in srgb, var(--card) 72%, transparent);
+  background-color: color-mix(in oklab, var(--card) 72%, transparent);
   backdrop-filter: blur(18px) saturate(1.5);
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -409,9 +418,30 @@
   --input-hover: #23242c;
   --border: #262732;
   --focus: #7c84f2;
+
+  /* Contrast floor shared by Dark (and inherited by Grey/Midnight unless they
+     override): grey-500 text >= 4.5:1 and grey-600 control edges >= 3:1 on
+     every surface. Tailwind's defaults measured 3.3:1 and 2:1 here. */
+  --color-gray-500: #9399a4;
+  --color-gray-600: #717a87;
+
+  /* White on emerald-600 is 3.65:1; one shade darker passes at 5.4:1. */
+  --color-emerald-600: oklch(50.8% 0.118 165.612);
+  --color-emerald-700: oklch(43.2% 0.095 166.913);
+  /* Same for the details-page action buttons (History, Image, Sync):
+     white on the -600 steps measured 3.2-4.0:1. */
+  --color-amber-600: oklch(55.5% 0.163 48.998);
+  --color-amber-700: oklch(47.3% 0.137 46.201);
+  --color-sky-600: oklch(50% 0.134 242.749);
+  --color-sky-700: oklch(44.3% 0.11 240.79);
+  --color-fuchsia-600: oklch(51.8% 0.253 323.949);
+  --color-fuchsia-700: oklch(45.2% 0.211 324.591);
 }
 
 html.theme-grey {
+  --color-gray-400: #a3abb8;
+  --color-gray-500: #9ea4ae;
+  --color-gray-600: #7c848f;
   --page: #17181c;
   --card: #202127;
   --card-hover: #282932;
@@ -442,6 +472,20 @@ html.theme-grey {
 .hover\:bg-\[\#454d5a\]:hover,
 .hover\:bg-\[\#454d59\]:hover,
 .bg-\[\#3e454d\] { background-color: var(--raised-hover) !important; }
+
+/* grey-600 is lifted above for 3:1 borders, but filled grey-600 elements
+   (cancel buttons, switch tracks) carry white text or a white knob: on dark
+   grounds they keep a darker fill. Light themes' ink-line already suits both. */
+:root { --neutral-fill: oklch(44.6% 0.03 256.802); }
+html:not(.theme-light) :is(.bg-gray-600, .hover\:bg-gray-600:hover) { --color-gray-600: var(--neutral-fill); }
+/* Light themes: a hover step on pale grey-700 buttons stays light, so the
+   ink text on them keeps its contrast. */
+html.theme-light .hover\:bg-gray-600:hover:not(.bg-gray-600) {
+  background-color: color-mix(in oklab, var(--ink) 24%, var(--card)) !important;
+}
+
+/* Translucent panel wash (profile image cropper) */
+.bg-\[\#23242d\]\/40 { background-color: color-mix(in oklab, var(--raised) 40%, transparent) !important; }
 
 /* Inputs */
 .bg-\[\#272c31\],
@@ -526,6 +570,8 @@ html.theme-midnight {
   --input-hover: #1a233b;
   --border: #222b45;
   --focus: #f5a524;
+  --color-gray-500: #959aa6;
+  --color-gray-600: #737c88;
 
   --midnight-accent: #f5a524;
   --midnight-glass: rgba(18, 23, 38, 0.55);
@@ -536,7 +582,7 @@ html.theme-midnight {
   --color-indigo-200: #fde3a7;
   --color-indigo-300: #fcd27a;
   --color-indigo-400: #f5a524;
-  --color-indigo-500: #e08a0b;
+  --color-indigo-500: #a66708; /* hover fill under white text: 4.6:1 */
   --color-indigo-600: #b45309;
   --color-indigo-700: #9a4d08;
   --color-indigo-800: #78400d;
@@ -549,11 +595,16 @@ html.theme-midnight {
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+html.theme-midnight { font-size-adjust: 0.504; } /* DM Sans */
+html.theme-midnight :is(.font-mono, code, pre, samp) { font-size-adjust: 0.55; } /* JetBrains Mono */
+
 html.theme-midnight :is(h1, h2, h3, h4) {
+  font-size-adjust: 0.526; /* Archivo */
   font-family: 'Archivo', 'Inter', ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.01em;
 }
 html.theme-midnight .tabular-nums {
+  font-size-adjust: 0.55;
   font-family: var(--font-mono);
 }
 
@@ -608,6 +659,526 @@ html.theme-midnight .modal-glass .hover\:bg-indigo-700:hover {
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     0 4px 16px -4px rgba(245, 165, 36, 0.5);
+}
+
+/* Two-tone wordmark: cream + gold on dark grounds; themes may override. */
+:root {
+  --logo-my: #e8e4dc;
+  --logo-trackz: #f0c070;
+}
+.logo-my { color: var(--logo-my); }
+.logo-trackz { color: var(--logo-trackz); }
+
+/* ==========================================================================
+   Palette themes (html.theme-palette)
+   Seven themes built from four-colour palettes; the first colour of each is
+   the page ground. Each theme block sets the surface tokens, remaps the
+   indigo scale to its accent (500-700 are button fills, 200-400 accent text)
+   and names --on-accent, the text colour on those fills.
+   Light-ground themes also carry html.theme-light, which flips the ink: see
+   the "Light ground" section below. Pumpkin Spice and Lush Forest stay dark
+   and only warm or tint the grey text scale.
+   ========================================================================== */
+
+/* --- Dark grounds ------------------------------------------------------- */
+
+html.theme-pumpkin-spice {
+  --page: #be5103;
+  --card: #8c4c1f;
+  --card-hover: #985628;
+  --raised: #544823;
+  --raised-hover: #62552b;
+  --input: #332216;
+  --input-hover: #3e2a1c;
+  --border: #6f3d17;
+  --focus: #ffd2a1;
+  --on-accent: #fff;
+
+  --color-indigo-50: #fff6ec;
+  --color-indigo-100: #ffedd9;
+  --color-indigo-200: #fff9f3;
+  --color-indigo-300: #fff9f3;
+  --color-indigo-400: #fff9f3;
+  --color-indigo-500: #544823;
+  --color-indigo-600: #332216;
+  --color-indigo-700: #241709;
+  --color-indigo-800: #1c1207;
+  --color-indigo-900: #140c04;
+  --color-indigo-950: #0c0702;
+
+  /* Warm cream greys: the orange ground is bright, so secondary text stays light. */
+  --color-gray-100: #fff8f1;
+  --color-gray-200: #fff3e6;
+  --color-gray-300: #ffffff;
+  --color-gray-400: #ffffff;
+  --color-gray-500: #fcfaf8;
+  --color-gray-600: #d1cec3;
+  --color-gray-700: #7a4219;
+  --color-gray-800: #5c3112;
+  --color-gray-900: #332216;
+}
+
+html.theme-lush-forest {
+  --page: #2e6f40;
+  --card: #253d2c;
+  --card-hover: #2c4834;
+  --raised: #33553c;
+  --raised-hover: #3d6447;
+  --input: #1d3123;
+  --input-hover: #233a2a;
+  --border: #3a5c43;
+  --focus: #cfffdc;
+  --on-accent: #0f2416;
+
+  --color-indigo-50: #effff3;
+  --color-indigo-100: #e1ffe9;
+  --color-indigo-200: #cfffdc;
+  --color-indigo-300: #cfffdc;
+  --color-indigo-400: #cfffdc;
+  --color-indigo-500: #7fcb94;
+  --color-indigo-600: #68ba7f;
+  --color-indigo-700: #58a86e;
+  --color-indigo-800: #3f7d50;
+  --color-indigo-900: #2e5c3b;
+  --color-indigo-950: #1a3622;
+
+  /* Minty greys */
+  --color-gray-100: #f2fbf4;
+  --color-gray-200: #e6f5ea;
+  --color-gray-300: #ffffff;
+  --color-gray-400: #eceeed;
+  --color-gray-500: #dee1df;
+  --color-gray-600: #adbcb1;
+  --color-gray-700: #3a5c43;
+  --color-gray-800: #2a4532;
+  --color-gray-900: #1d3123;
+}
+
+/* --- Light grounds ------------------------------------------------------ */
+
+html.theme-beachfront {
+  --page: #ede8d0;
+  --card: #dbd1ed;
+  --card-hover: #d1c5e8;
+  --raised: #abbeed;
+  --raised-hover: #9cb2ea;
+  --input: #f7f4e7;
+  --input-hover: #fbf9f1;
+  --focus: #6e632e;
+  --ink: #24210f;
+  --on-accent: #fff;
+
+  --color-indigo-50: #f6f4ea;
+  --color-indigo-100: #ebe7d0;
+  --color-indigo-200: #4c4420;
+  --color-indigo-300: #4c4420;
+  --color-indigo-400: #4c4420;
+  --color-indigo-500: #7d7036;
+  --color-indigo-600: #6e632e;
+  --color-indigo-700: #574e23;
+  --color-indigo-800: #433c1b;
+  --color-indigo-900: #2f2a13;
+  --color-indigo-950: #1d1a0b;
+
+  /* Solved for 7:1 / 5.2:1 / 4.6:1 text, and a 3:1 control edge on the page,
+     cards and raised controls (also dark enough to carry white text). */
+  --ink-soft: #2c2818;
+  --ink-muted: #413c32;
+  --ink-faint: #48443b;
+  --ink-line: #645e5c;
+}
+
+html.theme-tropical-punch {
+  --page: #ff8243;
+  --card: #ffc0cb;
+  --card-hover: #ffb1bf;
+  --raised: #fce883;
+  --raised-hover: #f9df5e;
+  --input: #fff0f2;
+  --input-hover: #fff7f8;
+  --focus: #034e4e;
+  --ink: #2a140a;
+  --on-accent: #fff;
+
+  --color-indigo-50: #e6f7f7;
+  --color-indigo-100: #c5ecec;
+  --color-indigo-200: #1e403a;
+  --color-indigo-300: #1e403a;
+  --color-indigo-400: #1e403a;
+  --color-indigo-500: #068282;
+  --color-indigo-600: #057575;
+  --color-indigo-700: #045f5f;
+  --color-indigo-800: #034a4a;
+  --color-indigo-900: #023535;
+  --color-indigo-950: #012121;
+
+  /* Solved for 7:1 / 5.2:1 / 4.6:1 text, and a 3:1 control edge on the page,
+     cards and raised controls (also dark enough to carry white text). */
+  --ink-soft: #2b150b;
+  --ink-muted: #472b24;
+  --ink-faint: #50332d;
+  --ink-line: #6f4b48;
+}
+
+html.theme-watermelon {
+  --page: #fc6c85;
+  --card: #adebb3;
+  --card-hover: #9fe3a6;
+  --raised: #89f336;
+  --raised-hover: #7ae624;
+  --input: #effcf0;
+  --input-hover: #f7fef8;
+  --focus: #4a4a4a;
+  --ink: #1c1c1c;
+  --on-accent: #fff;
+
+  --color-indigo-50: #f2f2f2;
+  --color-indigo-100: #e0e0e0;
+  --color-indigo-200: #323232;
+  --color-indigo-300: #323232;
+  --color-indigo-400: #323232;
+  --color-indigo-500: #5a5a5a;
+  --color-indigo-600: #4a4a4a;
+  --color-indigo-700: #383838;
+  --color-indigo-800: #2a2a2a;
+  --color-indigo-900: #1f1f1f;
+  --color-indigo-950: #141414;
+
+  /* Solved for 7:1 / 5.2:1 / 4.6:1 text, and a 3:1 control edge on the page,
+     cards and raised controls (also dark enough to carry white text). */
+  --ink-soft: #1c1c1c;
+  --ink-muted: #272b27;
+  --ink-faint: #2d342e;
+  --ink-line: #415143;
+}
+
+html.theme-cotton-candy {
+  --page: #b298e7;
+  --card: #b8e3e9;
+  --card-hover: #a7dbe2;
+  --raised: #f5b8d5;
+  --raised-hover: #f0a5c8;
+  --input: #f9bedd;
+  --input-hover: #fbcde4;
+  --focus: #5b40b0;
+  --ink: #241838;
+  --on-accent: #fff;
+
+  --color-indigo-50: #f4f0fd;
+  --color-indigo-100: #e6dcfa;
+  --color-indigo-200: #402d76;
+  --color-indigo-300: #402d76;
+  --color-indigo-400: #402d76;
+  --color-indigo-500: #6a4fc0;
+  --color-indigo-600: #5b40b0;
+  --color-indigo-700: #4a338f;
+  --color-indigo-800: #3a2873;
+  --color-indigo-900: #2b1e55;
+  --color-indigo-950: #1b1236;
+
+  /* Solved for 7:1 / 5.2:1 / 4.6:1 text, and a 3:1 control edge on the page,
+     cards and raised controls (also dark enough to carry white text). */
+  --ink-soft: #241838;
+  --ink-muted: #342e4b;
+  --ink-faint: #3a3753;
+  --ink-line: #4f536c;
+}
+
+html.theme-pastel-garden {
+  --page: #c75f71;
+  --card: #f0b8b8;
+  --card-hover: #eaa8a8;
+  --raised: #a2ae9d;
+  --raised-hover: #94a18e;
+  --input: #f8dada;
+  --input-hover: #fbe7e7;
+  --focus: #170f0b;
+  --ink: #0f0805;
+  --on-accent: #fff;
+
+  --color-indigo-50: #f4f1ee;
+  --color-indigo-100: #e6dfd8;
+  --color-indigo-200: #1c130f;
+  --color-indigo-300: #1c130f;
+  --color-indigo-400: #1c130f;
+  --color-indigo-500: #66564a;
+  --color-indigo-600: #54463a;
+  --color-indigo-700: #43372d;
+  --color-indigo-800: #352b23;
+  --color-indigo-900: #261e18;
+  --color-indigo-950: #17120e;
+
+  /* Solved for 7:1 / 5.2:1 / 4.6:1 text, and a 3:1 control edge on the page,
+     cards and raised controls (also dark enough to carry white text). */
+  --ink-soft: #170f0b;
+  --ink-muted: #170f0b;
+  --ink-faint: #1d130f;
+  --ink-line: #44312f;
+}
+
+/* The orange ground is bright: white text tops out at 4.8:1 on it, so white
+   tints (chips, kbd hints) would push it under 4.5. Tint darker instead. */
+html.theme-pumpkin-spice .bg-white\/5 { background-color: rgb(0 0 0 / 0.06); }
+html.theme-pumpkin-spice .bg-white\/10 { background-color: rgb(0 0 0 / 0.1); }
+html.theme-pumpkin-spice { --logo-trackz: #ffd9a8; --neutral-fill: #5c3a1e; }
+html.theme-lush-forest { --neutral-fill: #3d6447; }
+/* Pastel Garden's rose ground is mid-tone too: a lighter wash keeps ink >= 4.5:1. */
+html.theme-pastel-garden .bg-white\/5 { background-color: rgb(255 255 255 / 0.14); }
+
+/* --- Shared by every palette theme -------------------------------------- */
+
+/* Section count pills sit on the page ground, where a tinted accent or sky
+   label can't hold 4.5:1 against every palette; they take the ink instead. */
+html.theme-palette .count-pill {
+  color: var(--color-gray-200);
+}
+
+/* Surfaces the token system predates (search bar, filter buttons, home list
+   rows, avatar chips). Scoped here so Dark/Grey/Midnight are untouched. */
+html.theme-palette .bg-\[\#17181d\] { background-color: var(--input) !important; }
+/* Floating panels: the search palette and the media-list filter menus. */
+html.theme-palette .bg-\[\#1b1c22\] { background-color: var(--card) !important; }
+html.theme-palette .hover\:bg-\[\#1d1e24\]:hover { background-color: var(--input-hover) !important; }
+html.theme-palette .bg-\[\#202228\],
+html.theme-palette .bg-\[\#20242a\] { background-color: var(--card) !important; }
+html.theme-palette .bg-\[\#303239\],
+html.theme-palette .bg-\[\#3b3d44\],
+html.theme-palette .bg-\[\#4b5563\] { background-color: var(--raised) !important; }
+html.theme-palette .hover\:bg-\[\#3a3d45\]:hover { background-color: var(--raised-hover) !important; }
+html.theme-palette .border-\[\#3d444d\] { border-color: var(--border) !important; }
+html.theme-palette .bg-\[\#4f46e5\] { background-color: var(--color-indigo-600) !important; }
+
+/* text-indigo-500 is used as text in a few places (404, link hovers). The 500
+   step is a fill shade in every theme (Tailwind's default measures 3.5-3.8:1
+   on Dark/Grey cards; the palettes and Midnight use it as a button fill), so
+   text reads from the accent-text step instead. */
+html :is(.text-indigo-500, .hover\:text-indigo-500:hover) {
+  color: var(--color-indigo-400);
+}
+
+/* Media details backdrop fades into the page ground, not into near-black. */
+html.theme-palette .from-\[\#101013\]\/70 {
+  --tw-gradient-from: color-mix(in oklab, var(--page) 70%, transparent) !important;
+}
+html.theme-palette .via-\[\#101013\]\/70 {
+  --tw-gradient-via: color-mix(in oklab, var(--page) 70%, transparent) !important;
+}
+html.theme-palette .to-\[\#101013\] {
+  --tw-gradient-to: var(--page) !important;
+}
+
+/* Text on accent fills follows the theme's --on-accent. */
+html.theme-palette :is(
+  .bg-indigo-500, .bg-indigo-600, .bg-indigo-700,
+  .hover\:bg-indigo-500:hover, .hover\:bg-indigo-600:hover, .hover\:bg-indigo-700:hover
+) {
+  --color-white: var(--on-accent);
+  --color-gray-100: var(--on-accent);
+  --color-gray-200: var(--on-accent);
+  --color-gray-300: var(--on-accent);
+  --color-gray-400: var(--on-accent);
+}
+
+/* Switches: in several palettes the grey "off" track and the accent "on"
+   track are both dark mid-tones, so state read only through hue. Off becomes
+   a hollow outlined track with a solid knob; on stays a filled accent track
+   with a white knob. The difference is shape as well as colour. */
+/* Resolved on <html> so the dark-ground .bg-gray-600 fill override on the
+   track itself can't swap it out. */
+html.theme-palette { --control-edge: var(--color-gray-600); }
+html.theme-palette input.peer:not(:checked) ~ .peer-checked\:bg-indigo-600 {
+  background-color: transparent !important;
+  box-shadow: inset 0 0 0 2px var(--control-edge);
+}
+html.theme-palette input.peer:not(:checked) ~ .peer-checked\:bg-indigo-600::after {
+  background-color: var(--control-edge) !important;
+  border-color: var(--control-edge) !important;
+  transform: scale(0.8);
+}
+
+/* Hardcoded indigo glows and fills */
+html.theme-palette [class*="rgba(99,102,241"] {
+  --tw-shadow-color: color-mix(in oklab, var(--color-indigo-500) 45%, transparent);
+}
+html.theme-palette .liquid-glass {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02) 32%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.07)),
+    color-mix(in oklab, var(--card) 60%, transparent);
+}
+html.theme-palette .modal-glass select option {
+  color: var(--color-white);
+  background-color: var(--raised);
+}
+html.theme-palette .modal-glass select option:checked {
+  color: var(--on-accent);
+  background-color: var(--color-indigo-600);
+}
+html.theme-palette .modal-glass .bg-indigo-600 {
+  background-color: color-mix(in oklab, var(--color-indigo-600) 88%, transparent) !important;
+}
+html.theme-palette .modal-glass .hover\:bg-indigo-700:hover {
+  background-color: var(--color-indigo-700) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 16px -4px color-mix(in oklab, var(--color-indigo-500) 50%, transparent);
+}
+
+/* select2 (genre/tag pickers) bakes its colours in through @apply. */
+html.theme-palette .select2-container--tailwindcss-4.select2-container--open .select2-dropdown,
+html.theme-palette .select2-container--tailwindcss-4 .select2-selection--multiple {
+  background-color: var(--input);
+}
+html.theme-palette .select2-container--tailwindcss-4 .select2-results__option--highlighted,
+html.theme-palette .select2-container--tailwindcss-4 .select2-selection--multiple .select2-selection__choice {
+  background-color: var(--raised);
+}
+
+/* --- Light ground (html.theme-light) ------------------------------------
+   Tailwind v4 compiles text-white, the grey scale and bg-white/N tints to
+   var(--color-white) / var(--color-gray-*), so remapping them here turns the
+   app's white-on-dark text into ink-on-light without touching templates.
+   Three places put the real white back: accent fills (above), solid status
+   fills, and dark overlays sitting on artwork. */
+html.theme-light {
+  --border: color-mix(in oklab, var(--ink) 18%, var(--card));
+
+  --color-white: var(--ink);
+  --color-gray-50: var(--ink);
+  --color-gray-100: var(--ink);
+  --color-gray-200: var(--ink);
+  --color-gray-300: var(--ink-soft);
+  --color-gray-400: var(--ink-muted);
+  --color-gray-500: var(--ink-faint);
+  --color-gray-600: var(--ink-line);
+  --color-gray-700: color-mix(in oklab, var(--ink) 16%, var(--card));
+  --color-gray-800: var(--raised);
+  --color-gray-900: var(--card);
+  --color-gray-950: var(--page);
+  --color-slate-200: var(--ink);
+
+  /* Status and media-type text (the -200..-400 steps) moves to the dark
+     end of each scale so it reads on light surfaces. */
+  --color-red-200: oklch(44.4% 0.177 26.899);
+  --color-red-300: oklch(44.4% 0.177 26.899);
+  --color-red-400: oklch(50.5% 0.213 27.518);
+  --color-emerald-200: oklch(43.2% 0.095 166.913);
+  --color-emerald-300: oklch(43.2% 0.095 166.913);
+  --color-emerald-400: oklch(43.2% 0.095 166.913);
+  --color-green-400: oklch(44.8% 0.119 151.328);
+  --color-yellow-400: oklch(47.6% 0.114 61.907);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+  --color-amber-300: oklch(47.3% 0.137 46.201);
+  --color-amber-400: oklch(47.3% 0.137 46.201);
+  --color-orange-400: oklch(47% 0.157 37.304);
+  --color-orange-500: oklch(47% 0.157 37.304);
+  --color-sky-200: oklch(44.3% 0.11 240.79);
+  --color-sky-300: oklch(44.3% 0.11 240.79);
+  --color-sky-400: oklch(44.3% 0.11 240.79);
+  --color-blue-400: oklch(42.4% 0.199 265.638);
+  --color-cyan-400: oklch(45% 0.085 224.283);
+  --color-purple-400: oklch(43.8% 0.218 303.724);
+  --color-fuchsia-400: oklch(45.2% 0.211 324.591);
+  --color-lime-400: oklch(45.3% 0.124 130.933);
+}
+
+/* Wordmark: ink plus the theme's accent. */
+html.theme-light {
+  --logo-my: var(--ink);
+  --logo-trackz: var(--color-indigo-400);
+}
+
+/* Toggle-switch knobs stay white on both the track and the accent fill. */
+html.theme-light .after\:bg-white::after {
+  --color-white: #fff;
+}
+
+/* Solid status fills (delete, success, warning) and grey-600 fills keep white text. */
+html.theme-light :is(
+  .bg-gray-600,
+  .bg-red-500, .bg-red-600, .bg-red-700, .bg-red-800, .bg-red-900,
+  .bg-emerald-500, .bg-emerald-600, .bg-emerald-700,
+  .bg-amber-500, .bg-amber-600, .bg-amber-700,
+  .bg-sky-500, .bg-sky-600, .bg-sky-700, .bg-yellow-600,
+  .bg-fuchsia-600, .bg-fuchsia-700,
+  .hover\:bg-red-600:hover, .hover\:bg-red-700:hover, .hover\:bg-red-800:hover,
+  .hover\:bg-emerald-600:hover, .hover\:bg-emerald-700:hover
+) {
+  --color-white: #fff;
+  --color-gray-200: #fff;
+  --color-gray-300: #fff;
+}
+
+/* Grey cancel buttons darken on hover instead of fading to a pale tint. */
+html.theme-light .bg-gray-600.hover\:bg-gray-700:hover {
+  background-color: color-mix(in oklab, var(--ink-line), var(--ink) 30%) !important;
+}
+
+/* Dark scrims laid over posters and backdrops keep the original light text. */
+html.theme-light .absolute[class*="bg-black/"] {
+  --color-white: #fff;
+  --color-gray-100: oklch(96.7% 0.003 264.542);
+  --color-gray-200: oklch(92.8% 0.006 264.531);
+  --color-gray-300: oklch(87.2% 0.01 258.338);
+  --color-gray-400: oklch(70.7% 0.022 261.325);
+}
+
+/* Glass and hover effects were tuned for dark grounds. */
+html.theme-light .liquid-glass {
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.1) 32%, rgba(255, 255, 255, 0) 55%, rgba(255, 255, 255, 0.2)),
+    color-mix(in oklab, var(--card) 70%, transparent);
+  border-color: color-mix(in oklab, var(--ink) 14%, transparent);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5);
+}
+html.theme-light .modal-glass {
+  color-scheme: light;
+  border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+  box-shadow:
+    0 10px 40px -10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+html.theme-light .modal-glass:hover {
+  border-color: color-mix(in oklab, var(--ink) 22%, transparent);
+}
+html.theme-light .modal-glass::after {
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(255, 255, 255, 0.25),
+    transparent 65%
+  );
+}
+html.theme-light .modal-x:hover {
+  background-color: color-mix(in oklab, var(--ink) 10%, transparent);
+}
+html.theme-light .modal-glass .bg-\[\#39404b\],
+html.theme-light .modal-glass .bg-\[\#343a40\] {
+  background-color: color-mix(in oklab, var(--raised) 60%, transparent) !important;
+}
+html.theme-light .modal-glass .bg-\[\#39404b\]:hover,
+html.theme-light .modal-glass .bg-\[\#343a40\]:hover {
+  background-color: color-mix(in oklab, var(--raised-hover) 75%, transparent) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+html.theme-light .modal-glass .border-gray-600 {
+  border-color: color-mix(in oklab, var(--ink) 18%, transparent) !important;
+}
+html.theme-light .modal-glass .border-gray-600:hover {
+  border-color: color-mix(in oklab, var(--ink) 32%, transparent) !important;
+}
+html.theme-light .modal-glass .bg-gray-600 {
+  background-color: color-mix(in oklab, var(--ink-line) 92%, transparent) !important;
+}
+html.theme-light .modal-glass .bg-gray-600.hover\:bg-gray-700:hover {
+  background-color: color-mix(in oklab, var(--ink-line), var(--ink) 30%) !important;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  html.theme-light .card-lift:hover {
+    outline-color: color-mix(in oklab, var(--ink) 14%, transparent);
+    box-shadow: 0 22px 34px -14px rgba(0, 0, 0, 0.35);
+  }
 }
 
 /* ==========================================================================

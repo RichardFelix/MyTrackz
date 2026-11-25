@@ -117,7 +117,7 @@
             {# Dropdown Toggle #}
             <button type="button"
                     @click="dropdownOpen = !dropdownOpen"
-                    :style="dropdownOpen ? 'background-color: #4338ca;' : 'background-color: #4f46e5;'"
+                    :class="dropdownOpen ? 'bg-indigo-700' : 'bg-indigo-600'"
                     class="px-2 py-2 text-white rounded-r-md border-l border-indigo-500 transition duration-300 cursor-pointer flex items-center justify-center">
               <svg class="w-4 h-4 transition-transform duration-200"
                    :class="{'rotate-180': dropdownOpen}"
