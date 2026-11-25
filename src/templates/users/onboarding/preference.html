@@ -43,7 +43,7 @@
                        name="{{ row.setting.field }}"
                        value="{{ option.value }}"
                        class="mt-0.5 accent-indigo-500"
-                       {% if row.setting.field == "theme" %}onchange="document.documentElement.classList.toggle('theme-grey', this.value === 'grey')"{% endif %}
+                       {% if row.setting.field == "theme" %}onchange="document.documentElement.classList.toggle('theme-grey', this.value === 'grey');document.documentElement.classList.toggle('theme-midnight', this.value === 'midnight')"{% endif %}
                        {% if option.value == row.current %}checked{% endif %}>
                 <span>
                   <span class="block text-sm font-medium text-gray-200">{{ option.label }}</span>

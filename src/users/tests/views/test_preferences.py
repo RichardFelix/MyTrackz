@@ -92,6 +92,20 @@ class PreferencesHomeOrderTests(TestCase):
             with self.subTest(field_name=field_name):
                 self.assertEqual(getattr(self.user, field_name), expected)
 
+    def test_midnight_theme_is_offered_saved_and_applied(self):
+        """Midnight saves like the other themes and tags the page root."""
+        response = self.client.get(reverse("preferences"))
+        self.assertContains(response, 'value="midnight"')
+        self.assertNotContains(response, "theme-midnight")
+
+        self.client.post(reverse("preferences"), {"theme": ThemeChoices.MIDNIGHT})
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme, ThemeChoices.MIDNIGHT)
+        response = self.client.get(reverse("preferences"))
+        self.assertContains(response, "theme-midnight")
+        self.assertContains(response, 'content="#0b1020"')
+
     def test_valid_order_persists(self):
         """A valid submitted order is saved verbatim."""
         order = f"{MediaTypes.GAME.value},{MediaTypes.MOVIE.value}"

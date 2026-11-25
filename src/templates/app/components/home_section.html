@@ -13,7 +13,9 @@
           {% include "app/icons/states/planning.svg" with classes="h-5 w-5" %}
         {% endif %}
       </div>
-      <h2 class="text-2xl font-semibold text-white">{{ section.key|media_status_readable:user|title }}</h2>
+      <h2 class="home-section-title text-2xl font-semibold text-white">
+        {{ section.key|media_status_readable:user|title }}
+      </h2>
     </div>
     <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] {% if section.key == Status.IN_PROGRESS.value %}border-indigo-400/30 bg-indigo-500/10 text-indigo-300{% else %}border-sky-400/30 bg-sky-500/10 text-sky-300{% endif %}">
       {% if section.key == Status.IN_PROGRESS.value %}
@@ -31,7 +33,7 @@
         <div class="space-y-4">
           <div class="mb-4 flex items-center justify-between gap-4">
             <div>
-              <h3 class="text-lg font-semibold text-white">{{ media_type|media_type_readable_plural }}</h3>
+              <h3 class="home-subsection-title text-lg font-semibold text-white">{{ media_type|media_type_readable_plural }}</h3>
             </div>
           </div>
 

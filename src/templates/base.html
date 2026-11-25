@@ -3,7 +3,7 @@
 
 <!DOCTYPE html>
 <html lang="en"
-      class="scheme-dark scroll-smooth bg-[#000]{% if user.theme == 'grey' %} theme-grey{% endif %}">
+      class="scheme-dark scroll-smooth bg-[#000]{% if user.theme == 'grey' %} theme-grey{% elif user.theme == 'midnight' %} theme-midnight{% endif %}">
   <head>
     {# Required meta tags #}
     <meta charset="UTF-8">
@@ -54,7 +54,8 @@
     <meta name="msapplication-TileColor" content="#000000">
     <meta name="msapplication-config"
           content="{% static "favicon/browserconfig.xml" %}">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color"
+          content="{% if user.theme == 'midnight' %}#0b1020{% else %}#000000{% endif %}">
 
   </head>
 

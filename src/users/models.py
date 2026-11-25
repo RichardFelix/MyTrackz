@@ -136,6 +136,7 @@ class ThemeChoices(models.TextChoices):
 
     DARK = "dark", "Dark"
     GREY = "grey", "Grey"
+    MIDNIGHT = "midnight", "Midnight"
 
 
 class User(AbstractUser):

@@ -113,6 +113,9 @@ PREFERENCE_STEPS = (
                     {
                         ThemeChoices.DARK: "Black background, strongest contrast.",
                         ThemeChoices.GREY: "Softer charcoal surfaces.",
+                        ThemeChoices.MIDNIGHT: (
+                            "Deep navy with an amber accent and its own fonts."
+                        ),
                     },
                 ),
             ),
